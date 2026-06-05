@@ -12,6 +12,7 @@ model User {
     chatSessions   ChatSession[]
     memories       Memory[]
     skills         Skill[]
+    documents      Document[]
 
     @@unique([email])
     @@map("user")
