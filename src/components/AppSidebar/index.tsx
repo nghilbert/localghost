@@ -3,9 +3,12 @@ import {
 	CalendarIcon,
 	CopyrightIcon,
 	FileTextIcon,
+	GalleryHorizontalIcon,
 	LayoutGridIcon,
 	MailIcon,
 	SearchIcon,
+	SettingsIcon,
+	ShieldIcon,
 	TimerIcon,
 } from "lucide-react";
 import {
@@ -20,7 +23,6 @@ import {
 	SidebarMenuItem,
 	SidebarTrigger,
 } from "#/components/ui/sidebar";
-import { EndpointDialog } from "#/features/chat/components/EndpointDialog";
 import { SessionList } from "#/features/chat/components/SessionList";
 import { APP_NAME, COPYRIGHT_STATEMENT } from "#/lib/constants";
 import { AuthMenu } from "./AuthMenu";
@@ -93,14 +95,39 @@ export function AppSidebar() {
 									</Link>
 								</SidebarMenuButton>
 							</SidebarMenuItem>
+							<SidebarMenuItem>
+								<SidebarMenuButton asChild>
+									<Link to="/gallery">
+										<GalleryHorizontalIcon size={14} />
+										Gallery
+									</Link>
+								</SidebarMenuButton>
+							</SidebarMenuItem>
 						</SidebarMenu>
 					</SidebarGroupContent>
 				</SidebarGroup>
 
-				{/* Providers button */}
+				{/* Settings / Admin */}
 				<SidebarGroup className="group-data-[collapsible=icon]:hidden">
 					<SidebarGroupContent>
-						<EndpointDialog />
+						<SidebarMenu>
+							<SidebarMenuItem>
+								<SidebarMenuButton asChild>
+									<Link to="/settings">
+										<SettingsIcon size={14} />
+										Settings
+									</Link>
+								</SidebarMenuButton>
+							</SidebarMenuItem>
+							<SidebarMenuItem>
+								<SidebarMenuButton asChild>
+									<Link to="/admin">
+										<ShieldIcon size={14} />
+										Admin
+									</Link>
+								</SidebarMenuButton>
+							</SidebarMenuItem>
+						</SidebarMenu>
 					</SidebarGroupContent>
 				</SidebarGroup>
 
