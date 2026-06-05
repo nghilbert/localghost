@@ -10,6 +10,8 @@ model User {
     accounts       Account[]
     modelEndpoints ModelEndpoint[]
     chatSessions   ChatSession[]
+    memories       Memory[]
+    skills         Skill[]
 
     @@unique([email])
     @@map("user")
