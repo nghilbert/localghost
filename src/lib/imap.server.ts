@@ -102,7 +102,7 @@ export async function fetchMessage(
 				{ uid: true },
 			);
 
-			if (!msg || !msg.envelope) return null;
+			if (msg === false || !msg.envelope) return null;
 
 			// Mark as seen
 			await client.messageFlagsAdd(uid, ["\\Seen"], { uid: true });
