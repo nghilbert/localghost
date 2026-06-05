@@ -12,7 +12,7 @@
 		"bracketSpacing": true
 	},
 	"files": {
-		"includes": ["**", "!**/routeTree.gen.ts"],
+		"includes": ["**", "!**/routeTree.gen.ts", "!odysseus"],
 		"ignoreUnknown": true
 	},
 	"vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true }

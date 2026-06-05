@@ -35,3 +35,5 @@ Thumbs.db
 *.sw?
 
 /src/generated/prisma
+
+odysseus/
