@@ -117,6 +117,42 @@ Routes:
 
 **`src/lib/research.server.ts`** — `runResearch()` async generator: Plan → Search (parallel) → Synthesize → Evaluate → repeat (up to 5 rounds). Yields `ResearchChunk` events (`progress`, `report`, `done`, `error`).
 
+### Email + Calendar (Phase 4) — `src/features/email/`, `src/features/calendar/`
+
+IMAP/SMTP email client and CalDAV calendar integration.
+
+- **`src/lib/imap.server.ts`** — `listMessages`, `fetchMessage` via imapflow. Passwords encrypted at rest.
+- **`src/lib/smtp.server.ts`** — `sendMail` via nodemailer.
+- **`src/lib/caldav.server.ts`** — `syncCalDav` via tsdav + ical.js.
+- **`src/features/email/lib/email.functions.ts`** — `getEmailAccounts`, `createEmailAccount`, `deleteEmailAccount`, `listEmails`, `getEmail`, `sendEmail`
+- **`src/features/calendar/lib/calendar.functions.ts`** — `getCalendars`, `createCalendar`, `deleteCalendar`, `getEvents`, `createEvent`, `updateEvent`, `deleteEvent`, `syncCalendar`
+
+Routes:
+- `/_authenticated/email` — inbox list, read pane, compose modal, add account dialog
+- `/_authenticated/calendar` — month-view grid, create/delete events, legend
+
+### Scheduled Tasks + Compare + PWA (Phase 5)
+
+Scheduled LLM tasks and model comparison.
+
+- **`src/lib/scheduler.server.ts`** — `initScheduler()` (node-cron, polls every minute), `computeNextRun()`, `executeTask()`. Initialised via side-effect import in `src/lib/startup.server.ts` which is imported from `api/chat/stream.tsx`.
+- **`src/features/tasks/lib/task.functions.ts`** — `getTasks`, `createTask`, `updateTask`, `deleteTask`, `runTaskNow`, `getTaskRuns`
+- Schedules: `once`, `daily`, `weekly`, `monthly`, `cron` (cron expression).
+- `/api/compare/stream` — SSE POST, streams a single `streamLLM` response for one (endpoint, model) pair.
+
+Routes:
+- `/_authenticated/tasks` — task list, create dialog, pause/resume/delete, run-now
+- `/_authenticated/compare` — 2-4 model slots, parallel SSE streams, side-by-side markdown, blind mode
+
+**PWA:** `public/manifest.json` + `public/sw.js` (cache-first static, network-first HTML, skip `/api/`). SW registered via `ServiceWorkerRegistrar` in `__root.tsx`.
+
+### Theme + Settings + Gallery + Admin (Phase 6)
+
+- **`src/features/theme/ThemeProvider.tsx`** — `ThemeProvider`, `useTheme()`. Applies `.theme-<name>` class to `<html>` and persists to localStorage. Themes: `default`, `ocean`, `forest`, `rose`, `midnight`. CSS variables live in `src/lib/globals.css`.
+- **`/_authenticated/settings`** — tabbed settings: Account (profile, sign-out), Providers (endpoint CRUD), Theme (color picker).
+- **`/_authenticated/gallery`** — drag-and-drop file upload to `public/uploads/`; image grid with lightbox; `/api/gallery/upload` POST handler.
+- **`/_authenticated/admin`** — system stats (users, sessions, messages, memories) + user list.
+
 ## Testing
 
 Tests live next to the files they test (e.g. `crypto.server.test.ts` next to `crypto.server.ts`). Test setup is in `src/test/setup.ts`. The `vitest.config.ts` uses jsdom environment with `@testing-library/jest-dom` matchers.
