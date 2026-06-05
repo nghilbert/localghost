@@ -1,0 +1,47 @@
+model ScheduledTask {
+    id           String    @id @default(uuid(7))
+    name         String    @default("Untitled Task")
+    /// LLM prompt to run
+    prompt       String?
+    /// "llm" or "action" (built-in)
+    taskType     String    @default("llm")
+    /// "once", "daily", "weekly", "monthly", "cron"
+    schedule     String    @default("daily")
+    /// "HH:MM" in UTC for daily/weekly/monthly
+    scheduledTime String?
+    /// cron expression e.g. "0 9 * * 1" (when schedule=cron)
+    cronExpression String?
+    /// When schedule=once: exact UTC datetime
+    scheduledDate DateTime?
+    /// "active", "paused", "completed"
+    status       String    @default("active")
+    nextRun      DateTime?
+    lastRun      DateTime?
+    runCount     Int       @default(0)
+    /// Which chat session to deliver output to
+    sessionId    String?
+    ownerId      String
+    owner        User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+    runs         TaskRun[]
+    createdAt    DateTime  @default(now())
+    updatedAt    DateTime  @updatedAt
+
+    @@index([ownerId])
+    @@index([status, nextRun])
+    @@map("scheduled_task")
+}
+
+model TaskRun {
+    id         String        @id @default(uuid(7))
+    taskId     String
+    task       ScheduledTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+    /// "running", "success", "error"
+    status     String        @default("running")
+    output     String?
+    error      String?
+    startedAt  DateTime      @default(now())
+    finishedAt DateTime?
+
+    @@index([taskId])
+    @@map("task_run")
+}
