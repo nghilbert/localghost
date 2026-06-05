@@ -1,5 +1,4 @@
-import { Link, type LinkProps } from "@tanstack/react-router";
-import { CopyrightIcon, HomeIcon, type LucideIcon } from "lucide-react";
+import { CopyrightIcon } from "lucide-react";
 import {
 	Sidebar,
 	SidebarContent,
@@ -8,15 +7,13 @@ import {
 	SidebarGroupContent,
 	SidebarHeader,
 	SidebarMenu,
-	SidebarMenuButton,
 	SidebarMenuItem,
 	SidebarTrigger,
 } from "#/components/ui/sidebar";
+import { EndpointDialog } from "#/features/chat/components/EndpointDialog";
+import { SessionList } from "#/features/chat/components/SessionList";
 import { APP_NAME, COPYRIGHT_STATEMENT } from "#/lib/constants";
 import { AuthMenu } from "./AuthMenu";
-
-type NavLink = { label: string; to: Exclude<LinkProps["to"], undefined>; Icon: LucideIcon };
-const navLinks: NavLink[] = [{ label: "Home", to: "/", Icon: HomeIcon }];
 
 export function AppSidebar() {
 	return (
@@ -31,20 +28,13 @@ export function AppSidebar() {
 			</SidebarHeader>
 
 			<SidebarContent>
-				<SidebarGroup>
+				{/* New chat + session list */}
+				<SessionList />
+
+				{/* Providers button */}
+				<SidebarGroup className="group-data-[collapsible=icon]:hidden">
 					<SidebarGroupContent>
-						<SidebarMenu>
-							{navLinks.map((link) => (
-								<SidebarMenuItem key={String(link.to)}>
-									<SidebarMenuButton asChild tooltip={link.label}>
-										<Link to={link.to}>
-											<link.Icon />
-											<span className="truncate">{link.label}</span>
-										</Link>
-									</SidebarMenuButton>
-								</SidebarMenuItem>
-							))}
-						</SidebarMenu>
+						<EndpointDialog />
 					</SidebarGroupContent>
 				</SidebarGroup>
 
