@@ -1,0 +1,16 @@
+{
+	"editor.formatOnSave": true,
+	"editor.defaultFormatter": "biomejs.biome",
+	"[prisma]": { "editor.defaultFormatter": "Prisma.prisma" },
+	"editor.codeActionsOnSave": {
+		"source.fixAll.biome": "explicit",
+		"source.organizeImports.biome": "always"
+	},
+	"js/ts.tsdk.path": "node_modules/typescript/lib",
+	"js/ts.tsdk.promptToUseWorkspaceVersion": true,
+	"files.associations": { "*.css": "tailwindcss" },
+	"json.schemaDownload.trustedDomains": {
+		"https://ui.shadcn.com/schema.json": true,
+		"https://biomejs.dev": true
+	}
+}
