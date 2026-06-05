@@ -1,0 +1,20 @@
+model ChatSession {
+    id             String        @id @default(uuid(7))
+    name           String        @default("New Chat")
+    endpointId     String?
+    endpoint       ModelEndpoint? @relation(fields: [endpointId], references: [id], onDelete: SetNull)
+    model          String        @default("")
+    ownerId        String
+    owner          User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+    mode           String        @default("chat")
+    archived       Boolean       @default(false)
+    messageCount   Int           @default(0)
+    lastAccessedAt DateTime      @default(now())
+    lastMessageAt  DateTime?
+    messages       ChatMessage[]
+    createdAt      DateTime      @default(now())
+
+    @@index([ownerId])
+    @@index([ownerId, archived])
+    @@map("chat_session")
+}
