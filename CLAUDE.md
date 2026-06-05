@@ -60,6 +60,17 @@ Copy `.env.example` to `.env`. Required vars: `DATABASE_URL`, `BETTER_AUTH_SECRE
 
 **LLM streaming:** `src/lib/llm.server.ts` provides `streamLLM()` returning a `ReadableStream<SSEChunk>`. Supports OpenAI, Anthropic, Ollama, OpenRouter, Groq — auto-detected from the endpoint URL via `detectProvider()`.
 
+**Agent loop:** `src/lib/agent.server.ts` exports `runAgent()`, an async generator that runs up to 10 rounds of: stream LLM with tools → collect tool calls → execute tools → inject results → repeat. Yields `AgentChunk` (same as `SSEChunk` plus `{ type: "tool_result" }` events).
+
+**Embeddings:** `src/lib/embeddings.server.ts` tries each configured endpoint's `/v1/embeddings` API in order. Returns `null` when none available — callers fall back to keyword search.
+
+**Vector search:** pgvector extension on the `memory` table. Column type `vector(1536)`. IVFFlat index for cosine similarity. Raw queries via `prisma.$queryRawUnsafe`.
+
+**Docker:** use `pgvector/pgvector:pg16` (not `postgres:16`) so the `vector` extension is available.
+
+**Optional env vars:**
+- `SEARXNG_URL` — point to a local SearXNG instance; falls back to DuckDuckGo Instant Answer API.
+
 ## Features
 
 ### Chat (Phase 1) — `src/features/chat/`
@@ -78,7 +89,18 @@ Multi-provider chat with SSE streaming, session management, and model picker.
 Routes:
 - `/_authenticated/` — home page, creates session and redirects
 - `/_authenticated/sessions/$sessionId` — loads session, renders `<ChatView key={session.id} />`
-- `/api/chat/stream` — POST SSE handler; persists user + assistant messages; handles abort gracefully
+- `/api/chat/stream` — POST SSE handler; branches on `session.mode === "agent"` to call `runAgent` or `streamLLM`; persists messages; handles abort
+
+### Memory (Phase 2) — `src/features/memory/`
+
+Persistent user memories with vector similarity search.
+
+- **`lib/memory.functions.ts`** — `getMemories`, `addMemory`, `deleteMemory`, `searchMemories` server functions
+- **`components/MemoryModal.tsx`** — Dialog UI for browsing, adding, searching, and deleting memories
+
+Agent tools in `src/lib/tools/`:
+- **`web_search.ts`** — queries SearXNG (`SEARXNG_URL` env) or DuckDuckGo Instant Answer API
+- **`manage_memory.ts`** — add/search/list/delete memories; uses vector similarity when embeddings available
 
 ## Testing
 
