@@ -102,6 +102,21 @@ Agent tools in `src/lib/tools/`:
 - **`web_search.ts`** — queries SearXNG (`SEARXNG_URL` env) or DuckDuckGo Instant Answer API
 - **`manage_memory.ts`** — add/search/list/delete memories; uses vector similarity when embeddings available
 
+### Documents + Research (Phase 3) — `src/features/documents/`
+
+Living documents with version history and RAG embedding; iterative deep research loop.
+
+- **`lib/document.functions.ts`** — CRUD server functions; auto-embeds content for RAG on save
+- **`components/DocumentEditor.tsx`** — CodeMirror 6 editor with markdown support, 2s autosave, version tracking
+- **`components/DocumentList.tsx`** — sidebar list with create/delete
+
+Routes:
+- `/_authenticated/documents` — split-pane document library + editor
+- `/_authenticated/research` — question input, SSE progress log, streaming markdown report
+- `/api/research/stream` — SSE POST handler using `runResearch()`
+
+**`src/lib/research.server.ts`** — `runResearch()` async generator: Plan → Search (parallel) → Synthesize → Evaluate → repeat (up to 5 rounds). Yields `ResearchChunk` events (`progress`, `report`, `done`, `error`).
+
 ## Testing
 
 Tests live next to the files they test (e.g. `crypto.server.test.ts` next to `crypto.server.ts`). Test setup is in `src/test/setup.ts`. The `vitest.config.ts` uses jsdom environment with `@testing-library/jest-dom` matchers.
