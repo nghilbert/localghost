@@ -13,6 +13,10 @@ model User {
     memories       Memory[]
     skills         Skill[]
     documents      Document[]
+    emailAccounts  EmailAccount[]
+    emailSummaries EmailSummary[]
+    calendars      CalendarCal[]
+    calendarEvents CalendarEvent[]
 
     @@unique([email])
     @@map("user")
