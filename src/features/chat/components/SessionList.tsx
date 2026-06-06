@@ -1,9 +1,22 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
-import { ArchiveIcon, PlusIcon, SearchIcon, XIcon } from "lucide-react";
+import {
+	ArchiveIcon,
+	GitForkIcon,
+	MoreHorizontalIcon,
+	PlusIcon,
+	SearchIcon,
+	XIcon,
+} from "lucide-react";
 import { useState } from "react";
 import { Button } from "#/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "#/components/ui/dialog";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "#/components/ui/dropdown-menu";
 import {
 	SidebarGroup,
 	SidebarGroupContent,
@@ -15,6 +28,7 @@ import {
 } from "#/components/ui/sidebar";
 import {
 	createSession,
+	forkSession,
 	searchMessages,
 	sessionsQueryOptions,
 	updateSession,
@@ -49,6 +63,14 @@ export function SessionList() {
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["sessions"] });
 			setRenamingId(null);
+		},
+	});
+
+	const forkMut = useMutation({
+		mutationFn: (id: string) => forkSession({ data: { id } }),
+		onSuccess: (result) => {
+			queryClient.invalidateQueries({ queryKey: ["sessions"] });
+			navigate({ to: "/sessions/$sessionId", params: { sessionId: result.id } });
 		},
 	});
 
@@ -108,9 +130,24 @@ export function SessionList() {
 										</Link>
 									</SidebarMenuButton>
 								)}
-								<SidebarMenuAction onClick={() => archiveMut.mutate(session.id)} title="Archive">
-									<ArchiveIcon size={14} />
-								</SidebarMenuAction>
+								<DropdownMenu>
+									<DropdownMenuTrigger asChild>
+										<SidebarMenuAction>
+											<MoreHorizontalIcon size={14} />
+											<span className="sr-only">Session actions</span>
+										</SidebarMenuAction>
+									</DropdownMenuTrigger>
+									<DropdownMenuContent side="right" align="start" className="min-w-36">
+										<DropdownMenuItem onClick={() => forkMut.mutate(session.id)}>
+											<GitForkIcon size={13} className="mr-2" />
+											Fork
+										</DropdownMenuItem>
+										<DropdownMenuItem onClick={() => archiveMut.mutate(session.id)}>
+											<ArchiveIcon size={13} className="mr-2" />
+											Archive
+										</DropdownMenuItem>
+									</DropdownMenuContent>
+								</DropdownMenu>
 							</SidebarMenuItem>
 						))}
 						{sessions.length === 0 && (

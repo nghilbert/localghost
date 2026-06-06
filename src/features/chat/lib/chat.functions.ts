@@ -179,6 +179,53 @@ export const searchMessages = createServerFn({ method: "POST" })
 		}));
 	});
 
+export const forkSession = createServerFn({ method: "POST" })
+	.inputValidator(
+		z.object({
+			id: z.uuid(),
+			keepCount: z.number().int().min(0).optional(),
+		}),
+	)
+	.handler(async ({ data: { id, keepCount } }) => {
+		const userId = await getCurrentUserId();
+		const source = await prisma.chatSession.findFirst({
+			where: { id, ownerId: userId },
+			include: {
+				messages: { orderBy: { createdAt: "asc" } },
+				endpoint: { select: { id: true } },
+			},
+		});
+		if (!source) throw new Error("Not found");
+
+		const msgs = keepCount && keepCount > 0 ? source.messages.slice(0, keepCount) : source.messages;
+
+		const forked = await prisma.chatSession.create({
+			data: {
+				name: `Fork: ${source.name}`,
+				endpointId: source.endpointId,
+				model: source.model,
+				mode: source.mode,
+				systemPrompt: source.systemPrompt,
+				ragEnabled: source.ragEnabled,
+				messageCount: msgs.length,
+				ownerId: userId,
+			},
+		});
+
+		if (msgs.length > 0) {
+			await prisma.chatMessage.createMany({
+				data: msgs.map((m) => ({
+					sessionId: forked.id,
+					role: m.role,
+					content: m.content,
+					metadata: m.metadata ?? undefined,
+				})),
+			});
+		}
+
+		return { id: forked.id };
+	});
+
 // ── Query options (for TanStack Query) ───────────────────────
 
 export const endpointsQueryOptions = () =>
