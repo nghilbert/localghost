@@ -1,5 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
+	BookOpenIcon,
 	CalendarIcon,
 	FileTextIcon,
 	GalleryHorizontalIcon,
@@ -33,6 +34,7 @@ const NAV_ITEMS = [
 	{ to: "/notes", label: "Notes", icon: StickyNoteIcon },
 	{ to: "/documents", label: "Documents", icon: FileTextIcon },
 	{ to: "/research", label: "Research", icon: SearchIcon },
+	{ to: "/skills", label: "Skills", icon: BookOpenIcon },
 	{ to: "/contacts", label: "Contacts", icon: UsersIcon },
 	{ to: "/email", label: "Email", icon: MailIcon },
 	{ to: "/calendar", label: "Calendar", icon: CalendarIcon },

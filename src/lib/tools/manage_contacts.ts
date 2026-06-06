@@ -50,7 +50,7 @@ async function listContacts(args: ManageContactsArgs, ownerId: string): Promise<
 			const emails = Array.isArray(c.emails) ? (c.emails as string[]) : [];
 			const phones = Array.isArray(c.phones) ? (c.phones as string[]) : [];
 			const detail = [emails[0], phones[0]].filter(Boolean).join(", ");
-			return `[${c.id.slice(0, 8)}] ${c.name}${detail ? " — " + detail : ""}`;
+			return `[${c.id.slice(0, 8)}] ${c.name}${detail ? ` — ${detail}` : ""}`;
 		})
 		.join("\n");
 }

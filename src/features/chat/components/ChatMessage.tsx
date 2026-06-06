@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Button } from "#/components/ui/button";
+import { SpeakButton } from "#/features/chat/components/SpeakButton";
 import { highlight } from "#/lib/highlighter";
 import { cn } from "#/lib/utils";
 
@@ -11,9 +12,10 @@ type Props = {
 	content: string;
 	isStreaming?: boolean;
 	toolCalls?: Array<{ id: string; tool: string; result: string }>;
+	autoSpeak?: boolean;
 };
 
-export function ChatMessage({ senderRole, content, isStreaming, toolCalls }: Props) {
+export function ChatMessage({ senderRole, content, isStreaming, toolCalls, autoSpeak }: Props) {
 	const isUser = senderRole === "user";
 
 	if (isUser) {
@@ -27,7 +29,7 @@ export function ChatMessage({ senderRole, content, isStreaming, toolCalls }: Pro
 	}
 
 	return (
-		<article aria-label="Assistant message" className="flex flex-col gap-1.5 px-4 py-3">
+		<article aria-label="Assistant message" className="group flex flex-col gap-1.5 px-4 py-3">
 			<div
 				className={cn(
 					"prose prose-sm dark:prose-invert max-w-none",
@@ -74,6 +76,12 @@ export function ChatMessage({ senderRole, content, isStreaming, toolCalls }: Pro
 					{toolCalls.map((tc) => (
 						<ToolCallBlock key={tc.id} tool={tc.tool} result={tc.result} />
 					))}
+				</div>
+			)}
+
+			{!isStreaming && content && (
+				<div className="flex items-center gap-1">
+					<SpeakButton text={content} autoPlay={autoSpeak} />
 				</div>
 			)}
 		</article>

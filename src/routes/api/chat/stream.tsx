@@ -79,7 +79,7 @@ export const Route = createFileRoute("/api/chat/stream")({
 				const isAgent = chatSession.mode === "agent";
 				const temperature = chatSession.temperature ?? undefined;
 
-				// Build effective system prompt, injecting RAG context if enabled
+				// Build effective system prompt, injecting RAG context and skills if available
 				let effectiveSystemPrompt = chatSession.systemPrompt ?? undefined;
 				if (chatSession.ragEnabled) {
 					const ctx = await ragContext(body.message, userId);
@@ -89,6 +89,23 @@ export const Route = createFileRoute("/api/chat/stream")({
 							? `${effectiveSystemPrompt}\n\n${ragBlock}`
 							: ragBlock;
 					}
+				}
+
+				// Inject user skills into system prompt
+				const userSkills = await prisma.skill.findMany({
+					where: { ownerId: userId },
+					orderBy: { updatedAt: "desc" },
+					take: 5,
+				});
+				if (userSkills.length > 0) {
+					const skillBlock =
+						"## Your Skills\n" +
+						userSkills
+							.map((s) => `### ${s.name}${s.description ? `\n${s.description}` : ""}\n${s.content}`)
+							.join("\n\n");
+					effectiveSystemPrompt = effectiveSystemPrompt
+						? `${effectiveSystemPrompt}\n\n${skillBlock}`
+						: skillBlock;
 				}
 
 				// Auto-compact when approaching context window limit

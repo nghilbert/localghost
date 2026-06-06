@@ -6,6 +6,7 @@ import {
 	DatabaseIcon,
 	DownloadIcon,
 	SlidersHorizontalIcon,
+	Volume2Icon,
 } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { ChatFeed } from "#/components/ui/custom/ChatFeed";
@@ -63,6 +64,9 @@ export function ChatView({ session }: Props) {
 	const [systemPrompt, setSystemPrompt] = useState(session.systemPrompt ?? "");
 	const [temperature, setTemperature] = useState(session.temperature ?? 0.7);
 	const [ragEnabled, setRagEnabled] = useState(session.ragEnabled ?? false);
+	const [autoSpeak, setAutoSpeak] = useState(
+		() => typeof localStorage !== "undefined" && localStorage.getItem("ody-auto-speak") === "1",
+	);
 
 	const { data: presets = [] } = useQuery(presetsQueryOptions());
 
@@ -258,6 +262,21 @@ export function ChatView({ session }: Props) {
 						</button>
 						<button
 							type="button"
+							onClick={() => {
+								const next = !autoSpeak;
+								setAutoSpeak(next);
+								localStorage.setItem("ody-auto-speak", next ? "1" : "0");
+							}}
+							className={cn(
+								"flex h-7 items-center gap-1 rounded-md px-2 text-xs hover:bg-muted",
+								autoSpeak ? "bg-primary/10 text-primary" : "text-muted-foreground",
+							)}
+							title={autoSpeak ? "Auto-speak enabled — click to disable" : "Enable auto-speak"}
+						>
+							<Volume2Icon size={13} />
+						</button>
+						<button
+							type="button"
 							onClick={() => setShowPresets((p) => !p)}
 							className={cn(
 								"flex h-7 items-center gap-1 rounded-md px-2 text-xs text-muted-foreground hover:bg-muted",
@@ -395,13 +414,19 @@ export function ChatView({ session }: Props) {
 						</p>
 					</div>
 				)}
-				{allDisplayMessages.map((msg) => (
+				{allDisplayMessages.map((msg, idx) => (
 					<ChatMessage
 						key={msg.id}
 						senderRole={msg.role}
 						content={msg.content}
 						isStreaming={msg.id === "streaming"}
 						toolCalls={msg.toolCalls}
+						autoSpeak={
+							autoSpeak &&
+							msg.role === "assistant" &&
+							msg.id !== "streaming" &&
+							idx === allDisplayMessages.length - 1
+						}
 					/>
 				))}
 				<div ref={bottomRef} />
