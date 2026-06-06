@@ -1,6 +1,12 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { ChevronDownIcon, DatabaseIcon, DownloadIcon, SlidersHorizontalIcon } from "lucide-react";
+import {
+	BookmarkIcon,
+	ChevronDownIcon,
+	DatabaseIcon,
+	DownloadIcon,
+	SlidersHorizontalIcon,
+} from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { ChatFeed } from "#/components/ui/custom/ChatFeed";
 import {
@@ -13,6 +19,7 @@ import { ChatInput } from "#/features/chat/components/ChatInput";
 import { ChatMessage } from "#/features/chat/components/ChatMessage";
 import { ModelPicker } from "#/features/chat/components/ModelPicker";
 import { updateSession } from "#/features/chat/lib/chat.functions";
+import { createPreset, presetsQueryOptions } from "#/features/chat/lib/preset.functions";
 import { MemoryModal } from "#/features/memory/components/MemoryModal";
 import { cn } from "#/lib/utils";
 
@@ -56,6 +63,13 @@ export function ChatView({ session }: Props) {
 	const [systemPrompt, setSystemPrompt] = useState(session.systemPrompt ?? "");
 	const [temperature, setTemperature] = useState(session.temperature ?? 0.7);
 	const [ragEnabled, setRagEnabled] = useState(session.ragEnabled ?? false);
+
+	const { data: presets = [] } = useQuery(presetsQueryOptions());
+
+	const savePresetMut = useMutation({
+		mutationFn: (name: string) =>
+			createPreset({ data: { name, systemPrompt, temperature, model: session.model } }),
+	});
 
 	const presetMut = useMutation({
 		mutationFn: (patch: {
@@ -284,14 +298,54 @@ export function ChatView({ session }: Props) {
 				</div>
 				{showPresets && (
 					<div className="border-t bg-muted/30 px-4 py-3">
+						{presets.length > 0 && (
+							<div className="mb-3 flex items-center gap-2">
+								<span className="text-xs text-muted-foreground">Load preset:</span>
+								<div className="flex flex-wrap gap-1">
+									{presets.map((p) => (
+										<button
+											key={p.id}
+											type="button"
+											onClick={() => {
+												setSystemPrompt(p.systemPrompt);
+												if (p.temperature !== null) setTemperature(p.temperature);
+												presetMut.mutate({
+													systemPrompt: p.systemPrompt,
+													...(p.temperature !== null ? { temperature: p.temperature } : {}),
+												});
+											}}
+											className="rounded border bg-background px-2 py-0.5 text-xs hover:bg-muted"
+										>
+											{p.name}
+										</button>
+									))}
+								</div>
+							</div>
+						)}
 						<div className="flex flex-col gap-3 md:flex-row md:gap-6">
 							<div className="flex-1">
-								<label
-									htmlFor="system-prompt"
-									className="mb-1 block text-xs font-medium text-muted-foreground"
-								>
-									System prompt
-								</label>
+								<div className="mb-1 flex items-center justify-between">
+									<label
+										htmlFor="system-prompt"
+										className="text-xs font-medium text-muted-foreground"
+									>
+										System prompt
+									</label>
+									{systemPrompt.trim() && (
+										<button
+											type="button"
+											onClick={() => {
+												const name = prompt("Preset name:");
+												if (name?.trim()) savePresetMut.mutate(name.trim());
+											}}
+											className="flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-foreground"
+											title="Save as preset"
+										>
+											<BookmarkIcon size={11} />
+											Save
+										</button>
+									)}
+								</div>
 								<textarea
 									id="system-prompt"
 									value={systemPrompt}

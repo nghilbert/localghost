@@ -1,6 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { KeyIcon, PaletteIcon, PlugIcon, TrashIcon, UserIcon, WebhookIcon } from "lucide-react";
+import {
+	BookmarkIcon,
+	KeyIcon,
+	PaletteIcon,
+	PlugIcon,
+	TrashIcon,
+	UserIcon,
+	WebhookIcon,
+} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { PageHeader } from "#/components/PageHeader";
@@ -11,6 +19,11 @@ import { authQueryOptions } from "#/features/auth/lib/auth.functions";
 import { authClient } from "#/features/auth/lib/auth-client";
 import { EndpointDialog } from "#/features/chat/components/EndpointDialog";
 import { deleteEndpoint, endpointsQueryOptions } from "#/features/chat/lib/chat.functions";
+import {
+	createPreset,
+	deletePreset,
+	presetsQueryOptions,
+} from "#/features/chat/lib/preset.functions";
 import { THEME_LABELS, type Theme, useTheme } from "#/features/theme/ThemeProvider";
 import {
 	createToken,
@@ -58,6 +71,10 @@ function SettingsPage() {
 								<KeyIcon size={13} />
 								API Tokens
 							</TabsTrigger>
+							<TabsTrigger value="presets" className="gap-1.5">
+								<BookmarkIcon size={13} />
+								Presets
+							</TabsTrigger>
 						</TabsList>
 
 						<TabsContent value="account">
@@ -74,6 +91,9 @@ function SettingsPage() {
 						</TabsContent>
 						<TabsContent value="tokens">
 							<TokensTab />
+						</TabsContent>
+						<TabsContent value="presets">
+							<PresetsTab />
 						</TabsContent>
 					</Tabs>
 				</div>
@@ -531,6 +551,98 @@ function TokensTab() {
 						</div>
 					))}
 				</div>
+			)}
+		</div>
+	);
+}
+
+function PresetsTab() {
+	const queryClient = useQueryClient();
+	const { data: presets = [] } = useQuery(presetsQueryOptions());
+	const [name, setName] = useState("");
+	const [description, setDescription] = useState("");
+	const [systemPrompt, setSystemPrompt] = useState("");
+
+	const createMut = useMutation({
+		mutationFn: () =>
+			createPreset({
+				data: {
+					name: name.trim(),
+					description: description.trim() || undefined,
+					systemPrompt: systemPrompt.trim(),
+				},
+			}),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["chat-presets"] });
+			setName("");
+			setDescription("");
+			setSystemPrompt("");
+			toast.success("Preset saved");
+		},
+		onError: (e) => toast.error(e.message),
+	});
+
+	const deleteMut = useMutation({
+		mutationFn: (id: string) => deletePreset({ data: { id } }),
+		onSuccess: () => queryClient.invalidateQueries({ queryKey: ["chat-presets"] }),
+		onError: (e) => toast.error(e.message),
+	});
+
+	return (
+		<div className="space-y-6">
+			<section>
+				<h2 className="mb-3 text-sm font-medium">New preset</h2>
+				<div className="space-y-2">
+					<Input placeholder="Preset name" value={name} onChange={(e) => setName(e.target.value)} />
+					<Input
+						placeholder="Description (optional)"
+						value={description}
+						onChange={(e) => setDescription(e.target.value)}
+					/>
+					<textarea
+						value={systemPrompt}
+						onChange={(e) => setSystemPrompt(e.target.value)}
+						placeholder="System prompt…"
+						rows={4}
+						className="w-full resize-none rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-ring"
+					/>
+					<Button
+						onClick={() => createMut.mutate()}
+						disabled={!name.trim() || !systemPrompt.trim() || createMut.isPending}
+						size="sm"
+					>
+						Save preset
+					</Button>
+				</div>
+			</section>
+			{presets.length > 0 && (
+				<section>
+					<h2 className="mb-3 text-sm font-medium">Saved presets</h2>
+					<div className="space-y-2">
+						{presets.map((p) => (
+							<div key={p.id} className="flex items-start gap-3 rounded-lg border p-3">
+								<div className="min-w-0 flex-1">
+									<div className="text-sm font-medium">{p.name}</div>
+									{p.description && (
+										<div className="text-xs text-muted-foreground">{p.description}</div>
+									)}
+									<div className="mt-1 truncate text-xs text-muted-foreground">
+										{p.systemPrompt.slice(0, 100)}
+										{p.systemPrompt.length > 100 ? "…" : ""}
+									</div>
+								</div>
+								<button
+									type="button"
+									onClick={() => deleteMut.mutate(p.id)}
+									className="shrink-0 text-muted-foreground hover:text-destructive"
+									aria-label="Delete preset"
+								>
+									<TrashIcon size={13} />
+								</button>
+							</div>
+						))}
+					</div>
+				</section>
 			)}
 		</div>
 	);
