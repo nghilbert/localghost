@@ -2,6 +2,7 @@ import "#/lib/startup.server";
 import { createFileRoute } from "@tanstack/react-router";
 import { auth } from "#/features/auth/lib/auth.server";
 import { runAgent } from "#/lib/agent.server";
+import { maybeCompact } from "#/lib/compactor.server";
 import { decrypt } from "#/lib/crypto.server";
 import { prisma } from "#/lib/db.server";
 import { embed, toVectorLiteral } from "#/lib/embeddings.server";
@@ -89,7 +90,13 @@ export const Route = createFileRoute("/api/chat/stream")({
 					}
 				}
 
-				const trimmedHistory = trimHistory(history);
+				// Auto-compact when approaching context window limit
+				const { messages: compactedHistory } = await maybeCompact(
+					trimHistory(history),
+					chatSession.model,
+					endpoint.url,
+					apiKey,
+				);
 				let assistantText = "";
 				const encoder = new TextEncoder();
 
@@ -104,7 +111,7 @@ export const Route = createFileRoute("/api/chat/stream")({
 									url: endpoint.url,
 									apiKey,
 									model: chatSession.model,
-									messages: trimmedHistory,
+									messages: compactedHistory,
 									systemPrompt: effectiveSystemPrompt,
 									ownerId: userId,
 								})) {
@@ -132,7 +139,7 @@ export const Route = createFileRoute("/api/chat/stream")({
 									url: endpoint.url,
 									apiKey,
 									model: chatSession.model,
-									messages: trimmedHistory,
+									messages: compactedHistory,
 									systemPrompt: effectiveSystemPrompt,
 									temperature,
 								});
