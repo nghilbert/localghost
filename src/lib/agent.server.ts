@@ -4,6 +4,7 @@ import { manageContacts } from "#/lib/tools/manage_contacts";
 import { manageDocuments } from "#/lib/tools/manage_documents";
 import { manageMemory } from "#/lib/tools/manage_memory";
 import { manageNotes } from "#/lib/tools/manage_notes";
+import { manageSkills } from "#/lib/tools/manage_skills";
 import { manageTasks } from "#/lib/tools/manage_tasks";
 import { searchChats } from "#/lib/tools/search_chats";
 import { webSearch } from "#/lib/tools/web_search";
@@ -279,6 +280,40 @@ export const AGENT_TOOLS: LLMTool[] = [
 			},
 		},
 	},
+	{
+		type: "function",
+		function: {
+			name: "manage_skills",
+			description:
+				"List, read, add, update, or delete reusable skills — saved procedures and instructions " +
+				"that describe how to accomplish specific tasks. Use add to save a new learned technique. " +
+				"Use list or read to recall a saved skill before applying it.",
+			parameters: {
+				type: "object",
+				properties: {
+					action: {
+						type: "string",
+						enum: ["list", "read", "add", "update", "delete"],
+						description: "Action to perform",
+					},
+					id: {
+						type: "string",
+						description: "Skill id or 8-char prefix (required for read/update/delete)",
+					},
+					name: { type: "string", description: "Skill name (required for add)" },
+					description: {
+						type: "string",
+						description: "One-line description of when the skill is useful",
+					},
+					content: {
+						type: "string",
+						description: "Skill body — procedure, steps, or instructions (required for add)",
+					},
+				},
+				required: ["action"],
+			},
+		},
+	},
 ];
 
 export type AgentChunk = SSEChunk | { type: "tool_result"; tool: string; result: string };
@@ -402,6 +437,10 @@ async function executeTool(name: string, rawArgs: string, ownerId: string): Prom
 
 		if (name === "search_chats") {
 			return searchChats((args.query as string) ?? "", ownerId, (args.limit as number) ?? 10);
+		}
+
+		if (name === "manage_skills") {
+			return manageSkills(args as Parameters<typeof manageSkills>[0], ownerId);
 		}
 
 		return `Unknown tool: ${name}`;
