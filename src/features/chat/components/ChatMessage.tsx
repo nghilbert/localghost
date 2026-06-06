@@ -1,4 +1,5 @@
-import { BotIcon, UserIcon } from "lucide-react";
+import { BotIcon, TerminalIcon, UserIcon } from "lucide-react";
+import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { ChatBubble, type MessageSender } from "#/components/ui/custom/ChatBubble";
@@ -8,11 +9,12 @@ type Props = {
 	senderRole: string;
 	content: string;
 	isStreaming?: boolean;
+	toolCalls?: Array<{ id: string; tool: string; result: string }>;
 };
 
 const VALID_SENDERS: MessageSender[] = ["user", "assistant", "system", "tool"];
 
-export function ChatMessage({ senderRole, content, isStreaming }: Props) {
+export function ChatMessage({ senderRole, content, isStreaming, toolCalls }: Props) {
 	const isUser = senderRole === "user";
 	const safeSender = (
 		VALID_SENDERS.includes(senderRole as MessageSender) ? senderRole : "assistant"
@@ -78,6 +80,34 @@ export function ChatMessage({ senderRole, content, isStreaming }: Props) {
 					</ReactMarkdown>
 				)}
 			</div>
+
+			{toolCalls && toolCalls.length > 0 && (
+				<div className="mt-2 w-full space-y-1">
+					{toolCalls.map((tc) => (
+						<ToolCallBlock key={tc.id} tool={tc.tool} result={tc.result} />
+					))}
+				</div>
+			)}
 		</ChatBubble>
+	);
+}
+
+function ToolCallBlock({ tool, result }: { tool: string; result: string }) {
+	const [expanded, setExpanded] = useState(false);
+
+	return (
+		<details
+			className="rounded border bg-muted/40 text-xs"
+			open={expanded}
+			onToggle={(e) => setExpanded((e.target as HTMLDetailsElement).open)}
+		>
+			<summary className="flex cursor-pointer select-none items-center gap-1.5 px-3 py-1.5 font-medium">
+				<TerminalIcon size={12} className="shrink-0 text-muted-foreground" />
+				<span>Tool: {tool}</span>
+			</summary>
+			<pre className="max-h-48 overflow-y-auto whitespace-pre-wrap break-words px-3 pb-3 font-mono leading-relaxed text-muted-foreground">
+				{result}
+			</pre>
+		</details>
 	);
 }
