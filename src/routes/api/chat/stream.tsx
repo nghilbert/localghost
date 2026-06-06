@@ -7,6 +7,7 @@ import { decrypt } from "#/lib/crypto.server";
 import { prisma } from "#/lib/db.server";
 import { embed, toVectorLiteral } from "#/lib/embeddings.server";
 import { callLLM, type LLMMessage, streamLLM } from "#/lib/llm.server";
+import { fireWebhook } from "#/lib/webhook.server";
 
 const MAX_HISTORY_MESSAGES = 40;
 
@@ -211,6 +212,13 @@ export const Route = createFileRoute("/api/chat/stream")({
 										...(newName ? { name: newName } : {}),
 									},
 								});
+
+								// Fire outgoing webhooks (non-blocking)
+								fireWebhook(
+									"chat.completed",
+									{ sessionId: chatSession.id, messageCount: chatSession.messageCount + 2 },
+									userId,
+								).catch(() => {});
 							} else {
 								await prisma.chatSession.update({
 									where: { id: chatSession.id },

@@ -18,6 +18,9 @@ model User {
     calendars      CalendarCal[]
     calendarEvents CalendarEvent[]
     scheduledTasks ScheduledTask[]
+    notes          Note[]
+    contacts       Contact[]
+    webhooks       Webhook[]
 
     @@unique([email])
     @@map("user")

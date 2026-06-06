@@ -1,0 +1,18 @@
+model Webhook {
+    id              String    @id @default(uuid(7))
+    name            String
+    url             String
+    events          String    @default("chat.completed")
+    secretEncrypted String?
+    isActive        Boolean   @default(true)
+    lastTriggeredAt DateTime?
+    lastStatusCode  Int?
+    lastError       String?
+    ownerId         String
+    owner           User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+    createdAt       DateTime  @default(now())
+    updatedAt       DateTime  @updatedAt
+
+    @@index([ownerId])
+    @@map("webhook")
+}
