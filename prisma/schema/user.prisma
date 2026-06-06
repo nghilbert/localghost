@@ -21,6 +21,7 @@ model User {
     notes          Note[]
     contacts       Contact[]
     webhooks       Webhook[]
+    apiTokens      ApiToken[]
 
     @@unique([email])
     @@map("user")

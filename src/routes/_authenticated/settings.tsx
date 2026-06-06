@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { PaletteIcon, PlugIcon, TrashIcon, UserIcon, WebhookIcon } from "lucide-react";
+import { KeyIcon, PaletteIcon, PlugIcon, TrashIcon, UserIcon, WebhookIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { PageHeader } from "#/components/PageHeader";
@@ -12,6 +12,11 @@ import { authClient } from "#/features/auth/lib/auth-client";
 import { EndpointDialog } from "#/features/chat/components/EndpointDialog";
 import { deleteEndpoint, endpointsQueryOptions } from "#/features/chat/lib/chat.functions";
 import { THEME_LABELS, type Theme, useTheme } from "#/features/theme/ThemeProvider";
+import {
+	createToken,
+	deleteToken,
+	tokensQueryOptions,
+} from "#/features/tokens/lib/token.functions";
 import {
 	createWebhook,
 	deleteWebhook,
@@ -49,6 +54,10 @@ function SettingsPage() {
 								<WebhookIcon size={13} />
 								Webhooks
 							</TabsTrigger>
+							<TabsTrigger value="tokens" className="gap-1.5">
+								<KeyIcon size={13} />
+								API Tokens
+							</TabsTrigger>
 						</TabsList>
 
 						<TabsContent value="account">
@@ -62,6 +71,9 @@ function SettingsPage() {
 						</TabsContent>
 						<TabsContent value="webhooks">
 							<WebhooksTab />
+						</TabsContent>
+						<TabsContent value="tokens">
+							<TokensTab />
 						</TabsContent>
 					</Tabs>
 				</div>
@@ -404,6 +416,122 @@ function WebhooksTab() {
 					</div>
 				))}
 			</div>
+		</div>
+	);
+}
+
+function TokensTab() {
+	const queryClient = useQueryClient();
+	const { data: tokens = [] } = useQuery(tokensQueryOptions());
+	const [name, setName] = useState("");
+	const [expiresInDays, setExpiresInDays] = useState<string>("");
+	const [newToken, setNewToken] = useState<string | null>(null);
+	const [error, setError] = useState<string | null>(null);
+
+	const createMut = useMutation({
+		mutationFn: createToken,
+		onSuccess: (res) => {
+			queryClient.invalidateQueries({ queryKey: ["api-tokens"] });
+			setNewToken(res.raw);
+			setName("");
+			setExpiresInDays("");
+			setError(null);
+		},
+		onError: (e) => setError(e.message),
+	});
+
+	const deleteMut = useMutation({
+		mutationFn: deleteToken,
+		onSuccess: () => queryClient.invalidateQueries({ queryKey: ["api-tokens"] }),
+	});
+
+	return (
+		<div className="space-y-4">
+			<p className="text-sm text-muted-foreground">
+				API tokens let you access the chat API programmatically. Tokens begin with{" "}
+				<code className="rounded bg-muted px-1 py-0.5 text-xs">ody_</code>.
+			</p>
+
+			{newToken && (
+				<div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-1">
+					<p className="text-xs font-medium text-primary">
+						Token created — copy it now, it won't be shown again
+					</p>
+					<code className="block break-all text-xs">{newToken}</code>
+					<Button
+						size="sm"
+						variant="outline"
+						className="mt-1 h-6 px-2 text-xs"
+						onClick={() => {
+							navigator.clipboard.writeText(newToken);
+							toast.success("Copied");
+						}}
+					>
+						Copy
+					</Button>
+				</div>
+			)}
+
+			<div className="space-y-2 rounded-lg border p-4">
+				<h3 className="text-sm font-medium">Create token</h3>
+				{error && <p className="text-xs text-destructive">{error}</p>}
+				<div className="flex gap-2">
+					<Input
+						placeholder="Token name"
+						value={name}
+						onChange={(e) => setName(e.target.value)}
+						className="flex-1"
+					/>
+					<Input
+						placeholder="Expires in days"
+						type="number"
+						value={expiresInDays}
+						onChange={(e) => setExpiresInDays(e.target.value)}
+						className="w-36"
+					/>
+					<Button
+						size="sm"
+						disabled={!name.trim() || createMut.isPending}
+						onClick={() =>
+							createMut.mutate({
+								data: {
+									name,
+									expiresInDays: expiresInDays ? Number(expiresInDays) : undefined,
+								},
+							})
+						}
+					>
+						{createMut.isPending ? "Creating…" : "Create"}
+					</Button>
+				</div>
+			</div>
+
+			{tokens.length === 0 ? (
+				<p className="text-sm text-muted-foreground">No tokens yet.</p>
+			) : (
+				<div className="space-y-2">
+					{tokens.map((t) => (
+						<div key={t.id} className="flex items-center gap-3 rounded-lg border p-3">
+							<div className="flex-1 min-w-0">
+								<p className="text-sm font-medium">{t.name}</p>
+								<p className="text-xs text-muted-foreground">
+									<code>{t.prefix}…</code>
+									{t.expiresAt && ` · Expires ${new Date(t.expiresAt).toLocaleDateString()}`}
+									{t.lastUsedAt && ` · Last used ${new Date(t.lastUsedAt).toLocaleDateString()}`}
+								</p>
+							</div>
+							<button
+								type="button"
+								onClick={() => deleteMut.mutate({ data: { id: t.id } })}
+								className="shrink-0 text-destructive hover:text-destructive/80"
+								aria-label="Revoke token"
+							>
+								<TrashIcon size={13} />
+							</button>
+						</div>
+					))}
+				</div>
+			)}
 		</div>
 	);
 }

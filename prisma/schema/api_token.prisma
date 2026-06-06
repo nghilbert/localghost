@@ -1,0 +1,16 @@
+model ApiToken {
+    id          String    @id @default(uuid(7))
+    name        String
+    tokenHash   String    @unique
+    prefix      String
+    scopes      String    @default("chat")
+    lastUsedAt  DateTime?
+    expiresAt   DateTime?
+    ownerId     String
+    owner       User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+    createdAt   DateTime  @default(now())
+
+    @@index([ownerId])
+    @@index([tokenHash])
+    @@map("api_token")
+}
