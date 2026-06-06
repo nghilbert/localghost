@@ -1,4 +1,5 @@
-import { CopyrightIcon } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { CopyrightIcon, FileTextIcon, SearchIcon } from "lucide-react";
 import {
 	Sidebar,
 	SidebarContent,
@@ -7,6 +8,7 @@ import {
 	SidebarGroupContent,
 	SidebarHeader,
 	SidebarMenu,
+	SidebarMenuButton,
 	SidebarMenuItem,
 	SidebarTrigger,
 } from "#/components/ui/sidebar";
@@ -30,6 +32,30 @@ export function AppSidebar() {
 			<SidebarContent>
 				{/* New chat + session list */}
 				<SessionList />
+
+				{/* Feature nav */}
+				<SidebarGroup className="group-data-[collapsible=icon]:hidden">
+					<SidebarGroupContent>
+						<SidebarMenu>
+							<SidebarMenuItem>
+								<SidebarMenuButton asChild>
+									<Link to="/documents">
+										<FileTextIcon size={14} />
+										Documents
+									</Link>
+								</SidebarMenuButton>
+							</SidebarMenuItem>
+							<SidebarMenuItem>
+								<SidebarMenuButton asChild>
+									<Link to="/research">
+										<SearchIcon size={14} />
+										Research
+									</Link>
+								</SidebarMenuButton>
+							</SidebarMenuItem>
+						</SidebarMenu>
+					</SidebarGroupContent>
+				</SidebarGroup>
 
 				{/* Providers button */}
 				<SidebarGroup className="group-data-[collapsible=icon]:hidden">
