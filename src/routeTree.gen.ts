@@ -15,6 +15,7 @@ import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/
 import { Route as PublicSignUpRouteImport } from './routes/_public/sign-up'
 import { Route as PublicSignInRouteImport } from './routes/_public/sign-in'
 import { Route as AuthenticatedTasksRouteImport } from './routes/_authenticated/tasks'
+import { Route as AuthenticatedSkillsRouteImport } from './routes/_authenticated/skills'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedResearchRouteImport } from './routes/_authenticated/research'
 import { Route as AuthenticatedNotesRouteImport } from './routes/_authenticated/notes'
@@ -59,6 +60,11 @@ const PublicSignInRoute = PublicSignInRouteImport.update({
 const AuthenticatedTasksRoute = AuthenticatedTasksRouteImport.update({
   id: '/tasks',
   path: '/tasks',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedSkillsRoute = AuthenticatedSkillsRouteImport.update({
+  id: '/skills',
+  path: '/skills',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
@@ -161,6 +167,7 @@ export interface FileRoutesByFullPath {
   '/notes': typeof AuthenticatedNotesRoute
   '/research': typeof AuthenticatedResearchRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/skills': typeof AuthenticatedSkillsRoute
   '/tasks': typeof AuthenticatedTasksRoute
   '/sign-in': typeof PublicSignInRoute
   '/sign-up': typeof PublicSignUpRoute
@@ -184,6 +191,7 @@ export interface FileRoutesByTo {
   '/notes': typeof AuthenticatedNotesRoute
   '/research': typeof AuthenticatedResearchRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/skills': typeof AuthenticatedSkillsRoute
   '/tasks': typeof AuthenticatedTasksRoute
   '/sign-in': typeof PublicSignInRoute
   '/sign-up': typeof PublicSignUpRoute
@@ -209,6 +217,7 @@ export interface FileRoutesById {
   '/_authenticated/notes': typeof AuthenticatedNotesRoute
   '/_authenticated/research': typeof AuthenticatedResearchRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
+  '/_authenticated/skills': typeof AuthenticatedSkillsRoute
   '/_authenticated/tasks': typeof AuthenticatedTasksRoute
   '/_public/sign-in': typeof PublicSignInRoute
   '/_public/sign-up': typeof PublicSignUpRoute
@@ -235,6 +244,7 @@ export interface FileRouteTypes {
     | '/notes'
     | '/research'
     | '/settings'
+    | '/skills'
     | '/tasks'
     | '/sign-in'
     | '/sign-up'
@@ -258,6 +268,7 @@ export interface FileRouteTypes {
     | '/notes'
     | '/research'
     | '/settings'
+    | '/skills'
     | '/tasks'
     | '/sign-in'
     | '/sign-up'
@@ -282,6 +293,7 @@ export interface FileRouteTypes {
     | '/_authenticated/notes'
     | '/_authenticated/research'
     | '/_authenticated/settings'
+    | '/_authenticated/skills'
     | '/_authenticated/tasks'
     | '/_public/sign-in'
     | '/_public/sign-up'
@@ -346,6 +358,13 @@ declare module '@tanstack/react-router' {
       path: '/tasks'
       fullPath: '/tasks'
       preLoaderRoute: typeof AuthenticatedTasksRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/skills': {
+      id: '/_authenticated/skills'
+      path: '/skills'
+      fullPath: '/skills'
+      preLoaderRoute: typeof AuthenticatedSkillsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/settings': {
@@ -482,6 +501,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedNotesRoute: typeof AuthenticatedNotesRoute
   AuthenticatedResearchRoute: typeof AuthenticatedResearchRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
+  AuthenticatedSkillsRoute: typeof AuthenticatedSkillsRoute
   AuthenticatedTasksRoute: typeof AuthenticatedTasksRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedSessionsSessionIdRoute: typeof AuthenticatedSessionsSessionIdRoute
@@ -499,6 +519,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedNotesRoute: AuthenticatedNotesRoute,
   AuthenticatedResearchRoute: AuthenticatedResearchRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
+  AuthenticatedSkillsRoute: AuthenticatedSkillsRoute,
   AuthenticatedTasksRoute: AuthenticatedTasksRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedSessionsSessionIdRoute: AuthenticatedSessionsSessionIdRoute,
