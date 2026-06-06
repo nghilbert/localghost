@@ -17,6 +17,7 @@ model User {
     emailSummaries EmailSummary[]
     calendars      CalendarCal[]
     calendarEvents CalendarEvent[]
+    scheduledTasks ScheduledTask[]
 
     @@unique([email])
     @@map("user")

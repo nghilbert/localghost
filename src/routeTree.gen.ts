@@ -14,12 +14,15 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as PublicSignUpRouteImport } from './routes/_public/sign-up'
 import { Route as PublicSignInRouteImport } from './routes/_public/sign-in'
+import { Route as AuthenticatedTasksRouteImport } from './routes/_authenticated/tasks'
 import { Route as AuthenticatedResearchRouteImport } from './routes/_authenticated/research'
 import { Route as AuthenticatedEmailRouteImport } from './routes/_authenticated/email'
 import { Route as AuthenticatedDocumentsRouteImport } from './routes/_authenticated/documents'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedCompareRouteImport } from './routes/_authenticated/compare'
 import { Route as AuthenticatedCalendarRouteImport } from './routes/_authenticated/calendar'
 import { Route as ApiResearchStreamRouteImport } from './routes/api/research/stream'
+import { Route as ApiCompareStreamRouteImport } from './routes/api/compare/stream'
 import { Route as ApiChatStreamRouteImport } from './routes/api/chat/stream'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as AuthenticatedSessionsSessionIdRouteImport } from './routes/_authenticated/sessions/$sessionId'
@@ -47,6 +50,11 @@ const PublicSignInRoute = PublicSignInRouteImport.update({
   path: '/sign-in',
   getParentRoute: () => PublicRoute,
 } as any)
+const AuthenticatedTasksRoute = AuthenticatedTasksRouteImport.update({
+  id: '/tasks',
+  path: '/tasks',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedResearchRoute = AuthenticatedResearchRouteImport.update({
   id: '/research',
   path: '/research',
@@ -67,6 +75,11 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedCompareRoute = AuthenticatedCompareRouteImport.update({
+  id: '/compare',
+  path: '/compare',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedCalendarRoute = AuthenticatedCalendarRouteImport.update({
   id: '/calendar',
   path: '/calendar',
@@ -75,6 +88,11 @@ const AuthenticatedCalendarRoute = AuthenticatedCalendarRouteImport.update({
 const ApiResearchStreamRoute = ApiResearchStreamRouteImport.update({
   id: '/api/research/stream',
   path: '/api/research/stream',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCompareStreamRoute = ApiCompareStreamRouteImport.update({
+  id: '/api/compare/stream',
+  path: '/api/compare/stream',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiChatStreamRoute = ApiChatStreamRouteImport.update({
@@ -97,29 +115,35 @@ const AuthenticatedSessionsSessionIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/calendar': typeof AuthenticatedCalendarRoute
+  '/compare': typeof AuthenticatedCompareRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/documents': typeof AuthenticatedDocumentsRoute
   '/email': typeof AuthenticatedEmailRoute
   '/research': typeof AuthenticatedResearchRoute
+  '/tasks': typeof AuthenticatedTasksRoute
   '/sign-in': typeof PublicSignInRoute
   '/sign-up': typeof PublicSignUpRoute
   '/sessions/$sessionId': typeof AuthenticatedSessionsSessionIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/chat/stream': typeof ApiChatStreamRoute
+  '/api/compare/stream': typeof ApiCompareStreamRoute
   '/api/research/stream': typeof ApiResearchStreamRoute
 }
 export interface FileRoutesByTo {
   '/': typeof AuthenticatedIndexRoute
   '/calendar': typeof AuthenticatedCalendarRoute
+  '/compare': typeof AuthenticatedCompareRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/documents': typeof AuthenticatedDocumentsRoute
   '/email': typeof AuthenticatedEmailRoute
   '/research': typeof AuthenticatedResearchRoute
+  '/tasks': typeof AuthenticatedTasksRoute
   '/sign-in': typeof PublicSignInRoute
   '/sign-up': typeof PublicSignUpRoute
   '/sessions/$sessionId': typeof AuthenticatedSessionsSessionIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/chat/stream': typeof ApiChatStreamRoute
+  '/api/compare/stream': typeof ApiCompareStreamRoute
   '/api/research/stream': typeof ApiResearchStreamRoute
 }
 export interface FileRoutesById {
@@ -127,16 +151,19 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/_public': typeof PublicRouteWithChildren
   '/_authenticated/calendar': typeof AuthenticatedCalendarRoute
+  '/_authenticated/compare': typeof AuthenticatedCompareRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/documents': typeof AuthenticatedDocumentsRoute
   '/_authenticated/email': typeof AuthenticatedEmailRoute
   '/_authenticated/research': typeof AuthenticatedResearchRoute
+  '/_authenticated/tasks': typeof AuthenticatedTasksRoute
   '/_public/sign-in': typeof PublicSignInRoute
   '/_public/sign-up': typeof PublicSignUpRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/sessions/$sessionId': typeof AuthenticatedSessionsSessionIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/chat/stream': typeof ApiChatStreamRoute
+  '/api/compare/stream': typeof ApiCompareStreamRoute
   '/api/research/stream': typeof ApiResearchStreamRoute
 }
 export interface FileRouteTypes {
@@ -144,45 +171,54 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/calendar'
+    | '/compare'
     | '/dashboard'
     | '/documents'
     | '/email'
     | '/research'
+    | '/tasks'
     | '/sign-in'
     | '/sign-up'
     | '/sessions/$sessionId'
     | '/api/auth/$'
     | '/api/chat/stream'
+    | '/api/compare/stream'
     | '/api/research/stream'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/calendar'
+    | '/compare'
     | '/dashboard'
     | '/documents'
     | '/email'
     | '/research'
+    | '/tasks'
     | '/sign-in'
     | '/sign-up'
     | '/sessions/$sessionId'
     | '/api/auth/$'
     | '/api/chat/stream'
+    | '/api/compare/stream'
     | '/api/research/stream'
   id:
     | '__root__'
     | '/_authenticated'
     | '/_public'
     | '/_authenticated/calendar'
+    | '/_authenticated/compare'
     | '/_authenticated/dashboard'
     | '/_authenticated/documents'
     | '/_authenticated/email'
     | '/_authenticated/research'
+    | '/_authenticated/tasks'
     | '/_public/sign-in'
     | '/_public/sign-up'
     | '/_authenticated/'
     | '/_authenticated/sessions/$sessionId'
     | '/api/auth/$'
     | '/api/chat/stream'
+    | '/api/compare/stream'
     | '/api/research/stream'
   fileRoutesById: FileRoutesById
 }
@@ -191,6 +227,7 @@ export interface RootRouteChildren {
   PublicRoute: typeof PublicRouteWithChildren
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiChatStreamRoute: typeof ApiChatStreamRoute
+  ApiCompareStreamRoute: typeof ApiCompareStreamRoute
   ApiResearchStreamRoute: typeof ApiResearchStreamRoute
 }
 
@@ -231,6 +268,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PublicSignInRouteImport
       parentRoute: typeof PublicRoute
     }
+    '/_authenticated/tasks': {
+      id: '/_authenticated/tasks'
+      path: '/tasks'
+      fullPath: '/tasks'
+      preLoaderRoute: typeof AuthenticatedTasksRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/research': {
       id: '/_authenticated/research'
       path: '/research'
@@ -259,6 +303,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/compare': {
+      id: '/_authenticated/compare'
+      path: '/compare'
+      fullPath: '/compare'
+      preLoaderRoute: typeof AuthenticatedCompareRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/calendar': {
       id: '/_authenticated/calendar'
       path: '/calendar'
@@ -271,6 +322,13 @@ declare module '@tanstack/react-router' {
       path: '/api/research/stream'
       fullPath: '/api/research/stream'
       preLoaderRoute: typeof ApiResearchStreamRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/compare/stream': {
+      id: '/api/compare/stream'
+      path: '/api/compare/stream'
+      fullPath: '/api/compare/stream'
+      preLoaderRoute: typeof ApiCompareStreamRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/chat/stream': {
@@ -299,20 +357,24 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteChildren {
   AuthenticatedCalendarRoute: typeof AuthenticatedCalendarRoute
+  AuthenticatedCompareRoute: typeof AuthenticatedCompareRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedDocumentsRoute: typeof AuthenticatedDocumentsRoute
   AuthenticatedEmailRoute: typeof AuthenticatedEmailRoute
   AuthenticatedResearchRoute: typeof AuthenticatedResearchRoute
+  AuthenticatedTasksRoute: typeof AuthenticatedTasksRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedSessionsSessionIdRoute: typeof AuthenticatedSessionsSessionIdRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedCalendarRoute: AuthenticatedCalendarRoute,
+  AuthenticatedCompareRoute: AuthenticatedCompareRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedDocumentsRoute: AuthenticatedDocumentsRoute,
   AuthenticatedEmailRoute: AuthenticatedEmailRoute,
   AuthenticatedResearchRoute: AuthenticatedResearchRoute,
+  AuthenticatedTasksRoute: AuthenticatedTasksRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedSessionsSessionIdRoute: AuthenticatedSessionsSessionIdRoute,
 }
@@ -339,6 +401,7 @@ const rootRouteChildren: RootRouteChildren = {
   PublicRoute: PublicRouteWithChildren,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiChatStreamRoute: ApiChatStreamRoute,
+  ApiCompareStreamRoute: ApiCompareStreamRoute,
   ApiResearchStreamRoute: ApiResearchStreamRoute,
 }
 export const routeTree = rootRouteImport

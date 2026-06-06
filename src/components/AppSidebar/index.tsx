@@ -1,5 +1,13 @@
 import { Link } from "@tanstack/react-router";
-import { CalendarIcon, CopyrightIcon, FileTextIcon, MailIcon, SearchIcon } from "lucide-react";
+import {
+	CalendarIcon,
+	CopyrightIcon,
+	FileTextIcon,
+	LayoutGridIcon,
+	MailIcon,
+	SearchIcon,
+	TimerIcon,
+} from "lucide-react";
 import {
 	Sidebar,
 	SidebarContent,
@@ -66,6 +74,22 @@ export function AppSidebar() {
 									<Link to="/calendar">
 										<CalendarIcon size={14} />
 										Calendar
+									</Link>
+								</SidebarMenuButton>
+							</SidebarMenuItem>
+							<SidebarMenuItem>
+								<SidebarMenuButton asChild>
+									<Link to="/tasks">
+										<TimerIcon size={14} />
+										Tasks
+									</Link>
+								</SidebarMenuButton>
+							</SidebarMenuItem>
+							<SidebarMenuItem>
+								<SidebarMenuButton asChild>
+									<Link to="/compare">
+										<LayoutGridIcon size={14} />
+										Compare
 									</Link>
 								</SidebarMenuButton>
 							</SidebarMenuItem>

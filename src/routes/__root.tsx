@@ -7,6 +7,7 @@ import {
 	Outlet,
 	Scripts,
 } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { Button } from "#/components/ui/button";
 import {
 	Empty,
@@ -27,10 +28,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 	notFoundComponent: NotFound,
 	head: () => ({
 		meta: [
-			{ title: "Website" },
-			{ name: "description", content: "A website made with Tanstack Start and Shadcn" },
+			{ title: "Pretty Odysseus" },
+			{ name: "description", content: "Self-hosted AI workspace" },
 		],
-		links: [{ rel: "icon", href: "/favicon.ico" }],
+		links: [
+			{ rel: "icon", href: "/favicon.ico" },
+			{ rel: "manifest", href: "/manifest.json" },
+		],
 	}),
 });
 
@@ -53,9 +57,19 @@ function RootDocument() {
 				</QueryClientProvider>
 
 				<Scripts />
+				<ServiceWorkerRegistrar />
 			</body>
 		</html>
 	);
+}
+
+function ServiceWorkerRegistrar() {
+	useEffect(() => {
+		if ("serviceWorker" in navigator) {
+			navigator.serviceWorker.register("/sw.js").catch(() => {});
+		}
+	}, []);
+	return null;
 }
 
 function NotFound() {

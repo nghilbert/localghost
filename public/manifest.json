@@ -1,8 +1,16 @@
 {
-	"short_name": "App",
-	"name": "My App",
-	"start_url": ".",
+	"name": "Pretty Odysseus",
+	"short_name": "Odysseus",
+	"description": "Self-hosted AI workspace",
+	"start_url": "/",
 	"display": "standalone",
-	"theme_color": "#000000",
-	"background_color": "#ffffff"
+	"background_color": "#0a0a0a",
+	"theme_color": "#0a0a0a",
+	"icons": [
+		{
+			"src": "/favicon.ico",
+			"sizes": "any",
+			"type": "image/x-icon"
+		}
+	]
 }
