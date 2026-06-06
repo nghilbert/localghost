@@ -156,6 +156,29 @@ export const deleteSession = createServerFn({ method: "POST" })
 		await prisma.chatSession.deleteMany({ where: { id, ownerId: userId } });
 	});
 
+export const searchMessages = createServerFn({ method: "POST" })
+	.inputValidator(z.object({ query: z.string().min(1).max(200) }))
+	.handler(async ({ data: { query } }) => {
+		const userId = await getCurrentUserId();
+		const messages = await prisma.chatMessage.findMany({
+			where: {
+				content: { contains: query, mode: "insensitive" },
+				session: { ownerId: userId, archived: false },
+			},
+			include: { session: { select: { id: true, name: true } } },
+			orderBy: { createdAt: "desc" },
+			take: 30,
+		});
+		return messages.map((m) => ({
+			messageId: m.id,
+			sessionId: m.session.id,
+			sessionName: m.session.name,
+			role: m.role,
+			snippet: m.content.slice(0, 200),
+			createdAt: m.createdAt,
+		}));
+	});
+
 // ── Query options (for TanStack Query) ───────────────────────
 
 export const endpointsQueryOptions = () =>
