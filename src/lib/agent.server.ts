@@ -5,6 +5,7 @@ import { manageContacts } from "#/lib/tools/manage_contacts";
 import { manageDocuments } from "#/lib/tools/manage_documents";
 import { manageMemory } from "#/lib/tools/manage_memory";
 import { manageNotes } from "#/lib/tools/manage_notes";
+import { manageSkills } from "#/lib/tools/manage_skills";
 import { manageTasks } from "#/lib/tools/manage_tasks";
 import { searchChats } from "#/lib/tools/search_chats";
 import { webSearch } from "#/lib/tools/web_search";
@@ -280,6 +281,40 @@ export const AGENT_TOOLS: LLMTool[] = [
 			},
 		},
 	},
+	{
+		type: "function",
+		function: {
+			name: "manage_skills",
+			description:
+				"List, read, add, update, or delete reusable skills — saved procedures and instructions " +
+				"that describe how to accomplish specific tasks. Use add to save a new learned technique. " +
+				"Use list or read to recall a saved skill before applying it.",
+			parameters: {
+				type: "object",
+				properties: {
+					action: {
+						type: "string",
+						enum: ["list", "read", "add", "update", "delete"],
+						description: "Action to perform",
+					},
+					id: {
+						type: "string",
+						description: "Skill id or 8-char prefix (required for read/update/delete)",
+					},
+					name: { type: "string", description: "Skill name (required for add)" },
+					description: {
+						type: "string",
+						description: "One-line description of when the skill is useful",
+					},
+					content: {
+						type: "string",
+						description: "Skill body — procedure, steps, or instructions (required for add)",
+					},
+				},
+				required: ["action"],
+			},
+		},
+	},
 ];
 
 export type AgentChunk = SSEChunk | { type: "tool_result"; tool: string; result: string };
@@ -390,36 +425,25 @@ async function executeTool(
 	try {
 		const args = JSON.parse(rawArgs || "{}") as Record<string, unknown>;
 
-		if (name === "web_search") {
-			return webSearch((args.query as string) ?? "", 5);
-		}
-
-		if (name === "manage_memory") {
-			return manageMemory(args as Parameters<typeof manageMemory>[0], ownerId);
-		}
-
-		if (name === "manage_notes") {
-			return manageNotes(args as Parameters<typeof manageNotes>[0], ownerId);
-		}
-
-		if (name === "manage_contacts") {
-			return manageContacts(args as Parameters<typeof manageContacts>[0], ownerId);
-		}
-
-		if (name === "manage_calendar") {
-			return manageCalendar(args as Parameters<typeof manageCalendar>[0], ownerId);
-		}
-
-		if (name === "manage_tasks") {
-			return manageTasks(args as Parameters<typeof manageTasks>[0], ownerId);
-		}
-
-		if (name === "manage_documents") {
-			return manageDocuments(args as Parameters<typeof manageDocuments>[0], ownerId);
-		}
-
-		if (name === "search_chats") {
-			return searchChats((args.query as string) ?? "", ownerId, (args.limit as number) ?? 10);
+		switch (name) {
+			case "web_search":
+				return webSearch((args.query as string) ?? "", 5);
+			case "manage_memory":
+				return manageMemory(args as Parameters<typeof manageMemory>[0], ownerId);
+			case "manage_notes":
+				return manageNotes(args as Parameters<typeof manageNotes>[0], ownerId);
+			case "manage_contacts":
+				return manageContacts(args as Parameters<typeof manageContacts>[0], ownerId);
+			case "manage_calendar":
+				return manageCalendar(args as Parameters<typeof manageCalendar>[0], ownerId);
+			case "manage_tasks":
+				return manageTasks(args as Parameters<typeof manageTasks>[0], ownerId);
+			case "manage_documents":
+				return manageDocuments(args as Parameters<typeof manageDocuments>[0], ownerId);
+			case "search_chats":
+				return searchChats((args.query as string) ?? "", ownerId, (args.limit as number) ?? 10);
+			case "manage_skills":
+				return manageSkills(args as Parameters<typeof manageSkills>[0], ownerId);
 		}
 
 		// MCP tool — look up by namespaced name and delegate to the server
