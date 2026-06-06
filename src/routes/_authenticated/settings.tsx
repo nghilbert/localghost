@@ -3,11 +3,14 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
 	BookmarkIcon,
 	CheckCircleIcon,
+	DatabaseIcon,
+	DownloadIcon,
 	KeyIcon,
 	PaletteIcon,
 	PlugIcon,
 	ServerIcon,
 	TrashIcon,
+	UploadIcon,
 	UserIcon,
 	WebhookIcon,
 	XCircleIcon,
@@ -89,6 +92,10 @@ function SettingsPage() {
 								<ServerIcon size={13} />
 								MCP
 							</TabsTrigger>
+							<TabsTrigger value="data" className="gap-1.5">
+								<DatabaseIcon size={13} />
+								Data
+							</TabsTrigger>
 						</TabsList>
 
 						<TabsContent value="account">
@@ -111,6 +118,9 @@ function SettingsPage() {
 						</TabsContent>
 						<TabsContent value="mcp">
 							<McpTab />
+						</TabsContent>
+						<TabsContent value="data">
+							<DataTab />
 						</TabsContent>
 					</Tabs>
 				</div>
@@ -838,6 +848,93 @@ function PresetsTab() {
 					</div>
 				</section>
 			)}
+		</div>
+	);
+}
+
+function DataTab() {
+	const [importing, setImporting] = useState(false);
+	const [importResult, setImportResult] = useState<string | null>(null);
+
+	function handleExport() {
+		const a = document.createElement("a");
+		a.href = "/api/backup/export";
+		a.download = "";
+		a.click();
+	}
+
+	async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
+		const file = e.target.files?.[0];
+		if (!file) return;
+		setImporting(true);
+		setImportResult(null);
+		try {
+			const text = await file.text();
+			const payload = JSON.parse(text) as unknown;
+			const res = await fetch("/api/backup/import", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(payload),
+			});
+			const data = (await res.json()) as {
+				ok?: boolean;
+				imported?: Record<string, number>;
+				error?: string;
+			};
+			if (!res.ok || !data.ok) {
+				setImportResult(`Import failed: ${data.error ?? res.statusText}`);
+			} else {
+				const counts = Object.entries(data.imported ?? {})
+					.filter(([, v]) => v > 0)
+					.map(([k, v]) => `${v} ${k}`)
+					.join(", ");
+				setImportResult(counts ? `Imported: ${counts}` : "Nothing new to import.");
+			}
+		} catch (err) {
+			setImportResult(`Error: ${(err as Error).message}`);
+		} finally {
+			setImporting(false);
+			e.target.value = "";
+		}
+	}
+
+	return (
+		<div className="space-y-6">
+			<section>
+				<h2 className="mb-1 text-sm font-medium">Export your data</h2>
+				<p className="mb-3 text-xs text-muted-foreground">
+					Download all your memories, notes, contacts, skills, presets, documents, and recent chat
+					sessions as a single JSON file.
+				</p>
+				<Button size="sm" variant="outline" onClick={handleExport}>
+					<DownloadIcon size={13} className="mr-1.5" />
+					Export backup
+				</Button>
+			</section>
+
+			<section>
+				<h2 className="mb-1 text-sm font-medium">Import from backup</h2>
+				<p className="mb-3 text-xs text-muted-foreground">
+					Upload a previously exported JSON file. Existing records are kept — imported items are
+					added alongside them. Chat sessions are not imported.
+				</p>
+				<label
+					htmlFor="import-file"
+					className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border bg-background px-3 py-1.5 text-sm font-medium shadow-xs transition-colors hover:bg-muted disabled:opacity-50"
+				>
+					<UploadIcon size={13} />
+					{importing ? "Importing…" : "Choose backup file"}
+					<input
+						id="import-file"
+						type="file"
+						accept=".json,application/json"
+						className="sr-only"
+						disabled={importing}
+						onChange={handleImport}
+					/>
+				</label>
+				{importResult && <p className="mt-2 text-xs text-muted-foreground">{importResult}</p>}
+			</section>
 		</div>
 	);
 }

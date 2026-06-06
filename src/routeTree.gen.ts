@@ -26,10 +26,13 @@ import { Route as AuthenticatedContactsRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedCompareRouteImport } from './routes/_authenticated/compare'
 import { Route as AuthenticatedCalendarRouteImport } from './routes/_authenticated/calendar'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as ApiSttTranscribeRouteImport } from './routes/api/stt/transcribe'
 import { Route as ApiResearchStreamRouteImport } from './routes/api/research/stream'
 import { Route as ApiGalleryUploadRouteImport } from './routes/api/gallery/upload'
 import { Route as ApiCompareStreamRouteImport } from './routes/api/compare/stream'
 import { Route as ApiChatStreamRouteImport } from './routes/api/chat/stream'
+import { Route as ApiBackupImportRouteImport } from './routes/api/backup/import'
+import { Route as ApiBackupExportRouteImport } from './routes/api/backup/export'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as AuthenticatedSessionsSessionIdRouteImport } from './routes/_authenticated/sessions/$sessionId'
 
@@ -116,6 +119,11 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const ApiSttTranscribeRoute = ApiSttTranscribeRouteImport.update({
+  id: '/api/stt/transcribe',
+  path: '/api/stt/transcribe',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiResearchStreamRoute = ApiResearchStreamRouteImport.update({
   id: '/api/research/stream',
   path: '/api/research/stream',
@@ -134,6 +142,16 @@ const ApiCompareStreamRoute = ApiCompareStreamRouteImport.update({
 const ApiChatStreamRoute = ApiChatStreamRouteImport.update({
   id: '/api/chat/stream',
   path: '/api/chat/stream',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiBackupImportRoute = ApiBackupImportRouteImport.update({
+  id: '/api/backup/import',
+  path: '/api/backup/import',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiBackupExportRoute = ApiBackupExportRouteImport.update({
+  id: '/api/backup/export',
+  path: '/api/backup/export',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
@@ -166,10 +184,13 @@ export interface FileRoutesByFullPath {
   '/sign-up': typeof PublicSignUpRoute
   '/sessions/$sessionId': typeof AuthenticatedSessionsSessionIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/backup/export': typeof ApiBackupExportRoute
+  '/api/backup/import': typeof ApiBackupImportRoute
   '/api/chat/stream': typeof ApiChatStreamRoute
   '/api/compare/stream': typeof ApiCompareStreamRoute
   '/api/gallery/upload': typeof ApiGalleryUploadRoute
   '/api/research/stream': typeof ApiResearchStreamRoute
+  '/api/stt/transcribe': typeof ApiSttTranscribeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof AuthenticatedIndexRoute
@@ -189,10 +210,13 @@ export interface FileRoutesByTo {
   '/sign-up': typeof PublicSignUpRoute
   '/sessions/$sessionId': typeof AuthenticatedSessionsSessionIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/backup/export': typeof ApiBackupExportRoute
+  '/api/backup/import': typeof ApiBackupImportRoute
   '/api/chat/stream': typeof ApiChatStreamRoute
   '/api/compare/stream': typeof ApiCompareStreamRoute
   '/api/gallery/upload': typeof ApiGalleryUploadRoute
   '/api/research/stream': typeof ApiResearchStreamRoute
+  '/api/stt/transcribe': typeof ApiSttTranscribeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -215,10 +239,13 @@ export interface FileRoutesById {
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/sessions/$sessionId': typeof AuthenticatedSessionsSessionIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/backup/export': typeof ApiBackupExportRoute
+  '/api/backup/import': typeof ApiBackupImportRoute
   '/api/chat/stream': typeof ApiChatStreamRoute
   '/api/compare/stream': typeof ApiCompareStreamRoute
   '/api/gallery/upload': typeof ApiGalleryUploadRoute
   '/api/research/stream': typeof ApiResearchStreamRoute
+  '/api/stt/transcribe': typeof ApiSttTranscribeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -240,10 +267,13 @@ export interface FileRouteTypes {
     | '/sign-up'
     | '/sessions/$sessionId'
     | '/api/auth/$'
+    | '/api/backup/export'
+    | '/api/backup/import'
     | '/api/chat/stream'
     | '/api/compare/stream'
     | '/api/gallery/upload'
     | '/api/research/stream'
+    | '/api/stt/transcribe'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -263,10 +293,13 @@ export interface FileRouteTypes {
     | '/sign-up'
     | '/sessions/$sessionId'
     | '/api/auth/$'
+    | '/api/backup/export'
+    | '/api/backup/import'
     | '/api/chat/stream'
     | '/api/compare/stream'
     | '/api/gallery/upload'
     | '/api/research/stream'
+    | '/api/stt/transcribe'
   id:
     | '__root__'
     | '/_authenticated'
@@ -288,20 +321,26 @@ export interface FileRouteTypes {
     | '/_authenticated/'
     | '/_authenticated/sessions/$sessionId'
     | '/api/auth/$'
+    | '/api/backup/export'
+    | '/api/backup/import'
     | '/api/chat/stream'
     | '/api/compare/stream'
     | '/api/gallery/upload'
     | '/api/research/stream'
+    | '/api/stt/transcribe'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   PublicRoute: typeof PublicRouteWithChildren
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiBackupExportRoute: typeof ApiBackupExportRoute
+  ApiBackupImportRoute: typeof ApiBackupImportRoute
   ApiChatStreamRoute: typeof ApiChatStreamRoute
   ApiCompareStreamRoute: typeof ApiCompareStreamRoute
   ApiGalleryUploadRoute: typeof ApiGalleryUploadRoute
   ApiResearchStreamRoute: typeof ApiResearchStreamRoute
+  ApiSttTranscribeRoute: typeof ApiSttTranscribeRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -425,6 +464,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/api/stt/transcribe': {
+      id: '/api/stt/transcribe'
+      path: '/api/stt/transcribe'
+      fullPath: '/api/stt/transcribe'
+      preLoaderRoute: typeof ApiSttTranscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/research/stream': {
       id: '/api/research/stream'
       path: '/api/research/stream'
@@ -451,6 +497,20 @@ declare module '@tanstack/react-router' {
       path: '/api/chat/stream'
       fullPath: '/api/chat/stream'
       preLoaderRoute: typeof ApiChatStreamRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/backup/import': {
+      id: '/api/backup/import'
+      path: '/api/backup/import'
+      fullPath: '/api/backup/import'
+      preLoaderRoute: typeof ApiBackupImportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/backup/export': {
+      id: '/api/backup/export'
+      path: '/api/backup/export'
+      fullPath: '/api/backup/export'
+      preLoaderRoute: typeof ApiBackupExportRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/auth/$': {
@@ -525,10 +585,13 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   PublicRoute: PublicRouteWithChildren,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiBackupExportRoute: ApiBackupExportRoute,
+  ApiBackupImportRoute: ApiBackupImportRoute,
   ApiChatStreamRoute: ApiChatStreamRoute,
   ApiCompareStreamRoute: ApiCompareStreamRoute,
   ApiGalleryUploadRoute: ApiGalleryUploadRoute,
   ApiResearchStreamRoute: ApiResearchStreamRoute,
+  ApiSttTranscribeRoute: ApiSttTranscribeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
