@@ -1,9 +1,11 @@
 import { type LLMMessage, type LLMTool, type SSEChunk, streamLLM } from "#/lib/llm.server";
 import { manageCalendar } from "#/lib/tools/manage_calendar";
 import { manageContacts } from "#/lib/tools/manage_contacts";
+import { manageDocuments } from "#/lib/tools/manage_documents";
 import { manageMemory } from "#/lib/tools/manage_memory";
 import { manageNotes } from "#/lib/tools/manage_notes";
 import { manageTasks } from "#/lib/tools/manage_tasks";
+import { searchChats } from "#/lib/tools/search_chats";
 import { webSearch } from "#/lib/tools/web_search";
 
 export const AGENT_TOOLS: LLMTool[] = [
@@ -213,6 +215,70 @@ export const AGENT_TOOLS: LLMTool[] = [
 			},
 		},
 	},
+	{
+		type: "function",
+		function: {
+			name: "manage_documents",
+			description:
+				"Create, list, read, edit, or fully update documents in the document library. " +
+				"Use create for new documents, edit for targeted find/replace, update for full rewrites. " +
+				"Documents support markdown, code, and plain text.",
+			parameters: {
+				type: "object",
+				properties: {
+					action: {
+						type: "string",
+						enum: ["list", "read", "create", "edit", "update"],
+						description: "Action to perform",
+					},
+					id: {
+						type: "string",
+						description: "Document id or 8-char prefix (for read/edit/update)",
+					},
+					title: { type: "string", description: "Document title (for create/update)" },
+					language: {
+						type: "string",
+						description: "Language/format (e.g. markdown, python, javascript) for create/update",
+					},
+					content: {
+						type: "string",
+						description: "Document content — required for create; full replacement for update",
+					},
+					edits: {
+						type: "array",
+						items: {
+							type: "object",
+							properties: {
+								find: { type: "string", description: "Exact text to find" },
+								replace: { type: "string", description: "Replacement text" },
+							},
+							required: ["find", "replace"],
+						},
+						description: "Find/replace edits for action=edit (first match per entry)",
+					},
+					limit: { type: "number", description: "Max results for list (default 20)" },
+				},
+				required: ["action"],
+			},
+		},
+	},
+	{
+		type: "function",
+		function: {
+			name: "search_chats",
+			description:
+				"Search the user's past chat conversations by keyword. " +
+				"Use when the user asks about previous chats or wants to find a past discussion.",
+			parameters: {
+				type: "object",
+				properties: {
+					query: { type: "string", description: "Keyword(s) to search for in past conversations" },
+					limit: { type: "number", description: "Max results (default 10)" },
+				},
+				required: ["query"],
+			},
+		},
+	},
 ];
 
 export type AgentChunk = SSEChunk | { type: "tool_result"; tool: string; result: string };
@@ -328,6 +394,14 @@ async function executeTool(name: string, rawArgs: string, ownerId: string): Prom
 
 		if (name === "manage_tasks") {
 			return manageTasks(args as Parameters<typeof manageTasks>[0], ownerId);
+		}
+
+		if (name === "manage_documents") {
+			return manageDocuments(args as Parameters<typeof manageDocuments>[0], ownerId);
+		}
+
+		if (name === "search_chats") {
+			return searchChats((args.query as string) ?? "", ownerId, (args.limit as number) ?? 10);
 		}
 
 		return `Unknown tool: ${name}`;
