@@ -173,7 +173,9 @@ Write tests that describe what the component **should do**, not implementation d
 | `feat/email-calendar` | Open PR | Phase 4 — IMAP/SMTP + CalDAV |
 | `feat/tasks-compare-pwa` | Open PR | Phase 5 — scheduled tasks + compare + PWA |
 | `feat/polish` | Open PR | Phase 6 + cross-cutting improvements |
-| `feat/notes-contacts-presets` | Open PR | Phase 7 — Notes, Contacts, Presets + enhancements |
+| `feat/notes-contacts-presets` | Merged | Phase 7 — Notes, Contacts, Presets + enhancements |
+| `feat/skills-voice` | Open PR | Phase 8 — Skills management + Voice I/O |
+| `feat/backup-stt` | Open PR | Phase 9 — Data backup/restore + server-side STT |
 
 **To merge:** the PRs must be merged in order (each depends on the previous). Use the GitHub UI or `gh pr merge` if the CLI is available.
 
@@ -247,6 +249,12 @@ await prisma.$executeRawUnsafe(
 vi.useFakeTimers({ now: new Date("2026-01-15T10:00:00Z") });
 afterEach(() => vi.useRealTimers());
 ```
+
+### Phase 9 — Backup/Restore + Server-side STT  `feat/backup-stt`
+
+- **Data export** (`GET /api/backup/export`) — downloads a dated JSON file with all user data: memories, notes, contacts, skills, presets, recent 50 chat sessions (capped at 200 messages each), non-archived documents.
+- **Data import** (`POST /api/backup/import`) — parses backup JSON and inserts records non-destructively alongside existing ones. Chat sessions intentionally excluded from import (too complex to deduplicate). Settings → Data tab.
+- **Server-side STT** (`POST /api/stt/transcribe`) — accepts audio via `multipart/form-data`, forwards to the user's configured endpoint's `/v1/audio/transcriptions` (Whisper-compatible). Returns `{ text }`. Complements the browser Web Speech API from Phase 8.
 
 ### Potential next improvements (ideas, not required)
 
