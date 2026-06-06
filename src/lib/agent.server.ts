@@ -1,7 +1,9 @@
 import { type LLMMessage, type LLMTool, type SSEChunk, streamLLM } from "#/lib/llm.server";
+import { manageCalendar } from "#/lib/tools/manage_calendar";
 import { manageContacts } from "#/lib/tools/manage_contacts";
 import { manageMemory } from "#/lib/tools/manage_memory";
 import { manageNotes } from "#/lib/tools/manage_notes";
+import { manageTasks } from "#/lib/tools/manage_tasks";
 import { webSearch } from "#/lib/tools/web_search";
 
 export const AGENT_TOOLS: LLMTool[] = [
@@ -127,6 +129,90 @@ export const AGENT_TOOLS: LLMTool[] = [
 			},
 		},
 	},
+	{
+		type: "function",
+		function: {
+			name: "manage_calendar",
+			description:
+				"Manage calendar events: list_events in a date range, create_event, update_event, delete_event, or list_calendars. " +
+				"Pass ISO 8601 datetimes for dtstart/dtend. For all-day events set all_day=true and pass YYYY-MM-DD.",
+			parameters: {
+				type: "object",
+				properties: {
+					action: {
+						type: "string",
+						enum: ["list_events", "create_event", "update_event", "delete_event", "list_calendars"],
+						description: "Action to perform",
+					},
+					summary: { type: "string", description: "Event title (for create/update)" },
+					dtstart: {
+						type: "string",
+						description: "Start ISO datetime or YYYY-MM-DD for all-day",
+					},
+					dtend: {
+						type: "string",
+						description: "End ISO datetime; defaults to +1h (or +1 day if all_day)",
+					},
+					all_day: { type: "boolean", description: "Whether this is an all-day event" },
+					description: { type: "string", description: "Event description/notes" },
+					location: { type: "string", description: "Event location" },
+					uid: { type: "string", description: "Event id or uid (for update/delete)" },
+					calendar: {
+						type: "string",
+						description: "Calendar name filter (for list_events/create_event)",
+					},
+					start: { type: "string", description: "list_events range start (ISO); defaults to now" },
+					end: { type: "string", description: "list_events range end (ISO); defaults to +14 days" },
+					rrule: { type: "string", description: "Recurrence rule in iCalendar RRULE format" },
+				},
+				required: ["action"],
+			},
+		},
+	},
+	{
+		type: "function",
+		function: {
+			name: "manage_tasks",
+			description:
+				"Manage scheduled LLM tasks: list, create, update, delete, pause, resume, or run_now. " +
+				"Tasks run an LLM prompt on a schedule and deliver output to a chat session.",
+			parameters: {
+				type: "object",
+				properties: {
+					action: {
+						type: "string",
+						enum: ["list", "create", "update", "delete", "pause", "resume", "run_now"],
+						description: "Action to perform",
+					},
+					id: {
+						type: "string",
+						description: "Task id or 8-char prefix (for update/delete/pause/resume/run_now)",
+					},
+					name: { type: "string", description: "Task name (for create/update)" },
+					prompt: {
+						type: "string",
+						description: "LLM prompt to run on schedule (for create/update)",
+					},
+					schedule: {
+						type: "string",
+						enum: ["once", "daily", "weekly", "monthly", "cron"],
+						description: "Recurrence schedule",
+					},
+					scheduled_time: {
+						type: "string",
+						description: "HH:MM UTC time for daily/weekly/monthly tasks",
+					},
+					cron_expression: {
+						type: "string",
+						description: "Cron expression when schedule=cron",
+					},
+					session_id: { type: "string", description: "Chat session ID to deliver output to" },
+					limit: { type: "number", description: "Max results for list (default 20)" },
+				},
+				required: ["action"],
+			},
+		},
+	},
 ];
 
 export type AgentChunk = SSEChunk | { type: "tool_result"; tool: string; result: string };
@@ -234,6 +320,14 @@ async function executeTool(name: string, rawArgs: string, ownerId: string): Prom
 
 		if (name === "manage_contacts") {
 			return manageContacts(args as Parameters<typeof manageContacts>[0], ownerId);
+		}
+
+		if (name === "manage_calendar") {
+			return manageCalendar(args as Parameters<typeof manageCalendar>[0], ownerId);
+		}
+
+		if (name === "manage_tasks") {
+			return manageTasks(args as Parameters<typeof manageTasks>[0], ownerId);
 		}
 
 		return `Unknown tool: ${name}`;
