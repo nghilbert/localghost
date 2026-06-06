@@ -1,0 +1,46 @@
+model CalendarCal {
+    id      String          @id @default(uuid(7))
+    name    String
+    color   String          @default("#5b8abf")
+    /// "local" or "caldav"
+    source  String          @default("local")
+    /// CalDAV server URL (for source=caldav)
+    caldavUrl             String?
+    caldavUsernameEncrypted String?
+    caldavPasswordEncrypted String?
+    ownerId String
+    owner   User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+    events  CalendarEvent[]
+    createdAt DateTime      @default(now())
+    updatedAt DateTime      @updatedAt
+
+    @@index([ownerId])
+    @@map("calendar_cal")
+}
+
+model CalendarEvent {
+    id          String      @id @default(uuid(7))
+    calendarId  String
+    calendar    CalendarCal @relation(fields: [calendarId], references: [id], onDelete: Cascade)
+    /// iCalendar UID for deduplication during CalDAV sync
+    uid         String?
+    summary     String      @default("")
+    description String      @default("")
+    location    String      @default("")
+    dtstart     DateTime
+    dtend       DateTime
+    allDay      Boolean     @default(false)
+    /// iCalendar RRULE string for recurring events
+    rrule       String?
+    /// Per-event color override
+    color       String?
+    ownerId     String
+    owner       User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+    createdAt   DateTime    @default(now())
+    updatedAt   DateTime    @updatedAt
+
+    @@index([ownerId])
+    @@index([calendarId])
+    @@index([dtstart])
+    @@map("calendar_event")
+}

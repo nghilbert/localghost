@@ -1,0 +1,51 @@
+model EmailAccount {
+    id            String   @id @default(uuid(7))
+    name          String
+    /// Display email address (the From address)
+    fromAddress   String   @default("")
+    isDefault     Boolean  @default(false)
+    enabled       Boolean  @default(true)
+
+    /// IMAP (receiving)
+    imapHost      String   @default("")
+    imapPort      Int      @default(993)
+    imapUser      String   @default("")
+    /// AES-256-GCM encrypted via crypto.server.ts
+    imapPasswordEncrypted String @default("")
+    imapStarttls  Boolean  @default(true)
+
+    /// SMTP (sending)
+    smtpHost      String   @default("")
+    smtpPort      Int      @default(465)
+    /// ssl | starttls | none
+    smtpSecurity  String   @default("ssl")
+    smtpUser      String   @default("")
+    /// AES-256-GCM encrypted via crypto.server.ts
+    smtpPasswordEncrypted String @default("")
+
+    ownerId       String
+    owner         User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+    createdAt     DateTime @default(now())
+    updatedAt     DateTime @updatedAt
+
+    @@index([ownerId])
+    @@map("email_account")
+}
+
+model EmailSummary {
+    id         String   @id @default(uuid(7))
+    accountId  String
+    messageId  String
+    folder     String   @default("INBOX")
+    subject    String   @default("")
+    fromAddr   String   @default("")
+    summary    String
+    date       DateTime
+    ownerId    String
+    owner      User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+    createdAt  DateTime @default(now())
+
+    @@unique([accountId, messageId])
+    @@index([ownerId])
+    @@map("email_summary")
+}
