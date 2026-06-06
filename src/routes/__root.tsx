@@ -51,7 +51,7 @@ function RootDocument() {
 				<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 			</head>
 
-			<body className="h-dvh overflow-hidden flex flex-col">
+			<body className="h-dvh overflow-hidden flex flex-col bg-background text-foreground">
 				<QueryClientProvider client={queryClient}>
 					<ThemeProvider>
 						<TooltipProvider>

@@ -23,56 +23,27 @@ const QUICK_LINKS = [
 		label: "Documents",
 		description: "Write and version your notes",
 		icon: FileTextIcon,
-		color: "text-blue-500",
-		bg: "bg-blue-500/10",
 	},
 	{
 		to: "/research",
 		label: "Research",
 		description: "Deep iterative web research",
 		icon: SearchIcon,
-		color: "text-violet-500",
-		bg: "bg-violet-500/10",
 	},
-	{
-		to: "/email",
-		label: "Email",
-		description: "Read and send email via IMAP",
-		icon: MailIcon,
-		color: "text-amber-500",
-		bg: "bg-amber-500/10",
-	},
-	{
-		to: "/calendar",
-		label: "Calendar",
-		description: "Events and CalDAV sync",
-		icon: CalendarIcon,
-		color: "text-green-500",
-		bg: "bg-green-500/10",
-	},
-	{
-		to: "/tasks",
-		label: "Tasks",
-		description: "Scheduled LLM prompts",
-		icon: TimerIcon,
-		color: "text-orange-500",
-		bg: "bg-orange-500/10",
-	},
+	{ to: "/email", label: "Email", description: "Read and send email via IMAP", icon: MailIcon },
+	{ to: "/calendar", label: "Calendar", description: "Events and CalDAV sync", icon: CalendarIcon },
+	{ to: "/tasks", label: "Tasks", description: "Scheduled LLM prompts", icon: TimerIcon },
 	{
 		to: "/compare",
 		label: "Compare",
 		description: "Side-by-side model outputs",
 		icon: LayoutGridIcon,
-		color: "text-rose-500",
-		bg: "bg-rose-500/10",
 	},
 	{
 		to: "/gallery",
 		label: "Gallery",
 		description: "Upload and browse images",
 		icon: GalleryHorizontalIcon,
-		color: "text-cyan-500",
-		bg: "bg-cyan-500/10",
 	},
 ] as const;
 
@@ -146,7 +117,7 @@ function HomePage() {
 					Workspace
 				</h2>
 				<div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
-					{QUICK_LINKS.map(({ to, label, description, icon: Icon, color, bg }) => (
+					{QUICK_LINKS.map(({ to, label, description, icon: Icon }) => (
 						<Link
 							key={to}
 							to={to}
@@ -155,8 +126,8 @@ function HomePage() {
 								"transition-colors hover:bg-accent hover:text-accent-foreground",
 							)}
 						>
-							<div className={cn("flex size-8 items-center justify-center rounded-lg", bg)}>
-								<Icon size={16} className={color} />
+							<div className="flex size-8 items-center justify-center rounded-lg bg-primary/10">
+								<Icon size={16} className="text-primary" />
 							</div>
 							<div>
 								<p className="text-sm font-medium">{label}</p>

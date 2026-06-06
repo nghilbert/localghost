@@ -109,7 +109,7 @@ function TasksPage() {
 												className={cn(
 													"rounded px-1.5 py-0.5 text-xs",
 													isActive
-														? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+														? "bg-primary/10 text-primary"
 														: "bg-muted text-muted-foreground",
 												)}
 											>
@@ -227,7 +227,7 @@ function TaskRunsDialog({ taskId, taskName }: { taskId: string; taskName: string
 											run.status === "error"
 												? "text-destructive"
 												: run.status === "success"
-													? "text-green-600 dark:text-green-400"
+													? "text-primary"
 													: "text-muted-foreground",
 										)}
 									>

@@ -29,11 +29,11 @@ import { cn } from "#/lib/utils";
 const CATEGORIES = ["fact", "preference", "contact", "project", "instruction"] as const;
 
 const CATEGORY_COLORS: Record<(typeof CATEGORIES)[number], string> = {
-	fact: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-	preference: "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400",
-	contact: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-	project: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-	instruction: "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400",
+	fact: "bg-muted text-muted-foreground",
+	preference: "bg-secondary text-secondary-foreground",
+	contact: "bg-accent text-accent-foreground",
+	project: "bg-primary/10 text-primary",
+	instruction: "bg-destructive/10 text-destructive",
 };
 
 export function MemoryModal() {

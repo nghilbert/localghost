@@ -181,7 +181,7 @@ function GalleryPage() {
 										<button
 											type="button"
 											onClick={() => removeItem(item.path)}
-											className="flex h-7 w-7 items-center justify-center rounded-lg bg-black/60 text-white backdrop-blur-sm hover:bg-red-500"
+											className="flex h-7 w-7 items-center justify-center rounded-lg bg-black/60 text-white backdrop-blur-sm hover:bg-destructive"
 											aria-label={`Remove ${item.name}`}
 										>
 											<TrashIcon size={12} />
