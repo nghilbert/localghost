@@ -4,6 +4,7 @@ import { EyeIcon, EyeOffIcon, PlusIcon, XIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { PageHeader } from "#/components/PageHeader";
 import { Button } from "#/components/ui/button";
 import { endpointsQueryOptions, getEndpointModels } from "#/features/chat/lib/chat.functions";
 import { cn } from "#/lib/utils";
@@ -145,22 +146,25 @@ function ComparePage() {
 
 	return (
 		<div className="flex h-full flex-col overflow-hidden">
-			{/* Top bar */}
-			<div className="border-b p-4 space-y-3">
-				<div className="flex items-center gap-2">
-					<h1 className="text-sm font-semibold">Model Compare</h1>
+			<PageHeader
+				title="Model Compare"
+				description="Run the same prompt across multiple models side by side."
+				actions={
 					<Button
-						variant="ghost"
+						variant="outline"
 						size="sm"
-						className="ml-auto gap-1"
+						className="gap-1.5"
 						onClick={() => setBlind((b) => !b)}
 						disabled={!hasResults}
 					>
 						{blind ? <EyeIcon size={13} /> : <EyeOffIcon size={13} />}
-						{blind ? "Reveal" : "Blind mode"}
+						{blind ? "Reveal" : "Blind"}
 					</Button>
-				</div>
+				}
+			/>
 
+			{/* Controls */}
+			<div className="shrink-0 space-y-3 border-b px-4 py-3">
 				{/* Slot selectors */}
 				<div className="flex flex-wrap gap-2 items-end">
 					{slots.map((slot, idx) => (
@@ -176,7 +180,7 @@ function ComparePage() {
 					{slots.length < 4 && (
 						<Button variant="outline" size="sm" onClick={addSlot} className="gap-1 shrink-0">
 							<PlusIcon size={12} />
-							Add model
+							Add
 						</Button>
 					)}
 				</div>
@@ -192,19 +196,19 @@ function ComparePage() {
 								run();
 							}
 						}}
-						placeholder="Enter prompt… (Ctrl+Enter to compare)"
+						placeholder="Enter prompt… (Ctrl+Enter to run)"
 						rows={2}
-						className="flex-1 resize-none rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-ring"
+						className="flex-1 resize-none rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-ring"
 					/>
 					{streaming ? (
-						<Button variant="outline" onClick={stop} className="shrink-0">
+						<Button variant="outline" onClick={stop} className="shrink-0 self-end">
 							Stop
 						</Button>
 					) : (
 						<Button
 							onClick={run}
 							disabled={!prompt.trim() || slots.some((s) => !s.model)}
-							className="shrink-0"
+							className="shrink-0 self-end"
 						>
 							Compare
 						</Button>
@@ -212,40 +216,44 @@ function ComparePage() {
 				</div>
 			</div>
 
-			{/* Results grid */}
-			<div
-				className="flex-1 overflow-auto p-4"
-				style={{
-					display: "grid",
-					gridTemplateColumns: `repeat(${slots.length}, minmax(0, 1fr))`,
-					gap: "0.75rem",
-				}}
-			>
-				{slots.map((slot, idx) => {
-					const state = results[slot.id];
-					const label = blind
-						? `Model ${String.fromCharCode(65 + idx)}`
-						: slot.model || `Slot ${idx + 1}`;
-					return (
-						<div key={slot.id} className="flex flex-col gap-2 min-h-0">
-							<div className="flex items-center gap-2">
-								<span className="text-xs font-medium text-muted-foreground">{label}</span>
-								{state && !state.done && (
-									<span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-								)}
+			{/* Results — side-by-side on md+, stacked on mobile */}
+			<div className="flex-1 overflow-auto p-4">
+				<div
+					className={cn(
+						"h-full gap-3",
+						slots.length <= 2
+							? "grid grid-cols-1 md:grid-cols-2"
+							: slots.length === 3
+								? "grid grid-cols-1 md:grid-cols-3"
+								: "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4",
+					)}
+				>
+					{slots.map((slot, idx) => {
+						const state = results[slot.id];
+						const label = blind
+							? `Model ${String.fromCharCode(65 + idx)}`
+							: slot.model || `Slot ${idx + 1}`;
+						return (
+							<div key={slot.id} className="flex min-h-48 flex-col gap-2">
+								<div className="flex items-center gap-2">
+									<span className="text-xs font-medium text-muted-foreground">{label}</span>
+									{state && !state.done && (
+										<span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
+									)}
+								</div>
+								<div className="flex-1 overflow-auto rounded-xl border bg-muted/20 p-4 text-sm">
+									{!state && <span className="text-xs text-muted-foreground">Waiting…</span>}
+									{state?.error && <span className="text-xs text-destructive">{state.error}</span>}
+									{state?.text && (
+										<div className="prose prose-sm dark:prose-invert max-w-none">
+											<ReactMarkdown remarkPlugins={[remarkGfm]}>{state.text}</ReactMarkdown>
+										</div>
+									)}
+								</div>
 							</div>
-							<div className="flex-1 rounded-lg border bg-muted/20 p-3 text-sm overflow-auto">
-								{!state && <span className="text-muted-foreground text-xs">Waiting…</span>}
-								{state?.error && <span className="text-destructive text-xs">{state.error}</span>}
-								{state?.text && (
-									<div className={cn("prose prose-sm dark:prose-invert max-w-none")}>
-										<ReactMarkdown remarkPlugins={[remarkGfm]}>{state.text}</ReactMarkdown>
-									</div>
-								)}
-							</div>
-						</div>
-					);
-				})}
+						);
+					})}
+				</div>
 			</div>
 		</div>
 	);
@@ -274,8 +282,8 @@ function SlotPicker({
 	}, [slot.endpointId]);
 
 	return (
-		<div className="flex items-center gap-1 rounded-md border bg-background px-2 py-1">
-			{label && <span className="text-xs font-medium text-muted-foreground mr-1">{label}</span>}
+		<div className="flex items-center gap-1 rounded-lg border bg-background px-2 py-1.5">
+			{label && <span className="mr-1 text-xs font-medium text-muted-foreground">{label}</span>}
 			<select
 				value={slot.endpointId}
 				onChange={(e) => {
@@ -294,7 +302,7 @@ function SlotPicker({
 			<select
 				value={slot.model}
 				onChange={(e) => onChange({ model: e.target.value })}
-				className="bg-transparent text-xs outline-none cursor-pointer max-w-40 truncate"
+				className="max-w-40 truncate bg-transparent text-xs outline-none cursor-pointer"
 				aria-label="Select model"
 			>
 				<option value="">Model…</option>

@@ -2,6 +2,7 @@ import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { PageHeader } from "#/components/PageHeader";
 import { Button } from "#/components/ui/button";
 import { Textarea } from "#/components/ui/textarea";
 import { createDocument } from "#/features/documents/lib/document.functions";
@@ -116,82 +117,81 @@ function ResearchPage() {
 	}
 
 	return (
-		<div className="mx-auto flex h-full max-w-4xl flex-col gap-4 px-4 py-6">
-			<div>
-				<h1 className="text-lg font-semibold">Deep Research</h1>
-				<p className="text-sm text-muted-foreground">
-					Iterative search-and-synthesize loop powered by your configured LLM.
-				</p>
-			</div>
-
-			{/* Question input */}
-			<div className="flex flex-col gap-2">
-				<Textarea
-					value={question}
-					onChange={(e) => setQuestion(e.target.value)}
-					placeholder="What do you want to research?"
-					rows={3}
-					disabled={isRunning}
-					className="resize-none"
-					onKeyDown={(e) => {
-						if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleStart();
-					}}
-				/>
-				<div className="flex justify-end gap-2">
-					{isRunning ? (
-						<Button variant="outline" onClick={handleStop}>
-							Stop
-						</Button>
-					) : (
-						<Button onClick={handleStart} disabled={!question.trim()}>
-							Start Research
-						</Button>
-					)}
-				</div>
-			</div>
-
-			{/* Progress log */}
-			{log.length > 0 && (
-				<div className="rounded-lg border bg-muted/30 px-4 py-3">
-					<p className="mb-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-						Progress
-					</p>
-					<ul className="space-y-0.5">
-						{log.map((l) => (
-							<li key={l.id} className="flex items-start gap-2 text-sm">
-								<span className="mt-0.5 text-muted-foreground">›</span>
-								<span>{l.text}</span>
-							</li>
-						))}
-						{isRunning && (
-							<li className="flex items-center gap-2 text-sm text-muted-foreground">
-								<span className="mt-0.5">›</span>
-								<span className="animate-pulse">Working…</span>
-							</li>
-						)}
-					</ul>
-				</div>
-			)}
-
-			{/* Report output */}
-			{report && (
+		<div className="flex h-full flex-col overflow-hidden">
+			<PageHeader
+				title="Deep Research"
+				description="Iterative search-and-synthesize loop powered by your configured LLM."
+			/>
+			<div className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-4 overflow-auto px-4 py-6">
+				{/* Question input */}
 				<div className="flex flex-col gap-2">
-					<div className="flex items-center justify-between">
-						<p className="text-sm font-medium">Report</p>
-						{!isRunning && !savedId && (
-							<Button variant="outline" size="sm" onClick={handleSave} disabled={isSaving}>
-								{isSaving ? "Saving…" : "Save as Document"}
+					<Textarea
+						value={question}
+						onChange={(e) => setQuestion(e.target.value)}
+						placeholder="What do you want to research?"
+						rows={3}
+						disabled={isRunning}
+						className="resize-none"
+						onKeyDown={(e) => {
+							if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleStart();
+						}}
+					/>
+					<div className="flex justify-end gap-2">
+						{isRunning ? (
+							<Button variant="outline" onClick={handleStop}>
+								Stop
+							</Button>
+						) : (
+							<Button onClick={handleStart} disabled={!question.trim()}>
+								Start Research
 							</Button>
 						)}
-						{savedId && <span className="text-xs text-muted-foreground">Saved to Documents</span>}
-					</div>
-					<div className="flex-1 overflow-auto rounded-lg border bg-background p-6">
-						<div className="prose prose-sm dark:prose-invert max-w-none">
-							<ReactMarkdown remarkPlugins={[remarkGfm]}>{report}</ReactMarkdown>
-						</div>
 					</div>
 				</div>
-			)}
+
+				{/* Progress log */}
+				{log.length > 0 && (
+					<div className="rounded-lg border bg-muted/30 px-4 py-3">
+						<p className="mb-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+							Progress
+						</p>
+						<ul className="space-y-0.5">
+							{log.map((l) => (
+								<li key={l.id} className="flex items-start gap-2 text-sm">
+									<span className="mt-0.5 text-muted-foreground">›</span>
+									<span>{l.text}</span>
+								</li>
+							))}
+							{isRunning && (
+								<li className="flex items-center gap-2 text-sm text-muted-foreground">
+									<span className="mt-0.5">›</span>
+									<span className="animate-pulse">Working…</span>
+								</li>
+							)}
+						</ul>
+					</div>
+				)}
+
+				{/* Report output */}
+				{report && (
+					<div className="flex flex-col gap-2">
+						<div className="flex items-center justify-between">
+							<p className="text-sm font-medium">Report</p>
+							{!isRunning && !savedId && (
+								<Button variant="outline" size="sm" onClick={handleSave} disabled={isSaving}>
+									{isSaving ? "Saving…" : "Save as Document"}
+								</Button>
+							)}
+							{savedId && <span className="text-xs text-muted-foreground">Saved to Documents</span>}
+						</div>
+						<div className="flex-1 overflow-auto rounded-lg border bg-background p-6">
+							<div className="prose prose-sm dark:prose-invert max-w-none">
+								<ReactMarkdown remarkPlugins={[remarkGfm]}>{report}</ReactMarkdown>
+							</div>
+						</div>
+					</div>
+				)}
+			</div>
 		</div>
 	);
 }
