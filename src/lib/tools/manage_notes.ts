@@ -65,7 +65,7 @@ async function listNotes(args: ManageNotesArgs, ownerId: string): Promise<string
 					? `[${items.filter((i) => i.done).length}/${items.length} done]`
 					: (n.content?.slice(0, 60) ?? "");
 			const flags = [n.pinned ? "📌" : "", n.color ? n.color : ""].filter(Boolean).join(" ");
-			return `[${n.id.slice(0, 8)}] "${n.title || "(untitled)"}" (${n.noteType})${flags ? " " + flags : ""}${preview ? " — " + preview : ""}`;
+			return `[${n.id.slice(0, 8)}] "${n.title || "(untitled)"}" (${n.noteType})${flags ? ` ${flags}` : ""}${preview ? ` — ${preview}` : ""}`;
 		})
 		.join("\n");
 }

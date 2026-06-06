@@ -264,3 +264,6 @@ afterEach(() => vi.useRealTimers());
 - **Rate limiting:** the chat stream API has no rate limiting; consider per-user token-bucket limiting to protect against abuse.
 - **Preset sharing:** presets are private per-user; a "share preset" link or public preset gallery would be useful.
 - **Note reminders:** `Note.dueDate` is stored but no notification mechanism fires — wire up a scheduler cron job or browser notification at due time.
+- **MCP server management:** connect to external MCP servers (stdio or SSE) and expose their tools to the agent — needs `@modelcontextprotocol/sdk`.
+- **Server-side STT:** POST `/api/stt/transcribe` that forwards audio to the configured endpoint's `/v1/audio/transcriptions` — enables Whisper-quality transcription.
+- **Skill search:** add pgvector embedding to the `Skill` model for semantic retrieval instead of injecting all skills.
