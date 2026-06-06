@@ -163,7 +163,7 @@ Write tests that describe what the component **should do**, not implementation d
 
 **All 6 phases are fully implemented.** The codebase is a complete self-hosted AI workspace. See the Features sections above for what each phase covers.
 
-### Branch status (as of 2026-06-05)
+### Branch status (as of 2026-06-06)
 
 | Branch | Status | Notes |
 |--------|--------|-------|
@@ -173,8 +173,26 @@ Write tests that describe what the component **should do**, not implementation d
 | `feat/email-calendar` | Open PR | Phase 4 — IMAP/SMTP + CalDAV |
 | `feat/tasks-compare-pwa` | Open PR | Phase 5 — scheduled tasks + compare + PWA |
 | `feat/polish` | Open PR | Phase 6 + cross-cutting improvements |
+| `feat/notes-contacts-presets` | Open PR | Phase 7 — Notes, Contacts, Presets + enhancements |
 
 **To merge:** the PRs must be merged in order (each depends on the previous). Use the GitHub UI or `gh pr merge` if the CLI is available.
+
+### Phase 7 — Notes, Contacts, Presets & Enhancements `feat/notes-contacts-presets`
+
+Cross-cutting improvements on top of Phase 6:
+
+- **RAG injection** (`src/routes/api/chat/stream.tsx`) — embeds user message, queries `Document.embedding` via pgvector cosine similarity (threshold 0.5, top 3) when `ragEnabled` is set on a session.
+- **Context compaction** (`src/lib/compactor.server.ts`) — port of `context_compactor.py`. Summarizes history when token estimate exceeds 85% of model context window.
+- **Auto session naming** — LLM names each new session after the first exchange; emits `session_name` SSE event.
+- **Webhooks** (`src/features/webhooks/`) — outgoing webhooks with HMAC-SHA256 signing, SSRF protection, event filtering. Managed in Settings → Webhooks.
+- **Message search** — full-text ILIKE search across all sessions; search icon in sidebar.
+- **API tokens** (`src/features/tokens/`, `src/lib/token.server.ts`) — `ody_` prefix, SHA-256 hash stored. Managed in Settings → API Tokens.
+- **Session auto-archive** — node-cron daily at 03:00 archives sessions inactive 7+ days.
+- **Session fork** — branch any conversation; Fork action in sidebar dropdown.
+- **Chat export** — download as Markdown or JSON; download icon in ChatView header.
+- **System prompt presets** (`src/features/chat/lib/preset.functions.ts`) — save/load named presets. Managed in Settings → Presets; picker shown inline in session settings panel.
+- **Expanded admin stats** — notes, contacts, webhooks, documents counts.
+- **Agent tools** (`src/lib/tools/`) — `manage_notes`, `manage_contacts`, `manage_calendar`, `manage_tasks`, `manage_documents`, `search_chats` — 8 tools total wired into `agent.server.ts`.
 
 ### How to continue iterating
 
@@ -232,8 +250,9 @@ afterEach(() => vi.useRealTimers());
 
 ### Potential next improvements (ideas, not required)
 
-- **Task output delivery:** scheduler currently writes `TaskRun.output` but doesn't inject results into the target chat session as a message — wire that up in `executeTask()` in `scheduler.server.ts`.
-- **RAG in chat:** `ChatSession` has no `ragEnabled` flag yet. Add it and query `Document.embedding` for semantic context in `api/chat/stream.tsx`.
 - **ModelPicker no-endpoint hint:** only `ChatView` shows the "add a provider in Settings" link — `ModelPicker` could also show it when the endpoint list is empty.
 - **Gallery crop/resize:** the gallery upload works but has no client-side image editing. A `<canvas>`-based crop dialog would complete Phase 6.
 - **More unit tests:** `agent.server.ts`, `imap.server.ts` stubs, and `llm.server.ts` response parsing all lack coverage.
+- **Rate limiting:** the chat stream API has no rate limiting; consider per-user token-bucket limiting to protect against abuse.
+- **Preset sharing:** presets are private per-user; a "share preset" link or public preset gallery would be useful.
+- **Note reminders:** `Note.dueDate` is stored but no notification mechanism fires — wire up a scheduler cron job or browser notification at due time.

@@ -2,9 +2,44 @@ import "#/lib/startup.server";
 import { createFileRoute } from "@tanstack/react-router";
 import { auth } from "#/features/auth/lib/auth.server";
 import { runAgent } from "#/lib/agent.server";
+import { maybeCompact } from "#/lib/compactor.server";
 import { decrypt } from "#/lib/crypto.server";
 import { prisma } from "#/lib/db.server";
-import { type LLMMessage, streamLLM } from "#/lib/llm.server";
+import { embed, toVectorLiteral } from "#/lib/embeddings.server";
+import { callLLM, type LLMMessage, streamLLM } from "#/lib/llm.server";
+import { fireWebhook } from "#/lib/webhook.server";
+
+const MAX_HISTORY_MESSAGES = 40;
+
+async function ragContext(message: string, userId: string): Promise<string | null> {
+	try {
+		const embedding = await embed(message, userId);
+		if (!embedding) return null;
+		const literal = toVectorLiteral(embedding);
+		const rows = await prisma.$queryRawUnsafe<{ title: string; content: string; score: number }[]>(
+			`SELECT title, content, 1 - (embedding <=> $1::vector) AS score
+			 FROM "Document"
+			 WHERE "ownerId" = $2 AND archived = false AND embedding IS NOT NULL
+			 ORDER BY score DESC LIMIT 3`,
+			literal,
+			userId,
+		);
+		const relevant = rows.filter((r) => r.score > 0.5);
+		if (!relevant.length) return null;
+		return relevant.map((r) => `### ${r.title}\n${r.content.slice(0, 1500)}`).join("\n\n---\n\n");
+	} catch {
+		return null;
+	}
+}
+
+function trimHistory(messages: LLMMessage[]): LLMMessage[] {
+	if (messages.length <= MAX_HISTORY_MESSAGES) return messages;
+	// Keep system messages + the most recent N exchanges
+	const system = messages.filter((m) => m.role === "system");
+	const nonSystem = messages.filter((m) => m.role !== "system");
+	const trimmed = nonSystem.slice(-MAX_HISTORY_MESSAGES);
+	return [...system, ...trimmed];
+}
 
 export const Route = createFileRoute("/api/chat/stream")({
 	server: {
@@ -42,7 +77,27 @@ export const Route = createFileRoute("/api/chat/stream")({
 				const endpoint = chatSession.endpoint;
 				const apiKey = endpoint.apiKeyEncrypted ? decrypt(endpoint.apiKeyEncrypted) : undefined;
 				const isAgent = chatSession.mode === "agent";
+				const temperature = chatSession.temperature ?? undefined;
 
+				// Build effective system prompt, injecting RAG context if enabled
+				let effectiveSystemPrompt = chatSession.systemPrompt ?? undefined;
+				if (chatSession.ragEnabled) {
+					const ctx = await ragContext(body.message, userId);
+					if (ctx) {
+						const ragBlock = `Relevant document context:\n\n${ctx}`;
+						effectiveSystemPrompt = effectiveSystemPrompt
+							? `${effectiveSystemPrompt}\n\n${ragBlock}`
+							: ragBlock;
+					}
+				}
+
+				// Auto-compact when approaching context window limit
+				const { messages: compactedHistory } = await maybeCompact(
+					trimHistory(history),
+					chatSession.model,
+					endpoint.url,
+					apiKey,
+				);
 				let assistantText = "";
 				const encoder = new TextEncoder();
 
@@ -57,7 +112,8 @@ export const Route = createFileRoute("/api/chat/stream")({
 									url: endpoint.url,
 									apiKey,
 									model: chatSession.model,
-									messages: history,
+									messages: compactedHistory,
+									systemPrompt: effectiveSystemPrompt,
 									ownerId: userId,
 								})) {
 									if (chunk.type === "delta") {
@@ -84,7 +140,9 @@ export const Route = createFileRoute("/api/chat/stream")({
 									url: endpoint.url,
 									apiKey,
 									model: chatSession.model,
-									messages: history,
+									messages: compactedHistory,
+									systemPrompt: effectiveSystemPrompt,
+									temperature,
 								});
 								const reader = llmStream.getReader();
 								while (true) {
@@ -115,14 +173,52 @@ export const Route = createFileRoute("/api/chat/stream")({
 								await prisma.chatMessage.create({
 									data: { sessionId: chatSession.id, role: "assistant", content: assistantText },
 								});
+
+								// Auto-name session after first exchange
+								const isFirstExchange =
+									chatSession.messageCount === 0 && chatSession.name === "New Chat";
+								let newName: string | undefined;
+								if (isFirstExchange) {
+									try {
+										newName = await callLLM({
+											url: endpoint.url,
+											apiKey,
+											model: chatSession.model,
+											messages: [
+												{
+													role: "user",
+													content: `Summarize this conversation in 4-6 words as a chat title. No quotes, no punctuation at the end.\n\nUser: ${body.message.slice(0, 500)}\nAssistant: ${assistantText.slice(0, 500)}`,
+												},
+											],
+											temperature: 0.3,
+											maxTokens: 20,
+										});
+										newName = newName
+											?.replace(/["'.!?]+$/, "")
+											.trim()
+											.slice(0, 80);
+									} catch {
+										newName = body.message.split(/\s+/).slice(0, 5).join(" ");
+									}
+									if (newName) send({ type: "session_name", name: newName });
+								}
+
 								await prisma.chatSession.update({
 									where: { id: chatSession.id },
 									data: {
 										messageCount: { increment: 2 },
 										lastMessageAt: new Date(),
 										lastAccessedAt: new Date(),
+										...(newName ? { name: newName } : {}),
 									},
 								});
+
+								// Fire outgoing webhooks (non-blocking)
+								fireWebhook(
+									"chat.completed",
+									{ sessionId: chatSession.id, messageCount: chatSession.messageCount + 2 },
+									userId,
+								).catch(() => {});
 							} else {
 								await prisma.chatSession.update({
 									where: { id: chatSession.id },

@@ -1,0 +1,20 @@
+model Note {
+  id        String    @id @default(uuid(7))
+  title     String    @default("")
+  content   String?
+  items     Json?
+  noteType  String    @default("note")
+  color     String?
+  label     String?
+  pinned    Boolean   @default(false)
+  archived  Boolean   @default(false)
+  dueDate   DateTime?
+  sortOrder Int?
+  ownerId   String
+  owner     User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([ownerId])
+  @@map("note")
+}
