@@ -1,5 +1,7 @@
 import { type LLMMessage, type LLMTool, type SSEChunk, streamLLM } from "#/lib/llm.server";
+import { manageContacts } from "#/lib/tools/manage_contacts";
 import { manageMemory } from "#/lib/tools/manage_memory";
+import { manageNotes } from "#/lib/tools/manage_notes";
 import { webSearch } from "#/lib/tools/web_search";
 
 export const AGENT_TOOLS: LLMTool[] = [
@@ -41,6 +43,85 @@ export const AGENT_TOOLS: LLMTool[] = [
 						description: "Category hint: fact, preference, contact, project, instruction",
 					},
 					limit: { type: "number", description: "Max results (default 5)" },
+				},
+				required: ["action"],
+			},
+		},
+	},
+	{
+		type: "function",
+		function: {
+			name: "manage_notes",
+			description:
+				"Create and manage notes and checklists: list, add, update, delete, toggle_item. " +
+				"For to-do lists, set note_type='checklist' and pass items as checklist_items array. " +
+				"For freeform notes, use note_type='note' and put the body in content.",
+			parameters: {
+				type: "object",
+				properties: {
+					action: {
+						type: "string",
+						enum: ["list", "add", "update", "delete", "toggle_item"],
+						description: "The action to perform",
+					},
+					id: {
+						type: "string",
+						description: "Note id or 8-char prefix (for update/delete/toggle_item)",
+					},
+					title: { type: "string", description: "Note title (for add/update)" },
+					content: { type: "string", description: "Body text for note_type='note'" },
+					note_type: {
+						type: "string",
+						enum: ["note", "checklist"],
+						description: "'note' = freeform text. 'checklist' = to-do items. Defaults to 'note'.",
+					},
+					checklist_items: {
+						type: "array",
+						items: {
+							type: "object",
+							properties: {
+								text: { type: "string" },
+								done: { type: "boolean" },
+							},
+							required: ["text"],
+						},
+						description: "Checklist items for note_type='checklist'",
+					},
+					color: { type: "string", description: "Color label (e.g. 'yellow', 'blue')" },
+					label: { type: "string", description: "Category label" },
+					pinned: { type: "boolean", description: "Pin to top" },
+					archived: { type: "boolean", description: "Archive/unarchive or list archived notes" },
+					due_date: { type: "string", description: "Reminder time (ISO 8601 or natural language)" },
+					index: { type: "number", description: "Checklist item index for toggle_item (0-based)" },
+					limit: { type: "number", description: "Max results for list (default 20)" },
+				},
+				required: ["action"],
+			},
+		},
+	},
+	{
+		type: "function",
+		function: {
+			name: "manage_contacts",
+			description:
+				"Create, list, update, delete, or resolve contacts. " +
+				"Use resolve to look up a contact's email or phone by name. " +
+				"Use list to see all contacts. Use add to save a new contact.",
+			parameters: {
+				type: "object",
+				properties: {
+					action: {
+						type: "string",
+						enum: ["list", "add", "update", "delete", "resolve"],
+						description: "The action to perform",
+					},
+					id: { type: "string", description: "Contact id or 8-char prefix (for update/delete)" },
+					name: { type: "string", description: "Contact name (for add/update/resolve)" },
+					email: { type: "string", description: "Email address (for add/update)" },
+					phone: { type: "string", description: "Phone number (for add/update)" },
+					notes: { type: "string", description: "Free-form notes about the contact" },
+					query: { type: "string", description: "Name search query (for resolve)" },
+					limit: { type: "number", description: "Max results for list (default 20)" },
 				},
 				required: ["action"],
 			},
@@ -145,6 +226,14 @@ async function executeTool(name: string, rawArgs: string, ownerId: string): Prom
 
 		if (name === "manage_memory") {
 			return manageMemory(args as Parameters<typeof manageMemory>[0], ownerId);
+		}
+
+		if (name === "manage_notes") {
+			return manageNotes(args as Parameters<typeof manageNotes>[0], ownerId);
+		}
+
+		if (name === "manage_contacts") {
+			return manageContacts(args as Parameters<typeof manageContacts>[0], ownerId);
 		}
 
 		return `Unknown tool: ${name}`;
