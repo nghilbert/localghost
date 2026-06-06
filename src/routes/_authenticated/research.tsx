@@ -1,9 +1,10 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Button } from "#/components/ui/button";
 import { Textarea } from "#/components/ui/textarea";
+import { createDocument } from "#/features/documents/lib/document.functions";
 
 export const Route = createFileRoute("/_authenticated/research")({
 	component: ResearchPage,
@@ -12,10 +13,13 @@ export const Route = createFileRoute("/_authenticated/research")({
 type LogLine = { id: number; text: string };
 
 function ResearchPage() {
+	const router = useRouter();
 	const [question, setQuestion] = useState("");
 	const [isRunning, setIsRunning] = useState(false);
 	const [log, setLog] = useState<LogLine[]>([]);
 	const [report, setReport] = useState("");
+	const [isSaving, setIsSaving] = useState(false);
+	const [savedId, setSavedId] = useState<string | null>(null);
 	const abortRef = useRef<AbortController | null>(null);
 	const logIdRef = useRef(0);
 
@@ -41,7 +45,11 @@ function ResearchPage() {
 				signal: abort.signal,
 			});
 
-			if (!response.ok || !response.body) throw new Error(`HTTP ${response.status}`);
+			if (!response.ok) {
+				const msg = await response.text().catch(() => "");
+				throw new Error(msg || `HTTP ${response.status}`);
+			}
+			if (!response.body) throw new Error("No response body");
 
 			const reader = response.body.getReader();
 			const decoder = new TextDecoder();
@@ -90,6 +98,21 @@ function ResearchPage() {
 
 	function handleStop() {
 		abortRef.current?.abort();
+	}
+
+	async function handleSave() {
+		if (!report || isSaving) return;
+		setIsSaving(true);
+		try {
+			const title = question.length > 80 ? `${question.slice(0, 77)}…` : question;
+			const doc = await createDocument({ data: { title, language: "markdown", content: report } });
+			setSavedId(doc.id);
+			await router.navigate({ to: "/documents" });
+		} catch (err) {
+			console.error("Failed to save document:", err);
+		} finally {
+			setIsSaving(false);
+		}
 	}
 
 	return (
@@ -152,9 +175,20 @@ function ResearchPage() {
 
 			{/* Report output */}
 			{report && (
-				<div className="flex-1 overflow-auto rounded-lg border bg-background p-6">
-					<div className="prose prose-sm dark:prose-invert max-w-none">
-						<ReactMarkdown remarkPlugins={[remarkGfm]}>{report}</ReactMarkdown>
+				<div className="flex flex-col gap-2">
+					<div className="flex items-center justify-between">
+						<p className="text-sm font-medium">Report</p>
+						{!isRunning && !savedId && (
+							<Button variant="outline" size="sm" onClick={handleSave} disabled={isSaving}>
+								{isSaving ? "Saving…" : "Save as Document"}
+							</Button>
+						)}
+						{savedId && <span className="text-xs text-muted-foreground">Saved to Documents</span>}
+					</div>
+					<div className="flex-1 overflow-auto rounded-lg border bg-background p-6">
+						<div className="prose prose-sm dark:prose-invert max-w-none">
+							<ReactMarkdown remarkPlugins={[remarkGfm]}>{report}</ReactMarkdown>
+						</div>
 					</div>
 				</div>
 			)}
