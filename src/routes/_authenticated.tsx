@@ -8,10 +8,10 @@ export const Route = createFileRoute("/_authenticated")({
 		return { auth: context.auth };
 	},
 	component: () => (
-		<SidebarProvider>
+		<SidebarProvider className="h-full">
 			<AppSidebar />
 			{/* SidebarInset renders a <main /> element */}
-			<SidebarInset className="flex container m-auto justify-center">
+			<SidebarInset className="flex min-h-0 min-w-0 flex-col overflow-hidden">
 				<Outlet />
 			</SidebarInset>
 		</SidebarProvider>

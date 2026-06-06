@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { BrainIcon, PlusIcon, SearchIcon, Trash2Icon } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 import { Button } from "#/components/ui/button";
 import {
 	Dialog,
@@ -23,8 +24,17 @@ import {
 	memoriesQueryOptions,
 	searchMemories,
 } from "#/features/memory/lib/memory.functions";
+import { cn } from "#/lib/utils";
 
 const CATEGORIES = ["fact", "preference", "contact", "project", "instruction"] as const;
+
+const CATEGORY_COLORS: Record<(typeof CATEGORIES)[number], string> = {
+	fact: "bg-muted text-muted-foreground",
+	preference: "bg-secondary text-secondary-foreground",
+	contact: "bg-accent text-accent-foreground",
+	project: "bg-primary/10 text-primary",
+	instruction: "bg-destructive/10 text-destructive",
+};
 
 export function MemoryModal() {
 	const queryClient = useQueryClient();
@@ -47,12 +57,17 @@ export function MemoryModal() {
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["memories"] });
 			setNewText("");
+			toast.success("Memory saved");
 		},
+		onError: () => toast.error("Failed to save memory"),
 	});
 
 	const deleteMut = useMutation({
 		mutationFn: (id: string) => deleteMemory({ data: { id } }),
-		onSuccess: () => queryClient.invalidateQueries({ queryKey: ["memories"] }),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["memories"] });
+			toast.success("Memory deleted");
+		},
 	});
 
 	const displayed = searchQuery.length > 2 ? (searchResults ?? []) : memories;
@@ -60,24 +75,36 @@ export function MemoryModal() {
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger asChild>
-				<Button variant="ghost" size="sm" className="gap-1.5">
+				<Button variant="ghost" size="icon" className="h-8 w-8" title="Memory">
 					<BrainIcon size={15} />
-					Memory
+					<span className="sr-only">Memory</span>
 				</Button>
 			</DialogTrigger>
 			<DialogContent className="max-w-xl">
 				<DialogHeader>
-					<DialogTitle>Memory</DialogTitle>
+					<DialogTitle className="flex items-center gap-2">
+						<BrainIcon size={16} />
+						Memory
+						<span className="ml-auto text-xs font-normal text-muted-foreground">
+							{memories.length} saved
+						</span>
+					</DialogTitle>
 				</DialogHeader>
 
 				{/* Add memory form */}
-				<div className="flex flex-col gap-2 border-b pb-4">
+				<div className="space-y-2 border-b pb-4">
 					<textarea
 						value={newText}
 						onChange={(e) => setNewText(e.target.value)}
 						placeholder="Add a memory…"
 						rows={2}
-						className="w-full resize-none rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-ring"
+						className="w-full resize-none rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-ring"
+						onKeyDown={(e) => {
+							if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+								e.preventDefault();
+								addMut.mutate();
+							}
+						}}
 					/>
 					<div className="flex items-center gap-2">
 						<Select
@@ -99,11 +126,12 @@ export function MemoryModal() {
 							size="sm"
 							onClick={() => addMut.mutate()}
 							disabled={!newText.trim() || addMut.isPending}
-							className="gap-1"
+							className="gap-1.5"
 						>
-							<PlusIcon size={14} />
-							Add
+							<PlusIcon size={13} />
+							{addMut.isPending ? "Saving…" : "Save"}
 						</Button>
+						<span className="ml-auto text-xs text-muted-foreground">Ctrl+Enter</span>
 					</div>
 				</div>
 
@@ -122,29 +150,36 @@ export function MemoryModal() {
 				</div>
 
 				{/* Memory list */}
-				<ul className="max-h-72 space-y-1 overflow-y-auto" aria-label="Saved memories">
+				<ul className="max-h-64 space-y-1 overflow-y-auto" aria-label="Saved memories">
 					{displayed.length === 0 && (
-						<li className="py-4 text-center text-sm text-muted-foreground">
+						<li className="py-6 text-center text-sm text-muted-foreground">
 							{searchQuery.length > 2 ? "No matching memories." : "No memories yet."}
 						</li>
 					)}
 					{displayed.map((m) => (
 						<li
 							key={m.id}
-							className="flex items-start gap-2 rounded-md px-2 py-1.5 hover:bg-muted/50"
+							className="group flex items-start gap-2 rounded-lg px-2 py-2 hover:bg-muted/40"
 						>
-							<span className="mt-0.5 rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
+							<span
+								className={cn(
+									"mt-0.5 shrink-0 rounded-md px-1.5 py-0.5 text-xs font-medium",
+									CATEGORY_COLORS[m.category as (typeof CATEGORIES)[number]] ??
+										"bg-muted text-muted-foreground",
+								)}
+							>
 								{m.category}
 							</span>
-							<span className="flex-1 text-sm">{m.text}</span>
+							<span className="flex-1 text-sm leading-snug">{m.text}</span>
 							<Button
 								variant="ghost"
 								size="icon-sm"
+								className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
 								onClick={() => deleteMut.mutate(m.id)}
 								disabled={deleteMut.isPending}
 								aria-label="Delete memory"
 							>
-								<Trash2Icon size={13} />
+								<Trash2Icon size={12} />
 							</Button>
 						</li>
 					))}

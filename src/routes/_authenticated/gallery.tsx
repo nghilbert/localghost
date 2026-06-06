@@ -1,7 +1,9 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { DownloadIcon, TrashIcon, UploadIcon, XIcon } from "lucide-react";
+import { DownloadIcon, ImageIcon, TrashIcon, UploadCloudIcon, XIcon } from "lucide-react";
 import { useRef, useState } from "react";
+import { toast } from "sonner";
+import { PageHeader } from "#/components/PageHeader";
 import { Button } from "#/components/ui/button";
 import { cn } from "#/lib/utils";
 
@@ -31,26 +33,30 @@ function GalleryPage() {
 	const { data: items = [] } = useQuery(galleryQueryOptions);
 	const inputRef = useRef<HTMLInputElement>(null);
 	const [uploading, setUploading] = useState(false);
-	const [lightbox, setLightbox] = useState<GalleryItem | null>(null);
+	const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
 	const [dragOver, setDragOver] = useState(false);
+
+	const imageItems = items.filter((i) => isImage(i.name));
+	const lightboxItem = lightboxIdx !== null ? (imageItems[lightboxIdx] ?? null) : null;
 
 	const uploadFiles = async (files: FileList | File[]) => {
 		setUploading(true);
+		let ok = 0;
 		for (const file of Array.from(files)) {
 			const fd = new FormData();
 			fd.append("file", file);
 			try {
 				const res = await fetch("/api/gallery/upload", { method: "POST", body: fd });
-				if (res.ok) await queryClient.invalidateQueries({ queryKey: ["gallery"] });
+				if (res.ok) {
+					ok++;
+					await queryClient.invalidateQueries({ queryKey: ["gallery"] });
+				}
 			} catch {
 				// skip failed uploads
 			}
 		}
 		setUploading(false);
-	};
-
-	const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-		if (e.target.files?.length) uploadFiles(e.target.files);
+		if (ok > 0) toast.success(`Uploaded ${ok} file${ok !== 1 ? "s" : ""}`);
 	};
 
 	const handleDrop = (e: React.DragEvent) => {
@@ -65,39 +71,53 @@ function GalleryPage() {
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({ path }),
 		});
-		queryClient.invalidateQueries({ queryKey: ["gallery"] });
+		await queryClient.invalidateQueries({ queryKey: ["gallery"] });
+		toast.success("File removed");
+	};
+
+	const handleKey = (e: React.KeyboardEvent) => {
+		if (!lightboxItem) return;
+		if (e.key === "Escape") setLightboxIdx(null);
+		if (e.key === "ArrowRight")
+			setLightboxIdx((i) => (i !== null ? Math.min(i + 1, imageItems.length - 1) : null));
+		if (e.key === "ArrowLeft") setLightboxIdx((i) => (i !== null ? Math.max(i - 1, 0) : null));
 	};
 
 	return (
 		<div className="flex h-full flex-col overflow-hidden">
-			<div className="border-b p-4 flex items-center gap-3">
-				<h1 className="text-sm font-semibold">Gallery</h1>
-				<span className="text-xs text-muted-foreground">
-					{items.length} file{items.length !== 1 ? "s" : ""}
-				</span>
-				<Button
-					size="sm"
-					variant="outline"
-					className="ml-auto gap-1"
-					onClick={() => inputRef.current?.click()}
-					disabled={uploading}
-				>
-					<UploadIcon size={13} />
-					{uploading ? "Uploading…" : "Upload"}
-				</Button>
-				<input
-					ref={inputRef}
-					type="file"
-					multiple
-					accept="image/*,video/*,.pdf,.txt,.md"
-					className="hidden"
-					onChange={handleInputChange}
-					aria-label="Upload files"
-				/>
-			</div>
+			<PageHeader
+				title="Gallery"
+				description={`${items.length} file${items.length !== 1 ? "s" : ""}`}
+				actions={
+					<>
+						<Button
+							size="sm"
+							variant="outline"
+							className="gap-1.5"
+							onClick={() => inputRef.current?.click()}
+							disabled={uploading}
+						>
+							<UploadCloudIcon size={14} />
+							{uploading ? "Uploading…" : "Upload"}
+						</Button>
+						<input
+							ref={inputRef}
+							type="file"
+							multiple
+							accept="image/*,video/*,.pdf,.txt,.md"
+							className="hidden"
+							onChange={(e) => e.target.files?.length && uploadFiles(e.target.files)}
+							aria-label="Upload files"
+						/>
+					</>
+				}
+			/>
 
 			<section
-				className={cn("flex-1 overflow-auto p-4 transition-colors", dragOver && "bg-primary/5")}
+				className={cn(
+					"flex-1 overflow-auto p-4 transition-colors",
+					dragOver && "bg-primary/5 ring-2 ring-inset ring-primary/30",
+				)}
 				onDragOver={(e) => {
 					e.preventDefault();
 					setDragOver(true);
@@ -107,86 +127,126 @@ function GalleryPage() {
 				aria-label="File drop zone"
 			>
 				{items.length === 0 && (
-					<div className="flex h-full flex-col items-center justify-center gap-3 text-center">
-						<UploadIcon size={32} className="text-muted-foreground/40" />
-						<p className="text-sm text-muted-foreground">Drop files here or click Upload</p>
+					<div className="flex h-full flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed border-border">
+						<div className="flex size-16 items-center justify-center rounded-full bg-muted">
+							<UploadCloudIcon size={24} className="text-muted-foreground" />
+						</div>
+						<div className="text-center">
+							<p className="text-sm font-medium">Drop files here</p>
+							<p className="text-xs text-muted-foreground">or click Upload above</p>
+						</div>
 					</div>
 				)}
 
-				<div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-					{items.map((item) => (
-						<div
-							key={item.path}
-							className="group relative rounded-lg border overflow-hidden bg-muted/20"
-						>
-							{isImage(item.name) ? (
-								<button
-									type="button"
-									className="block w-full"
-									onClick={() => setLightbox(item)}
-									aria-label={`View ${item.name}`}
+				{items.length > 0 && (
+					<div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+						{items.map((item) => {
+							const imgIdx = imageItems.indexOf(item);
+							return (
+								<div
+									key={item.path}
+									className="group relative overflow-hidden rounded-xl border bg-muted/20"
 								>
-									<img
-										src={item.path}
-										alt={item.name}
-										className="aspect-square w-full object-cover"
-										loading="lazy"
-									/>
-								</button>
-							) : (
-								<div className="flex aspect-square items-center justify-center bg-muted/30">
-									<span className="text-2xl">📄</span>
+									{isImage(item.name) ? (
+										<button
+											type="button"
+											className="block w-full"
+											onClick={() => setLightboxIdx(imgIdx)}
+											aria-label={`View ${item.name}`}
+										>
+											<img
+												src={item.path}
+												alt={item.name}
+												className="aspect-square w-full object-cover transition-transform duration-200 group-hover:scale-105"
+												loading="lazy"
+											/>
+										</button>
+									) : (
+										<div className="flex aspect-square items-center justify-center bg-muted/30">
+											<ImageIcon size={24} className="text-muted-foreground/40" />
+										</div>
+									)}
+									<div className="border-t px-2 py-1.5">
+										<p className="truncate text-xs text-muted-foreground">{item.name}</p>
+									</div>
+									<div className="absolute right-1.5 top-1.5 hidden gap-1 group-hover:flex">
+										<a
+											href={item.path}
+											download={item.name}
+											className="flex h-7 w-7 items-center justify-center rounded-lg bg-black/60 text-white backdrop-blur-sm hover:bg-black/80"
+											aria-label={`Download ${item.name}`}
+										>
+											<DownloadIcon size={12} />
+										</a>
+										<button
+											type="button"
+											onClick={() => removeItem(item.path)}
+											className="flex h-7 w-7 items-center justify-center rounded-lg bg-black/60 text-white backdrop-blur-sm hover:bg-destructive"
+											aria-label={`Remove ${item.name}`}
+										>
+											<TrashIcon size={12} />
+										</button>
+									</div>
 								</div>
-							)}
-							<div className="p-1.5">
-								<p className="truncate text-xs text-muted-foreground">{item.name}</p>
-							</div>
-							<div className="absolute right-1 top-1 hidden gap-1 group-hover:flex">
-								<a
-									href={item.path}
-									download={item.name}
-									className="flex h-6 w-6 items-center justify-center rounded bg-black/60 text-white hover:bg-black/80"
-									aria-label={`Download ${item.name}`}
-								>
-									<DownloadIcon size={11} />
-								</a>
-								<button
-									type="button"
-									onClick={() => removeItem(item.path)}
-									className="flex h-6 w-6 items-center justify-center rounded bg-black/60 text-white hover:bg-destructive"
-									aria-label={`Remove ${item.name}`}
-								>
-									<TrashIcon size={11} />
-								</button>
-							</div>
-						</div>
-					))}
-				</div>
+							);
+						})}
+					</div>
+				)}
 			</section>
 
 			{/* Lightbox */}
-			{lightbox && (
+			{lightboxItem && (
 				<div
-					className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
-					onClick={() => setLightbox(null)}
-					onKeyDown={(e) => e.key === "Escape" && setLightbox(null)}
+					className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm"
+					onClick={() => setLightboxIdx(null)}
+					onKeyDown={handleKey}
 					role="dialog"
 					aria-label="Image preview"
 					aria-modal="true"
+					tabIndex={-1}
 				>
 					<button
 						type="button"
-						onClick={() => setLightbox(null)}
-						className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-white hover:bg-white/30"
+						onClick={() => setLightboxIdx(null)}
+						className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
 						aria-label="Close preview"
 					>
 						<XIcon size={16} />
 					</button>
+					{lightboxIdx !== null && lightboxIdx > 0 && (
+						<button
+							type="button"
+							onClick={(e) => {
+								e.stopPropagation();
+								setLightboxIdx((i) => (i !== null ? i - 1 : null));
+							}}
+							className="absolute left-4 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
+							aria-label="Previous"
+						>
+							‹
+						</button>
+					)}
+					{lightboxIdx !== null && lightboxIdx < imageItems.length - 1 && (
+						<button
+							type="button"
+							onClick={(e) => {
+								e.stopPropagation();
+								setLightboxIdx((i) => (i !== null ? i + 1 : null));
+							}}
+							className="absolute right-4 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
+							aria-label="Next"
+						>
+							›
+						</button>
+					)}
 					<img
-						src={lightbox.path}
-						alt={lightbox.name}
-						className="max-h-[90vh] max-w-[90vw] rounded-lg object-contain"
+						src={lightboxItem.path}
+						alt={lightboxItem.name}
+						className="max-h-[90vh] max-w-[90vw] rounded-xl object-contain shadow-2xl"
 					/>
+					<p className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-black/60 px-3 py-1 text-xs text-white/80 backdrop-blur-sm">
+						{lightboxItem.name}
+					</p>
 				</div>
 			)}
 		</div>

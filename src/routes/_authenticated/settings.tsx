@@ -2,6 +2,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { PaletteIcon, PlugIcon, UserIcon } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
+import { PageHeader } from "#/components/PageHeader";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "#/components/ui/tabs";
@@ -18,34 +20,38 @@ export const Route = createFileRoute("/_authenticated/settings")({
 
 function SettingsPage() {
 	return (
-		<div className="mx-auto max-w-2xl p-6">
-			<h1 className="mb-4 text-lg font-semibold">Settings</h1>
-			<Tabs defaultValue="account">
-				<TabsList className="mb-4">
-					<TabsTrigger value="account" className="gap-1.5">
-						<UserIcon size={13} />
-						Account
-					</TabsTrigger>
-					<TabsTrigger value="providers" className="gap-1.5">
-						<PlugIcon size={13} />
-						Providers
-					</TabsTrigger>
-					<TabsTrigger value="theme" className="gap-1.5">
-						<PaletteIcon size={13} />
-						Theme
-					</TabsTrigger>
-				</TabsList>
+		<div className="flex h-full flex-col overflow-hidden">
+			<PageHeader title="Settings" />
+			<div className="flex-1 overflow-auto">
+				<div className="mx-auto max-w-2xl p-6">
+					<Tabs defaultValue="account">
+						<TabsList className="mb-4">
+							<TabsTrigger value="account" className="gap-1.5">
+								<UserIcon size={13} />
+								Account
+							</TabsTrigger>
+							<TabsTrigger value="providers" className="gap-1.5">
+								<PlugIcon size={13} />
+								Providers
+							</TabsTrigger>
+							<TabsTrigger value="theme" className="gap-1.5">
+								<PaletteIcon size={13} />
+								Theme
+							</TabsTrigger>
+						</TabsList>
 
-				<TabsContent value="account">
-					<AccountTab />
-				</TabsContent>
-				<TabsContent value="providers">
-					<ProvidersTab />
-				</TabsContent>
-				<TabsContent value="theme">
-					<ThemeTab />
-				</TabsContent>
-			</Tabs>
+						<TabsContent value="account">
+							<AccountTab />
+						</TabsContent>
+						<TabsContent value="providers">
+							<ProvidersTab />
+						</TabsContent>
+						<TabsContent value="theme">
+							<ThemeTab />
+						</TabsContent>
+					</Tabs>
+				</div>
+			</div>
 		</div>
 	);
 }
@@ -60,7 +66,11 @@ function AccountTab() {
 
 	const updateMut = useMutation({
 		mutationFn: () => authClient.updateUser({ name }),
-		onSuccess: () => queryClient.invalidateQueries({ queryKey: ["session"] }),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["session"] });
+			toast.success("Profile updated");
+		},
+		onError: () => toast.error("Failed to update profile"),
 	});
 
 	const signOutMut = useMutation({
@@ -122,7 +132,11 @@ function ProvidersTab() {
 
 	const deleteMut = useMutation({
 		mutationFn: (id: string) => deleteEndpoint({ data: { id } }),
-		onSuccess: () => queryClient.invalidateQueries({ queryKey: ["endpoints"] }),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["endpoints"] });
+			toast.success("Endpoint removed");
+		},
+		onError: () => toast.error("Failed to remove endpoint"),
 	});
 
 	return (

@@ -2,6 +2,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { ChevronLeftIcon, ChevronRightIcon, PlusIcon } from "lucide-react";
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
+import { PageHeader } from "#/components/PageHeader";
 import { Button } from "#/components/ui/button";
 import {
 	Dialog,
@@ -34,6 +36,9 @@ type EventData = {
 	calendar: { id: string; name: string; color: string };
 };
 
+const DAY_LABELS_FULL = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const DAY_LABELS_SHORT = ["S", "M", "T", "W", "T", "F", "S"];
+
 function CalendarPage() {
 	const queryClient = useQueryClient();
 	const [today] = useState(() => new Date());
@@ -45,19 +50,20 @@ function CalendarPage() {
 	const [newCalOpen, setNewCalOpen] = useState(false);
 	const [newEventOpen, setNewEventOpen] = useState(false);
 	const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+	const [detailEvent, setDetailEvent] = useState<EventData | null>(null);
 
 	const { data: calendars = [] } = useQuery(calendarsQueryOptions());
 
 	const rangeStart = useMemo(() => {
 		const d = new Date(viewDate);
 		d.setDate(1);
-		d.setDate(d.getDate() - d.getDay()); // start of the week containing month start
+		d.setDate(d.getDate() - d.getDay());
 		return d;
 	}, [viewDate]);
 
 	const rangeEnd = useMemo(() => {
 		const d = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0);
-		d.setDate(d.getDate() + (6 - d.getDay())); // end of last week
+		d.setDate(d.getDate() + (6 - d.getDay()));
 		return d;
 	}, [viewDate]);
 
@@ -67,79 +73,115 @@ function CalendarPage() {
 
 	const weeks = useMemo(() => buildWeeks(rangeStart, rangeEnd), [rangeStart, rangeEnd]);
 
-	function prevMonth() {
-		setViewDate((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1));
-	}
-
-	function nextMonth() {
-		setViewDate((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1));
-	}
-
 	const deleteMut = useMutation({
 		mutationFn: (id: string) => deleteEvent({ data: { id } }),
-		onSuccess: () => queryClient.invalidateQueries({ queryKey: ["calendar-events"] }),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["calendar-events"] });
+			setDetailEvent(null);
+			toast.success("Event deleted");
+		},
+		onError: () => toast.error("Failed to delete event"),
 	});
 
 	return (
-		<div className="flex h-full flex-col p-4 gap-3">
-			{/* Header */}
-			<div className="flex items-center gap-2">
-				<Button variant="outline" size="icon" onClick={prevMonth}>
-					<ChevronLeftIcon size={15} />
-				</Button>
-				<h2 className="flex-1 text-center text-base font-semibold">
-					{viewDate.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
-				</h2>
-				<Button variant="outline" size="icon" onClick={nextMonth}>
-					<ChevronRightIcon size={15} />
-				</Button>
-				<NewEventDialog
-					open={newEventOpen}
-					onOpenChange={setNewEventOpen}
-					calendars={calendars}
-					defaultDate={selectedDate ?? today}
-					onCreated={() => queryClient.invalidateQueries({ queryKey: ["calendar-events"] })}
-				/>
-				<NewCalendarDialog
-					open={newCalOpen}
-					onOpenChange={setNewCalOpen}
-					onCreated={() => queryClient.invalidateQueries({ queryKey: ["calendars"] })}
-				/>
-			</div>
-
-			{/* Day-of-week headers */}
-			<div className="grid grid-cols-7 text-center text-xs font-medium text-muted-foreground">
-				{["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
-					<div key={d} className="py-1">
-						{d}
+		<div className="flex h-full flex-col overflow-hidden">
+			<PageHeader
+				title={viewDate.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+				actions={
+					<div className="flex items-center gap-1.5">
+						<Button
+							variant="outline"
+							size="icon"
+							className="h-8 w-8"
+							onClick={() => setViewDate((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1))}
+						>
+							<ChevronLeftIcon size={14} />
+						</Button>
+						<Button
+							variant="outline"
+							size="icon"
+							className="h-8 w-8"
+							onClick={() => setViewDate((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1))}
+						>
+							<ChevronRightIcon size={14} />
+						</Button>
+						<Button
+							variant="ghost"
+							size="sm"
+							className="text-xs"
+							onClick={() => {
+								const d = new Date();
+								d.setDate(1);
+								setViewDate(d);
+							}}
+						>
+							Today
+						</Button>
+						<NewEventDialog
+							open={newEventOpen}
+							onOpenChange={setNewEventOpen}
+							calendars={calendars}
+							defaultDate={selectedDate ?? today}
+							onCreated={() => {
+								queryClient.invalidateQueries({ queryKey: ["calendar-events"] });
+								toast.success("Event created");
+							}}
+						/>
+						<NewCalendarDialog
+							open={newCalOpen}
+							onOpenChange={setNewCalOpen}
+							onCreated={() => {
+								queryClient.invalidateQueries({ queryKey: ["calendars"] });
+								toast.success("Calendar created");
+							}}
+						/>
 					</div>
-				))}
-			</div>
+				}
+			/>
 
-			{/* Calendar grid */}
-			<div className="flex-1 overflow-auto">
-				<div className="grid grid-cols-7 grid-rows-[repeat(6,minmax(80px,1fr))] h-full border-l border-t">
+			<div className="flex flex-1 flex-col overflow-hidden px-3 pb-3 pt-2">
+				{/* Day-of-week headers */}
+				<div className="grid grid-cols-7 border-l border-t">
+					{DAY_LABELS_FULL.map((d, i) => (
+						<div
+							key={d}
+							className="border-b border-r py-1.5 text-center text-xs font-medium text-muted-foreground"
+						>
+							<span className="hidden sm:inline">{d}</span>
+							<span className="sm:hidden">{DAY_LABELS_SHORT[i]}</span>
+						</div>
+					))}
+				</div>
+
+				{/* Calendar grid */}
+				<div
+					className="flex-1 overflow-auto"
+					style={{
+						display: "grid",
+						gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
+						gridTemplateRows: `repeat(${weeks.length}, minmax(60px, 1fr))`,
+						borderLeft: "1px solid var(--color-border)",
+						borderTop: "1px solid var(--color-border)",
+					}}
+				>
 					{weeks.flat().map((day) => {
 						const isCurrentMonth = day.getMonth() === viewDate.getMonth();
 						const isToday = sameDay(day, today);
-						const dayEvents = events.filter((e) => {
-							const start = new Date(e.dtstart);
-							return sameDay(start, day);
-						});
+						const dayEvents = events.filter((e) => sameDay(new Date(e.dtstart), day));
 
 						return (
 							<div
 								key={day.toISOString()}
-								className={cn(
-									"border-b border-r p-1 text-xs",
-									!isCurrentMonth && "bg-muted/30 text-muted-foreground",
-								)}
+								className={cn("border-b border-r p-1", !isCurrentMonth && "bg-muted/20")}
 							>
 								<button
 									type="button"
 									className={cn(
 										"mb-1 flex h-6 w-6 items-center justify-center rounded-full text-xs",
-										isToday && "bg-primary text-primary-foreground font-bold",
+										isToday
+											? "bg-primary font-bold text-primary-foreground"
+											: "text-muted-foreground hover:bg-muted",
+										!isCurrentMonth && "opacity-40",
 									)}
 									onClick={() => {
 										setSelectedDate(day);
@@ -149,21 +191,21 @@ function CalendarPage() {
 									{day.getDate()}
 								</button>
 								<div className="space-y-0.5">
-									{dayEvents.slice(0, 3).map((ev: EventData) => (
+									{dayEvents.slice(0, 2).map((ev: EventData) => (
 										<button
 											key={ev.id}
 											type="button"
 											title={ev.summary}
-											className="block w-full truncate rounded px-1 py-0.5 text-left text-[11px] text-white"
+											className="block w-full truncate rounded px-1 py-0.5 text-left text-[11px] text-white transition-opacity hover:opacity-80"
 											style={{ backgroundColor: ev.color ?? ev.calendar.color }}
-											onClick={() => deleteMut.mutate(ev.id)}
+											onClick={() => setDetailEvent(ev)}
 										>
 											{ev.summary}
 										</button>
 									))}
-									{dayEvents.length > 3 && (
-										<p className="text-muted-foreground text-[10px] px-1">
-											+{dayEvents.length - 3} more
+									{dayEvents.length > 2 && (
+										<p className="px-1 text-[10px] text-muted-foreground">
+											+{dayEvents.length - 2}
 										</p>
 									)}
 								</div>
@@ -171,18 +213,56 @@ function CalendarPage() {
 						);
 					})}
 				</div>
+
+				{/* Legend */}
+				{calendars.length > 0 && (
+					<div className="mt-2 flex flex-wrap gap-3">
+						{calendars.map((cal) => (
+							<div key={cal.id} className="flex items-center gap-1.5">
+								<div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: cal.color }} />
+								<span className="text-xs text-muted-foreground">{cal.name}</span>
+							</div>
+						))}
+					</div>
+				)}
 			</div>
 
-			{/* Legend */}
-			{calendars.length > 0 && (
-				<div className="flex flex-wrap gap-3">
-					{calendars.map((cal) => (
-						<div key={cal.id} className="flex items-center gap-1.5">
-							<div className="h-3 w-3 rounded-full" style={{ backgroundColor: cal.color }} />
-							<span className="text-xs text-muted-foreground">{cal.name}</span>
+			{/* Event detail dialog */}
+			{detailEvent && (
+				<Dialog open={!!detailEvent} onOpenChange={() => setDetailEvent(null)}>
+					<DialogContent className="max-w-sm">
+						<DialogHeader>
+							<DialogTitle>{detailEvent.summary}</DialogTitle>
+						</DialogHeader>
+						<div className="space-y-2 text-sm">
+							<div className="flex items-center gap-2">
+								<div
+									className="h-3 w-3 shrink-0 rounded-full"
+									style={{ backgroundColor: detailEvent.color ?? detailEvent.calendar.color }}
+								/>
+								<span className="text-muted-foreground">{detailEvent.calendar.name}</span>
+							</div>
+							<p className="text-muted-foreground">
+								{new Date(detailEvent.dtstart).toLocaleString([], {
+									dateStyle: "medium",
+									timeStyle: "short",
+								})}
+								{" – "}
+								{new Date(detailEvent.dtend).toLocaleString([], { timeStyle: "short" })}
+							</p>
 						</div>
-					))}
-				</div>
+						<div className="flex justify-end">
+							<Button
+								variant="destructive"
+								size="sm"
+								onClick={() => deleteMut.mutate(detailEvent.id)}
+								disabled={deleteMut.isPending}
+							>
+								{deleteMut.isPending ? "Deleting…" : "Delete event"}
+							</Button>
+						</div>
+					</DialogContent>
+				</Dialog>
 			)}
 		</div>
 	);
@@ -192,7 +272,6 @@ function buildWeeks(start: Date, end: Date): Date[][] {
 	const weeks: Date[][] = [];
 	let week: Date[] = [];
 	const cur = new Date(start);
-
 	while (cur <= end) {
 		week.push(new Date(cur));
 		if (week.length === 7) {
@@ -226,10 +305,9 @@ function NewEventDialog({
 	defaultDate: Date;
 	onCreated: () => void;
 }) {
-	const toDatetimeLocal = (d: Date) => {
-		const pad = (n: number) => String(n).padStart(2, "0");
-		return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-	};
+	const pad = (n: number) => String(n).padStart(2, "0");
+	const toDatetimeLocal = (d: Date) =>
+		`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 
 	const [summary, setSummary] = useState("");
 	const [calendarId, setCalendarId] = useState(() => calendars[0]?.id ?? "");
@@ -260,9 +338,9 @@ function NewEventDialog({
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogTrigger asChild>
-				<Button size="sm" className="gap-1">
+				<Button size="sm" className="h-8 gap-1">
 					<PlusIcon size={13} />
-					Event
+					<span className="hidden sm:inline">Event</span>
 				</Button>
 			</DialogTrigger>
 			<DialogContent className="max-w-sm">
@@ -274,6 +352,7 @@ function NewEventDialog({
 						placeholder="Event title"
 						value={summary}
 						onChange={(e) => setSummary(e.target.value)}
+						autoFocus
 					/>
 					<div className="grid grid-cols-2 gap-2">
 						<div className="flex flex-col gap-1">
@@ -318,7 +397,7 @@ function NewEventDialog({
 						onClick={() => createMut.mutate()}
 						disabled={!summary || !calendarId || createMut.isPending}
 					>
-						Create
+						{createMut.isPending ? "Creating…" : "Create event"}
 					</Button>
 				</div>
 			</DialogContent>
@@ -350,9 +429,9 @@ function NewCalendarDialog({
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogTrigger asChild>
-				<Button variant="outline" size="sm" className="gap-1">
+				<Button variant="outline" size="sm" className="h-8 gap-1">
 					<PlusIcon size={13} />
-					Calendar
+					<span className="hidden sm:inline">Calendar</span>
 				</Button>
 			</DialogTrigger>
 			<DialogContent className="max-w-sm">
@@ -364,6 +443,7 @@ function NewCalendarDialog({
 						placeholder="Calendar name"
 						value={name}
 						onChange={(e) => setName(e.target.value)}
+						autoFocus
 					/>
 					<div className="flex items-center gap-2">
 						<label htmlFor="cal-color" className="text-sm text-muted-foreground">
@@ -378,7 +458,7 @@ function NewCalendarDialog({
 						/>
 					</div>
 					<Button onClick={() => createMut.mutate()} disabled={!name || createMut.isPending}>
-						Create
+						{createMut.isPending ? "Creating…" : "Create calendar"}
 					</Button>
 				</div>
 			</DialogContent>

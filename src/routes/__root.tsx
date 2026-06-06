@@ -8,6 +8,7 @@ import {
 	Scripts,
 } from "@tanstack/react-router";
 import { useEffect } from "react";
+import { Toaster } from "sonner";
 import { Button } from "#/components/ui/button";
 import {
 	Empty,
@@ -50,11 +51,12 @@ function RootDocument() {
 				<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 			</head>
 
-			<body className="min-h-dvh flex flex-col">
+			<body className="h-dvh overflow-hidden flex flex-col bg-background text-foreground">
 				<QueryClientProvider client={queryClient}>
 					<ThemeProvider>
 						<TooltipProvider>
 							<Outlet />
+							<Toaster richColors position="bottom-right" />
 						</TooltipProvider>
 					</ThemeProvider>
 				</QueryClientProvider>

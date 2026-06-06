@@ -11,7 +11,7 @@ describe("ChatMessage", () => {
 
 		it("should render with article landmark and accessible label", () => {
 			render(<ChatMessage senderRole="user" content="Hi" />);
-			expect(screen.getByRole("article", { name: "You message" })).toBeInTheDocument();
+			expect(screen.getByRole("article", { name: "Your message" })).toBeInTheDocument();
 		});
 
 		it("should render markdown syntax literally (not parsed)", () => {

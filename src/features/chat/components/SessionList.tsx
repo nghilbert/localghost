@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useParams } from "@tanstack/react-router";
+import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { ArchiveIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
 import { Button } from "#/components/ui/button";
@@ -20,10 +20,10 @@ import {
 
 export function SessionList() {
 	const queryClient = useQueryClient();
+	const navigate = useNavigate();
 	const { data: sessions = [] } = useQuery(sessionsQueryOptions());
 	const [renamingId, setRenamingId] = useState<string | null>(null);
 
-	// Try to read current session from route params (may not exist on all routes)
 	const params = useParams({ strict: false }) as { sessionId?: string };
 	const currentSessionId = params.sessionId;
 
@@ -31,8 +31,7 @@ export function SessionList() {
 		mutationFn: () => createSession({ data: { name: "New Chat" } }),
 		onSuccess: (session) => {
 			queryClient.invalidateQueries({ queryKey: ["sessions"] });
-			// Navigate is handled by the parent via router
-			window.location.href = `/sessions/${session.id}`;
+			navigate({ to: "/sessions/$sessionId", params: { sessionId: session.id } });
 		},
 	});
 
