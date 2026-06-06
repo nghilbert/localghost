@@ -15,13 +15,17 @@ import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/
 import { Route as PublicSignUpRouteImport } from './routes/_public/sign-up'
 import { Route as PublicSignInRouteImport } from './routes/_public/sign-in'
 import { Route as AuthenticatedTasksRouteImport } from './routes/_authenticated/tasks'
+import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedResearchRouteImport } from './routes/_authenticated/research'
+import { Route as AuthenticatedGalleryRouteImport } from './routes/_authenticated/gallery'
 import { Route as AuthenticatedEmailRouteImport } from './routes/_authenticated/email'
 import { Route as AuthenticatedDocumentsRouteImport } from './routes/_authenticated/documents'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedCompareRouteImport } from './routes/_authenticated/compare'
 import { Route as AuthenticatedCalendarRouteImport } from './routes/_authenticated/calendar'
+import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as ApiResearchStreamRouteImport } from './routes/api/research/stream'
+import { Route as ApiGalleryUploadRouteImport } from './routes/api/gallery/upload'
 import { Route as ApiCompareStreamRouteImport } from './routes/api/compare/stream'
 import { Route as ApiChatStreamRouteImport } from './routes/api/chat/stream'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
@@ -55,9 +59,19 @@ const AuthenticatedTasksRoute = AuthenticatedTasksRouteImport.update({
   path: '/tasks',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedResearchRoute = AuthenticatedResearchRouteImport.update({
   id: '/research',
   path: '/research',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedGalleryRoute = AuthenticatedGalleryRouteImport.update({
+  id: '/gallery',
+  path: '/gallery',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedEmailRoute = AuthenticatedEmailRouteImport.update({
@@ -85,9 +99,19 @@ const AuthenticatedCalendarRoute = AuthenticatedCalendarRouteImport.update({
   path: '/calendar',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const ApiResearchStreamRoute = ApiResearchStreamRouteImport.update({
   id: '/api/research/stream',
   path: '/api/research/stream',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiGalleryUploadRoute = ApiGalleryUploadRouteImport.update({
+  id: '/api/gallery/upload',
+  path: '/api/gallery/upload',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiCompareStreamRoute = ApiCompareStreamRouteImport.update({
@@ -114,12 +138,15 @@ const AuthenticatedSessionsSessionIdRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
+  '/admin': typeof AuthenticatedAdminRoute
   '/calendar': typeof AuthenticatedCalendarRoute
   '/compare': typeof AuthenticatedCompareRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/documents': typeof AuthenticatedDocumentsRoute
   '/email': typeof AuthenticatedEmailRoute
+  '/gallery': typeof AuthenticatedGalleryRoute
   '/research': typeof AuthenticatedResearchRoute
+  '/settings': typeof AuthenticatedSettingsRoute
   '/tasks': typeof AuthenticatedTasksRoute
   '/sign-in': typeof PublicSignInRoute
   '/sign-up': typeof PublicSignUpRoute
@@ -127,16 +154,20 @@ export interface FileRoutesByFullPath {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/chat/stream': typeof ApiChatStreamRoute
   '/api/compare/stream': typeof ApiCompareStreamRoute
+  '/api/gallery/upload': typeof ApiGalleryUploadRoute
   '/api/research/stream': typeof ApiResearchStreamRoute
 }
 export interface FileRoutesByTo {
   '/': typeof AuthenticatedIndexRoute
+  '/admin': typeof AuthenticatedAdminRoute
   '/calendar': typeof AuthenticatedCalendarRoute
   '/compare': typeof AuthenticatedCompareRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/documents': typeof AuthenticatedDocumentsRoute
   '/email': typeof AuthenticatedEmailRoute
+  '/gallery': typeof AuthenticatedGalleryRoute
   '/research': typeof AuthenticatedResearchRoute
+  '/settings': typeof AuthenticatedSettingsRoute
   '/tasks': typeof AuthenticatedTasksRoute
   '/sign-in': typeof PublicSignInRoute
   '/sign-up': typeof PublicSignUpRoute
@@ -144,18 +175,22 @@ export interface FileRoutesByTo {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/chat/stream': typeof ApiChatStreamRoute
   '/api/compare/stream': typeof ApiCompareStreamRoute
+  '/api/gallery/upload': typeof ApiGalleryUploadRoute
   '/api/research/stream': typeof ApiResearchStreamRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/_public': typeof PublicRouteWithChildren
+  '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/calendar': typeof AuthenticatedCalendarRoute
   '/_authenticated/compare': typeof AuthenticatedCompareRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/documents': typeof AuthenticatedDocumentsRoute
   '/_authenticated/email': typeof AuthenticatedEmailRoute
+  '/_authenticated/gallery': typeof AuthenticatedGalleryRoute
   '/_authenticated/research': typeof AuthenticatedResearchRoute
+  '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/tasks': typeof AuthenticatedTasksRoute
   '/_public/sign-in': typeof PublicSignInRoute
   '/_public/sign-up': typeof PublicSignUpRoute
@@ -164,18 +199,22 @@ export interface FileRoutesById {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/chat/stream': typeof ApiChatStreamRoute
   '/api/compare/stream': typeof ApiCompareStreamRoute
+  '/api/gallery/upload': typeof ApiGalleryUploadRoute
   '/api/research/stream': typeof ApiResearchStreamRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/admin'
     | '/calendar'
     | '/compare'
     | '/dashboard'
     | '/documents'
     | '/email'
+    | '/gallery'
     | '/research'
+    | '/settings'
     | '/tasks'
     | '/sign-in'
     | '/sign-up'
@@ -183,16 +222,20 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/chat/stream'
     | '/api/compare/stream'
+    | '/api/gallery/upload'
     | '/api/research/stream'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/admin'
     | '/calendar'
     | '/compare'
     | '/dashboard'
     | '/documents'
     | '/email'
+    | '/gallery'
     | '/research'
+    | '/settings'
     | '/tasks'
     | '/sign-in'
     | '/sign-up'
@@ -200,17 +243,21 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/chat/stream'
     | '/api/compare/stream'
+    | '/api/gallery/upload'
     | '/api/research/stream'
   id:
     | '__root__'
     | '/_authenticated'
     | '/_public'
+    | '/_authenticated/admin'
     | '/_authenticated/calendar'
     | '/_authenticated/compare'
     | '/_authenticated/dashboard'
     | '/_authenticated/documents'
     | '/_authenticated/email'
+    | '/_authenticated/gallery'
     | '/_authenticated/research'
+    | '/_authenticated/settings'
     | '/_authenticated/tasks'
     | '/_public/sign-in'
     | '/_public/sign-up'
@@ -219,6 +266,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/chat/stream'
     | '/api/compare/stream'
+    | '/api/gallery/upload'
     | '/api/research/stream'
   fileRoutesById: FileRoutesById
 }
@@ -228,6 +276,7 @@ export interface RootRouteChildren {
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiChatStreamRoute: typeof ApiChatStreamRoute
   ApiCompareStreamRoute: typeof ApiCompareStreamRoute
+  ApiGalleryUploadRoute: typeof ApiGalleryUploadRoute
   ApiResearchStreamRoute: typeof ApiResearchStreamRoute
 }
 
@@ -275,11 +324,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedTasksRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/settings': {
+      id: '/_authenticated/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AuthenticatedSettingsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/research': {
       id: '/_authenticated/research'
       path: '/research'
       fullPath: '/research'
       preLoaderRoute: typeof AuthenticatedResearchRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/gallery': {
+      id: '/_authenticated/gallery'
+      path: '/gallery'
+      fullPath: '/gallery'
+      preLoaderRoute: typeof AuthenticatedGalleryRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/email': {
@@ -317,11 +380,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCalendarRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/admin': {
+      id: '/_authenticated/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AuthenticatedAdminRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/api/research/stream': {
       id: '/api/research/stream'
       path: '/api/research/stream'
       fullPath: '/api/research/stream'
       preLoaderRoute: typeof ApiResearchStreamRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/gallery/upload': {
+      id: '/api/gallery/upload'
+      path: '/api/gallery/upload'
+      fullPath: '/api/gallery/upload'
+      preLoaderRoute: typeof ApiGalleryUploadRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/compare/stream': {
@@ -356,24 +433,30 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteChildren {
+  AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedCalendarRoute: typeof AuthenticatedCalendarRoute
   AuthenticatedCompareRoute: typeof AuthenticatedCompareRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedDocumentsRoute: typeof AuthenticatedDocumentsRoute
   AuthenticatedEmailRoute: typeof AuthenticatedEmailRoute
+  AuthenticatedGalleryRoute: typeof AuthenticatedGalleryRoute
   AuthenticatedResearchRoute: typeof AuthenticatedResearchRoute
+  AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedTasksRoute: typeof AuthenticatedTasksRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedSessionsSessionIdRoute: typeof AuthenticatedSessionsSessionIdRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedCalendarRoute: AuthenticatedCalendarRoute,
   AuthenticatedCompareRoute: AuthenticatedCompareRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedDocumentsRoute: AuthenticatedDocumentsRoute,
   AuthenticatedEmailRoute: AuthenticatedEmailRoute,
+  AuthenticatedGalleryRoute: AuthenticatedGalleryRoute,
   AuthenticatedResearchRoute: AuthenticatedResearchRoute,
+  AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedTasksRoute: AuthenticatedTasksRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedSessionsSessionIdRoute: AuthenticatedSessionsSessionIdRoute,
@@ -402,6 +485,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiChatStreamRoute: ApiChatStreamRoute,
   ApiCompareStreamRoute: ApiCompareStreamRoute,
+  ApiGalleryUploadRoute: ApiGalleryUploadRoute,
   ApiResearchStreamRoute: ApiResearchStreamRoute,
 }
 export const routeTree = rootRouteImport

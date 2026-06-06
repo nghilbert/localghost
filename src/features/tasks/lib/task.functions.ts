@@ -4,7 +4,7 @@ import { getRequestHeaders } from "@tanstack/react-start/server";
 import { z } from "zod/v4";
 import { auth } from "#/features/auth/lib/auth.server";
 import { prisma } from "#/lib/db.server";
-import { computeNextRun } from "#/lib/scheduler.server";
+import { computeNextRun, executeTaskById } from "#/lib/scheduler.server";
 
 async function getCurrentUserId(): Promise<string> {
 	const headers = getRequestHeaders();
@@ -93,15 +93,9 @@ export const runTaskNow = createServerFn({ method: "POST" })
 	.inputValidator(z.object({ id: z.uuid() }))
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
-		// Trigger by setting nextRun to now; the scheduler poll will pick it up
 		const task = await prisma.scheduledTask.findFirst({ where: { id: data.id, ownerId: userId } });
 		if (!task) throw new Error("Task not found");
-
-		await prisma.scheduledTask.update({
-			where: { id: data.id },
-			data: { nextRun: new Date(), status: "active" },
-		});
-
+		await executeTaskById(data.id);
 		return { triggered: true };
 	});
 

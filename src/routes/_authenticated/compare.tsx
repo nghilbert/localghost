@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { EyeIcon, EyeOffIcon, PlusIcon, XIcon } from "lucide-react";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Button } from "#/components/ui/button";
@@ -266,14 +266,12 @@ function SlotPicker({
 }) {
 	const [models, setModels] = useState<string[]>([]);
 
-	const loadModels = async (endpointId: string) => {
-		try {
-			const list = await getEndpointModels({ data: { endpointId } });
-			setModels(list);
-		} catch {
-			setModels([]);
-		}
-	};
+	useEffect(() => {
+		if (!slot.endpointId) return;
+		getEndpointModels({ data: { endpointId: slot.endpointId } })
+			.then(setModels)
+			.catch(() => setModels([]));
+	}, [slot.endpointId]);
 
 	return (
 		<div className="flex items-center gap-1 rounded-md border bg-background px-2 py-1">
@@ -282,9 +280,7 @@ function SlotPicker({
 				value={slot.endpointId}
 				onChange={(e) => {
 					onChange({ endpointId: e.target.value, model: "" });
-					loadModels(e.target.value);
 				}}
-				onFocus={() => slot.endpointId && loadModels(slot.endpointId)}
 				className="bg-transparent text-xs outline-none cursor-pointer"
 				aria-label="Select endpoint"
 			>

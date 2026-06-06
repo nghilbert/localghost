@@ -1,3 +1,4 @@
+import "#/lib/startup.server";
 import { createFileRoute } from "@tanstack/react-router";
 import { auth } from "#/features/auth/lib/auth.server";
 import { runAgent } from "#/lib/agent.server";

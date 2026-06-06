@@ -35,6 +35,13 @@ async function runDueTasks() {
 	}
 }
 
+/** Fetch a task by ID and execute it immediately. Used by runTaskNow. */
+export async function executeTaskById(id: string): Promise<void> {
+	const task = await prisma.scheduledTask.findFirst({ where: { id } });
+	if (!task) throw new Error("Task not found");
+	await executeTask(task);
+}
+
 async function executeTask(task: {
 	id: string;
 	name: string;

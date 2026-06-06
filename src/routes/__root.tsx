@@ -18,6 +18,7 @@ import {
 } from "#/components/ui/empty";
 import { TooltipProvider } from "#/components/ui/tooltip";
 import { authQueryOptions } from "#/features/auth/lib/auth.functions";
+import { ThemeProvider } from "#/features/theme/ThemeProvider";
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
 	beforeLoad: async ({ context }) => {
@@ -51,9 +52,11 @@ function RootDocument() {
 
 			<body className="min-h-dvh flex flex-col">
 				<QueryClientProvider client={queryClient}>
-					<TooltipProvider>
-						<Outlet />
-					</TooltipProvider>
+					<ThemeProvider>
+						<TooltipProvider>
+							<Outlet />
+						</TooltipProvider>
+					</ThemeProvider>
 				</QueryClientProvider>
 
 				<Scripts />

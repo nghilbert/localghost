@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useNavigate, useRouteContext } from "@tanstack/react-router";
-import { LogOutIcon } from "lucide-react";
+import { Link, useNavigate, useRouteContext } from "@tanstack/react-router";
+import { LogOutIcon, SettingsIcon } from "lucide-react";
 import { Avatar, AvatarFallback } from "#/components/ui/avatar";
 import {
 	DropdownMenu,
@@ -59,6 +59,12 @@ export function AuthMenu() {
 							</div>
 						</DropdownMenuLabel>
 						<DropdownMenuSeparator />
+						<DropdownMenuItem asChild>
+							<Link to="/settings">
+								<SettingsIcon />
+								Settings
+							</Link>
+						</DropdownMenuItem>
 						<DropdownMenuItem onClick={handleSignOut}>
 							<LogOutIcon />
 							Sign out
