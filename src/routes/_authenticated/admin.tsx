@@ -9,10 +9,26 @@ export const Route = createFileRoute("/_authenticated/admin")({
 	component: AdminPage,
 });
 
+async function isAdmin(userId: string): Promise<boolean> {
+	const adminEmail = process.env.ADMIN_EMAIL;
+	if (adminEmail) {
+		const user = await prisma.user.findFirst({ where: { id: userId }, select: { email: true } });
+		return user?.email === adminEmail;
+	}
+	// Fall back to first registered user when ADMIN_EMAIL is not set
+	const first = await prisma.user.findFirst({
+		orderBy: { createdAt: "asc" },
+		select: { id: true },
+	});
+	return first?.id === userId;
+}
+
 const getAdminStats = createServerFn({ method: "GET" }).handler(async () => {
 	const headers = getRequestHeaders();
 	const session = await auth.api.getSession({ headers });
 	if (!session) throw new Error("Unauthorized");
+
+	if (!(await isAdmin(session.user.id))) throw new Error("Forbidden");
 
 	const [users, sessions, messages, memories, documents] = await Promise.all([
 		prisma.user.findMany({
