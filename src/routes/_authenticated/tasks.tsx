@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { PauseIcon, PlayIcon, PlusIcon, Trash2Icon, ZapIcon } from "lucide-react";
+import { ClockIcon, PauseIcon, PlayIcon, PlusIcon, Trash2Icon, ZapIcon } from "lucide-react";
 import { useState } from "react";
 import { Button } from "#/components/ui/button";
 import {
@@ -14,6 +14,7 @@ import { Input } from "#/components/ui/input";
 import {
 	createTask,
 	deleteTask,
+	getTaskRuns,
 	runTaskNow,
 	tasksQueryOptions,
 	updateTask,
@@ -126,6 +127,7 @@ function TasksPage() {
 							</div>
 
 							<div className="flex shrink-0 gap-1">
+								<TaskRunsDialog taskId={task.id} taskName={task.name} />
 								<Button
 									variant="ghost"
 									size="icon"
@@ -168,6 +170,72 @@ function TasksPage() {
 				})}
 			</ul>
 		</div>
+	);
+}
+
+function TaskRunsDialog({ taskId, taskName }: { taskId: string; taskName: string }) {
+	const [open, setOpen] = useState(false);
+	const { data: runs = [], isLoading } = useQuery({
+		queryKey: ["task-runs", taskId],
+		queryFn: () => getTaskRuns({ data: { taskId } }),
+		enabled: open,
+	});
+
+	return (
+		<Dialog open={open} onOpenChange={setOpen}>
+			<DialogTrigger asChild>
+				<Button
+					variant="ghost"
+					size="icon"
+					className="h-7 w-7"
+					aria-label="Run history"
+					title="Run history"
+				>
+					<ClockIcon size={13} />
+				</Button>
+			</DialogTrigger>
+			<DialogContent className="max-w-lg">
+				<DialogHeader>
+					<DialogTitle>Run History — {taskName}</DialogTitle>
+				</DialogHeader>
+				{isLoading && <p className="py-4 text-center text-sm text-muted-foreground">Loading…</p>}
+				{!isLoading && runs.length === 0 && (
+					<p className="py-4 text-center text-sm text-muted-foreground">No runs yet.</p>
+				)}
+				{runs.length > 0 && (
+					<ul className="max-h-96 space-y-2 overflow-y-auto">
+						{runs.map((run) => (
+							<li key={run.id} className="rounded-md border p-3">
+								<div className="flex items-center justify-between">
+									<span
+										className={cn(
+											"text-xs font-medium",
+											run.status === "error"
+												? "text-destructive"
+												: run.status === "success"
+													? "text-green-600 dark:text-green-400"
+													: "text-muted-foreground",
+										)}
+									>
+										{run.status}
+									</span>
+									<span className="text-xs text-muted-foreground">
+										{new Date(run.startedAt).toLocaleString([], {
+											dateStyle: "short",
+											timeStyle: "short",
+										})}
+									</span>
+								</div>
+								{run.error && <p className="mt-1 text-xs text-destructive">{run.error}</p>}
+								{run.output && (
+									<p className="mt-1 line-clamp-3 text-xs text-muted-foreground">{run.output}</p>
+								)}
+							</li>
+						))}
+					</ul>
+				)}
+			</DialogContent>
+		</Dialog>
 	);
 }
 
