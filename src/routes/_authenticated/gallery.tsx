@@ -1,3 +1,4 @@
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { DownloadIcon, TrashIcon, UploadIcon, XIcon } from "lucide-react";
 import { useRef, useState } from "react";
@@ -16,30 +17,35 @@ function isImage(name: string) {
 	return IMAGE_EXTS.has(ext);
 }
 
+const galleryQueryOptions = {
+	queryKey: ["gallery"],
+	queryFn: async (): Promise<GalleryItem[]> => {
+		const res = await fetch("/api/gallery/upload");
+		if (!res.ok) return [];
+		return res.json() as Promise<GalleryItem[]>;
+	},
+};
+
 function GalleryPage() {
+	const queryClient = useQueryClient();
+	const { data: items = [] } = useQuery(galleryQueryOptions);
 	const inputRef = useRef<HTMLInputElement>(null);
-	const [items, setItems] = useState<GalleryItem[]>([]);
 	const [uploading, setUploading] = useState(false);
 	const [lightbox, setLightbox] = useState<GalleryItem | null>(null);
 	const [dragOver, setDragOver] = useState(false);
 
 	const uploadFiles = async (files: FileList | File[]) => {
 		setUploading(true);
-		const uploaded: GalleryItem[] = [];
 		for (const file of Array.from(files)) {
 			const fd = new FormData();
 			fd.append("file", file);
 			try {
 				const res = await fetch("/api/gallery/upload", { method: "POST", body: fd });
-				if (res.ok) {
-					const item = (await res.json()) as GalleryItem;
-					uploaded.push(item);
-				}
+				if (res.ok) await queryClient.invalidateQueries({ queryKey: ["gallery"] });
 			} catch {
 				// skip failed uploads
 			}
 		}
-		setItems((prev) => [...uploaded, ...prev]);
 		setUploading(false);
 	};
 
@@ -53,7 +59,14 @@ function GalleryPage() {
 		if (e.dataTransfer.files?.length) uploadFiles(e.dataTransfer.files);
 	};
 
-	const removeItem = (path: string) => setItems((prev) => prev.filter((i) => i.path !== path));
+	const removeItem = async (path: string) => {
+		await fetch("/api/gallery/upload", {
+			method: "DELETE",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ path }),
+		});
+		queryClient.invalidateQueries({ queryKey: ["gallery"] });
+	};
 
 	return (
 		<div className="flex h-full flex-col overflow-hidden">
