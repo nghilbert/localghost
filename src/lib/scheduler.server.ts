@@ -18,6 +18,27 @@ export function initScheduler() {
 	cron.schedule("* * * * *", () => {
 		runDueTasks().catch((e) => console.error("[scheduler] poll error:", e));
 	});
+
+	// Auto-archive inactive sessions daily at 03:00
+	cron.schedule("0 3 * * *", () => {
+		archiveInactiveSessions().catch((e) => console.error("[scheduler] session cleanup error:", e));
+	});
+}
+
+async function archiveInactiveSessions(): Promise<void> {
+	const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+	const result = await prisma.chatSession.updateMany({
+		where: {
+			archived: false,
+			lastAccessedAt: { lt: cutoff },
+			messageCount: { gt: 0 },
+			name: { not: "New Chat" },
+		},
+		data: { archived: true },
+	});
+	if (result.count > 0) {
+		console.log(`[scheduler] archived ${result.count} inactive sessions`);
+	}
 }
 
 async function runDueTasks() {
