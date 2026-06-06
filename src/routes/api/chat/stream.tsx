@@ -6,7 +6,7 @@ import { maybeCompact } from "#/lib/compactor.server";
 import { decrypt } from "#/lib/crypto.server";
 import { prisma } from "#/lib/db.server";
 import { embed, toVectorLiteral } from "#/lib/embeddings.server";
-import { type LLMMessage, streamLLM } from "#/lib/llm.server";
+import { callLLM, type LLMMessage, streamLLM } from "#/lib/llm.server";
 
 const MAX_HISTORY_MESSAGES = 40;
 
@@ -172,12 +172,43 @@ export const Route = createFileRoute("/api/chat/stream")({
 								await prisma.chatMessage.create({
 									data: { sessionId: chatSession.id, role: "assistant", content: assistantText },
 								});
+
+								// Auto-name session after first exchange
+								const isFirstExchange =
+									chatSession.messageCount === 0 && chatSession.name === "New Chat";
+								let newName: string | undefined;
+								if (isFirstExchange) {
+									try {
+										newName = await callLLM({
+											url: endpoint.url,
+											apiKey,
+											model: chatSession.model,
+											messages: [
+												{
+													role: "user",
+													content: `Summarize this conversation in 4-6 words as a chat title. No quotes, no punctuation at the end.\n\nUser: ${body.message.slice(0, 500)}\nAssistant: ${assistantText.slice(0, 500)}`,
+												},
+											],
+											temperature: 0.3,
+											maxTokens: 20,
+										});
+										newName = newName
+											?.replace(/["'.!?]+$/, "")
+											.trim()
+											.slice(0, 80);
+									} catch {
+										newName = body.message.split(/\s+/).slice(0, 5).join(" ");
+									}
+									if (newName) send({ type: "session_name", name: newName });
+								}
+
 								await prisma.chatSession.update({
 									where: { id: chatSession.id },
 									data: {
 										messageCount: { increment: 2 },
 										lastMessageAt: new Date(),
 										lastAccessedAt: new Date(),
+										...(newName ? { name: newName } : {}),
 									},
 								});
 							} else {

@@ -121,6 +121,7 @@ export function ChatView({ session }: Props) {
 							error?: string;
 							tool?: string;
 							result?: string;
+							name?: string;
 						};
 
 						if (evt.type === "delta" && evt.delta) {
@@ -147,6 +148,9 @@ export function ChatView({ session }: Props) {
 							setStreamingContent(null);
 							setStreamingToolCalls([]);
 							scrollToBottom();
+						} else if (evt.type === "session_name" && evt.name) {
+							queryClient.invalidateQueries({ queryKey: ["sessions"] });
+							queryClient.invalidateQueries({ queryKey: ["session", session.id] });
 						} else if (evt.type === "error") {
 							console.error("LLM error:", evt.error);
 						}
