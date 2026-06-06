@@ -88,10 +88,6 @@ function SettingsPage() {
 								<BookmarkIcon size={13} />
 								Presets
 							</TabsTrigger>
-							<TabsTrigger value="mcp" className="gap-1.5">
-								<ServerIcon size={13} />
-								MCP
-							</TabsTrigger>
 							<TabsTrigger value="data" className="gap-1.5">
 								<DatabaseIcon size={13} />
 								Data
@@ -119,11 +115,8 @@ function SettingsPage() {
 						</TabsContent>
 						<TabsContent value="presets">
 							<PresetsTab />
-						</TabsContent>
-						<TabsContent value="mcp">
-							<McpTab />
-						</TabsContent>
-						<TabsContent value="data">
+						</TabsContent>	
+            <TabsContent value="data">
 							<DataTab />
 						</TabsContent>
 						<TabsContent value="mcp">

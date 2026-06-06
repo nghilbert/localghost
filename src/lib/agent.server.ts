@@ -452,6 +452,10 @@ async function executeTool(
 			return callMcpTool(mcpTool, args);
 		}
 
+		if (name === "manage_skills") {
+			return manageSkills(args as Parameters<typeof manageSkills>[0], ownerId);
+		}
+
 		return `Unknown tool: ${name}`;
 	} catch (err) {
 		return `Tool error: ${err instanceof Error ? err.message : "Unknown error"}`;
