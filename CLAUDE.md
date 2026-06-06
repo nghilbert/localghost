@@ -176,6 +176,7 @@ Write tests that describe what the component **should do**, not implementation d
 | `feat/notes-contacts-presets` | Merged | Phase 7 — Notes, Contacts, Presets + enhancements |
 | `feat/skills-voice` | Open PR | Phase 8 — Skills management + Voice I/O |
 | `feat/backup-stt` | Open PR | Phase 9 — Data backup/restore + server-side STT |
+| `feat/skills-voice` | Open PR | Phase 8 — Skills management + Voice I/O |
 
 **To merge:** the PRs must be merged in order (each depends on the previous). Use the GitHub UI or `gh pr merge` if the CLI is available.
 
@@ -256,6 +257,16 @@ afterEach(() => vi.useRealTimers());
 - **Data import** (`POST /api/backup/import`) — parses backup JSON and inserts records non-destructively alongside existing ones. Chat sessions intentionally excluded from import (too complex to deduplicate). Settings → Data tab.
 - **Server-side STT** (`POST /api/stt/transcribe`) — accepts audio via `multipart/form-data`, forwards to the user's configured endpoint's `/v1/audio/transcriptions` (Whisper-compatible). Returns `{ text }`. Complements the browser Web Speech API from Phase 8.
 
+### Phase 8 — Skills + Voice I/O  `feat/skills-voice`
+
+Cross-cutting additions on top of Phase 7:
+
+- **Skills management** (`src/features/skills/`) — CRUD for user-defined reusable procedures; split-pane UI at `/skills`; sidebar entry.
+- **Skill injection** (`src/routes/api/chat/stream.tsx`) — up to 5 skills appended to the effective system prompt on every chat request.
+- **`manage_skills` agent tool** (`src/lib/tools/manage_skills.ts`) — list/read/add/update/delete skills; wired into `AGENT_TOOLS` and `executeTool()`.
+- **Voice input** (`MicButton.tsx`) — mic button in `ChatInput` using `window.SpeechRecognition` (webkit fallback). Transcribed text appended to textarea. Graceful no-op when browser doesn't support the API.
+- **Voice output** (`SpeakButton.tsx`) — speaker icon on assistant messages; `window.speechSynthesis` toggle. Auto-speak setting in `ChatView` header, persisted to `localStorage["ody-auto-speak"]`.
+
 ### Potential next improvements (ideas, not required)
 
 - **ModelPicker no-endpoint hint:** only `ChatView` shows the "add a provider in Settings" link — `ModelPicker` could also show it when the endpoint list is empty.
@@ -264,3 +275,6 @@ afterEach(() => vi.useRealTimers());
 - **Rate limiting:** the chat stream API has no rate limiting; consider per-user token-bucket limiting to protect against abuse.
 - **Preset sharing:** presets are private per-user; a "share preset" link or public preset gallery would be useful.
 - **Note reminders:** `Note.dueDate` is stored but no notification mechanism fires — wire up a scheduler cron job or browser notification at due time.
+- **MCP server management:** connect to external MCP servers (stdio or SSE) and expose their tools to the agent — needs `@modelcontextprotocol/sdk`.
+- **Server-side STT:** POST `/api/stt/transcribe` that forwards audio to the configured endpoint's `/v1/audio/transcriptions` — enables Whisper-quality transcription.
+- **Skill search:** add pgvector embedding to the `Skill` model for semantic retrieval instead of injecting all skills.
