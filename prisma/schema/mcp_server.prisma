@@ -1,0 +1,15 @@
+/// An external MCP (Model Context Protocol) server whose tools are injected into agent sessions.
+model McpServer {
+    id          String   @id @default(uuid(7))
+    name        String
+    url         String
+    type        String   @default("streamable-http") // "streamable-http" | "sse"
+    enabled     Boolean  @default(true)
+    ownerId     String
+    owner       User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+
+    @@index([ownerId])
+    @@map("mcp_server")
+}

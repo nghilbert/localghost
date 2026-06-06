@@ -1,4 +1,5 @@
 import { type LLMMessage, type LLMTool, type SSEChunk, streamLLM } from "#/lib/llm.server";
+import { callMcpTool, type McpToolDef } from "#/lib/mcp.server";
 import { manageCalendar } from "#/lib/tools/manage_calendar";
 import { manageContacts } from "#/lib/tools/manage_contacts";
 import { manageDocuments } from "#/lib/tools/manage_documents";
@@ -332,9 +333,21 @@ export async function* runAgent(opts: {
 	messages: LLMMessage[];
 	systemPrompt?: string;
 	ownerId: string;
+	/** Extra tools from connected MCP servers */
+	mcpTools?: McpToolDef[];
 }): AsyncGenerator<AgentChunk> {
-	const { url, apiKey, model, systemPrompt, ownerId } = opts;
+	const { url, apiKey, model, systemPrompt, ownerId, mcpTools = [] } = opts;
 	const messages: LLMMessage[] = [...opts.messages];
+
+	const mcpToolSchemas: LLMTool[] = mcpTools.map((t) => ({
+		type: "function",
+		function: {
+			name: t.name,
+			description: t.description,
+			parameters: t.inputSchema,
+		},
+	}));
+	const allTools = [...AGENT_TOOLS, ...mcpToolSchemas];
 
 	for (let round = 0; round < MAX_ROUNDS; round++) {
 		let assistantText = "";
@@ -345,7 +358,7 @@ export async function* runAgent(opts: {
 			apiKey,
 			model,
 			messages,
-			tools: AGENT_TOOLS,
+			tools: allTools,
 			systemPrompt,
 		});
 		const reader = stream.getReader();
@@ -387,7 +400,7 @@ export async function* runAgent(opts: {
 
 		// Execute each tool call and push results
 		for (const call of pendingToolCalls) {
-			const result = await executeTool(call.name, call.rawArgs, ownerId);
+			const result = await executeTool(call.name, call.rawArgs, ownerId, mcpTools);
 
 			yield { type: "tool_result", tool: call.name, result };
 
@@ -403,40 +416,40 @@ export async function* runAgent(opts: {
 	yield { type: "error", error: `Agent exceeded ${MAX_ROUNDS} rounds without finishing.` };
 }
 
-async function executeTool(name: string, rawArgs: string, ownerId: string): Promise<string> {
+async function executeTool(
+	name: string,
+	rawArgs: string,
+	ownerId: string,
+	mcpTools: McpToolDef[] = [],
+): Promise<string> {
 	try {
 		const args = JSON.parse(rawArgs || "{}") as Record<string, unknown>;
 
-		if (name === "web_search") {
-			return webSearch((args.query as string) ?? "", 5);
+		switch (name) {
+			case "web_search":
+				return webSearch((args.query as string) ?? "", 5);
+			case "manage_memory":
+				return manageMemory(args as Parameters<typeof manageMemory>[0], ownerId);
+			case "manage_notes":
+				return manageNotes(args as Parameters<typeof manageNotes>[0], ownerId);
+			case "manage_contacts":
+				return manageContacts(args as Parameters<typeof manageContacts>[0], ownerId);
+			case "manage_calendar":
+				return manageCalendar(args as Parameters<typeof manageCalendar>[0], ownerId);
+			case "manage_tasks":
+				return manageTasks(args as Parameters<typeof manageTasks>[0], ownerId);
+			case "manage_documents":
+				return manageDocuments(args as Parameters<typeof manageDocuments>[0], ownerId);
+			case "search_chats":
+				return searchChats((args.query as string) ?? "", ownerId, (args.limit as number) ?? 10);
+			case "manage_skills":
+				return manageSkills(args as Parameters<typeof manageSkills>[0], ownerId);
 		}
 
-		if (name === "manage_memory") {
-			return manageMemory(args as Parameters<typeof manageMemory>[0], ownerId);
-		}
-
-		if (name === "manage_notes") {
-			return manageNotes(args as Parameters<typeof manageNotes>[0], ownerId);
-		}
-
-		if (name === "manage_contacts") {
-			return manageContacts(args as Parameters<typeof manageContacts>[0], ownerId);
-		}
-
-		if (name === "manage_calendar") {
-			return manageCalendar(args as Parameters<typeof manageCalendar>[0], ownerId);
-		}
-
-		if (name === "manage_tasks") {
-			return manageTasks(args as Parameters<typeof manageTasks>[0], ownerId);
-		}
-
-		if (name === "manage_documents") {
-			return manageDocuments(args as Parameters<typeof manageDocuments>[0], ownerId);
-		}
-
-		if (name === "search_chats") {
-			return searchChats((args.query as string) ?? "", ownerId, (args.limit as number) ?? 10);
+		// MCP tool — look up by namespaced name and delegate to the server
+		const mcpTool = mcpTools.find((t) => t.name === name);
+		if (mcpTool) {
+			return callMcpTool(mcpTool, args);
 		}
 
 		if (name === "manage_skills") {

@@ -23,6 +23,7 @@ model User {
     webhooks       Webhook[]
     apiTokens      ApiToken[]
     chatPresets    ChatPreset[]
+    mcpServers     McpServer[]
 
     @@unique([email])
     @@map("user")
