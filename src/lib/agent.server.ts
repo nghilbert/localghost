@@ -1,4 +1,5 @@
 import { type LLMMessage, type LLMTool, type SSEChunk, streamLLM } from "#/lib/llm.server";
+import { callMcpTool, type McpToolDef } from "#/lib/mcp.server";
 import { manageCalendar } from "#/lib/tools/manage_calendar";
 import { manageContacts } from "#/lib/tools/manage_contacts";
 import { manageDocuments } from "#/lib/tools/manage_documents";
@@ -297,9 +298,21 @@ export async function* runAgent(opts: {
 	messages: LLMMessage[];
 	systemPrompt?: string;
 	ownerId: string;
+	/** Extra tools from connected MCP servers */
+	mcpTools?: McpToolDef[];
 }): AsyncGenerator<AgentChunk> {
-	const { url, apiKey, model, systemPrompt, ownerId } = opts;
+	const { url, apiKey, model, systemPrompt, ownerId, mcpTools = [] } = opts;
 	const messages: LLMMessage[] = [...opts.messages];
+
+	const mcpToolSchemas: LLMTool[] = mcpTools.map((t) => ({
+		type: "function",
+		function: {
+			name: t.name,
+			description: t.description,
+			parameters: t.inputSchema,
+		},
+	}));
+	const allTools = [...AGENT_TOOLS, ...mcpToolSchemas];
 
 	for (let round = 0; round < MAX_ROUNDS; round++) {
 		let assistantText = "";
@@ -310,7 +323,7 @@ export async function* runAgent(opts: {
 			apiKey,
 			model,
 			messages,
-			tools: AGENT_TOOLS,
+			tools: allTools,
 			systemPrompt,
 		});
 		const reader = stream.getReader();
@@ -352,7 +365,7 @@ export async function* runAgent(opts: {
 
 		// Execute each tool call and push results
 		for (const call of pendingToolCalls) {
-			const result = await executeTool(call.name, call.rawArgs, ownerId);
+			const result = await executeTool(call.name, call.rawArgs, ownerId, mcpTools);
 
 			yield { type: "tool_result", tool: call.name, result };
 
@@ -368,7 +381,12 @@ export async function* runAgent(opts: {
 	yield { type: "error", error: `Agent exceeded ${MAX_ROUNDS} rounds without finishing.` };
 }
 
-async function executeTool(name: string, rawArgs: string, ownerId: string): Promise<string> {
+async function executeTool(
+	name: string,
+	rawArgs: string,
+	ownerId: string,
+	mcpTools: McpToolDef[] = [],
+): Promise<string> {
 	try {
 		const args = JSON.parse(rawArgs || "{}") as Record<string, unknown>;
 
@@ -402,6 +420,12 @@ async function executeTool(name: string, rawArgs: string, ownerId: string): Prom
 
 		if (name === "search_chats") {
 			return searchChats((args.query as string) ?? "", ownerId, (args.limit as number) ?? 10);
+		}
+
+		// MCP tool — look up by namespaced name and delegate to the server
+		const mcpTool = mcpTools.find((t) => t.name === name);
+		if (mcpTool) {
+			return callMcpTool(mcpTool, args);
 		}
 
 		return `Unknown tool: ${name}`;

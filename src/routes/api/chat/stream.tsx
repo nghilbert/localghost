@@ -7,6 +7,7 @@ import { decrypt } from "#/lib/crypto.server";
 import { prisma } from "#/lib/db.server";
 import { embed, toVectorLiteral } from "#/lib/embeddings.server";
 import { callLLM, type LLMMessage, streamLLM } from "#/lib/llm.server";
+import { listAllMcpTools } from "#/lib/mcp.server";
 import { fireWebhook } from "#/lib/webhook.server";
 
 const MAX_HISTORY_MESSAGES = 40;
@@ -98,6 +99,17 @@ export const Route = createFileRoute("/api/chat/stream")({
 					endpoint.url,
 					apiKey,
 				);
+
+				// Enumerate enabled MCP server tools for agent mode
+				const mcpTools = isAgent
+					? await (async () => {
+							const servers = await prisma.mcpServer.findMany({
+								where: { ownerId: userId, enabled: true },
+							});
+							return servers.length > 0 ? listAllMcpTools(servers) : [];
+						})()
+					: [];
+
 				let assistantText = "";
 				const encoder = new TextEncoder();
 
@@ -115,6 +127,7 @@ export const Route = createFileRoute("/api/chat/stream")({
 									messages: compactedHistory,
 									systemPrompt: effectiveSystemPrompt,
 									ownerId: userId,
+									mcpTools,
 								})) {
 									if (chunk.type === "delta") {
 										assistantText += chunk.delta;
