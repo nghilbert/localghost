@@ -1,8 +1,14 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { ChevronDownIcon, DatabaseIcon, SlidersHorizontalIcon } from "lucide-react";
+import { ChevronDownIcon, DatabaseIcon, DownloadIcon, SlidersHorizontalIcon } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { ChatFeed } from "#/components/ui/custom/ChatFeed";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "#/components/ui/dropdown-menu";
 import { ChatInput } from "#/features/chat/components/ChatInput";
 import { ChatMessage } from "#/features/chat/components/ChatMessage";
 import { ModelPicker } from "#/features/chat/components/ModelPicker";
@@ -175,6 +181,33 @@ export function ChatView({ session }: Props) {
 		abortRef.current?.abort();
 	}
 
+	function exportAs(format: "md" | "json") {
+		const filename = `${session.name.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.${format === "md" ? "md" : "json"}`;
+		let content: string;
+		if (format === "md") {
+			content = `# ${session.name}\n\n`;
+			for (const m of messages) {
+				const role = m.role === "user" ? "**You**" : "**Assistant**";
+				content += `${role}\n\n${m.content}\n\n---\n\n`;
+			}
+		} else {
+			content = JSON.stringify(
+				{ session: { id: session.id, name: session.name, model: session.model }, messages },
+				null,
+				2,
+			);
+		}
+		const blob = new Blob([content], {
+			type: format === "md" ? "text/markdown" : "application/json",
+		});
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement("a");
+		a.href = url;
+		a.download = filename;
+		a.click();
+		URL.revokeObjectURL(url);
+	}
+
 	const allDisplayMessages: Message[] =
 		streamingContent !== null
 			? [
@@ -224,6 +257,23 @@ export function ChatView({ session }: Props) {
 								className={cn("transition-transform", showPresets && "rotate-180")}
 							/>
 						</button>
+						<DropdownMenu>
+							<DropdownMenuTrigger asChild>
+								<button
+									type="button"
+									className="flex h-7 items-center gap-1 rounded-md px-2 text-xs text-muted-foreground hover:bg-muted"
+									title="Export conversation"
+								>
+									<DownloadIcon size={13} />
+								</button>
+							</DropdownMenuTrigger>
+							<DropdownMenuContent align="end" className="min-w-36">
+								<DropdownMenuItem onClick={() => exportAs("md")}>
+									Export as Markdown
+								</DropdownMenuItem>
+								<DropdownMenuItem onClick={() => exportAs("json")}>Export as JSON</DropdownMenuItem>
+							</DropdownMenuContent>
+						</DropdownMenu>
 						<MemoryModal />
 						<ModelPicker
 							sessionId={session.id}
