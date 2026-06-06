@@ -96,6 +96,10 @@ function SettingsPage() {
 								<DatabaseIcon size={13} />
 								Data
 							</TabsTrigger>
+							<TabsTrigger value="mcp" className="gap-1.5">
+								<ServerIcon size={13} />
+								MCP
+							</TabsTrigger>
 						</TabsList>
 
 						<TabsContent value="account">
@@ -121,6 +125,9 @@ function SettingsPage() {
 						</TabsContent>
 						<TabsContent value="data">
 							<DataTab />
+						</TabsContent>
+						<TabsContent value="mcp">
+							<McpTab />
 						</TabsContent>
 					</Tabs>
 				</div>

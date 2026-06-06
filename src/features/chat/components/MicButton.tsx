@@ -23,7 +23,10 @@ type SpeechRecCtor = new () => SpeechRec;
 
 function getSpeechRecognition(): SpeechRecCtor | null {
 	if (typeof window === "undefined") return null;
-	const w = window as Window & { SpeechRecognition?: SpeechRecCtor; webkitSpeechRecognition?: SpeechRecCtor };
+	const w = window as Window & {
+		SpeechRecognition?: SpeechRecCtor;
+		webkitSpeechRecognition?: SpeechRecCtor;
+	};
 	return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
 }
 
