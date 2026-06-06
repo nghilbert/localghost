@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { useCallback, useRef, useState } from "react";
 import { ChatFeed } from "#/components/ui/custom/ChatFeed";
 import { ChatInput } from "#/features/chat/components/ChatInput";
@@ -213,7 +214,16 @@ export function ChatView({ session }: Props) {
 				/>
 				{(!session.model || !session.endpointId) && (
 					<p className="mt-1 text-center text-xs text-muted-foreground">
-						Select a model using the picker above
+						{!session.endpointId ? (
+							<>
+								No provider configured —{" "}
+								<Link to="/settings" className="underline underline-offset-2">
+									add one in Settings
+								</Link>
+							</>
+						) : (
+							"Select a model using the picker above"
+						)}
 					</p>
 				)}
 			</div>

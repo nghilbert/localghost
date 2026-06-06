@@ -229,7 +229,7 @@ async function callLLM(
 }
 
 /** Extract JSON from LLM output that may have prose around it. */
-function extractJson(text: string): string {
+export function extractJson(text: string): string {
 	const match = text.match(/[[{][\s\S]*[\]}]/);
 	return match ? match[0] : text;
 }
