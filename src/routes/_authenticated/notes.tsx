@@ -352,18 +352,13 @@ function NoteForm({
 	}
 
 	return (
-		<div
-			className={cn("rounded-xl border p-3 shadow-lg", colorClasses(color))}
-			onClick={(e) => e.stopPropagation()}
-			onKeyDown={(e) => e.stopPropagation()}
-		>
+		<div className={cn("rounded-xl border p-3 shadow-lg", colorClasses(color))}>
 			<input
 				type="text"
 				value={title}
 				onChange={(e) => setTitle(e.target.value)}
 				placeholder="Title"
 				className="mb-2 w-full bg-transparent text-sm font-medium outline-none placeholder:text-muted-foreground"
-				autoFocus
 			/>
 
 			{/* Type toggle */}

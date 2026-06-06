@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { ChevronDownIcon, SlidersHorizontalIcon } from "lucide-react";
+import { ChevronDownIcon, DatabaseIcon, SlidersHorizontalIcon } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { ChatFeed } from "#/components/ui/custom/ChatFeed";
 import { ChatInput } from "#/features/chat/components/ChatInput";
@@ -26,6 +26,7 @@ type Session = {
 	mode: string;
 	systemPrompt?: string | null;
 	temperature?: number | null;
+	ragEnabled?: boolean;
 	endpointId?: string | null;
 	endpoint?: { id: string; name: string; url: string; provider: string } | null;
 	messages: Message[];
@@ -48,10 +49,14 @@ export function ChatView({ session }: Props) {
 	const [showPresets, setShowPresets] = useState(false);
 	const [systemPrompt, setSystemPrompt] = useState(session.systemPrompt ?? "");
 	const [temperature, setTemperature] = useState(session.temperature ?? 0.7);
+	const [ragEnabled, setRagEnabled] = useState(session.ragEnabled ?? false);
 
 	const presetMut = useMutation({
-		mutationFn: (patch: { systemPrompt?: string | null; temperature?: number }) =>
-			updateSession({ data: { id: session.id, data: patch } }),
+		mutationFn: (patch: {
+			systemPrompt?: string | null;
+			temperature?: number;
+			ragEnabled?: boolean;
+		}) => updateSession({ data: { id: session.id, data: patch } }),
 	});
 
 	const modeMut = useMutation({
@@ -185,6 +190,21 @@ export function ChatView({ session }: Props) {
 				<div className="flex items-center justify-between px-4 py-2">
 					<h1 className="truncate text-sm font-medium text-foreground">{session.name}</h1>
 					<div className="flex items-center gap-1.5">
+						<button
+							type="button"
+							onClick={() => {
+								const next = !ragEnabled;
+								setRagEnabled(next);
+								presetMut.mutate({ ragEnabled: next });
+							}}
+							className={cn(
+								"flex h-7 items-center gap-1 rounded-md px-2 text-xs hover:bg-muted",
+								ragEnabled ? "bg-primary/10 text-primary" : "text-muted-foreground",
+							)}
+							title={ragEnabled ? "RAG enabled — click to disable" : "Enable document RAG"}
+						>
+							<DatabaseIcon size={13} />
+						</button>
 						<button
 							type="button"
 							onClick={() => setShowPresets((p) => !p)}

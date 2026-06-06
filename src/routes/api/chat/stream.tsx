@@ -4,7 +4,40 @@ import { auth } from "#/features/auth/lib/auth.server";
 import { runAgent } from "#/lib/agent.server";
 import { decrypt } from "#/lib/crypto.server";
 import { prisma } from "#/lib/db.server";
+import { embed, toVectorLiteral } from "#/lib/embeddings.server";
 import { type LLMMessage, streamLLM } from "#/lib/llm.server";
+
+const MAX_HISTORY_MESSAGES = 40;
+
+async function ragContext(message: string, userId: string): Promise<string | null> {
+	try {
+		const embedding = await embed(message, userId);
+		if (!embedding) return null;
+		const literal = toVectorLiteral(embedding);
+		const rows = await prisma.$queryRawUnsafe<{ title: string; content: string; score: number }[]>(
+			`SELECT title, content, 1 - (embedding <=> $1::vector) AS score
+			 FROM "Document"
+			 WHERE "ownerId" = $2 AND archived = false AND embedding IS NOT NULL
+			 ORDER BY score DESC LIMIT 3`,
+			literal,
+			userId,
+		);
+		const relevant = rows.filter((r) => r.score > 0.5);
+		if (!relevant.length) return null;
+		return relevant.map((r) => `### ${r.title}\n${r.content.slice(0, 1500)}`).join("\n\n---\n\n");
+	} catch {
+		return null;
+	}
+}
+
+function trimHistory(messages: LLMMessage[]): LLMMessage[] {
+	if (messages.length <= MAX_HISTORY_MESSAGES) return messages;
+	// Keep system messages + the most recent N exchanges
+	const system = messages.filter((m) => m.role === "system");
+	const nonSystem = messages.filter((m) => m.role !== "system");
+	const trimmed = nonSystem.slice(-MAX_HISTORY_MESSAGES);
+	return [...system, ...trimmed];
+}
 
 export const Route = createFileRoute("/api/chat/stream")({
 	server: {
@@ -42,9 +75,21 @@ export const Route = createFileRoute("/api/chat/stream")({
 				const endpoint = chatSession.endpoint;
 				const apiKey = endpoint.apiKeyEncrypted ? decrypt(endpoint.apiKeyEncrypted) : undefined;
 				const isAgent = chatSession.mode === "agent";
-				const systemPrompt = chatSession.systemPrompt ?? undefined;
 				const temperature = chatSession.temperature ?? undefined;
 
+				// Build effective system prompt, injecting RAG context if enabled
+				let effectiveSystemPrompt = chatSession.systemPrompt ?? undefined;
+				if (chatSession.ragEnabled) {
+					const ctx = await ragContext(body.message, userId);
+					if (ctx) {
+						const ragBlock = `Relevant document context:\n\n${ctx}`;
+						effectiveSystemPrompt = effectiveSystemPrompt
+							? `${effectiveSystemPrompt}\n\n${ragBlock}`
+							: ragBlock;
+					}
+				}
+
+				const trimmedHistory = trimHistory(history);
 				let assistantText = "";
 				const encoder = new TextEncoder();
 
@@ -59,8 +104,8 @@ export const Route = createFileRoute("/api/chat/stream")({
 									url: endpoint.url,
 									apiKey,
 									model: chatSession.model,
-									messages: history,
-									systemPrompt,
+									messages: trimmedHistory,
+									systemPrompt: effectiveSystemPrompt,
 									ownerId: userId,
 								})) {
 									if (chunk.type === "delta") {
@@ -87,8 +132,8 @@ export const Route = createFileRoute("/api/chat/stream")({
 									url: endpoint.url,
 									apiKey,
 									model: chatSession.model,
-									messages: history,
-									systemPrompt,
+									messages: trimmedHistory,
+									systemPrompt: effectiveSystemPrompt,
 									temperature,
 								});
 								const reader = llmStream.getReader();
