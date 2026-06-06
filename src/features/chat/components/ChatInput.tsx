@@ -1,6 +1,7 @@
 import { ArrowUpIcon, BotIcon, MessageSquareIcon, SquareIcon } from "lucide-react";
 import { type KeyboardEvent, useRef } from "react";
 import { Button } from "#/components/ui/button";
+import { MicButton } from "#/features/chat/components/MicButton";
 import { cn } from "#/lib/utils";
 
 type Props = {
@@ -34,6 +35,13 @@ export function ChatInput({
 		if (!value || isStreaming || disabled) return;
 		onSubmit(value);
 		if (ref.current) ref.current.value = "";
+		resize();
+	}
+
+	function handleTranscript(text: string) {
+		if (!ref.current) return;
+		const cur = ref.current.value;
+		ref.current.value = cur ? `${cur} ${text}` : text;
 		resize();
 	}
 
@@ -97,28 +105,33 @@ export function ChatInput({
 					<div />
 				)}
 
-				{/* Send / Stop */}
-				{isStreaming ? (
-					<Button
-						size="icon"
-						variant="outline"
-						className="h-8 w-8 shrink-0 rounded-full"
-						onClick={onStop}
-					>
-						<SquareIcon size={14} />
-						<span className="sr-only">Stop</span>
-					</Button>
-				) : (
-					<Button
-						size="icon"
-						className="h-8 w-8 shrink-0 rounded-full"
-						onClick={submit}
-						disabled={disabled}
-					>
-						<ArrowUpIcon size={14} />
-						<span className="sr-only">Send</span>
-					</Button>
-				)}
+				<div className="flex items-center gap-1">
+					{/* Mic / Voice input */}
+					<MicButton onTranscript={handleTranscript} disabled={disabled || isStreaming} />
+
+					{/* Send / Stop */}
+					{isStreaming ? (
+						<Button
+							size="icon"
+							variant="outline"
+							className="h-8 w-8 shrink-0 rounded-full"
+							onClick={onStop}
+						>
+							<SquareIcon size={14} />
+							<span className="sr-only">Stop</span>
+						</Button>
+					) : (
+						<Button
+							size="icon"
+							className="h-8 w-8 shrink-0 rounded-full"
+							onClick={submit}
+							disabled={disabled}
+						>
+							<ArrowUpIcon size={14} />
+							<span className="sr-only">Send</span>
+						</Button>
+					)}
+				</div>
 			</div>
 		</div>
 	);
