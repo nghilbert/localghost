@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { MailIcon, PencilIcon, RefreshCwIcon } from "lucide-react";
+import { ArrowLeftIcon, MailIcon, PencilIcon, RefreshCwIcon } from "lucide-react";
 import { useState } from "react";
 import { Button } from "#/components/ui/button";
 import {
@@ -75,13 +75,18 @@ function EmailPage() {
 		);
 	}
 
+	// On mobile: show message detail when one is selected; otherwise show list.
+	const showDetail = !!selectedUid;
+
 	return (
-		<div className="flex h-full">
-			{/* Account + message list */}
-			<aside className="flex w-64 flex-col border-r">
-				<div className="flex items-center gap-2 border-b px-3 py-2">
+		<div className="flex h-full overflow-hidden">
+			{/* Message list — hidden on mobile when a message is open */}
+			<aside
+				className={`flex flex-col border-r md:w-72 md:flex-shrink-0 ${showDetail ? "hidden md:flex" : "flex w-full"}`}
+			>
+				<div className="flex items-center gap-1 border-b px-3 py-2">
 					<select
-						className="flex-1 bg-transparent text-sm outline-none"
+						className="min-w-0 flex-1 bg-transparent text-sm outline-none"
 						value={activeAccountId}
 						onChange={(e) => {
 							setSelectedAccountId(e.target.value);
@@ -97,17 +102,19 @@ function EmailPage() {
 					<Button
 						variant="ghost"
 						size="icon"
-						className="h-6 w-6"
+						className="h-7 w-7 shrink-0"
 						onClick={() => refetchMessages()}
 						disabled={isFetching}
+						title="Refresh"
 					>
 						<RefreshCwIcon size={13} className={isFetching ? "animate-spin" : ""} />
 					</Button>
 					<Button
 						variant="ghost"
 						size="icon"
-						className="h-6 w-6"
+						className="h-7 w-7 shrink-0"
 						onClick={() => setComposeOpen(true)}
+						title="Compose"
 					>
 						<PencilIcon size={13} />
 					</Button>
@@ -121,12 +128,12 @@ function EmailPage() {
 						<li key={msg.uid}>
 							<button
 								type="button"
-								className={`w-full border-b px-3 py-2 text-left hover:bg-muted/50 ${selectedUid === msg.uid ? "bg-muted" : ""}`}
+								className={`w-full border-b px-3 py-2.5 text-left transition-colors hover:bg-muted/50 ${selectedUid === msg.uid ? "bg-muted" : ""}`}
 								onClick={() => setSelectedUid(msg.uid)}
 							>
 								<p className={`truncate text-sm ${!msg.seen ? "font-semibold" : ""}`}>{msg.from}</p>
 								<p className="truncate text-xs text-muted-foreground">{msg.subject}</p>
-								<p className="text-xs text-muted-foreground">
+								<p className="mt-0.5 text-xs text-muted-foreground">
 									{new Date(msg.date).toLocaleDateString()}
 								</p>
 							</button>
@@ -146,23 +153,36 @@ function EmailPage() {
 				</div>
 			</aside>
 
-			{/* Message read pane */}
-			<main className="flex flex-1 flex-col overflow-hidden">
+			{/* Message read pane — full width on mobile when open */}
+			<main
+				className={`flex flex-1 flex-col overflow-hidden ${showDetail ? "flex" : "hidden md:flex"}`}
+			>
 				{openMessage ? (
-					<div className="flex flex-1 flex-col overflow-auto p-6">
-						<div className="mb-4 border-b pb-4">
+					<div className="flex flex-1 flex-col overflow-auto">
+						<div className="border-b px-4 py-3">
+							{/* Back button on mobile */}
+							<button
+								type="button"
+								className="mb-2 flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground md:hidden"
+								onClick={() => setSelectedUid(undefined)}
+							>
+								<ArrowLeftIcon size={13} />
+								Inbox
+							</button>
 							<h2 className="text-base font-semibold">{openMessage.subject}</h2>
 							<p className="text-sm text-muted-foreground">From: {openMessage.from}</p>
 							<p className="text-sm text-muted-foreground">
 								{new Date(openMessage.date).toLocaleString()}
 							</p>
-							<div className="mt-2 flex gap-2">
+							<div className="mt-3">
 								<Button variant="outline" size="sm" onClick={() => setComposeOpen(true)}>
 									Reply
 								</Button>
 							</div>
 						</div>
-						<div className="flex-1 whitespace-pre-wrap text-sm">{openMessage.text}</div>
+						<div className="flex-1 overflow-auto px-4 py-4 text-sm leading-relaxed whitespace-pre-wrap">
+							{openMessage.text}
+						</div>
 					</div>
 				) : (
 					<div className="flex h-full items-center justify-center">

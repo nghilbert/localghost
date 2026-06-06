@@ -169,9 +169,9 @@ export function ChatView({ session }: Props) {
 
 	return (
 		<div className="flex h-full flex-col">
-			<div className="flex items-center justify-between border-b px-4 py-2">
-				<h1 className="truncate text-sm font-medium">{session.name}</h1>
-				<div className="flex items-center gap-2">
+			<header className="flex shrink-0 items-center justify-between border-b bg-background/80 px-4 py-2 backdrop-blur-sm">
+				<h1 className="truncate text-sm font-medium text-foreground">{session.name}</h1>
+				<div className="flex items-center gap-1.5">
 					<MemoryModal />
 					<ModelPicker
 						sessionId={session.id}
@@ -179,7 +179,7 @@ export function ChatView({ session }: Props) {
 						currentEndpointId={session.endpointId}
 					/>
 				</div>
-			</div>
+			</header>
 
 			<ChatFeed className="flex-1 px-4">
 				{allDisplayMessages.length === 0 && (
@@ -203,7 +203,7 @@ export function ChatView({ session }: Props) {
 				<div ref={bottomRef} />
 			</ChatFeed>
 
-			<div className="border-t p-4">
+			<div className="border-t px-4 py-3">
 				<ChatInput
 					onSubmit={handleSubmit}
 					isStreaming={isStreaming}

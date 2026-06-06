@@ -3,6 +3,8 @@
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
 
+@plugin "@tailwindcss/typography";
+
 @custom-variant dark {
 	&:is(.dark *) {
 		@slot;
@@ -89,6 +91,25 @@
 	--sidebar-primary: light-dark(oklch(0.55 0.2 280), oklch(0.65 0.2 280));
 	--sidebar-primary-foreground: light-dark(oklch(0.977 0.01 280), oklch(0.2 0.05 280));
 	--ring: light-dark(oklch(0.62 0.15 280), oklch(0.52 0.15 280));
+}
+
+/* ── Shiki dual-theme (light/dark via CSS vars) ───────────── */
+.shiki,
+.shiki span {
+	color: var(--shiki-light);
+	background-color: var(--shiki-light-bg);
+}
+.dark .shiki,
+.dark .shiki span {
+	color: var(--shiki-dark);
+	background-color: var(--shiki-dark-bg);
+}
+@media (prefers-color-scheme: dark) {
+	.shiki,
+	.shiki span {
+		color: var(--shiki-dark);
+		background-color: var(--shiki-dark-bg);
+	}
 }
 
 @theme inline {
