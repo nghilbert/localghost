@@ -8,7 +8,9 @@ import {
 	SearchIcon,
 	SettingsIcon,
 	ShieldIcon,
+	StickyNoteIcon,
 	TimerIcon,
+	UsersIcon,
 } from "lucide-react";
 import {
 	Sidebar,
@@ -28,8 +30,10 @@ import { APP_NAME } from "#/lib/constants";
 import { AuthMenu } from "./AuthMenu";
 
 const NAV_ITEMS = [
+	{ to: "/notes", label: "Notes", icon: StickyNoteIcon },
 	{ to: "/documents", label: "Documents", icon: FileTextIcon },
 	{ to: "/research", label: "Research", icon: SearchIcon },
+	{ to: "/contacts", label: "Contacts", icon: UsersIcon },
 	{ to: "/email", label: "Email", icon: MailIcon },
 	{ to: "/calendar", label: "Calendar", icon: CalendarIcon },
 	{ to: "/tasks", label: "Tasks", icon: TimerIcon },

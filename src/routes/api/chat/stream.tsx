@@ -42,6 +42,8 @@ export const Route = createFileRoute("/api/chat/stream")({
 				const endpoint = chatSession.endpoint;
 				const apiKey = endpoint.apiKeyEncrypted ? decrypt(endpoint.apiKeyEncrypted) : undefined;
 				const isAgent = chatSession.mode === "agent";
+				const systemPrompt = chatSession.systemPrompt ?? undefined;
+				const temperature = chatSession.temperature ?? undefined;
 
 				let assistantText = "";
 				const encoder = new TextEncoder();
@@ -58,6 +60,7 @@ export const Route = createFileRoute("/api/chat/stream")({
 									apiKey,
 									model: chatSession.model,
 									messages: history,
+									systemPrompt,
 									ownerId: userId,
 								})) {
 									if (chunk.type === "delta") {
@@ -85,6 +88,8 @@ export const Route = createFileRoute("/api/chat/stream")({
 									apiKey,
 									model: chatSession.model,
 									messages: history,
+									systemPrompt,
+									temperature,
 								});
 								const reader = llmStream.getReader();
 								while (true) {

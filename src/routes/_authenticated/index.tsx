@@ -9,7 +9,9 @@ import {
 	MailIcon,
 	MessageSquarePlusIcon,
 	SearchIcon,
+	StickyNoteIcon,
 	TimerIcon,
+	UsersIcon,
 } from "lucide-react";
 import { Button } from "#/components/ui/button";
 import { createSession, sessionsQueryOptions } from "#/features/chat/lib/chat.functions";
@@ -18,10 +20,11 @@ import { cn } from "#/lib/utils";
 export const Route = createFileRoute("/_authenticated/")({ component: HomePage });
 
 const QUICK_LINKS = [
+	{ to: "/notes", label: "Notes", description: "Quick notes and checklists", icon: StickyNoteIcon },
 	{
 		to: "/documents",
 		label: "Documents",
-		description: "Write and version your notes",
+		description: "Write and version documents",
 		icon: FileTextIcon,
 	},
 	{
@@ -30,6 +33,7 @@ const QUICK_LINKS = [
 		description: "Deep iterative web research",
 		icon: SearchIcon,
 	},
+	{ to: "/contacts", label: "Contacts", description: "People and CardDAV sync", icon: UsersIcon },
 	{ to: "/email", label: "Email", description: "Read and send email via IMAP", icon: MailIcon },
 	{ to: "/calendar", label: "Calendar", description: "Events and CalDAV sync", icon: CalendarIcon },
 	{ to: "/tasks", label: "Tasks", description: "Scheduled LLM prompts", icon: TimerIcon },

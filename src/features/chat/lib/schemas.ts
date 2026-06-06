@@ -23,6 +23,8 @@ export const updateSessionSchema = z.object({
 	model: z.string().optional(),
 	endpointId: uuid.optional(),
 	mode: z.enum(["chat", "agent"]).optional(),
+	systemPrompt: z.string().nullish(),
+	temperature: z.number().min(0).max(2).nullish(),
 	archived: z.boolean().optional(),
 });
 

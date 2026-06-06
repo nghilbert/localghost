@@ -62,16 +62,24 @@ export async function* runAgent(opts: {
 	apiKey?: string;
 	model: string;
 	messages: LLMMessage[];
+	systemPrompt?: string;
 	ownerId: string;
 }): AsyncGenerator<AgentChunk> {
-	const { url, apiKey, model, ownerId } = opts;
+	const { url, apiKey, model, systemPrompt, ownerId } = opts;
 	const messages: LLMMessage[] = [...opts.messages];
 
 	for (let round = 0; round < MAX_ROUNDS; round++) {
 		let assistantText = "";
 		const pendingToolCalls: Array<{ id: string; name: string; rawArgs: string }> = [];
 
-		const stream = await streamLLM({ url, apiKey, model, messages, tools: AGENT_TOOLS });
+		const stream = await streamLLM({
+			url,
+			apiKey,
+			model,
+			messages,
+			tools: AGENT_TOOLS,
+			systemPrompt,
+		});
 		const reader = stream.getReader();
 
 		while (true) {

@@ -7,6 +7,8 @@ model ChatSession {
     ownerId        String
     owner          User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
     mode           String        @default("chat")
+    systemPrompt   String?
+    temperature    Float?
     archived       Boolean       @default(false)
     messageCount   Int           @default(0)
     lastAccessedAt DateTime      @default(now())

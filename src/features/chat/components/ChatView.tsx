@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
+import { ChevronDownIcon, SlidersHorizontalIcon } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { ChatFeed } from "#/components/ui/custom/ChatFeed";
 import { ChatInput } from "#/features/chat/components/ChatInput";
@@ -7,6 +8,7 @@ import { ChatMessage } from "#/features/chat/components/ChatMessage";
 import { ModelPicker } from "#/features/chat/components/ModelPicker";
 import { updateSession } from "#/features/chat/lib/chat.functions";
 import { MemoryModal } from "#/features/memory/components/MemoryModal";
+import { cn } from "#/lib/utils";
 
 type ToolCallRecord = { id: string; tool: string; result: string };
 
@@ -22,6 +24,8 @@ type Session = {
 	name: string;
 	model: string;
 	mode: string;
+	systemPrompt?: string | null;
+	temperature?: number | null;
 	endpointId?: string | null;
 	endpoint?: { id: string; name: string; url: string; provider: string } | null;
 	messages: Message[];
@@ -41,6 +45,14 @@ export function ChatView({ session }: Props) {
 	const [streamingToolCalls, setStreamingToolCalls] = useState<ToolCallRecord[]>([]);
 	const [isStreaming, setIsStreaming] = useState(false);
 	const [mode, setMode] = useState<"chat" | "agent">(session.mode === "agent" ? "agent" : "chat");
+	const [showPresets, setShowPresets] = useState(false);
+	const [systemPrompt, setSystemPrompt] = useState(session.systemPrompt ?? "");
+	const [temperature, setTemperature] = useState(session.temperature ?? 0.7);
+
+	const presetMut = useMutation({
+		mutationFn: (patch: { systemPrompt?: string | null; temperature?: number }) =>
+			updateSession({ data: { id: session.id, data: patch } }),
+	});
 
 	const modeMut = useMutation({
 		mutationFn: (newMode: "chat" | "agent") =>
@@ -169,16 +181,80 @@ export function ChatView({ session }: Props) {
 
 	return (
 		<div className="flex h-full flex-col">
-			<header className="flex shrink-0 items-center justify-between border-b bg-background/80 px-4 py-2 backdrop-blur-sm">
-				<h1 className="truncate text-sm font-medium text-foreground">{session.name}</h1>
-				<div className="flex items-center gap-1.5">
-					<MemoryModal />
-					<ModelPicker
-						sessionId={session.id}
-						currentModel={session.model}
-						currentEndpointId={session.endpointId}
-					/>
+			<header className="shrink-0 border-b bg-background/80 backdrop-blur-sm">
+				<div className="flex items-center justify-between px-4 py-2">
+					<h1 className="truncate text-sm font-medium text-foreground">{session.name}</h1>
+					<div className="flex items-center gap-1.5">
+						<button
+							type="button"
+							onClick={() => setShowPresets((p) => !p)}
+							className={cn(
+								"flex h-7 items-center gap-1 rounded-md px-2 text-xs text-muted-foreground hover:bg-muted",
+								showPresets && "bg-muted text-foreground",
+							)}
+							title="Session settings"
+						>
+							<SlidersHorizontalIcon size={13} />
+							<ChevronDownIcon
+								size={11}
+								className={cn("transition-transform", showPresets && "rotate-180")}
+							/>
+						</button>
+						<MemoryModal />
+						<ModelPicker
+							sessionId={session.id}
+							currentModel={session.model}
+							currentEndpointId={session.endpointId}
+						/>
+					</div>
 				</div>
+				{showPresets && (
+					<div className="border-t bg-muted/30 px-4 py-3">
+						<div className="flex flex-col gap-3 md:flex-row md:gap-6">
+							<div className="flex-1">
+								<label
+									htmlFor="system-prompt"
+									className="mb-1 block text-xs font-medium text-muted-foreground"
+								>
+									System prompt
+								</label>
+								<textarea
+									id="system-prompt"
+									value={systemPrompt}
+									onChange={(e) => setSystemPrompt(e.target.value)}
+									onBlur={() => presetMut.mutate({ systemPrompt: systemPrompt || null })}
+									placeholder="You are a helpful assistant…"
+									rows={2}
+									className="w-full resize-none rounded-md border bg-background px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-ring"
+								/>
+							</div>
+							<div className="w-full md:w-40">
+								<label
+									htmlFor="temperature"
+									className="mb-1 block text-xs font-medium text-muted-foreground"
+								>
+									Temperature: {temperature.toFixed(1)}
+								</label>
+								<input
+									id="temperature"
+									type="range"
+									min={0}
+									max={2}
+									step={0.1}
+									value={temperature}
+									onChange={(e) => setTemperature(Number(e.target.value))}
+									onMouseUp={() => presetMut.mutate({ temperature })}
+									onTouchEnd={() => presetMut.mutate({ temperature })}
+									className="w-full accent-primary"
+								/>
+								<div className="flex justify-between text-[10px] text-muted-foreground">
+									<span>Precise</span>
+									<span>Creative</span>
+								</div>
+							</div>
+						</div>
+					</div>
+				)}
 			</header>
 
 			<ChatFeed className="flex-1 px-4">

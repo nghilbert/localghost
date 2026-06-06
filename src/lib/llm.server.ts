@@ -40,6 +40,7 @@ export type StreamLLMOptions = {
 	model: string;
 	messages: LLMMessage[];
 	tools?: LLMTool[];
+	systemPrompt?: string;
 	temperature?: number;
 	maxTokens?: number;
 };
@@ -339,19 +340,21 @@ export async function streamLLM(opts: StreamLLMOptions): Promise<ReadableStream<
 	const url = normalizeUrl(opts.url, provider);
 	const headers = buildHeaders(provider, opts.apiKey);
 
+	// Prepend system prompt if provided and not already the first message
+	const messages = opts.systemPrompt
+		? [
+				{ role: "system" as const, content: opts.systemPrompt },
+				...opts.messages.filter((m) => m.role !== "system"),
+			]
+		: opts.messages;
+
 	let body: Record<string, unknown>;
 	if (provider === "anthropic") {
-		body = buildAnthropicBody(
-			opts.model,
-			opts.messages,
-			opts.tools,
-			opts.temperature,
-			opts.maxTokens,
-		);
+		body = buildAnthropicBody(opts.model, messages, opts.tools, opts.temperature, opts.maxTokens);
 	} else if (provider === "ollama") {
-		body = buildOllamaBody(opts.model, opts.messages, opts.tools, opts.temperature, opts.maxTokens);
+		body = buildOllamaBody(opts.model, messages, opts.tools, opts.temperature, opts.maxTokens);
 	} else {
-		body = buildOpenAIBody(opts.model, opts.messages, opts.tools, opts.temperature, opts.maxTokens);
+		body = buildOpenAIBody(opts.model, messages, opts.tools, opts.temperature, opts.maxTokens);
 	}
 
 	const response = await fetch(url, {
