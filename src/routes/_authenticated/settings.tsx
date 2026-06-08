@@ -57,74 +57,73 @@ export const Route = createFileRoute("/_authenticated/settings")({
 
 function SettingsPage() {
 	return (
-		<div className="flex h-full flex-col overflow-hidden">
-			<PageHeader title="Settings" />
-			<div className="flex-1 overflow-auto">
-				<div className="mx-auto max-w-2xl p-6">
-					<Tabs defaultValue="account">
-						<TabsList className="mb-4">
-							<TabsTrigger value="account" className="gap-1.5">
-								<UserIcon size={13} />
-								Account
-							</TabsTrigger>
-							<TabsTrigger value="providers" className="gap-1.5">
-								<PlugIcon size={13} />
-								Providers
-							</TabsTrigger>
-							<TabsTrigger value="theme" className="gap-1.5">
-								<PaletteIcon size={13} />
-								Theme
-							</TabsTrigger>
-							<TabsTrigger value="webhooks" className="gap-1.5">
-								<WebhookIcon size={13} />
-								Webhooks
-							</TabsTrigger>
-							<TabsTrigger value="tokens" className="gap-1.5">
-								<KeyIcon size={13} />
-								API Tokens
-							</TabsTrigger>
-							<TabsTrigger value="presets" className="gap-1.5">
-								<BookmarkIcon size={13} />
-								Presets
-							</TabsTrigger>
-							<TabsTrigger value="data" className="gap-1.5">
-								<DatabaseIcon size={13} />
-								Data
-							</TabsTrigger>
-							<TabsTrigger value="mcp" className="gap-1.5">
-								<ServerIcon size={13} />
-								MCP
-							</TabsTrigger>
-						</TabsList>
-
-						<TabsContent value="account">
-							<AccountTab />
-						</TabsContent>
-						<TabsContent value="providers">
-							<ProvidersTab />
-						</TabsContent>
-						<TabsContent value="theme">
-							<ThemeTab />
-						</TabsContent>
-						<TabsContent value="webhooks">
-							<WebhooksTab />
-						</TabsContent>
-						<TabsContent value="tokens">
-							<TokensTab />
-						</TabsContent>
-						<TabsContent value="presets">
-							<PresetsTab />
-						</TabsContent>
-						<TabsContent value="data">
-							<DataTab />
-						</TabsContent>
-						<TabsContent value="mcp">
-							<McpTab />
-						</TabsContent>
-					</Tabs>
-				</div>
+		<Tabs defaultValue="account" className="flex h-full flex-col overflow-hidden">
+			<PageHeader
+				title="Settings"
+				actions={
+					<TabsList variant="line">
+						<TabsTrigger value="account" className="gap-1.5">
+							<UserIcon size={13} />
+							Account
+						</TabsTrigger>
+						<TabsTrigger value="providers" className="gap-1.5">
+							<PlugIcon size={13} />
+							Providers
+						</TabsTrigger>
+						<TabsTrigger value="theme" className="gap-1.5">
+							<PaletteIcon size={13} />
+							Theme
+						</TabsTrigger>
+						<TabsTrigger value="webhooks" className="gap-1.5">
+							<WebhookIcon size={13} />
+							Webhooks
+						</TabsTrigger>
+						<TabsTrigger value="tokens" className="gap-1.5">
+							<KeyIcon size={13} />
+							API Tokens
+						</TabsTrigger>
+						<TabsTrigger value="presets" className="gap-1.5">
+							<BookmarkIcon size={13} />
+							Presets
+						</TabsTrigger>
+						<TabsTrigger value="data" className="gap-1.5">
+							<DatabaseIcon size={13} />
+							Data
+						</TabsTrigger>
+						<TabsTrigger value="mcp" className="gap-1.5">
+							<ServerIcon size={13} />
+							MCP
+						</TabsTrigger>
+					</TabsList>
+				}
+			/>
+			<div className="mx-auto">
+				<TabsContent value="account">
+					<AccountTab />
+				</TabsContent>
+				<TabsContent value="providers">
+					<ProvidersTab />
+				</TabsContent>
+				<TabsContent value="theme">
+					<ThemeTab />
+				</TabsContent>
+				<TabsContent value="webhooks">
+					<WebhooksTab />
+				</TabsContent>
+				<TabsContent value="tokens">
+					<TokensTab />
+				</TabsContent>
+				<TabsContent value="presets">
+					<PresetsTab />
+				</TabsContent>
+				<TabsContent value="data">
+					<DataTab />
+				</TabsContent>
+				<TabsContent value="mcp">
+					<McpTab />
+				</TabsContent>
 			</div>
-		</div>
+		</Tabs>
 	);
 }
 
