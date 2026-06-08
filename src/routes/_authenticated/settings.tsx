@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useRouteContext } from "@tanstack/react-router";
 import {
 	BookmarkIcon,
 	CheckCircleIcon,
@@ -21,7 +21,6 @@ import { PageHeader } from "#/components/PageHeader";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "#/components/ui/tabs";
-import { authQueryOptions } from "#/features/auth/lib/auth.functions";
 import { authClient } from "#/features/auth/lib/auth-client";
 import { EndpointDialog } from "#/features/chat/components/EndpointDialog";
 import { deleteEndpoint, endpointsQueryOptions } from "#/features/chat/lib/chat.functions";
@@ -115,8 +114,8 @@ function SettingsPage() {
 						</TabsContent>
 						<TabsContent value="presets">
 							<PresetsTab />
-						</TabsContent>	
-            <TabsContent value="data">
+						</TabsContent>
+						<TabsContent value="data">
 							<DataTab />
 						</TabsContent>
 						<TabsContent value="mcp">
@@ -132,8 +131,9 @@ function SettingsPage() {
 function AccountTab() {
 	const queryClient = useQueryClient();
 	const navigate = useNavigate();
-	const { data: session } = useQuery(authQueryOptions());
-	const user = session?.user;
+	const {
+		auth: { user },
+	} = useRouteContext({ from: "/_authenticated" });
 
 	const [name, setName] = useState(user?.name ?? "");
 
@@ -148,10 +148,7 @@ function AccountTab() {
 
 	const signOutMut = useMutation({
 		mutationFn: () => authClient.signOut(),
-		onSuccess: () => {
-			queryClient.invalidateQueries(authQueryOptions());
-			navigate({ to: "/sign-in" });
-		},
+		onSuccess: () => navigate({ to: "/sign-in" }),
 	});
 
 	return (

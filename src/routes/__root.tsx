@@ -18,14 +18,11 @@ import {
 	EmptyTitle,
 } from "#/components/ui/empty";
 import { TooltipProvider } from "#/components/ui/tooltip";
-import { authQueryOptions } from "#/features/auth/lib/auth.functions";
+import { getAuthSession } from "#/features/auth/lib/auth.functions";
 import { ThemeProvider } from "#/features/theme/ThemeProvider";
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
-	beforeLoad: async ({ context }) => {
-		const auth = await context.queryClient.ensureQueryData(authQueryOptions());
-		return { auth };
-	},
+	beforeLoad: async () => ({ auth: await getAuthSession() }),
 	component: RootDocument,
 	notFoundComponent: NotFound,
 	head: () => ({

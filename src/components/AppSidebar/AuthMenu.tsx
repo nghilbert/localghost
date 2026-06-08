@@ -1,4 +1,3 @@
-import { useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useRouteContext } from "@tanstack/react-router";
 import { LogOutIcon, SettingsIcon } from "lucide-react";
 import { Avatar, AvatarFallback } from "#/components/ui/avatar";
@@ -11,7 +10,6 @@ import {
 	DropdownMenuTrigger,
 } from "#/components/ui/dropdown-menu";
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "#/components/ui/sidebar";
-import { authQueryOptions } from "#/features/auth/lib/auth.functions";
 import { authClient } from "#/features/auth/lib/auth-client";
 
 function getFirstTwoInitials(fullName: string) {
@@ -25,14 +23,12 @@ function getFirstTwoInitials(fullName: string) {
 
 export function AuthMenu() {
 	const navigate = useNavigate();
-	const queryClient = useQueryClient();
 	const {
 		auth: { user },
 	} = useRouteContext({ from: "/_authenticated" });
 
 	async function handleSignOut() {
 		await authClient.signOut();
-		await queryClient.invalidateQueries(authQueryOptions());
 		navigate({ to: "/sign-in" });
 	}
 
