@@ -28,7 +28,7 @@ export function DocumentEditor({ document, onSaved }: DocumentEditorProps) {
 	const [dirty, setDirty] = useState(false);
 	const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
-	const saveMut = useMutation({
+	const saveMutation = useMutation({
 		mutationFn: (summary?: string) =>
 			updateDocument({
 				data: {
@@ -73,8 +73,8 @@ export function DocumentEditor({ document, onSaved }: DocumentEditorProps) {
 					placeholder="Untitled"
 				/>
 				<div className="flex items-center gap-2 text-xs text-muted-foreground">
-					{dirty && !saveMut.isPending && <span>Unsaved</span>}
-					{saveMut.isPending && <span>Saving…</span>}
+					{dirty && !saveMutation.isPending && <span>Unsaved</span>}
+					{saveMutation.isPending && <span>Saving…</span>}
 					{!dirty && lastSaved && (
 						<span>Saved {lastSaved.toLocaleTimeString([], { timeStyle: "short" })}</span>
 					)}
@@ -82,8 +82,8 @@ export function DocumentEditor({ document, onSaved }: DocumentEditorProps) {
 				<Button
 					size="sm"
 					variant="outline"
-					onClick={() => saveMut.mutate("Manual save")}
-					disabled={saveMut.isPending || !dirty}
+					onClick={() => saveMutation.mutate("Manual save")}
+					disabled={saveMutation.isPending || !dirty}
 					className={cn("gap-1", dirty && "border-primary text-primary")}
 				>
 					<SaveIcon size={13} />

@@ -38,7 +38,7 @@ export function EndpointDialog() {
 	const queryClient = useQueryClient();
 	const { data: endpoints = [] } = useQuery(endpointsQueryOptions());
 
-	const addMut = useMutation({
+	const addMutation = useMutation({
 		mutationFn: () =>
 			createEndpoint({
 				data: { name: name.trim(), url: url.trim(), apiKey: apiKey || undefined, provider },
@@ -53,7 +53,7 @@ export function EndpointDialog() {
 		onError: (e) => setError(e instanceof Error ? e.message : "Failed"),
 	});
 
-	const deleteMut = useMutation({
+	const deleteMutation = useMutation({
 		mutationFn: (id: string) => deleteEndpoint({ data: { id } }),
 		onSuccess: () => queryClient.invalidateQueries({ queryKey: ["endpoints"] }),
 	});
@@ -84,7 +84,11 @@ export function EndpointDialog() {
 										<p className="font-medium">{ep.name}</p>
 										<p className="truncate text-xs text-muted-foreground">{ep.url}</p>
 									</div>
-									<Button variant="ghost" size="icon-sm" onClick={() => deleteMut.mutate(ep.id)}>
+									<Button
+										variant="ghost"
+										size="icon-sm"
+										onClick={() => deleteMutation.mutate(ep.id)}
+									>
 										<Trash2Icon size={14} />
 									</Button>
 								</li>
@@ -142,8 +146,8 @@ export function EndpointDialog() {
 						{error && <FieldError>{error}</FieldError>}
 						<Button
 							className="w-full gap-1.5"
-							disabled={!name.trim() || !url.trim() || addMut.isPending}
-							onClick={() => addMut.mutate()}
+							disabled={!name.trim() || !url.trim() || addMutation.isPending}
+							onClick={() => addMutation.mutate()}
 						>
 							<PlusIcon size={14} />
 							Add provider

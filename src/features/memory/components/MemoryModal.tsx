@@ -52,7 +52,7 @@ export function MemoryModal() {
 		staleTime: 5_000,
 	});
 
-	const addMut = useMutation({
+	const addMutation = useMutation({
 		mutationFn: () => addMemory({ data: { text: newText, category: newCategory } }),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["memories"] });
@@ -62,7 +62,7 @@ export function MemoryModal() {
 		onError: () => toast.error("Failed to save memory"),
 	});
 
-	const deleteMut = useMutation({
+	const deleteMutation = useMutation({
 		mutationFn: (id: string) => deleteMemory({ data: { id } }),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["memories"] });
@@ -102,7 +102,7 @@ export function MemoryModal() {
 						onKeyDown={(e) => {
 							if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
 								e.preventDefault();
-								addMut.mutate();
+								addMutation.mutate();
 							}
 						}}
 					/>
@@ -124,12 +124,12 @@ export function MemoryModal() {
 						</Select>
 						<Button
 							size="sm"
-							onClick={() => addMut.mutate()}
-							disabled={!newText.trim() || addMut.isPending}
+							onClick={() => addMutation.mutate()}
+							disabled={!newText.trim() || addMutation.isPending}
 							className="gap-1.5"
 						>
 							<PlusIcon size={13} />
-							{addMut.isPending ? "Saving…" : "Save"}
+							{addMutation.isPending ? "Saving…" : "Save"}
 						</Button>
 						<span className="ml-auto text-xs text-muted-foreground">Ctrl+Enter</span>
 					</div>
@@ -175,8 +175,8 @@ export function MemoryModal() {
 								variant="ghost"
 								size="icon-sm"
 								className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
-								onClick={() => deleteMut.mutate(m.id)}
-								disabled={deleteMut.isPending}
+								onClick={() => deleteMutation.mutate(m.id)}
+								disabled={deleteMutation.isPending}
 								aria-label="Delete memory"
 							>
 								<Trash2Icon size={12} />

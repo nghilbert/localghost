@@ -17,7 +17,7 @@ export function DocumentList({ selectedId, onSelect }: Props) {
 	const queryClient = useQueryClient();
 	const { data: docs = [] } = useQuery(documentsQueryOptions());
 
-	const createMut = useMutation({
+	const createMutation = useMutation({
 		mutationFn: () =>
 			createDocument({ data: { title: "Untitled", language: "markdown", content: "" } }),
 		onSuccess: (doc) => {
@@ -26,7 +26,7 @@ export function DocumentList({ selectedId, onSelect }: Props) {
 		},
 	});
 
-	const deleteMut = useMutation({
+	const deleteMutation = useMutation({
 		mutationFn: (id: string) => deleteDocument({ data: { id } }),
 		onSuccess: () => queryClient.invalidateQueries({ queryKey: ["documents"] }),
 	});
@@ -41,8 +41,8 @@ export function DocumentList({ selectedId, onSelect }: Props) {
 					variant="ghost"
 					size="icon"
 					className="h-6 w-6"
-					onClick={() => createMut.mutate()}
-					disabled={createMut.isPending}
+					onClick={() => createMutation.mutate()}
+					disabled={createMutation.isPending}
 					aria-label="New document"
 				>
 					<PlusIcon size={14} />
@@ -71,9 +71,9 @@ export function DocumentList({ selectedId, onSelect }: Props) {
 								className="h-5 w-5 shrink-0 opacity-0 group-hover:opacity-100"
 								onClick={(e) => {
 									e.stopPropagation();
-									deleteMut.mutate(doc.id);
+									deleteMutation.mutate(doc.id);
 								}}
-								disabled={deleteMut.isPending}
+								disabled={deleteMutation.isPending}
 								aria-label="Delete document"
 							>
 								<Trash2Icon size={11} />

@@ -25,7 +25,7 @@ export const getMemories = createServerFn({ method: "GET" }).handler(async () =>
 });
 
 export const addMemory = createServerFn({ method: "POST" })
-	.inputValidator(
+	.validator(
 		z.object({
 			text: z.string().min(1),
 			category: z.enum(CATEGORY_VALUES).default("fact"),
@@ -54,14 +54,14 @@ export const addMemory = createServerFn({ method: "POST" })
 	});
 
 export const deleteMemory = createServerFn({ method: "POST" })
-	.inputValidator(z.object({ id: z.uuid() }))
+	.validator(z.object({ id: z.uuid() }))
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		await prisma.memory.deleteMany({ where: { id: data.id, ownerId: userId } });
 	});
 
 export const searchMemories = createServerFn({ method: "POST" })
-	.inputValidator(z.object({ query: z.string().min(1), limit: z.number().default(10) }))
+	.validator(z.object({ query: z.string().min(1), limit: z.number().default(10) }))
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		const embedding = await embed(data.query, userId);
