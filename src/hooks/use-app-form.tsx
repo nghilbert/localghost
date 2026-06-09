@@ -1,4 +1,4 @@
-import { createFormHook, createFormHookContexts, useStore } from "@tanstack/react-form";
+import { createFormHook, createFormHookContexts } from "@tanstack/react-form";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
 import { type ComponentProps, type ElementType, useState } from "react";
 import { Button } from "#/components/ui/button";
@@ -73,14 +73,17 @@ function PasswordField({ label, ...props }: FieldProps<typeof InputGroupInput>) 
 }
 
 function SubmitButton({ children, ...props }: ComponentProps<typeof Button>) {
-	const { store } = useFormContext();
-	const isSubmitting = useStore(store, (state) => state.isSubmitting);
+	const { Subscribe } = useFormContext();
 
 	return (
-		<Button type="submit" className="w-full" disabled={isSubmitting} {...props}>
-			{isSubmitting && <Spinner data-icon="inline-start" />}
-			{children}
-		</Button>
+		<Subscribe selector={(state) => state.isSubmitting}>
+			{(isSubmitting) => (
+				<Button type="submit" className="w-full" disabled={isSubmitting} {...props}>
+					{isSubmitting && <Spinner data-icon="inline-start" />}
+					{children}
+				</Button>
+			)}
+		</Subscribe>
 	);
 }
 

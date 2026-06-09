@@ -3,7 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { FieldError, FieldGroup, FieldSet } from "#/components/ui/field";
 import { authClient } from "#/features/auth/lib/auth-client";
-import { useAppForm } from "#/hooks/appForm";
+import { useAppForm } from "#/hooks/use-app-form";
 import { SignUpDefaults, SignUpSchema } from "../lib/schemas";
 
 export function SignUpForm() {
