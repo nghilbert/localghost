@@ -12,7 +12,7 @@ import {
 import { Input } from "#/components/ui/input";
 import { Textarea } from "#/components/ui/textarea";
 import { createTask } from "#/features/tasks/lib/task.functions";
-import { SCHEDULE_LABELS } from "#/features/tasks/lib/task.types";
+import { SCHEDULE_LABELS } from "#/features/tasks/lib/types";
 
 type CreateTaskDialogProps = {
 	onCreated: () => void;
