@@ -1,6 +1,6 @@
 import { MailIcon, PhoneIcon, Trash2Icon, UserIcon } from "lucide-react";
 import { Button } from "#/components/ui/button";
-import type { Contact } from "#/features/contacts/lib/contact.types";
+import type { Contact } from "#/features/contacts/lib/types";
 
 type ContactRowProps = {
 	contact: Contact;
