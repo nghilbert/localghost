@@ -43,7 +43,7 @@ export const getWebhooks = createServerFn({ method: "GET" }).handler(async () =>
 });
 
 export const createWebhook = createServerFn({ method: "POST" })
-	.inputValidator(
+	.validator(
 		z.object({
 			name: z.string().min(1),
 			url: z.string().url(),
@@ -66,7 +66,7 @@ export const createWebhook = createServerFn({ method: "POST" })
 	});
 
 export const updateWebhook = createServerFn({ method: "POST" })
-	.inputValidator(
+	.validator(
 		z.object({
 			id: z.uuid(),
 			isActive: z.boolean().optional(),
@@ -84,7 +84,7 @@ export const updateWebhook = createServerFn({ method: "POST" })
 	});
 
 export const deleteWebhook = createServerFn({ method: "POST" })
-	.inputValidator(z.object({ id: z.uuid() }))
+	.validator(z.object({ id: z.uuid() }))
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		const existing = await prisma.webhook.findFirst({ where: { id: data.id, ownerId: userId } });
@@ -93,7 +93,7 @@ export const deleteWebhook = createServerFn({ method: "POST" })
 	});
 
 export const testWebhook = createServerFn({ method: "POST" })
-	.inputValidator(z.object({ id: z.uuid() }))
+	.validator(z.object({ id: z.uuid() }))
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		const webhook = await prisma.webhook.findFirst({ where: { id: data.id, ownerId: userId } });

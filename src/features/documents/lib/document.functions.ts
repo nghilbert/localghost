@@ -28,7 +28,7 @@ const LANGUAGES = [
 ] as const;
 
 export const getDocuments = createServerFn({ method: "GET" })
-	.inputValidator(z.object({ archived: z.boolean().default(false) }).optional())
+	.validator(z.object({ archived: z.boolean().default(false) }).optional())
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		return prisma.document.findMany({
@@ -47,7 +47,7 @@ export const getDocuments = createServerFn({ method: "GET" })
 	});
 
 export const getDocument = createServerFn({ method: "GET" })
-	.inputValidator(z.object({ id: z.uuid() }))
+	.validator(z.object({ id: z.uuid() }))
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		const doc = await prisma.document.findFirst({
@@ -71,7 +71,7 @@ export const getDocument = createServerFn({ method: "GET" })
 	});
 
 export const createDocument = createServerFn({ method: "POST" })
-	.inputValidator(
+	.validator(
 		z.object({
 			title: z.string().min(1).default("Untitled"),
 			language: z.enum(LANGUAGES).default("markdown"),
@@ -109,7 +109,7 @@ export const createDocument = createServerFn({ method: "POST" })
 	});
 
 export const updateDocument = createServerFn({ method: "POST" })
-	.inputValidator(
+	.validator(
 		z.object({
 			id: z.uuid(),
 			title: z.string().min(1).optional(),
@@ -149,14 +149,14 @@ export const updateDocument = createServerFn({ method: "POST" })
 	});
 
 export const deleteDocument = createServerFn({ method: "POST" })
-	.inputValidator(z.object({ id: z.uuid() }))
+	.validator(z.object({ id: z.uuid() }))
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		await prisma.document.deleteMany({ where: { id: data.id, ownerId: userId } });
 	});
 
 export const getDocumentVersion = createServerFn({ method: "GET" })
-	.inputValidator(z.object({ versionId: z.uuid() }))
+	.validator(z.object({ versionId: z.uuid() }))
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		const version = await prisma.documentVersion.findFirst({

@@ -27,7 +27,7 @@ export const getContacts = createServerFn({ method: "GET" }).handler(async () =>
 });
 
 export const createContact = createServerFn({ method: "POST" })
-	.inputValidator(
+	.validator(
 		z.object({
 			name: z.string().min(1),
 			emails: z.array(z.string()).default([]),
@@ -49,7 +49,7 @@ export const createContact = createServerFn({ method: "POST" })
 	});
 
 export const updateContact = createServerFn({ method: "POST" })
-	.inputValidator(
+	.validator(
 		z.object({
 			id: z.uuid(),
 			name: z.string().min(1).optional(),
@@ -68,7 +68,7 @@ export const updateContact = createServerFn({ method: "POST" })
 	});
 
 export const deleteContact = createServerFn({ method: "POST" })
-	.inputValidator(z.object({ id: z.uuid() }))
+	.validator(z.object({ id: z.uuid() }))
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		await db.contact.delete({ where: { id: data.id, ownerId: userId } });
@@ -76,7 +76,7 @@ export const deleteContact = createServerFn({ method: "POST" })
 	});
 
 export const searchContacts = createServerFn({ method: "POST" })
-	.inputValidator(z.object({ query: z.string() }))
+	.validator(z.object({ query: z.string() }))
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		const q = data.query.toLowerCase();

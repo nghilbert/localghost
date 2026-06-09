@@ -36,7 +36,7 @@ export const getEndpoints = createServerFn({ method: "GET" }).handler(async () =
 });
 
 export const createEndpoint = createServerFn({ method: "POST" })
-	.inputValidator(createEndpointSchema)
+	.validator(createEndpointSchema)
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		const endpoint = await prisma.modelEndpoint.create({
@@ -52,7 +52,7 @@ export const createEndpoint = createServerFn({ method: "POST" })
 	});
 
 export const updateEndpoint = createServerFn({ method: "POST" })
-	.inputValidator(z.object({ id: z.uuid(), data: updateEndpointSchema }))
+	.validator(z.object({ id: z.uuid(), data: updateEndpointSchema }))
 	.handler(async ({ data: { id, data: patch } }) => {
 		const userId = await getCurrentUserId();
 		const existing = await prisma.modelEndpoint.findFirst({ where: { id, ownerId: userId } });
@@ -72,14 +72,14 @@ export const updateEndpoint = createServerFn({ method: "POST" })
 	});
 
 export const deleteEndpoint = createServerFn({ method: "POST" })
-	.inputValidator(z.object({ id: z.uuid() }))
+	.validator(z.object({ id: z.uuid() }))
 	.handler(async ({ data: { id } }) => {
 		const userId = await getCurrentUserId();
 		await prisma.modelEndpoint.deleteMany({ where: { id, ownerId: userId } });
 	});
 
 export const getEndpointModels = createServerFn({ method: "POST" })
-	.inputValidator(z.object({ endpointId: z.uuid() }))
+	.validator(z.object({ endpointId: z.uuid() }))
 	.handler(async ({ data: { endpointId } }) => {
 		const userId = await getCurrentUserId();
 		const endpoint = await prisma.modelEndpoint.findFirst({
@@ -111,7 +111,7 @@ export const getSessions = createServerFn({ method: "GET" }).handler(async () =>
 });
 
 export const getSession = createServerFn({ method: "POST" })
-	.inputValidator(z.object({ id: z.uuid() }))
+	.validator(z.object({ id: z.uuid() }))
 	.handler(async ({ data: { id } }) => {
 		const userId = await getCurrentUserId();
 		const session = await prisma.chatSession.findFirst({
@@ -126,7 +126,7 @@ export const getSession = createServerFn({ method: "POST" })
 	});
 
 export const createSession = createServerFn({ method: "POST" })
-	.inputValidator(createSessionSchema)
+	.validator(createSessionSchema)
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		return prisma.chatSession.create({
@@ -141,7 +141,7 @@ export const createSession = createServerFn({ method: "POST" })
 	});
 
 export const updateSession = createServerFn({ method: "POST" })
-	.inputValidator(z.object({ id: z.uuid(), data: updateSessionSchema }))
+	.validator(z.object({ id: z.uuid(), data: updateSessionSchema }))
 	.handler(async ({ data: { id, data: patch } }) => {
 		const userId = await getCurrentUserId();
 		const existing = await prisma.chatSession.findFirst({ where: { id, ownerId: userId } });
@@ -150,14 +150,14 @@ export const updateSession = createServerFn({ method: "POST" })
 	});
 
 export const deleteSession = createServerFn({ method: "POST" })
-	.inputValidator(z.object({ id: z.uuid() }))
+	.validator(z.object({ id: z.uuid() }))
 	.handler(async ({ data: { id } }) => {
 		const userId = await getCurrentUserId();
 		await prisma.chatSession.deleteMany({ where: { id, ownerId: userId } });
 	});
 
 export const searchMessages = createServerFn({ method: "POST" })
-	.inputValidator(z.object({ query: z.string().min(1).max(200) }))
+	.validator(z.object({ query: z.string().min(1).max(200) }))
 	.handler(async ({ data: { query } }) => {
 		const userId = await getCurrentUserId();
 		const messages = await prisma.chatMessage.findMany({
@@ -180,7 +180,7 @@ export const searchMessages = createServerFn({ method: "POST" })
 	});
 
 export const forkSession = createServerFn({ method: "POST" })
-	.inputValidator(
+	.validator(
 		z.object({
 			id: z.uuid(),
 			keepCount: z.number().int().min(0).optional(),

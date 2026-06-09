@@ -21,7 +21,7 @@ export const getSkills = createServerFn({ method: "GET" }).handler(async () => {
 });
 
 export const createSkill = createServerFn({ method: "POST" })
-	.inputValidator(
+	.validator(
 		z.object({
 			name: z.string().min(1).max(100),
 			description: z.string().max(500).optional(),
@@ -41,7 +41,7 @@ export const createSkill = createServerFn({ method: "POST" })
 	});
 
 export const updateSkill = createServerFn({ method: "POST" })
-	.inputValidator(
+	.validator(
 		z.object({
 			id: z.uuid(),
 			name: z.string().min(1).max(100).optional(),
@@ -64,7 +64,7 @@ export const updateSkill = createServerFn({ method: "POST" })
 	});
 
 export const deleteSkill = createServerFn({ method: "POST" })
-	.inputValidator(z.object({ id: z.uuid() }))
+	.validator(z.object({ id: z.uuid() }))
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		await prisma.skill.deleteMany({ where: { id: data.id, ownerId: userId } });

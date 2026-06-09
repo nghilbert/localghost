@@ -21,7 +21,7 @@ export const getPresets = createServerFn({ method: "GET" }).handler(async () => 
 });
 
 export const createPreset = createServerFn({ method: "POST" })
-	.inputValidator(
+	.validator(
 		z.object({
 			name: z.string().min(1).max(100),
 			description: z.string().max(300).optional(),
@@ -47,7 +47,7 @@ export const createPreset = createServerFn({ method: "POST" })
 	});
 
 export const updatePreset = createServerFn({ method: "POST" })
-	.inputValidator(
+	.validator(
 		z.object({
 			id: z.uuid(),
 			name: z.string().min(1).max(100).optional(),
@@ -74,7 +74,7 @@ export const updatePreset = createServerFn({ method: "POST" })
 	});
 
 export const deletePreset = createServerFn({ method: "POST" })
-	.inputValidator(z.object({ id: z.uuid() }))
+	.validator(z.object({ id: z.uuid() }))
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		await prisma.chatPreset.deleteMany({ where: { id: data.id, ownerId: userId } });

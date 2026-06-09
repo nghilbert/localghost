@@ -26,7 +26,7 @@ Optional: `SEARXNG_URL` (falls back to DuckDuckGo).
 
 **Auth:** better-auth with email/password. Server: `src/features/auth/lib/auth.server.ts`. Client: `src/features/auth/lib/auth-client.ts`. Session in React Query under `["session"]`.
 
-**Data fetching:** TanStack Query + `createServerFn`. Use `.inputValidator()` (not `.validator()`).
+**Data fetching:** TanStack Query + `createServerFn`. Use `.validator()` (not `.validator()`).
 
 **Database:** Prisma 7 with `@prisma/adapter-pg`. Schema in `prisma/schema/` (multi-file). Generated client in `src/generated/prisma/`. All IDs: `@default(uuid(7))`.
 
@@ -53,7 +53,7 @@ Optional: `SEARXNG_URL` (falls back to DuckDuckGo).
 ## Non-negotiable Rules
 
 - **Zod v4:** `z.uuid()` not `z.string().uuid()`
-- **`createServerFn`:** `.inputValidator()` not `.validator()`
+- **`createServerFn`:** `.validator()` not `.validator()`
 - **Prisma IDs:** `@default(uuid(7))`
 - **`LLMMessage.content`:** `string | LLMContentBlock[]` — never `null`
 - **Biome:** fix warnings, never use `biome-ignore`; run `npm run fix` before every commit
@@ -65,7 +65,7 @@ Optional: `SEARXNG_URL` (falls back to DuckDuckGo).
 ```ts
 // createServerFn
 export const myFn = createServerFn({ method: "POST" })
-  .inputValidator(z.object({ id: z.uuid(), name: z.string().min(1) }))
+  .validator(z.object({ id: z.uuid(), name: z.string().min(1) }))
   .handler(async ({ data }) => { ... });
 
 // SSE handler
