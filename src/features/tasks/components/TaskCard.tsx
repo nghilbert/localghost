@@ -1,6 +1,6 @@
 import { PauseIcon, PlayIcon, Trash2Icon, ZapIcon } from "lucide-react";
 import { Button } from "#/components/ui/button";
-import { SCHEDULE_LABELS, type Task } from "#/features/tasks/lib/task.types";
+import { SCHEDULE_LABELS, type Task } from "#/features/tasks/lib/types";
 import { cn } from "#/lib/utils";
 import { TaskRunsDialog } from "./TaskRunsDialog";
 
