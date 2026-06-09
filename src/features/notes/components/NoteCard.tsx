@@ -1,6 +1,6 @@
 import { PinIcon, Trash2Icon } from "lucide-react";
 import { Button } from "#/components/ui/button";
-import { type ChecklistItem, type Note, noteColorClasses } from "#/features/notes/lib/note.types";
+import { type ChecklistItem, type Note, noteColorClasses } from "#/features/notes/lib/types";
 import { cn } from "#/lib/utils";
 
 type NoteCardProps = {

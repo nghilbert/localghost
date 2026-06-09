@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { ChecklistItem, Note } from "#/features/notes/lib/note.types";
+import type { ChecklistItem, Note } from "#/features/notes/lib/types";
 
 export type NoteFormData = {
 	title: string;

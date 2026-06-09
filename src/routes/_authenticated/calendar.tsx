@@ -14,7 +14,7 @@ import {
 	deleteEvent,
 	eventsQueryOptions,
 } from "#/features/calendar/lib/calendar.functions";
-import { buildWeeks, type EventData } from "#/features/calendar/lib/calendar.types";
+import { buildWeeks, type EventData } from "#/features/calendar/lib/types";
 
 export const Route = createFileRoute("/_authenticated/calendar")({
 	component: CalendarPage,
