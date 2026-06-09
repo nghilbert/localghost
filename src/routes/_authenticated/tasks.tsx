@@ -1,67 +1,50 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { ClockIcon, PauseIcon, PlayIcon, PlusIcon, Trash2Icon, ZapIcon } from "lucide-react";
-import { useState } from "react";
 import { toast } from "sonner";
 import { PageHeader } from "#/components/PageHeader";
-import { Button } from "#/components/ui/button";
+import { CreateTaskDialog } from "#/features/tasks/components/CreateTaskDialog";
+import { TaskCard } from "#/features/tasks/components/TaskCard";
 import {
-	Dialog,
-	DialogContent,
-	DialogHeader,
-	DialogTitle,
-	DialogTrigger,
-} from "#/components/ui/dialog";
-import { Input } from "#/components/ui/input";
-import {
-	createTask,
 	deleteTask,
-	getTaskRuns,
 	runTaskNow,
 	tasksQueryOptions,
 	updateTask,
 } from "#/features/tasks/lib/task.functions";
-import { cn } from "#/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/tasks")({
 	component: TasksPage,
 });
 
-const SCHEDULE_LABELS: Record<string, string> = {
-	once: "Once",
-	daily: "Daily",
-	weekly: "Weekly",
-	monthly: "Monthly",
-	cron: "Custom cron",
-};
-
 function TasksPage() {
 	const queryClient = useQueryClient();
 	const { data: tasks = [] } = useQuery(tasksQueryOptions());
-	const [createOpen, setCreateOpen] = useState(false);
 
-	const deleteMut = useMutation({
+	function invalidate() {
+		queryClient.invalidateQueries({ queryKey: ["tasks"] });
+	}
+
+	const deleteMutation = useMutation({
 		mutationFn: (id: string) => deleteTask({ data: { id } }),
 		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["tasks"] });
+			invalidate();
 			toast.success("Task deleted");
 		},
 		onError: () => toast.error("Failed to delete task"),
 	});
 
-	const toggleMut = useMutation({
+	const toggleMutation = useMutation({
 		mutationFn: ({ id, status }: { id: string; status: "active" | "paused" }) =>
 			updateTask({ data: { id, status } }),
 		onSuccess: (_, { status }) => {
-			queryClient.invalidateQueries({ queryKey: ["tasks"] });
+			invalidate();
 			toast.success(status === "active" ? "Task resumed" : "Task paused");
 		},
 	});
 
-	const runNowMut = useMutation({
+	const runNowMutation = useMutation({
 		mutationFn: (id: string) => runTaskNow({ data: { id } }),
 		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["tasks"] });
+			invalidate();
 			toast.success("Task triggered");
 		},
 		onError: () => toast.error("Failed to run task"),
@@ -72,13 +55,7 @@ function TasksPage() {
 			<PageHeader
 				title="Scheduled Tasks"
 				description="Run LLM prompts on a schedule."
-				actions={
-					<CreateTaskDialog
-						open={createOpen}
-						onOpenChange={setCreateOpen}
-						onCreated={() => queryClient.invalidateQueries({ queryKey: ["tasks"] })}
-					/>
-				}
+				actions={<CreateTaskDialog onCreated={invalidate} />}
 			/>
 			<div className="flex-1 overflow-auto">
 				<div className="mx-auto max-w-3xl p-6">
@@ -87,283 +64,27 @@ function TasksPage() {
 							<p className="text-muted-foreground">No scheduled tasks yet</p>
 						</div>
 					)}
-
 					<ul className="space-y-2">
-						{tasks.map((task) => {
-							const lastRun = task.runs[0];
-							const isActive = task.status === "active";
-
-							return (
-								<li key={task.id} className="flex items-start gap-3 rounded-lg border p-4">
-									<div className="flex-1 min-w-0">
-										<div className="flex items-center gap-2">
-											<span
-												className={cn("text-sm font-medium", !isActive && "text-muted-foreground")}
-											>
-												{task.name}
-											</span>
-											<span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
-												{SCHEDULE_LABELS[task.schedule] ?? task.schedule}
-											</span>
-											<span
-												className={cn(
-													"rounded px-1.5 py-0.5 text-xs",
-													isActive
-														? "bg-primary/10 text-primary"
-														: "bg-muted text-muted-foreground",
-												)}
-											>
-												{task.status}
-											</span>
-										</div>
-										{task.prompt && (
-											<p className="mt-1 truncate text-xs text-muted-foreground">{task.prompt}</p>
-										)}
-										<div className="mt-1 flex gap-3 text-xs text-muted-foreground">
-											<span>Runs: {task.runCount}</span>
-											{task.nextRun && (
-												<span>
-													Next:{" "}
-													{new Date(task.nextRun).toLocaleString([], {
-														dateStyle: "short",
-														timeStyle: "short",
-													})}
-												</span>
-											)}
-											{lastRun && (
-												<span className={lastRun.status === "error" ? "text-destructive" : ""}>
-													Last: {lastRun.status}
-												</span>
-											)}
-										</div>
-									</div>
-
-									<div className="flex shrink-0 gap-1">
-										<TaskRunsDialog taskId={task.id} taskName={task.name} />
-										<Button
-											variant="ghost"
-											size="icon"
-											className="h-7 w-7"
-											onClick={() => runNowMut.mutate(task.id)}
-											disabled={runNowMut.isPending}
-											aria-label="Run now"
-											title="Run now"
-										>
-											<ZapIcon size={13} />
-										</Button>
-										<Button
-											variant="ghost"
-											size="icon"
-											className="h-7 w-7"
-											onClick={() =>
-												toggleMut.mutate({
-													id: task.id,
-													status: isActive ? "paused" : "active",
-												})
-											}
-											disabled={toggleMut.isPending}
-											aria-label={isActive ? "Pause" : "Resume"}
-										>
-											{isActive ? <PauseIcon size={13} /> : <PlayIcon size={13} />}
-										</Button>
-										<Button
-											variant="ghost"
-											size="icon"
-											className="h-7 w-7 text-destructive hover:text-destructive"
-											onClick={() => deleteMut.mutate(task.id)}
-											disabled={deleteMut.isPending}
-											aria-label="Delete task"
-										>
-											<Trash2Icon size={13} />
-										</Button>
-									</div>
-								</li>
-							);
-						})}
+						{tasks.map((task) => (
+							<TaskCard
+								key={task.id}
+								task={task}
+								onDelete={() => deleteMutation.mutate(task.id)}
+								onToggle={() =>
+									toggleMutation.mutate({
+										id: task.id,
+										status: task.status === "active" ? "paused" : "active",
+									})
+								}
+								onRunNow={() => runNowMutation.mutate(task.id)}
+								isDeletePending={deleteMutation.isPending}
+								isTogglePending={toggleMutation.isPending}
+								isRunNowPending={runNowMutation.isPending}
+							/>
+						))}
 					</ul>
 				</div>
 			</div>
 		</div>
-	);
-}
-
-function TaskRunsDialog({ taskId, taskName }: { taskId: string; taskName: string }) {
-	const [open, setOpen] = useState(false);
-	const { data: runs = [], isLoading } = useQuery({
-		queryKey: ["task-runs", taskId],
-		queryFn: () => getTaskRuns({ data: { taskId } }),
-		enabled: open,
-	});
-
-	return (
-		<Dialog open={open} onOpenChange={setOpen}>
-			<DialogTrigger asChild>
-				<Button
-					variant="ghost"
-					size="icon"
-					className="h-7 w-7"
-					aria-label="Run history"
-					title="Run history"
-				>
-					<ClockIcon size={13} />
-				</Button>
-			</DialogTrigger>
-			<DialogContent className="max-w-lg">
-				<DialogHeader>
-					<DialogTitle>Run History — {taskName}</DialogTitle>
-				</DialogHeader>
-				{isLoading && <p className="py-4 text-center text-sm text-muted-foreground">Loading…</p>}
-				{!isLoading && runs.length === 0 && (
-					<p className="py-4 text-center text-sm text-muted-foreground">No runs yet.</p>
-				)}
-				{runs.length > 0 && (
-					<ul className="max-h-96 space-y-2 overflow-y-auto">
-						{runs.map((run) => (
-							<li key={run.id} className="rounded-md border p-3">
-								<div className="flex items-center justify-between">
-									<span
-										className={cn(
-											"text-xs font-medium",
-											run.status === "error"
-												? "text-destructive"
-												: run.status === "success"
-													? "text-primary"
-													: "text-muted-foreground",
-										)}
-									>
-										{run.status}
-									</span>
-									<span className="text-xs text-muted-foreground">
-										{new Date(run.startedAt).toLocaleString([], {
-											dateStyle: "short",
-											timeStyle: "short",
-										})}
-									</span>
-								</div>
-								{run.error && <p className="mt-1 text-xs text-destructive">{run.error}</p>}
-								{run.output && (
-									<p className="mt-1 line-clamp-3 text-xs text-muted-foreground">{run.output}</p>
-								)}
-							</li>
-						))}
-					</ul>
-				)}
-			</DialogContent>
-		</Dialog>
-	);
-}
-
-function CreateTaskDialog({
-	open,
-	onOpenChange,
-	onCreated,
-}: {
-	open: boolean;
-	onOpenChange: (v: boolean) => void;
-	onCreated: () => void;
-}) {
-	const [name, setName] = useState("");
-	const [prompt, setPrompt] = useState("");
-	const [schedule, setSchedule] = useState<"daily" | "weekly" | "monthly" | "once" | "cron">(
-		"daily",
-	);
-	const [scheduledTime, setScheduledTime] = useState("09:00");
-	const [cronExpression, setCronExpression] = useState("0 9 * * *");
-
-	const createMut = useMutation({
-		mutationFn: () =>
-			createTask({
-				data: {
-					name,
-					prompt,
-					schedule,
-					scheduledTime: schedule !== "once" && schedule !== "cron" ? scheduledTime : undefined,
-					cronExpression: schedule === "cron" ? cronExpression : undefined,
-				},
-			}),
-		onSuccess: () => {
-			onCreated();
-			onOpenChange(false);
-			setName("");
-			setPrompt("");
-		},
-	});
-
-	return (
-		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogTrigger asChild>
-				<Button size="sm" className="gap-1">
-					<PlusIcon size={13} />
-					New Task
-				</Button>
-			</DialogTrigger>
-			<DialogContent className="max-w-lg">
-				<DialogHeader>
-					<DialogTitle>Create Scheduled Task</DialogTitle>
-				</DialogHeader>
-				<div className="flex flex-col gap-3">
-					<Input placeholder="Task name" value={name} onChange={(e) => setName(e.target.value)} />
-					<textarea
-						value={prompt}
-						onChange={(e) => setPrompt(e.target.value)}
-						placeholder="LLM prompt to run on schedule…"
-						rows={4}
-						className="resize-none rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-ring"
-					/>
-					<div className="flex gap-3">
-						<div className="flex flex-col gap-1 flex-1">
-							<label htmlFor="task-schedule" className="text-xs text-muted-foreground">
-								Schedule
-							</label>
-							<select
-								id="task-schedule"
-								value={schedule}
-								onChange={(e) => setSchedule(e.target.value as typeof schedule)}
-								className="rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-ring"
-							>
-								{Object.entries(SCHEDULE_LABELS).map(([v, l]) => (
-									<option key={v} value={v}>
-										{l}
-									</option>
-								))}
-							</select>
-						</div>
-						{schedule !== "once" && schedule !== "cron" && (
-							<div className="flex flex-col gap-1">
-								<label htmlFor="task-time" className="text-xs text-muted-foreground">
-									Time (UTC)
-								</label>
-								<Input
-									id="task-time"
-									type="time"
-									value={scheduledTime}
-									onChange={(e) => setScheduledTime(e.target.value)}
-									className="w-28"
-								/>
-							</div>
-						)}
-						{schedule === "cron" && (
-							<div className="flex flex-col gap-1 flex-1">
-								<label htmlFor="task-cron" className="text-xs text-muted-foreground">
-									Cron expression
-								</label>
-								<Input
-									id="task-cron"
-									value={cronExpression}
-									onChange={(e) => setCronExpression(e.target.value)}
-									placeholder="0 9 * * *"
-								/>
-							</div>
-						)}
-					</div>
-					<Button
-						onClick={() => createMut.mutate()}
-						disabled={!name || !prompt || createMut.isPending}
-					>
-						{createMut.isPending ? "Creating…" : "Create Task"}
-					</Button>
-				</div>
-			</DialogContent>
-		</Dialog>
 	);
 }
