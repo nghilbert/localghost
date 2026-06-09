@@ -40,7 +40,7 @@ export const getEmailAccounts = createServerFn({ method: "GET" }).handler(async 
 });
 
 export const createEmailAccount = createServerFn({ method: "POST" })
-	.inputValidator(
+	.validator(
 		z.object({
 			name: z.string().min(1),
 			fromAddress: z.string().default(""),
@@ -81,7 +81,7 @@ export const createEmailAccount = createServerFn({ method: "POST" })
 	});
 
 export const deleteEmailAccount = createServerFn({ method: "POST" })
-	.inputValidator(z.object({ id: z.uuid() }))
+	.validator(z.object({ id: z.uuid() }))
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		await prisma.emailAccount.deleteMany({ where: { id: data.id, ownerId: userId } });
@@ -90,7 +90,7 @@ export const deleteEmailAccount = createServerFn({ method: "POST" })
 // ── Message fetching ──────────────────────────────────────────────────────
 
 export const listEmails = createServerFn({ method: "GET" })
-	.inputValidator(
+	.validator(
 		z.object({
 			accountId: z.uuid(),
 			folder: z.string().default("INBOX"),
@@ -118,7 +118,7 @@ export const listEmails = createServerFn({ method: "GET" })
 	});
 
 export const getEmail = createServerFn({ method: "GET" })
-	.inputValidator(
+	.validator(
 		z.object({ accountId: z.uuid(), uid: z.string(), folder: z.string().default("INBOX") }),
 	)
 	.handler(async ({ data }) => {
@@ -142,7 +142,7 @@ export const getEmail = createServerFn({ method: "GET" })
 	});
 
 export const sendEmail = createServerFn({ method: "POST" })
-	.inputValidator(
+	.validator(
 		z.object({
 			accountId: z.uuid(),
 			to: z.string().min(1),
