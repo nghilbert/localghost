@@ -1,6 +1,6 @@
 import { Button } from "#/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "#/components/ui/dialog";
-import type { EventData } from "#/features/calendar/lib/calendar.types";
+import type { EventData } from "#/features/calendar/lib/types";
 
 type EventDetailDialogProps = {
 	event: EventData | null;
