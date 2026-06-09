@@ -57,7 +57,7 @@ function HomePage() {
 	const { data: sessions = [] } = useQuery(sessionsQueryOptions());
 	const recentSessions = sessions.slice(0, 5);
 
-	const createMut = useMutation({
+	const createMutation = useMutation({
 		mutationFn: () => createSession({ data: { name: "New Chat" } }),
 		onSuccess: (session) => {
 			queryClient.invalidateQueries({ queryKey: ["sessions"] });
@@ -78,11 +78,11 @@ function HomePage() {
 				<Button
 					size="lg"
 					className="gap-2 px-6"
-					onClick={() => createMut.mutate()}
-					disabled={createMut.isPending}
+					onClick={() => createMutation.mutate()}
+					disabled={createMutation.isPending}
 				>
 					<MessageSquarePlusIcon size={16} />
-					{createMut.isPending ? "Creating…" : "New chat"}
+					{createMutation.isPending ? "Creating…" : "New chat"}
 				</Button>
 			</div>
 
