@@ -1,6 +1,6 @@
 import { ArrowLeftIcon } from "lucide-react";
 import { Button } from "#/components/ui/button";
-import type { EmailMessageDetail } from "#/features/email/lib/email.types";
+import type { EmailMessageDetail } from "#/features/email/lib/types";
 
 type EmailMessageReaderProps = {
 	message: EmailMessageDetail;
