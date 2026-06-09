@@ -3,21 +3,22 @@ import { useState } from "react";
 import { Button } from "#/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "#/components/ui/dialog";
 import { Input } from "#/components/ui/input";
+import { Textarea } from "#/components/ui/textarea";
 import { sendEmail } from "#/features/email/lib/email.functions";
 
-type Props = {
+type ComposeModalProps = {
 	accountId: string;
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	replyTo?: { to: string; subject: string };
 };
 
-export function ComposeModal({ accountId, open, onOpenChange, replyTo }: Props) {
+export function ComposeModal({ accountId, open, onOpenChange, replyTo }: ComposeModalProps) {
 	const [to, setTo] = useState(replyTo?.to ?? "");
 	const [subject, setSubject] = useState(replyTo ? `Re: ${replyTo.subject}` : "");
 	const [body, setBody] = useState("");
 
-	const sendMut = useMutation({
+	const sendMutation = useMutation({
 		mutationFn: () => sendEmail({ data: { accountId, to, subject, text: body } }),
 		onSuccess: () => {
 			onOpenChange(false);
@@ -40,27 +41,27 @@ export function ComposeModal({ accountId, open, onOpenChange, replyTo }: Props) 
 						value={subject}
 						onChange={(e) => setSubject(e.target.value)}
 					/>
-					<textarea
+					<Textarea
 						value={body}
 						onChange={(e) => setBody(e.target.value)}
 						placeholder="Write your message…"
 						rows={12}
-						className="resize-y rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-ring"
+						className="resize-y"
 					/>
 					<div className="flex justify-end gap-2">
 						<Button variant="outline" onClick={() => onOpenChange(false)}>
 							Cancel
 						</Button>
 						<Button
-							onClick={() => sendMut.mutate()}
-							disabled={!to || !subject || !body || sendMut.isPending}
+							onClick={() => sendMutation.mutate()}
+							disabled={!to || !subject || !body || sendMutation.isPending}
 						>
-							{sendMut.isPending ? "Sending…" : "Send"}
+							{sendMutation.isPending ? "Sending…" : "Send"}
 						</Button>
 					</div>
-					{sendMut.isError && (
+					{sendMutation.isError && (
 						<p className="text-sm text-destructive">
-							Failed to send: {(sendMut.error as Error).message}
+							Failed to send: {(sendMutation.error as Error).message}
 						</p>
 					)}
 				</div>
