@@ -7,7 +7,7 @@ import { Input } from "#/components/ui/input";
 import { ContactRow } from "#/features/contacts/components/ContactRow";
 import { CreateContactDialog } from "#/features/contacts/components/CreateContactDialog";
 import { contactsQueryOptions, deleteContact } from "#/features/contacts/lib/contact.functions";
-import type { Contact } from "#/features/contacts/lib/contact.types";
+import type { Contact } from "#/features/contacts/lib/types";
 import type { ContactModel } from "#/generated/prisma/models";
 
 export const Route = createFileRoute("/_authenticated/contacts")({
