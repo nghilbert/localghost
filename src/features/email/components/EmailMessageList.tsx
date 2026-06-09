@@ -1,7 +1,7 @@
 import { PencilIcon, RefreshCwIcon } from "lucide-react";
 import { Button } from "#/components/ui/button";
 import { AddAccountDialog } from "#/features/email/components/AddAccountDialog";
-import type { EmailAccount, EmailMessage } from "#/features/email/lib/email.types";
+import type { EmailAccount, EmailMessage } from "#/features/email/lib/types";
 
 type EmailMessageListProps = {
 	accounts: EmailAccount[];
