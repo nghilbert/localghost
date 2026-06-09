@@ -22,7 +22,7 @@ export const getMcpServers = createServerFn({ method: "GET" }).handler(async () 
 });
 
 export const createMcpServer = createServerFn({ method: "POST" })
-	.inputValidator(
+	.validator(
 		z.object({
 			name: z.string().min(1).max(100),
 			url: z.string().url().max(2048),
@@ -42,7 +42,7 @@ export const createMcpServer = createServerFn({ method: "POST" })
 	});
 
 export const updateMcpServer = createServerFn({ method: "POST" })
-	.inputValidator(
+	.validator(
 		z.object({
 			id: z.uuid(),
 			name: z.string().min(1).max(100).optional(),
@@ -67,7 +67,7 @@ export const updateMcpServer = createServerFn({ method: "POST" })
 	});
 
 export const deleteMcpServer = createServerFn({ method: "POST" })
-	.inputValidator(z.object({ id: z.uuid() }))
+	.validator(z.object({ id: z.uuid() }))
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		await prisma.mcpServer.deleteMany({ where: { id: data.id, ownerId: userId } });
@@ -75,7 +75,7 @@ export const deleteMcpServer = createServerFn({ method: "POST" })
 
 /** Test connectivity to an MCP server and return its tool list. */
 export const testMcpServer = createServerFn({ method: "POST" })
-	.inputValidator(
+	.validator(
 		z.object({
 			id: z.uuid(),
 		}),

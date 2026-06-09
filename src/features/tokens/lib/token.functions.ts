@@ -44,7 +44,7 @@ export const getTokens = createServerFn({ method: "GET" }).handler(async () => {
 });
 
 export const createToken = createServerFn({ method: "POST" })
-	.inputValidator(
+	.validator(
 		z.object({
 			name: z.string().min(1).max(100),
 			expiresInDays: z.number().int().min(1).max(365).optional(),
@@ -71,7 +71,7 @@ export const createToken = createServerFn({ method: "POST" })
 	});
 
 export const deleteToken = createServerFn({ method: "POST" })
-	.inputValidator(z.object({ id: z.uuid() }))
+	.validator(z.object({ id: z.uuid() }))
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		const existing = await prisma.apiToken.findFirst({ where: { id: data.id, ownerId: userId } });

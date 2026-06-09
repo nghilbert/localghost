@@ -44,7 +44,7 @@ export function SessionList() {
 	const params = useParams({ strict: false }) as { sessionId?: string };
 	const currentSessionId = params.sessionId;
 
-	const createMut = useMutation({
+	const createMutation = useMutation({
 		mutationFn: () => createSession({ data: { name: "New Chat" } }),
 		onSuccess: (session) => {
 			queryClient.invalidateQueries({ queryKey: ["sessions"] });
@@ -52,12 +52,12 @@ export function SessionList() {
 		},
 	});
 
-	const archiveMut = useMutation({
+	const archiveMutation = useMutation({
 		mutationFn: (id: string) => updateSession({ data: { id, data: { archived: true } } }),
 		onSuccess: () => queryClient.invalidateQueries({ queryKey: ["sessions"] }),
 	});
 
-	const renameMut = useMutation({
+	const renameMutation = useMutation({
 		mutationFn: ({ id, name }: { id: string; name: string }) =>
 			updateSession({ data: { id, data: { name } } }),
 		onSuccess: () => {
@@ -66,7 +66,7 @@ export function SessionList() {
 		},
 	});
 
-	const forkMut = useMutation({
+	const forkMutation = useMutation({
 		mutationFn: (id: string) => forkSession({ data: { id } }),
 		onSuccess: (result) => {
 			queryClient.invalidateQueries({ queryKey: ["sessions"] });
@@ -88,8 +88,8 @@ export function SessionList() {
 						<Button
 							variant="ghost"
 							size="icon-sm"
-							onClick={() => createMut.mutate()}
-							disabled={createMut.isPending}
+							onClick={() => createMutation.mutate()}
+							disabled={createMutation.isPending}
 						>
 							<PlusIcon size={14} />
 							<span className="sr-only">New chat</span>
@@ -108,7 +108,7 @@ export function SessionList() {
 										onBlur={(e) => {
 											const name = e.target.value.trim();
 											if (name && name !== session.name) {
-												renameMut.mutate({ id: session.id, name });
+												renameMutation.mutate({ id: session.id, name });
 											} else {
 												setRenamingId(null);
 											}
@@ -138,11 +138,11 @@ export function SessionList() {
 										</SidebarMenuAction>
 									</DropdownMenuTrigger>
 									<DropdownMenuContent side="right" align="start" className="min-w-36">
-										<DropdownMenuItem onClick={() => forkMut.mutate(session.id)}>
+										<DropdownMenuItem onClick={() => forkMutation.mutate(session.id)}>
 											<GitForkIcon size={13} className="mr-2" />
 											Fork
 										</DropdownMenuItem>
-										<DropdownMenuItem onClick={() => archiveMut.mutate(session.id)}>
+										<DropdownMenuItem onClick={() => archiveMutation.mutate(session.id)}>
 											<ArchiveIcon size={13} className="mr-2" />
 											Archive
 										</DropdownMenuItem>
