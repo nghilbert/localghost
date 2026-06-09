@@ -1,4 +1,4 @@
-import { type CalendarData, type EventData, sameDay } from "#/features/calendar/lib/calendar.types";
+import { type CalendarData, type EventData, sameDay } from "#/features/calendar/lib/types";
 import { cn } from "#/lib/utils";
 
 const DAY_LABELS_FULL = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
