@@ -11,7 +11,7 @@ import {
 } from "#/components/ui/dialog";
 import { Input } from "#/components/ui/input";
 import { createEvent } from "#/features/calendar/lib/calendar.functions";
-import type { CalendarData } from "#/features/calendar/lib/calendar.types";
+import type { CalendarData } from "#/features/calendar/lib/types";
 
 type NewEventDialogProps = {
 	open: boolean;
