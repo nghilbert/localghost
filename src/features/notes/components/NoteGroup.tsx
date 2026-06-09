@@ -1,4 +1,4 @@
-import type { Note } from "#/features/notes/lib/note.types";
+import type { Note } from "#/features/notes/lib/types";
 import type { NoteFormData } from "#/features/notes/lib/use-note-form";
 import { NoteCard } from "./NoteCard";
 import { NoteForm } from "./NoteForm";
