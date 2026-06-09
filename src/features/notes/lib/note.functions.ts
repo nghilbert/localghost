@@ -2,7 +2,7 @@ import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeaders } from "@tanstack/react-start/server";
 import { z } from "zod/v4";
-import { prisma as db } from "#/lib/db.server";
+import { prisma } from "#/lib/db.server";
 
 async function getCurrentUserId(): Promise<string> {
 	const { auth } = await import("#/features/auth/lib/auth.server");
@@ -12,7 +12,11 @@ async function getCurrentUserId(): Promise<string> {
 	return session.user.id;
 }
 
-const ChecklistItem = z.object({ id: z.string(), text: z.string(), checked: z.boolean() });
+const checklistItemSchema = z.object({
+	id: z.string(),
+	text: z.string(),
+	checked: z.boolean(),
+});
 
 export const notesQueryOptions = () =>
 	queryOptions({
@@ -22,18 +26,18 @@ export const notesQueryOptions = () =>
 
 export const getNotes = createServerFn({ method: "GET" }).handler(async () => {
 	const userId = await getCurrentUserId();
-	return db.note.findMany({
+	return prisma.note.findMany({
 		where: { ownerId: userId, archived: false },
 		orderBy: [{ pinned: "desc" }, { sortOrder: "asc" }, { updatedAt: "desc" }],
 	});
 });
 
 export const createNote = createServerFn({ method: "POST" })
-	.inputValidator(
+	.validator(
 		z.object({
 			title: z.string().default(""),
 			content: z.string().optional(),
-			items: z.array(ChecklistItem).optional(),
+			items: z.array(checklistItemSchema).optional(),
 			noteType: z.enum(["note", "checklist"]).default("note"),
 			color: z.string().optional(),
 			label: z.string().optional(),
@@ -42,7 +46,7 @@ export const createNote = createServerFn({ method: "POST" })
 	)
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
-		return db.note.create({
+		return prisma.note.create({
 			data: {
 				...data,
 				items: data.items ?? undefined,
@@ -52,12 +56,12 @@ export const createNote = createServerFn({ method: "POST" })
 	});
 
 export const updateNote = createServerFn({ method: "POST" })
-	.inputValidator(
+	.validator(
 		z.object({
 			id: z.uuid(),
 			title: z.string().optional(),
 			content: z.string().optional(),
-			items: z.array(ChecklistItem).optional(),
+			items: z.array(checklistItemSchema).optional(),
 			color: z.string().nullish(),
 			label: z.string().nullish(),
 			pinned: z.boolean().optional(),
@@ -67,16 +71,16 @@ export const updateNote = createServerFn({ method: "POST" })
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		const { id, ...patch } = data;
-		return db.note.update({
+		return prisma.note.update({
 			where: { id, ownerId: userId },
 			data: { ...patch, items: patch.items ?? undefined },
 		});
 	});
 
 export const deleteNote = createServerFn({ method: "POST" })
-	.inputValidator(z.object({ id: z.uuid() }))
+	.validator(z.object({ id: z.uuid() }))
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
-		await db.note.delete({ where: { id: data.id, ownerId: userId } });
+		await prisma.note.delete({ where: { id: data.id, ownerId: userId } });
 		return { ok: true };
 	});
