@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { ArrowLeftIcon } from "lucide-react";
 import { useState } from "react";
+import { Skeleton } from "#/components/ui/skeleton";
 import { DocumentEditor } from "#/features/documents/components/DocumentEditor";
 import { DocumentList } from "#/features/documents/components/DocumentList";
 import { documentQueryOptions } from "#/features/documents/lib/document.functions";
@@ -28,7 +28,7 @@ function DocumentsPage() {
 				className={`flex flex-1 flex-col overflow-hidden ${showEditor ? "flex" : "hidden md:flex"}`}
 			>
 				{selectedId ? (
-					<LoadedEditor id={selectedId} onBack={() => setSelectedId(undefined)} />
+					<LoadedEditor id={selectedId} />
 				) : (
 					<div className="flex h-full items-center justify-center">
 						<p className="text-sm text-muted-foreground">Select a document or create a new one</p>
@@ -39,35 +39,14 @@ function DocumentsPage() {
 	);
 }
 
-function LoadedEditor({ id, onBack }: { id: string; onBack: () => void }) {
-	const { data: doc, isLoading } = useQuery(documentQueryOptions(id));
+function LoadedEditor({ id }: { id: string }) {
+	const documentQuery = useQuery(documentQueryOptions(id));
 
-	if (isLoading) {
-		return (
-			<div className="flex h-full items-center justify-center">
-				<span className="text-sm text-muted-foreground">Loading…</span>
-			</div>
-		);
-	}
+	if (documentQuery.isLoading) return <Skeleton className="w-full h-full" />;
+	if (documentQuery.isError)
+		return <div className="p-4 text-destructive">{documentQuery.error?.message}</div>;
+	if (!documentQuery.isSuccess)
+		return <div className="p-4 text-destructive">Something went wrong</div>;
 
-	if (!doc) return null;
-
-	return (
-		<div className="flex h-full flex-col overflow-hidden">
-			{/* Back button — mobile only */}
-			<div className="border-b px-3 py-2 md:hidden">
-				<button
-					type="button"
-					className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
-					onClick={onBack}
-				>
-					<ArrowLeftIcon size={13} />
-					Documents
-				</button>
-			</div>
-			<div className="min-h-0 flex-1 overflow-hidden">
-				<DocumentEditor document={doc} />
-			</div>
-		</div>
-	);
+	return <DocumentEditor document={documentQuery.data} />;
 }

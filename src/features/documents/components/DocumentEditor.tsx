@@ -1,31 +1,27 @@
-import { markdown } from "@codemirror/lang-markdown";
-import { oneDark } from "@codemirror/theme-one-dark";
-import { EditorView } from "@codemirror/view";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import CodeMirror from "@uiw/react-codemirror";
+import { Markdown } from "@tiptap/markdown";
+import { Tiptap, useEditor } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
 import { SaveIcon } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
+import { Skeleton } from "#/components/ui/skeleton";
 import { updateDocument } from "#/features/documents/lib/document.functions";
 import { cn } from "#/lib/utils";
 
-type Document = {
-	id: string;
-	title: string;
-	language: string;
-	content: string;
-	versionCount: number;
-};
-
-type Props = {
-	document: Document;
+type DocumentEditorProps = {
+	document: {
+		id: string;
+		title: string;
+		language: string;
+		content: string;
+		versionCount: number;
+	};
 	onSaved?: () => void;
 };
 
-const AUTOSAVE_DELAY = 2000;
-
-export function DocumentEditor({ document, onSaved }: Props) {
+export function DocumentEditor({ document, onSaved }: DocumentEditorProps) {
 	const queryClient = useQueryClient();
 	const [title, setTitle] = useState(document.title);
 	const [content, setContent] = useState(document.content);
@@ -51,20 +47,20 @@ export function DocumentEditor({ document, onSaved }: Props) {
 		},
 	});
 
-	// Autosave after 2s of inactivity when content/title changes
-	useEffect(() => {
-		if (!dirty) return;
-		const t = setTimeout(() => saveMut.mutate(undefined), AUTOSAVE_DELAY);
-		return () => clearTimeout(t);
-	}, [dirty, saveMut.mutate]);
-
-	const handleContentChange = useCallback((val: string) => {
-		setContent(val);
-		setDirty(true);
-	}, []);
+	const editor = useEditor({
+		extensions: [StarterKit, Markdown],
+		content: document.content,
+		contentType: "markdown",
+		immediatelyRender: false,
+		onUpdate: ({ editor }) => {
+			setContent(editor.getMarkdown());
+			setDirty(true);
+		},
+	});
+	if (!editor) return <Skeleton className="w-full h-full" />;
 
 	return (
-		<div className="flex h-full flex-col">
+		<Tiptap editor={editor}>
 			{/* Title bar */}
 			<div className="flex items-center gap-2 border-b px-4 py-2">
 				<Input
@@ -95,24 +91,7 @@ export function DocumentEditor({ document, onSaved }: Props) {
 				</Button>
 			</div>
 
-			{/* Editor */}
-			<div className="flex-1 overflow-auto">
-				<CodeMirror
-					value={content}
-					onChange={handleContentChange}
-					extensions={[
-						markdown(),
-						EditorView.lineWrapping,
-						EditorView.theme({
-							"&": { height: "100%", fontSize: "14px" },
-							".cm-scroller": { fontFamily: "inherit" },
-						}),
-					]}
-					theme={oneDark}
-					height="100%"
-					className="h-full"
-				/>
-			</div>
-		</div>
+			<Tiptap.Content />
+		</Tiptap>
 	);
 }
