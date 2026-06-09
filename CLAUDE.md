@@ -170,10 +170,10 @@ await prisma.$executeRawUnsafe(
 | Webhooks | `src/features/webhooks/` — HMAC-SHA256, SSRF protection |
 | API tokens | `src/features/tokens/`, `src/lib/token.server.ts` (`ody_` prefix) |
 | MCP servers | `src/lib/mcp.server.ts`, `src/features/mcp/` |
-| Model compare | `src/routes/_authenticated/compare.tsx` |
-| Gallery | `src/routes/_authenticated/gallery.tsx` |
-| Admin | `src/routes/_authenticated/admin.tsx` |
-| Settings | `src/routes/_authenticated/settings.tsx` |
+| Model compare | `src/features/compare/`, `src/routes/api/compare/stream.tsx` |
+| Gallery | `src/features/gallery/`, `src/routes/api/gallery/upload.tsx` |
+| Admin | `src/features/admin/lib/admin.functions.ts` |
+| Settings | `src/features/settings/components/` (8 tab components) |
 | Backup/import | `src/routes/api/backup/` — non-destructive merge |
 | STT proxy | `src/routes/api/stt/transcribe.tsx` → Whisper endpoint |
 | Diagnostics | `src/routes/api/diagnostics/` |
@@ -187,3 +187,4 @@ await prisma.$executeRawUnsafe(
 - **Rate limiting** — no per-user limits on the chat stream endpoint
 - **More tests** — `agent.server.ts`, `llm.server.ts` parsing, `imap.server.ts` stubs lack coverage
 - **Gallery crop/resize** — upload works; no client-side `<canvas>` editor yet
+- **Research feature components** — `src/features/research/` only has `use-research-stream.ts`; no components yet
