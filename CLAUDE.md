@@ -71,6 +71,15 @@ src/features/<name>/
 
 Route files under `src/routes/_authenticated/` are thin: only the `Route` export plus a page-level component that composes feature components. No inline sub-components.
 
+### File naming
+
+TanStack Start has special meaning for three suffixes only:
+- `*.functions.ts` — server functions (mix of server + query options)
+- `*.server.ts` — server-only modules (never imported by client bundles)
+- `*.client.ts` — client-only modules
+
+All other files: use plain descriptive names. Type files are `types.ts` (not `xxx.types.ts`). The `.types.ts` suffix is not a TanStack Start convention and should not be used.
+
 ### Hooks
 
 Custom hooks go in `src/features/<name>/lib/use-<name>.ts` (or `src/hooks/` for app-wide hooks). File and export names both use the `use-` prefix.

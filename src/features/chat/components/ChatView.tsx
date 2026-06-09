@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import {
 	BookmarkIcon,
@@ -8,19 +8,21 @@ import {
 	SlidersHorizontalIcon,
 	Volume2Icon,
 } from "lucide-react";
-import { useCallback, useRef, useState } from "react";
-import { ChatFeed } from "#/components/ui/custom/ChatFeed";
+import { useState } from "react";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "#/components/ui/dropdown-menu";
+import { Textarea } from "#/components/ui/textarea";
+import { ChatFeed } from "#/features/chat/components/ChatFeed";
 import { ChatInput } from "#/features/chat/components/ChatInput";
 import { ChatMessage } from "#/features/chat/components/ChatMessage";
 import { ModelPicker } from "#/features/chat/components/ModelPicker";
 import { updateSession } from "#/features/chat/lib/chat.functions";
 import { createPreset, presetsQueryOptions } from "#/features/chat/lib/preset.functions";
+import { useChatStream } from "#/features/chat/lib/use-chat-stream";
 import { MemoryModal } from "#/features/memory/components/MemoryModal";
 import { cn } from "#/lib/utils";
 
@@ -46,19 +48,16 @@ type Session = {
 	messages: Message[];
 };
 
-type Props = {
+type ChatViewProps = {
 	session: Session;
 };
 
-export function ChatView({ session }: Props) {
-	const queryClient = useQueryClient();
-	const bottomRef = useRef<HTMLDivElement>(null);
-	const abortRef = useRef<AbortController | null>(null);
+export function ChatView({ session }: ChatViewProps) {
+	const { allDisplayMessages, isStreaming, bottomRef, handleSubmit, handleStop } = useChatStream({
+		sessionId: session.id,
+		initialMessages: session.messages,
+	});
 
-	const [messages, setMessages] = useState<Message[]>(session.messages);
-	const [streamingContent, setStreamingContent] = useState<string | null>(null);
-	const [streamingToolCalls, setStreamingToolCalls] = useState<ToolCallRecord[]>([]);
-	const [isStreaming, setIsStreaming] = useState(false);
 	const [mode, setMode] = useState<"chat" | "agent">(session.mode === "agent" ? "agent" : "chat");
 	const [showPresets, setShowPresets] = useState(false);
 	const [systemPrompt, setSystemPrompt] = useState(session.systemPrompt ?? "");
@@ -70,12 +69,12 @@ export function ChatView({ session }: Props) {
 
 	const { data: presets = [] } = useQuery(presetsQueryOptions());
 
-	const savePresetMut = useMutation({
+	const savePresetMutation = useMutation({
 		mutationFn: (name: string) =>
 			createPreset({ data: { name, systemPrompt, temperature, model: session.model } }),
 	});
 
-	const presetMut = useMutation({
+	const sessionSettingsMutation = useMutation({
 		mutationFn: (patch: {
 			systemPrompt?: string | null;
 			temperature?: number;
@@ -83,120 +82,26 @@ export function ChatView({ session }: Props) {
 		}) => updateSession({ data: { id: session.id, data: patch } }),
 	});
 
-	const modeMut = useMutation({
+	const modeMutation = useMutation({
 		mutationFn: (newMode: "chat" | "agent") =>
 			updateSession({ data: { id: session.id, data: { mode: newMode } } }),
 	});
 
-	const scrollToBottom = useCallback(() => {
-		requestAnimationFrame(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }));
-	}, []);
-
 	function handleModeChange(newMode: "chat" | "agent") {
 		setMode(newMode);
-		modeMut.mutate(newMode);
+		modeMutation.mutate(newMode);
 	}
 
-	async function handleSubmit(message: string) {
-		if (isStreaming) return;
-
-		setIsStreaming(true);
-		setStreamingContent("");
-		setStreamingToolCalls([]);
-
-		const tempUserMsg: Message = { id: `temp-${Date.now()}`, role: "user", content: message };
-		setMessages((prev) => [...prev, tempUserMsg]);
-		scrollToBottom();
-
-		const abort = new AbortController();
-		abortRef.current = abort;
-
-		try {
-			const response = await fetch("/api/chat/stream", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ sessionId: session.id, message }),
-				signal: abort.signal,
-			});
-
-			if (!response.ok || !response.body) throw new Error(`HTTP ${response.status}`);
-
-			const reader = response.body.getReader();
-			const decoder = new TextDecoder();
-			let buffer = "";
-			let fullText = "";
-			const toolCalls: ToolCallRecord[] = [];
-
-			while (true) {
-				const { done, value } = await reader.read();
-				if (done) break;
-				buffer += decoder.decode(value, { stream: true });
-				const lines = buffer.split("\n");
-				buffer = lines.pop() ?? "";
-
-				for (const line of lines) {
-					if (!line.startsWith("data: ")) continue;
-					const raw = line.slice(6).trim();
-					if (!raw) continue;
-					try {
-						const evt = JSON.parse(raw) as {
-							type: string;
-							delta?: string;
-							error?: string;
-							tool?: string;
-							result?: string;
-							name?: string;
-						};
-
-						if (evt.type === "delta" && evt.delta) {
-							fullText += evt.delta;
-							setStreamingContent(fullText);
-							scrollToBottom();
-						} else if (evt.type === "tool_result" && evt.tool) {
-							const tc: ToolCallRecord = {
-								id: `tc-${Date.now()}-${toolCalls.length}`,
-								tool: evt.tool,
-								result: evt.result ?? "",
-							};
-							toolCalls.push(tc);
-							setStreamingToolCalls([...toolCalls]);
-							scrollToBottom();
-						} else if (evt.type === "done") {
-							const assistantMsg: Message = {
-								id: `temp-ai-${Date.now()}`,
-								role: "assistant",
-								content: fullText,
-								toolCalls: toolCalls.length > 0 ? [...toolCalls] : undefined,
-							};
-							setMessages((prev) => [...prev, assistantMsg]);
-							setStreamingContent(null);
-							setStreamingToolCalls([]);
-							scrollToBottom();
-						} else if (evt.type === "session_name" && evt.name) {
-							queryClient.invalidateQueries({ queryKey: ["sessions"] });
-							queryClient.invalidateQueries({ queryKey: ["session", session.id] });
-						} else if (evt.type === "error") {
-							console.error("LLM error:", evt.error);
-						}
-					} catch {
-						// skip malformed SSE chunk
-					}
-				}
-			}
-		} catch (err) {
-			if ((err as Error).name !== "AbortError") console.error("Stream error:", err);
-			setStreamingContent(null);
-			setStreamingToolCalls([]);
-		} finally {
-			setIsStreaming(false);
-			abortRef.current = null;
-			queryClient.invalidateQueries({ queryKey: ["session", session.id] });
-			queryClient.invalidateQueries({ queryKey: ["sessions"] });
-		}
+	function handleRagToggle() {
+		const next = !ragEnabled;
+		setRagEnabled(next);
+		sessionSettingsMutation.mutate({ ragEnabled: next });
 	}
 
-	function handleStop() {
-		abortRef.current?.abort();
+	function handleAutoSpeakToggle() {
+		const next = !autoSpeak;
+		setAutoSpeak(next);
+		localStorage.setItem("ody-auto-speak", next ? "1" : "0");
 	}
 
 	function exportAs(format: "md" | "json") {
@@ -204,13 +109,16 @@ export function ChatView({ session }: Props) {
 		let content: string;
 		if (format === "md") {
 			content = `# ${session.name}\n\n`;
-			for (const m of messages) {
+			for (const m of allDisplayMessages) {
 				const role = m.role === "user" ? "**You**" : "**Assistant**";
 				content += `${role}\n\n${m.content}\n\n---\n\n`;
 			}
 		} else {
 			content = JSON.stringify(
-				{ session: { id: session.id, name: session.name, model: session.model }, messages },
+				{
+					session: { id: session.id, name: session.name, model: session.model },
+					messages: allDisplayMessages,
+				},
 				null,
 				2,
 			);
@@ -226,19 +134,6 @@ export function ChatView({ session }: Props) {
 		URL.revokeObjectURL(url);
 	}
 
-	const allDisplayMessages: Message[] =
-		streamingContent !== null
-			? [
-					...messages,
-					{
-						id: "streaming",
-						role: "assistant",
-						content: streamingContent,
-						toolCalls: streamingToolCalls.length > 0 ? streamingToolCalls : undefined,
-					},
-				]
-			: messages;
-
 	return (
 		<div className="flex h-full flex-col">
 			<header className="shrink-0 border-b bg-background/80 backdrop-blur-sm">
@@ -247,11 +142,7 @@ export function ChatView({ session }: Props) {
 					<div className="flex items-center gap-1.5">
 						<button
 							type="button"
-							onClick={() => {
-								const next = !ragEnabled;
-								setRagEnabled(next);
-								presetMut.mutate({ ragEnabled: next });
-							}}
+							onClick={handleRagToggle}
 							className={cn(
 								"flex h-7 items-center gap-1 rounded-md px-2 text-xs hover:bg-muted",
 								ragEnabled ? "bg-primary/10 text-primary" : "text-muted-foreground",
@@ -262,11 +153,7 @@ export function ChatView({ session }: Props) {
 						</button>
 						<button
 							type="button"
-							onClick={() => {
-								const next = !autoSpeak;
-								setAutoSpeak(next);
-								localStorage.setItem("ody-auto-speak", next ? "1" : "0");
-							}}
+							onClick={handleAutoSpeakToggle}
 							className={cn(
 								"flex h-7 items-center gap-1 rounded-md px-2 text-xs hover:bg-muted",
 								autoSpeak ? "bg-primary/10 text-primary" : "text-muted-foreground",
@@ -328,7 +215,7 @@ export function ChatView({ session }: Props) {
 											onClick={() => {
 												setSystemPrompt(p.systemPrompt);
 												if (p.temperature !== null) setTemperature(p.temperature);
-												presetMut.mutate({
+												sessionSettingsMutation.mutate({
 													systemPrompt: p.systemPrompt,
 													...(p.temperature !== null ? { temperature: p.temperature } : {}),
 												});
@@ -355,7 +242,7 @@ export function ChatView({ session }: Props) {
 											type="button"
 											onClick={() => {
 												const name = prompt("Preset name:");
-												if (name?.trim()) savePresetMut.mutate(name.trim());
+												if (name?.trim()) savePresetMutation.mutate(name.trim());
 											}}
 											className="flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-foreground"
 											title="Save as preset"
@@ -365,14 +252,16 @@ export function ChatView({ session }: Props) {
 										</button>
 									)}
 								</div>
-								<textarea
+								<Textarea
 									id="system-prompt"
 									value={systemPrompt}
 									onChange={(e) => setSystemPrompt(e.target.value)}
-									onBlur={() => presetMut.mutate({ systemPrompt: systemPrompt || null })}
+									onBlur={() =>
+										sessionSettingsMutation.mutate({ systemPrompt: systemPrompt || null })
+									}
 									placeholder="You are a helpful assistant…"
 									rows={2}
-									className="w-full resize-none rounded-md border bg-background px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-ring"
+									className="resize-none text-xs"
 								/>
 							</div>
 							<div className="w-full md:w-40">
@@ -390,8 +279,8 @@ export function ChatView({ session }: Props) {
 									step={0.1}
 									value={temperature}
 									onChange={(e) => setTemperature(Number(e.target.value))}
-									onMouseUp={() => presetMut.mutate({ temperature })}
-									onTouchEnd={() => presetMut.mutate({ temperature })}
+									onMouseUp={() => sessionSettingsMutation.mutate({ temperature })}
+									onTouchEnd={() => sessionSettingsMutation.mutate({ temperature })}
 									className="w-full accent-primary"
 								/>
 								<div className="flex justify-between text-[10px] text-muted-foreground">
