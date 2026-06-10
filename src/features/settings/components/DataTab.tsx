@@ -1,10 +1,11 @@
 import { DownloadIcon, UploadIcon } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "#/components/ui/button";
 
 export function DataTab() {
 	const [isImporting, setIsImporting] = useState(false);
 	const [importResult, setImportResult] = useState<string | null>(null);
+	const fileInputRef = useRef<HTMLInputElement>(null);
 
 	function handleExport() {
 		const a = document.createElement("a");
@@ -44,7 +45,7 @@ export function DataTab() {
 			setImportResult(`Error: ${(err as Error).message}`);
 		} finally {
 			setIsImporting(false);
-			e.target.value = "";
+			if (fileInputRef.current) fileInputRef.current.value = "";
 		}
 	}
 
@@ -68,21 +69,23 @@ export function DataTab() {
 					Upload a previously exported JSON file. Existing records are kept — imported items are
 					added alongside them. Chat sessions are not imported.
 				</p>
-				<label
-					htmlFor="import-file"
-					className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border bg-background px-3 py-1.5 text-sm font-medium shadow-xs transition-colors hover:bg-muted disabled:opacity-50"
+				<Button
+					size="sm"
+					variant="outline"
+					disabled={isImporting}
+					onClick={() => fileInputRef.current?.click()}
 				>
-					<UploadIcon size={13} />
+					<UploadIcon size={13} className="mr-1.5" />
 					{isImporting ? "Importing…" : "Choose backup file"}
-					<input
-						id="import-file"
-						type="file"
-						accept=".json,application/json"
-						className="sr-only"
-						disabled={isImporting}
-						onChange={handleImport}
-					/>
-				</label>
+				</Button>
+				<input
+					ref={fileInputRef}
+					type="file"
+					accept=".json,application/json"
+					className="sr-only"
+					disabled={isImporting}
+					onChange={handleImport}
+				/>
 				{importResult && <p className="mt-2 text-xs text-muted-foreground">{importResult}</p>}
 			</section>
 		</div>

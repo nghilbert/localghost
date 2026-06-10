@@ -17,6 +17,7 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "#/components/ui/dropdown-menu";
+import { Input } from "#/components/ui/input";
 import {
 	SidebarGroup,
 	SidebarGroupContent,
@@ -101,10 +102,10 @@ export function SessionList() {
 						{sessions.map((session) => (
 							<SidebarMenuItem key={session.id}>
 								{renamingId === session.id ? (
-									<input
+									<Input
 										ref={(el) => el?.focus()}
 										defaultValue={session.name}
-										className="w-full rounded border bg-background px-2 py-1 text-sm outline-none focus:ring-1 focus:ring-ring"
+										className="h-7"
 										onBlur={(e) => {
 											const name = e.target.value.trim();
 											if (name && name !== session.name) {
@@ -211,13 +212,15 @@ function SearchDialog({
 					<DialogTitle>Search chats</DialogTitle>
 				</DialogHeader>
 				<div className="relative">
-					<SearchIcon size={14} className="absolute left-2.5 top-2.5 text-muted-foreground" />
-					<input
-						type="text"
+					<SearchIcon
+						size={14}
+						className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+					/>
+					<Input
 						value={query}
 						onChange={(e) => handleSearch(e.target.value)}
 						placeholder="Search messages…"
-						className="w-full rounded-md border bg-background py-2 pl-8 pr-8 text-sm outline-none focus:ring-1 focus:ring-ring"
+						className="pl-8 pr-8"
 					/>
 					{query && (
 						<button
@@ -226,7 +229,7 @@ function SearchDialog({
 								setQuery("");
 								setResults([]);
 							}}
-							className="absolute right-2.5 top-2.5 text-muted-foreground"
+							className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
 						>
 							<XIcon size={13} />
 						</button>

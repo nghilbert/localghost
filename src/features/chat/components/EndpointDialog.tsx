@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { PlusIcon, ServerIcon, Trash2Icon } from "lucide-react";
 import { useState } from "react";
 import { Button } from "#/components/ui/button";
+import { Card, CardContent } from "#/components/ui/card";
 import {
 	Dialog,
 	DialogContent,
@@ -76,21 +77,22 @@ export function EndpointDialog() {
 					{endpoints.length > 0 && (
 						<ul className="space-y-2">
 							{endpoints.map((ep) => (
-								<li
-									key={ep.id}
-									className="flex items-center justify-between rounded-md border px-3 py-2 text-sm"
-								>
-									<div>
-										<p className="font-medium">{ep.name}</p>
-										<p className="truncate text-xs text-muted-foreground">{ep.url}</p>
-									</div>
-									<Button
-										variant="ghost"
-										size="icon-sm"
-										onClick={() => deleteMutation.mutate(ep.id)}
-									>
-										<Trash2Icon size={14} />
-									</Button>
+								<li key={ep.id}>
+									<Card size="sm">
+										<CardContent className="flex items-center justify-between">
+											<div>
+												<p className="text-sm font-medium">{ep.name}</p>
+												<p className="truncate text-xs text-muted-foreground">{ep.url}</p>
+											</div>
+											<Button
+												variant="ghost"
+												size="icon-sm"
+												onClick={() => deleteMutation.mutate(ep.id)}
+											>
+												<Trash2Icon size={14} />
+											</Button>
+										</CardContent>
+									</Card>
 								</li>
 							))}
 						</ul>
