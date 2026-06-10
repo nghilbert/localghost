@@ -5,6 +5,7 @@ import { Button } from "#/components/ui/button";
 import {
 	Dialog,
 	DialogContent,
+	DialogDescription,
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
@@ -41,6 +42,7 @@ export function NewCalendarDialog({ onCreated }: NewCalendarDialogProps) {
 			<DialogContent className="max-w-sm">
 				<DialogHeader>
 					<DialogTitle>New Calendar</DialogTitle>
+					<DialogDescription>Create a local calendar to organize events.</DialogDescription>
 				</DialogHeader>
 				<div className="flex flex-col gap-3">
 					<Input

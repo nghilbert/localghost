@@ -10,7 +10,13 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "#/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "#/components/ui/dialog";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogHeader,
+	DialogTitle,
+} from "#/components/ui/dialog";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -210,6 +216,7 @@ function SearchDialog({
 			<DialogContent className="max-w-lg">
 				<DialogHeader>
 					<DialogTitle>Search chats</DialogTitle>
+					<DialogDescription>Find messages across all your chat sessions.</DialogDescription>
 				</DialogHeader>
 				<div className="relative">
 					<SearchIcon

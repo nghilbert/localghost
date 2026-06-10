@@ -1,5 +1,11 @@
 import { Button } from "#/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "#/components/ui/dialog";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogHeader,
+	DialogTitle,
+} from "#/components/ui/dialog";
 import type { EventData } from "#/features/calendar/lib/types";
 
 type EventDetailDialogProps = {
@@ -21,6 +27,7 @@ export function EventDetailDialog({
 				<DialogContent className="max-w-sm">
 					<DialogHeader>
 						<DialogTitle>{event.summary}</DialogTitle>
+						<DialogDescription>{event.calendar.name}</DialogDescription>
 					</DialogHeader>
 					<div className="space-y-2 text-sm">
 						<div className="flex items-center gap-2">

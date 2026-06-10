@@ -5,6 +5,7 @@ import { Button } from "#/components/ui/button";
 import {
 	Dialog,
 	DialogContent,
+	DialogDescription,
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
@@ -59,6 +60,9 @@ export function CreateTaskDialog({ onCreated }: CreateTaskDialogProps) {
 			<DialogContent className="max-w-lg">
 				<DialogHeader>
 					<DialogTitle>Create Scheduled Task</DialogTitle>
+					<DialogDescription>
+						Schedule an LLM prompt to run automatically on a recurring basis.
+					</DialogDescription>
 				</DialogHeader>
 				<div className="flex flex-col gap-3">
 					<Input placeholder="Task name" value={name} onChange={(e) => setName(e.target.value)} />

@@ -1,4 +1,5 @@
 import { PinIcon, Trash2Icon } from "lucide-react";
+import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { type ChecklistItem, type Note, noteColorClasses } from "#/features/notes/lib/types";
 import { cn } from "#/lib/utils";
@@ -47,9 +48,9 @@ export function NoteCard({ note, onEdit, onPin, onDelete }: NoteCardProps) {
 			)}
 
 			{note.label && (
-				<span className="mt-2 inline-block rounded-full bg-secondary px-2 py-0.5 text-xs text-secondary-foreground">
+				<Badge variant="secondary" className="mt-2">
 					{note.label}
-				</span>
+				</Badge>
 			)}
 
 			<div className="mt-2 flex items-center justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100">

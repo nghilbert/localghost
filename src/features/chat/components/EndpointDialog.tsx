@@ -2,16 +2,24 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { PlusIcon, ServerIcon, Trash2Icon } from "lucide-react";
 import { useState } from "react";
 import { Button } from "#/components/ui/button";
-import { Card, CardContent } from "#/components/ui/card";
 import {
 	Dialog,
 	DialogContent,
+	DialogDescription,
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
 } from "#/components/ui/dialog";
 import { Field, FieldError, FieldLabel } from "#/components/ui/field";
 import { Input } from "#/components/ui/input";
+import {
+	Item,
+	ItemActions,
+	ItemContent,
+	ItemDescription,
+	ItemGroup,
+	ItemTitle,
+} from "#/components/ui/item";
 import {
 	Select,
 	SelectContent,
@@ -70,37 +78,36 @@ export function EndpointDialog() {
 			<DialogContent className="max-w-lg">
 				<DialogHeader>
 					<DialogTitle>Model Providers</DialogTitle>
+					<DialogDescription>
+						Add LLM provider endpoints. API keys are encrypted at rest.
+					</DialogDescription>
 				</DialogHeader>
 
 				<div className="space-y-4">
-					{/* Existing endpoints */}
 					{endpoints.length > 0 && (
-						<ul className="space-y-2">
+						<ItemGroup>
 							{endpoints.map((ep) => (
-								<li key={ep.id}>
-									<Card size="sm">
-										<CardContent className="flex items-center justify-between">
-											<div>
-												<p className="text-sm font-medium">{ep.name}</p>
-												<p className="truncate text-xs text-muted-foreground">{ep.url}</p>
-											</div>
-											<Button
-												variant="ghost"
-												size="icon-sm"
-												onClick={() => deleteMutation.mutate(ep.id)}
-											>
-												<Trash2Icon size={14} />
-											</Button>
-										</CardContent>
-									</Card>
-								</li>
+								<Item key={ep.id} variant="outline">
+									<ItemContent>
+										<ItemTitle>{ep.name}</ItemTitle>
+										<ItemDescription>{ep.url}</ItemDescription>
+									</ItemContent>
+									<ItemActions>
+										<Button
+											variant="ghost"
+											size="icon-sm"
+											onClick={() => deleteMutation.mutate(ep.id)}
+										>
+											<Trash2Icon size={14} />
+										</Button>
+									</ItemActions>
+								</Item>
 							))}
-						</ul>
+						</ItemGroup>
 					)}
 
 					<Separator />
 
-					{/* Add endpoint form */}
 					<div className="space-y-3">
 						<p className="text-sm font-medium">Add provider</p>
 						<div className="grid grid-cols-2 gap-3">

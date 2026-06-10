@@ -3,8 +3,15 @@ import { TrashIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "#/components/ui/button";
-import { Card, CardContent } from "#/components/ui/card";
 import { Input } from "#/components/ui/input";
+import {
+	Item,
+	ItemActions,
+	ItemContent,
+	ItemDescription,
+	ItemGroup,
+	ItemTitle,
+} from "#/components/ui/item";
 import { Textarea } from "#/components/ui/textarea";
 import {
 	createPreset,
@@ -74,20 +81,18 @@ export function PresetsTab() {
 			{presets.length > 0 && (
 				<section>
 					<h2 className="mb-3 text-sm font-medium">Saved presets</h2>
-					<div className="space-y-2">
+					<ItemGroup>
 						{presets.map((p) => (
-							<Card key={p.id} size="sm">
-								<CardContent className="flex items-start gap-3">
-									<div className="min-w-0 flex-1">
-										<div className="text-sm font-medium">{p.name}</div>
-										{p.description && (
-											<div className="text-xs text-muted-foreground">{p.description}</div>
-										)}
-										<div className="mt-1 truncate text-xs text-muted-foreground">
-											{p.systemPrompt.slice(0, 100)}
-											{p.systemPrompt.length > 100 ? "…" : ""}
-										</div>
-									</div>
+							<Item key={p.id} variant="outline">
+								<ItemContent>
+									<ItemTitle>{p.name}</ItemTitle>
+									{p.description && <ItemDescription>{p.description}</ItemDescription>}
+									<ItemDescription>
+										{p.systemPrompt.slice(0, 100)}
+										{p.systemPrompt.length > 100 ? "…" : ""}
+									</ItemDescription>
+								</ItemContent>
+								<ItemActions>
 									<Button
 										variant="ghost"
 										size="icon"
@@ -97,10 +102,10 @@ export function PresetsTab() {
 									>
 										<TrashIcon size={13} />
 									</Button>
-								</CardContent>
-							</Card>
+								</ItemActions>
+							</Item>
 						))}
-					</div>
+					</ItemGroup>
 				</section>
 			)}
 		</div>
