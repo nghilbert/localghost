@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "#/components/ui/button";
+import { Card, CardContent } from "#/components/ui/card";
 import { EndpointDialog } from "#/features/chat/components/EndpointDialog";
 import { deleteEndpoint, endpointsQueryOptions } from "#/features/chat/lib/chat.functions";
 
@@ -32,28 +33,30 @@ export function ProvidersTab() {
 				</p>
 			)}
 
-			<ul className="space-y-2">
+			<div className="space-y-2">
 				{endpoints.map((ep) => (
-					<li key={ep.id} className="flex items-center gap-3 rounded-lg border p-3">
-						<div className="min-w-0 flex-1">
-							<div className="text-sm font-medium">{ep.name}</div>
-							<div className="truncate text-xs text-muted-foreground">{ep.url}</div>
-							<div className="text-xs text-muted-foreground">
-								{ep.provider} {ep.hasApiKey ? "· API key set" : "· No API key"}
+					<Card key={ep.id} size="sm">
+						<CardContent className="flex items-center gap-3">
+							<div className="min-w-0 flex-1">
+								<div className="text-sm font-medium">{ep.name}</div>
+								<div className="truncate text-xs text-muted-foreground">{ep.url}</div>
+								<div className="text-xs text-muted-foreground">
+									{ep.provider} {ep.hasApiKey ? "· API key set" : "· No API key"}
+								</div>
 							</div>
-						</div>
-						<Button
-							variant="ghost"
-							size="sm"
-							className="text-destructive hover:text-destructive"
-							onClick={() => deleteMutation.mutate(ep.id)}
-							disabled={deleteMutation.isPending}
-						>
-							Remove
-						</Button>
-					</li>
+							<Button
+								variant="ghost"
+								size="sm"
+								className="text-destructive hover:text-destructive"
+								onClick={() => deleteMutation.mutate(ep.id)}
+								disabled={deleteMutation.isPending}
+							>
+								Remove
+							</Button>
+						</CardContent>
+					</Card>
 				))}
-			</ul>
+			</div>
 		</div>
 	);
 }

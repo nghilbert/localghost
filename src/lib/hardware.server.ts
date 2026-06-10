@@ -15,8 +15,8 @@ function detectNvidiaGpus(): GpuInfo[] | null {
 			const [name, total, free] = line.split(", ").map((s) => s.trim());
 			return {
 				name: name ?? "Unknown GPU",
-				totalVramMb: Number.parseInt(total ?? "0"),
-				freeVramMb: Number.parseInt(free ?? "0"),
+				totalVramMb: Number.parseInt(total ?? "0", 10),
+				freeVramMb: Number.parseInt(free ?? "0", 10),
 			};
 		});
 	} catch {

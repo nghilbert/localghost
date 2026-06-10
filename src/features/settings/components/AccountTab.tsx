@@ -3,6 +3,7 @@ import { useNavigate, useRouteContext } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "#/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import { Input } from "#/components/ui/input";
 import { authClient } from "#/features/auth/lib/auth-client";
 
@@ -31,45 +32,53 @@ export function AccountTab() {
 
 	return (
 		<div className="space-y-4">
-			<div className="space-y-3 rounded-lg border p-4">
-				<h2 className="text-sm font-medium">Profile</h2>
-				<div className="flex flex-col gap-1">
-					<label htmlFor="settings-name" className="text-xs text-muted-foreground">
-						Name
-					</label>
-					<div className="flex gap-2">
-						<Input
-							id="settings-name"
-							value={name}
-							onChange={(e) => setName(e.target.value)}
-							className="max-w-xs"
-						/>
-						<Button
-							onClick={() => updateMutation.mutate()}
-							disabled={!name.trim() || name === user?.name || updateMutation.isPending}
-							size="sm"
-						>
-							{updateMutation.isPending ? "Saving…" : "Save"}
-						</Button>
+			<Card>
+				<CardHeader>
+					<CardTitle>Profile</CardTitle>
+				</CardHeader>
+				<CardContent className="space-y-3">
+					<div className="flex flex-col gap-1">
+						<label htmlFor="settings-name" className="text-xs text-muted-foreground">
+							Name
+						</label>
+						<div className="flex gap-2">
+							<Input
+								id="settings-name"
+								value={name}
+								onChange={(e) => setName(e.target.value)}
+								className="max-w-xs"
+							/>
+							<Button
+								onClick={() => updateMutation.mutate()}
+								disabled={!name.trim() || name === user?.name || updateMutation.isPending}
+								size="sm"
+							>
+								{updateMutation.isPending ? "Saving…" : "Save"}
+							</Button>
+						</div>
 					</div>
-				</div>
-				<div className="flex flex-col gap-1">
-					<span className="text-xs text-muted-foreground">Email</span>
-					<span className="text-sm">{user?.email}</span>
-				</div>
-			</div>
+					<div className="flex flex-col gap-1">
+						<span className="text-xs text-muted-foreground">Email</span>
+						<span className="text-sm">{user?.email}</span>
+					</div>
+				</CardContent>
+			</Card>
 
-			<div className="rounded-lg border p-4">
-				<h2 className="mb-3 text-sm font-medium">Session</h2>
-				<Button
-					variant="destructive"
-					size="sm"
-					onClick={() => signOutMutation.mutate()}
-					disabled={signOutMutation.isPending}
-				>
-					{signOutMutation.isPending ? "Signing out…" : "Sign out"}
-				</Button>
-			</div>
+			<Card>
+				<CardHeader>
+					<CardTitle>Session</CardTitle>
+				</CardHeader>
+				<CardContent>
+					<Button
+						variant="destructive"
+						size="sm"
+						onClick={() => signOutMutation.mutate()}
+						disabled={signOutMutation.isPending}
+					>
+						{signOutMutation.isPending ? "Signing out…" : "Sign out"}
+					</Button>
+				</CardContent>
+			</Card>
 		</div>
 	);
 }
