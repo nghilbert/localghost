@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ClockIcon } from "lucide-react";
 import { useState } from "react";
 import { Button } from "#/components/ui/button";
+import { Card, CardContent } from "#/components/ui/card";
 import {
 	Dialog,
 	DialogContent,
@@ -49,31 +50,37 @@ export function TaskRunsDialog({ taskId, taskName }: TaskRunsDialogProps) {
 				{runs.length > 0 && (
 					<ul className="max-h-96 space-y-2 overflow-y-auto">
 						{runs.map((run) => (
-							<li key={run.id} className="rounded-md border p-3">
-								<div className="flex items-center justify-between">
-									<span
-										className={cn(
-											"text-xs font-medium",
-											run.status === "error"
-												? "text-destructive"
-												: run.status === "success"
-													? "text-primary"
-													: "text-muted-foreground",
+							<li key={run.id}>
+								<Card size="sm">
+									<CardContent>
+										<div className="flex items-center justify-between">
+											<span
+												className={cn(
+													"text-xs font-medium",
+													run.status === "error"
+														? "text-destructive"
+														: run.status === "success"
+															? "text-primary"
+															: "text-muted-foreground",
+												)}
+											>
+												{run.status}
+											</span>
+											<span className="text-xs text-muted-foreground">
+												{new Date(run.startedAt).toLocaleString([], {
+													dateStyle: "short",
+													timeStyle: "short",
+												})}
+											</span>
+										</div>
+										{run.error && <p className="mt-1 text-xs text-destructive">{run.error}</p>}
+										{run.output && (
+											<p className="mt-1 line-clamp-3 text-xs text-muted-foreground">
+												{run.output}
+											</p>
 										)}
-									>
-										{run.status}
-									</span>
-									<span className="text-xs text-muted-foreground">
-										{new Date(run.startedAt).toLocaleString([], {
-											dateStyle: "short",
-											timeStyle: "short",
-										})}
-									</span>
-								</div>
-								{run.error && <p className="mt-1 text-xs text-destructive">{run.error}</p>}
-								{run.output && (
-									<p className="mt-1 line-clamp-3 text-xs text-muted-foreground">{run.output}</p>
-								)}
+									</CardContent>
+								</Card>
 							</li>
 						))}
 					</ul>

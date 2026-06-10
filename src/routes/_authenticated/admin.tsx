@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { PageHeader } from "#/components/PageHeader";
+import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import { adminQueryOptions } from "#/features/admin/lib/admin.functions";
 
 export const Route = createFileRoute("/_authenticated/admin")({
@@ -40,39 +41,43 @@ function AdminPage() {
 								["Active webhooks", stats.webhooks],
 							] as [string, number][]
 						).map(([label, val]) => (
-							<div key={label} className="rounded-lg border p-4 text-center">
-								<div className="text-2xl font-semibold">{val}</div>
-								<div className="text-xs text-muted-foreground">{label}</div>
-							</div>
+							<Card key={label}>
+								<CardContent className="text-center">
+									<div className="text-2xl font-semibold">{val}</div>
+									<div className="text-xs text-muted-foreground">{label}</div>
+								</CardContent>
+							</Card>
 						))}
 					</div>
 
-					<div className="rounded-lg border">
-						<div className="border-b px-4 py-2">
-							<h2 className="text-sm font-medium">Users</h2>
-						</div>
-						<ul className="divide-y">
-							{users.map((u) => (
-								<li key={u.id} className="flex items-center gap-3 px-4 py-3">
-									<div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium">
-										{u.name.slice(0, 2).toUpperCase()}
-									</div>
-									<div className="min-w-0 flex-1">
-										<div className="truncate text-sm font-medium">{u.name}</div>
-										<div className="truncate text-xs text-muted-foreground">{u.email}</div>
-									</div>
-									<div className="flex shrink-0 gap-4 text-xs text-muted-foreground">
-										<span>{u._count.chatSessions} sessions</span>
-										<span>{u._count.memories} memories</span>
-										<span>{u._count.documents} docs</span>
-									</div>
-									<div className="shrink-0 text-xs text-muted-foreground">
-										{new Date(u.createdAt).toLocaleDateString()}
-									</div>
-								</li>
-							))}
-						</ul>
-					</div>
+					<Card>
+						<CardHeader className="border-b">
+							<CardTitle>Users</CardTitle>
+						</CardHeader>
+						<CardContent className="p-0">
+							<ul className="divide-y">
+								{users.map((u) => (
+									<li key={u.id} className="flex items-center gap-3 px-4 py-3">
+										<div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium">
+											{u.name.slice(0, 2).toUpperCase()}
+										</div>
+										<div className="min-w-0 flex-1">
+											<div className="truncate text-sm font-medium">{u.name}</div>
+											<div className="truncate text-xs text-muted-foreground">{u.email}</div>
+										</div>
+										<div className="flex shrink-0 gap-4 text-xs text-muted-foreground">
+											<span>{u._count.chatSessions} sessions</span>
+											<span>{u._count.memories} memories</span>
+											<span>{u._count.documents} docs</span>
+										</div>
+										<div className="shrink-0 text-xs text-muted-foreground">
+											{new Date(u.createdAt).toLocaleDateString()}
+										</div>
+									</li>
+								))}
+							</ul>
+						</CardContent>
+					</Card>
 				</div>
 			</div>
 		</div>

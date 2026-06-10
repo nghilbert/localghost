@@ -4,6 +4,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { PageHeader } from "#/components/PageHeader";
 import { Button } from "#/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import { Textarea } from "#/components/ui/textarea";
 import { createDocument } from "#/features/documents/lib/document.functions";
 import { useResearchStream } from "#/features/research/hooks/use-research-stream";
@@ -67,29 +68,33 @@ function ResearchPage() {
 				</div>
 
 				{log.length > 0 && (
-					<div className="rounded-lg border bg-muted/30 px-4 py-3">
-						<p className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-							Progress
-						</p>
-						<ul className="space-y-0.5">
-							{log.map((l) => (
-								<li key={l.id} className="flex items-start gap-2 text-sm">
-									<span className="mt-0.5 text-muted-foreground">›</span>
-									<span>{l.text}</span>
-								</li>
-							))}
-							{isRunning && (
-								<li className="flex items-center gap-2 text-sm text-muted-foreground">
-									<span className="mt-0.5">›</span>
-									<span className="animate-pulse">Working…</span>
-								</li>
-							)}
-						</ul>
-					</div>
+					<Card className="bg-muted/30">
+						<CardHeader>
+							<CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+								Progress
+							</CardTitle>
+						</CardHeader>
+						<CardContent>
+							<ul className="space-y-0.5">
+								{log.map((l) => (
+									<li key={l.id} className="flex items-start gap-2 text-sm">
+										<span className="mt-0.5 text-muted-foreground">›</span>
+										<span>{l.text}</span>
+									</li>
+								))}
+								{isRunning && (
+									<li className="flex items-center gap-2 text-sm text-muted-foreground">
+										<span className="mt-0.5">›</span>
+										<span className="animate-pulse">Working…</span>
+									</li>
+								)}
+							</ul>
+						</CardContent>
+					</Card>
 				)}
 
 				{report && (
-					<div className="flex flex-col gap-2">
+					<>
 						<div className="flex items-center justify-between">
 							<p className="text-sm font-medium">Report</p>
 							{!isRunning && !hasSaved && (
@@ -101,12 +106,12 @@ function ResearchPage() {
 								<span className="text-xs text-muted-foreground">Saved to Documents</span>
 							)}
 						</div>
-						<div className="flex-1 overflow-auto rounded-lg border bg-background p-6">
-							<div className="prose prose-sm dark:prose-invert max-w-none">
+						<Card className="flex-1 overflow-auto">
+							<CardContent className="prose prose-sm dark:prose-invert max-w-none">
 								<ReactMarkdown remarkPlugins={[remarkGfm]}>{report}</ReactMarkdown>
-							</div>
-						</div>
-					</div>
+							</CardContent>
+						</Card>
+					</>
 				)}
 			</div>
 		</div>
