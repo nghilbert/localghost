@@ -10,7 +10,7 @@ npm run build        # type-check + production build
 npm run check        # biome lint + format check
 npm run fix          # biome auto-fix (lint + format)
 npx vitest run       # run tests once
-npx vitest run src/test/features/chat/chat.test.ts   # run a single test file
+npx vitest run src/test/chat/ChatInput.test.tsx   # run a single test file
 npm run prisma -- migrate dev --name <name>
 npm run prisma -- generate
 ```
@@ -66,7 +66,8 @@ Optional: `SEARXNG_URL` (falls back to DuckDuckGo).
 ```
 src/features/<name>/
   components/    # React components used only by this feature
-  lib/           # server functions (*.functions.ts), hooks (use-*.ts), types, constants
+  hooks/         # custom hooks (use-*.ts)
+  lib/           # server functions (*.functions.ts), types, constants
 ```
 
 Route files under `src/routes/_authenticated/` are thin: only the `Route` export plus a page-level component that composes feature components. No inline sub-components.
@@ -82,16 +83,36 @@ All other files: use plain descriptive names. Type files are `types.ts` (not `xx
 
 ### Hooks
 
-Custom hooks go in `src/features/<name>/lib/use-<name>.ts` (or `src/hooks/` for app-wide hooks). File and export names both use the `use-` prefix.
+Feature-specific hooks go in `src/features/<name>/hooks/use-<name>.ts`. App-wide hooks go in `src/hooks/`. File and export names both use the `use-` prefix.
 
 ### Global components
 
-`src/components/ui/` — shadcn primitives only.  
+`src/components/ui/` — shadcn-generated primitives. **Never edit these files manually** — use `npx shadcn add <component> --overwrite` to regenerate.  
 `src/components/` — `AppSidebar`, `PageHeader`, and other cross-feature UI.
 
 ### Tests
 
-Tests live in `src/test/` mirroring the source tree (e.g. `src/test/features/chat/`, `src/test/lib/`). Setup in `src/test/setup.ts`. jsdom + `@testing-library/jest-dom`.
+Tests live in `src/test/` with one flat folder per feature/area (e.g. `src/test/chat/`, `src/test/lib/`). Setup in `src/test/setup.ts`. jsdom + `@testing-library/jest-dom`.
+
+## Git & SDLC Practices
+
+**Branching:**
+- Branch from `main` for all work
+- Name branches: `feat/<topic>`, `fix/<topic>`, `refactor/<topic>`, `chore/<topic>`
+- One logical change per PR; keep PRs small and reviewable
+- PR title: short imperative phrase (≤70 chars) — e.g. `feat: add email compose dialog`
+- Merge into `main`
+
+**Before every commit:**
+1. `npm run fix` — auto-fix lint/format
+2. `npm run check` — confirm zero errors
+3. `npx vitest run` — all tests pass
+4. `npm run build` — type-check passes
+
+**Testing:**
+- Write tests for new pure logic (server functions, utilities, hooks with complex state)
+- Component tests for non-trivial UI behavior (interaction, conditional rendering)
+- No tests needed for simple pass-through components or thin route wrappers
 
 ## Non-negotiable Rules
 
@@ -102,7 +123,7 @@ Tests live in `src/test/` mirroring the source tree (e.g. `src/test/features/cha
 - **Biome:** fix all warnings, never use `biome-ignore`; run `npm run fix` before every commit
 - **Server-only:** `.server.ts` files must not be imported from client code
 - **No dead code:** delete unused code; no re-exports or `// removed` comments
-- **shadcn first:** use `<Button>`, `<Input>`, `<Textarea>`, `<Badge>` etc. — never raw HTML equivalents
+- **shadcn always:** use `<Button>`, `<Input>`, `<Textarea>`, `<NativeSelect>`, `<Slider>`, `<Badge>` etc. whenever a shadcn/ui equivalent exists — never raw HTML; special input types with no shadcn equivalent (`type="color"`, `type="file"`) are the only exceptions
 - **No `as` casts:** type things correctly from the start using generics, proper type annotations, or Prisma model types from `#/generated/prisma/models`; `as` is a last resort for genuinely untyped external data
 - **Naming:** variables describe what they are (`filteredContacts` not `arr`); booleans use `is`/`has`/`can` prefix; event handlers use `handle` prefix (`handleSubmit`, `handleDelete`); mutations named `<verb>Mutation` not `<verb>Mut`
 - **Comments:** only for non-obvious behavior or workarounds; JSDoc on exported functions when the signature isn't self-explanatory
