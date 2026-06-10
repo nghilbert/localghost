@@ -19,8 +19,8 @@ async function ragContext(message: string, userId: string): Promise<string | nul
 		const literal = toVectorLiteral(embedding);
 		const rows = await prisma.$queryRawUnsafe<{ title: string; content: string; score: number }[]>(
 			`SELECT title, content, 1 - (embedding <=> $1::vector) AS score
-			 FROM "Document"
-			 WHERE "ownerId" = $2 AND archived = false AND embedding IS NOT NULL
+			 FROM document
+			 WHERE owner_id = $2 AND archived = false AND embedding IS NOT NULL
 			 ORDER BY score DESC LIMIT 3`,
 			literal,
 			userId,

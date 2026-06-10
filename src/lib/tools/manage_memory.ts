@@ -37,8 +37,8 @@ async function addMemory(args: ManageMemoryArgs, ownerId: string): Promise<strin
 	const embedding = await embed(args.text, ownerId);
 
 	await prisma.$executeRawUnsafe(
-		`INSERT INTO memory (id, text, category, source, "ownerId", embedding)
-         VALUES (gen_random_uuid(), $1, $2, 'agent', $3, $4::vector)`,
+		`INSERT INTO memory (text, category, source, owner_id, embedding)
+         VALUES ($1, $2, 'agent', $3, $4::vector)`,
 		args.text,
 		args.category ?? "fact",
 		ownerId,
@@ -61,7 +61,7 @@ async function searchMemory(args: ManageMemoryArgs, ownerId: string): Promise<st
 		// Vector similarity search when embeddings are available
 		rows = await prisma.$queryRawUnsafe<typeof rows>(
 			`SELECT text, category, 1 - (embedding <=> $1::vector) AS score
-             FROM memory WHERE "ownerId" = $2 AND embedding IS NOT NULL
+             FROM memory WHERE owner_id = $2 AND embedding IS NOT NULL
              ORDER BY embedding <=> $1::vector LIMIT $3`,
 			toVectorLiteral(embedding),
 			ownerId,
@@ -70,7 +70,7 @@ async function searchMemory(args: ManageMemoryArgs, ownerId: string): Promise<st
 	} else {
 		// Full-text keyword fallback when no embedding endpoint is configured
 		rows = await prisma.$queryRawUnsafe<typeof rows>(
-			`SELECT text, category FROM memory WHERE "ownerId" = $1
+			`SELECT text, category FROM memory WHERE owner_id = $1
              AND lower(text) LIKE lower($2) LIMIT $3`,
 			ownerId,
 			`%${query}%`,

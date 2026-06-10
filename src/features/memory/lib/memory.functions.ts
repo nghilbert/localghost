@@ -37,8 +37,8 @@ export const addMemory = createServerFn({ method: "POST" })
 
 		if (embedding) {
 			await prisma.$executeRawUnsafe(
-				`INSERT INTO memory (id, text, category, source, "ownerId", embedding)
-                 VALUES (gen_random_uuid(), $1, $2, 'user', $3, $4::vector)`,
+				`INSERT INTO memory (text, category, source, owner_id, embedding)
+                 VALUES ($1, $2, 'user', $3, $4::vector)`,
 				data.text,
 				data.category,
 				userId,
@@ -71,7 +71,7 @@ export const searchMemories = createServerFn({ method: "POST" })
 				Array<{ id: string; text: string; category: string; score: number }>
 			>(
 				`SELECT id, text, category, 1 - (embedding <=> $1::vector) AS score
-                 FROM memory WHERE "ownerId" = $2 AND embedding IS NOT NULL
+                 FROM memory WHERE owner_id = $2 AND embedding IS NOT NULL
                  ORDER BY embedding <=> $1::vector LIMIT $3`,
 				toVectorLiteral(embedding),
 				userId,

@@ -1,30 +1,30 @@
 model ScheduledTask {
-    id           String    @id @default(uuid(7))
-    name         String    @default("Untitled Task")
+    id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+    name           String    @default("Untitled Task")
     /// LLM prompt to run
-    prompt       String?
+    prompt         String?
     /// "llm" or "action" (built-in)
-    taskType     String    @default("llm")
+    taskType       String    @default("llm") @map("task_type")
     /// "once", "daily", "weekly", "monthly", "cron"
-    schedule     String    @default("daily")
+    schedule       String    @default("daily")
     /// "HH:MM" in UTC for daily/weekly/monthly
-    scheduledTime String?
+    scheduledTime  String?   @map("scheduled_time")
     /// cron expression e.g. "0 9 * * 1" (when schedule=cron)
-    cronExpression String?
+    cronExpression String?   @map("cron_expression")
     /// When schedule=once: exact UTC datetime
-    scheduledDate DateTime?
+    scheduledDate  DateTime? @map("scheduled_date")
     /// "active", "paused", "completed"
-    status       String    @default("active")
-    nextRun      DateTime?
-    lastRun      DateTime?
-    runCount     Int       @default(0)
+    status         String    @default("active")
+    nextRun        DateTime? @map("next_run")
+    lastRun        DateTime? @map("last_run")
+    runCount       Int       @default(0) @map("run_count")
     /// Which chat session to deliver output to
-    sessionId    String?
-    ownerId      String
-    owner        User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-    runs         TaskRun[]
-    createdAt    DateTime  @default(now())
-    updatedAt    DateTime  @updatedAt
+    sessionId      String?   @map("session_id") @db.Uuid
+    ownerId        String    @map("owner_id") @db.Uuid
+    owner          User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+    runs           TaskRun[]
+    createdAt      DateTime  @default(now()) @map("created_at")
+    updatedAt      DateTime  @updatedAt @map("updated_at")
 
     @@index([ownerId])
     @@index([status, nextRun])
@@ -32,15 +32,15 @@ model ScheduledTask {
 }
 
 model TaskRun {
-    id         String        @id @default(uuid(7))
-    taskId     String
+    id         String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+    taskId     String        @map("task_id") @db.Uuid
     task       ScheduledTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
     /// "running", "success", "error"
     status     String        @default("running")
     output     String?
     error      String?
-    startedAt  DateTime      @default(now())
-    finishedAt DateTime?
+    startedAt  DateTime      @default(now()) @map("started_at")
+    finishedAt DateTime?     @map("finished_at")
 
     @@index([taskId])
     @@map("task_run")

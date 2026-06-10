@@ -1,26 +1,26 @@
 model CalendarCal {
-    id      String          @id @default(uuid(7))
-    name    String
-    color   String          @default("#5b8abf")
+    id                      String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+    name                    String
+    color                   String          @default("#5b8abf")
     /// "local" or "caldav"
-    source  String          @default("local")
+    source                  String          @default("local")
     /// CalDAV server URL (for source=caldav)
-    caldavUrl             String?
-    caldavUsernameEncrypted String?
-    caldavPasswordEncrypted String?
-    ownerId String
-    owner   User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-    events  CalendarEvent[]
-    createdAt DateTime      @default(now())
-    updatedAt DateTime      @updatedAt
+    caldavUrl               String?         @map("caldav_url")
+    caldavUsernameEncrypted String?         @map("caldav_username_encrypted")
+    caldavPasswordEncrypted String?         @map("caldav_password_encrypted")
+    ownerId                 String          @map("owner_id") @db.Uuid
+    owner                   User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+    events                  CalendarEvent[]
+    createdAt               DateTime        @default(now()) @map("created_at")
+    updatedAt               DateTime        @updatedAt @map("updated_at")
 
     @@index([ownerId])
     @@map("calendar_cal")
 }
 
 model CalendarEvent {
-    id          String      @id @default(uuid(7))
-    calendarId  String
+    id          String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+    calendarId  String      @map("calendar_id") @db.Uuid
     calendar    CalendarCal @relation(fields: [calendarId], references: [id], onDelete: Cascade)
     /// iCalendar UID for deduplication during CalDAV sync
     uid         String?
@@ -29,15 +29,15 @@ model CalendarEvent {
     location    String      @default("")
     dtstart     DateTime
     dtend       DateTime
-    allDay      Boolean     @default(false)
+    allDay      Boolean     @default(false) @map("all_day")
     /// iCalendar RRULE string for recurring events
     rrule       String?
     /// Per-event color override
     color       String?
-    ownerId     String
+    ownerId     String      @map("owner_id") @db.Uuid
     owner       User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-    createdAt   DateTime    @default(now())
-    updatedAt   DateTime    @updatedAt
+    createdAt   DateTime    @default(now()) @map("created_at")
+    updatedAt   DateTime    @updatedAt @map("updated_at")
 
     @@index([ownerId])
     @@index([calendarId])

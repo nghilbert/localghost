@@ -1,12 +1,12 @@
 model Session {
-    id        String   @id
-    expiresAt DateTime
+    id        String   @id @db.Uuid
+    expiresAt DateTime @map("expires_at")
     token     String
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-    ipAddress String?
-    userAgent String?
-    userId    String
+    createdAt DateTime @default(now()) @map("created_at")
+    updatedAt DateTime @updatedAt @map("updated_at")
+    ipAddress String?  @map("ip_address")
+    userAgent String?  @map("user_agent")
+    userId    String   @map("user_id") @db.Uuid
     user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
     @@unique([token])
