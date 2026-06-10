@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { extractJson } from "./research.server";
+import { extractJson } from "#/lib/research.server";
 
 describe("extractJson", () => {
 	it("returns a bare JSON object unchanged", () => {

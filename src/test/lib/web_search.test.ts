@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { webSearch } from "./web_search";
+import { webSearch } from "#/lib/tools/web_search";
 
 describe("webSearch", () => {
 	beforeEach(() => {

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { computeNextRun } from "./scheduler.server";
+import { computeNextRun } from "#/lib/scheduler.server";
 
 afterEach(() => {
 	vi.useRealTimers();
