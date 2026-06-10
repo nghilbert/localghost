@@ -2,6 +2,12 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Project Purpose
+
+This is a ground-up reimplementation of [Odysseus](https://github.com/pewdiepie-archdaemon/odysseus) (the Python/FastAPI app in the `odysseus/` folder) using a modern TypeScript stack. The goal is feature parity with the original — chat, agent, cookbook, research, email, calendar, notes, tasks, contacts, gallery, and more — but with cleaner architecture, type safety, and better UX.
+
+The `odysseus/` directory is the reference implementation. When adding or improving a feature, check the corresponding Python source for behavior expectations, but do not port the implementation verbatim — improve on it.
+
 ## Commands
 
 ```bash
@@ -123,10 +129,13 @@ Tests live in `src/test/` with one flat folder per feature/area (e.g. `src/test/
 - **Biome:** fix all warnings, never use `biome-ignore`; run `npm run fix` before every commit
 - **Server-only:** `.server.ts` files must not be imported from client code
 - **No dead code:** delete unused code; no re-exports or `// removed` comments
-- **shadcn always:** use `<Button>`, `<Input>`, `<Textarea>`, `<NativeSelect>`, `<Slider>`, `<Badge>` etc. whenever a shadcn/ui equivalent exists — never raw HTML; special input types with no shadcn equivalent (`type="color"`, `type="file"`) are the only exceptions
+- **shadcn-first mindset:** Before building a component, ask "what shadcn component best serves this?" Think composition — combine `Card`, `Table`, `Badge`, `Progress`, `Alert`, `Tabs`, `Select` etc. to get the right UX without building from scratch. Use `DataTable` (shadcn table + `@tanstack/react-table`) for tabular data that may grow columns later. Use `Sonner` (`toast`) for post-action feedback. Never use raw HTML where a shadcn equivalent exists;
 - **No `as` casts:** type things correctly from the start using generics, proper type annotations, or Prisma model types from `#/generated/prisma/models`; `as` is a last resort for genuinely untyped external data
 - **Naming:** variables describe what they are (`filteredContacts` not `arr`); booleans use `is`/`has`/`can` prefix; event handlers use `handle` prefix (`handleSubmit`, `handleDelete`); mutations named `<verb>Mutation` not `<verb>Mut`
 - **Comments:** only for non-obvious behavior or workarounds; JSDoc on exported functions when the signature isn't self-explanatory
+- **Sortable data tables:** use `@tanstack/react-table` with shadcn's `Table` primitives; scores/metrics should have both an overall value and the component scores it's derived from; always make numeric columns sortable by clicking the header
+- **Post-action toasts:** after mutations that the user waits for (pull, delete, save), always fire a `toast.success` / `toast.error` from `sonner`
+- **Branching:** always create a `feat/`, `fix/`, `refactor/`, or `chore/` branch before starting work; never commit directly to `main`; use `gh pr create` to open PRs
 
 ## Known Good Patterns
 
@@ -178,6 +187,7 @@ await prisma.$executeRawUnsafe(
 
 | Area | Key files |
 |------|-----------|
+| Cookbook (model browser) | `src/features/cookbook/`, `src/routes/api/cookbook/pull.tsx`, `src/lib/hardware.server.ts` |
 | Chat + streaming | `src/features/chat/`, `src/routes/api/chat/stream.tsx` |
 | Memory (pgvector) | `src/features/memory/`, `src/lib/tools/manage_memory.ts` |
 | Documents + RAG | `src/features/documents/`, `src/lib/research.server.ts` |

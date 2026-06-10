@@ -2,6 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
 	BookOpenIcon,
 	CalendarIcon,
+	ChefHatIcon,
 	FileTextIcon,
 	GalleryHorizontalIcon,
 	LayoutGridIcon,
@@ -41,6 +42,7 @@ const NAV_ITEMS = [
 	{ to: "/tasks", label: "Tasks", icon: TimerIcon },
 	{ to: "/compare", label: "Compare", icon: LayoutGridIcon },
 	{ to: "/gallery", label: "Gallery", icon: GalleryHorizontalIcon },
+	{ to: "/cookbook", label: "Cookbook", icon: ChefHatIcon },
 ] as const;
 
 export function AppSidebar() {

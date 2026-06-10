@@ -23,6 +23,7 @@ import { Route as AuthenticatedGalleryRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedEmailRouteImport } from './routes/_authenticated/email'
 import { Route as AuthenticatedDocumentsRouteImport } from './routes/_authenticated/documents'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedCookbookRouteImport } from './routes/_authenticated/cookbook'
 import { Route as AuthenticatedContactsRouteImport } from './routes/_authenticated/contacts'
 import { Route as AuthenticatedCompareRouteImport } from './routes/_authenticated/compare'
 import { Route as AuthenticatedCalendarRouteImport } from './routes/_authenticated/calendar'
@@ -30,6 +31,7 @@ import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/
 import { Route as ApiSttTranscribeRouteImport } from './routes/api/stt/transcribe'
 import { Route as ApiResearchStreamRouteImport } from './routes/api/research/stream'
 import { Route as ApiGalleryUploadRouteImport } from './routes/api/gallery/upload'
+import { Route as ApiCookbookPullRouteImport } from './routes/api/cookbook/pull'
 import { Route as ApiCompareStreamRouteImport } from './routes/api/compare/stream'
 import { Route as ApiChatStreamRouteImport } from './routes/api/chat/stream'
 import { Route as ApiBackupImportRouteImport } from './routes/api/backup/import'
@@ -105,6 +107,11 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedCookbookRoute = AuthenticatedCookbookRouteImport.update({
+  id: '/cookbook',
+  path: '/cookbook',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedContactsRoute = AuthenticatedContactsRouteImport.update({
   id: '/contacts',
   path: '/contacts',
@@ -138,6 +145,11 @@ const ApiResearchStreamRoute = ApiResearchStreamRouteImport.update({
 const ApiGalleryUploadRoute = ApiGalleryUploadRouteImport.update({
   id: '/api/gallery/upload',
   path: '/api/gallery/upload',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCookbookPullRoute = ApiCookbookPullRouteImport.update({
+  id: '/api/cookbook/pull',
+  path: '/api/cookbook/pull',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiCompareStreamRoute = ApiCompareStreamRouteImport.update({
@@ -178,6 +190,7 @@ export interface FileRoutesByFullPath {
   '/calendar': typeof AuthenticatedCalendarRoute
   '/compare': typeof AuthenticatedCompareRoute
   '/contacts': typeof AuthenticatedContactsRoute
+  '/cookbook': typeof AuthenticatedCookbookRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/documents': typeof AuthenticatedDocumentsRoute
   '/email': typeof AuthenticatedEmailRoute
@@ -195,6 +208,7 @@ export interface FileRoutesByFullPath {
   '/api/backup/import': typeof ApiBackupImportRoute
   '/api/chat/stream': typeof ApiChatStreamRoute
   '/api/compare/stream': typeof ApiCompareStreamRoute
+  '/api/cookbook/pull': typeof ApiCookbookPullRoute
   '/api/gallery/upload': typeof ApiGalleryUploadRoute
   '/api/research/stream': typeof ApiResearchStreamRoute
   '/api/stt/transcribe': typeof ApiSttTranscribeRoute
@@ -205,6 +219,7 @@ export interface FileRoutesByTo {
   '/calendar': typeof AuthenticatedCalendarRoute
   '/compare': typeof AuthenticatedCompareRoute
   '/contacts': typeof AuthenticatedContactsRoute
+  '/cookbook': typeof AuthenticatedCookbookRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/documents': typeof AuthenticatedDocumentsRoute
   '/email': typeof AuthenticatedEmailRoute
@@ -222,6 +237,7 @@ export interface FileRoutesByTo {
   '/api/backup/import': typeof ApiBackupImportRoute
   '/api/chat/stream': typeof ApiChatStreamRoute
   '/api/compare/stream': typeof ApiCompareStreamRoute
+  '/api/cookbook/pull': typeof ApiCookbookPullRoute
   '/api/gallery/upload': typeof ApiGalleryUploadRoute
   '/api/research/stream': typeof ApiResearchStreamRoute
   '/api/stt/transcribe': typeof ApiSttTranscribeRoute
@@ -234,6 +250,7 @@ export interface FileRoutesById {
   '/_authenticated/calendar': typeof AuthenticatedCalendarRoute
   '/_authenticated/compare': typeof AuthenticatedCompareRoute
   '/_authenticated/contacts': typeof AuthenticatedContactsRoute
+  '/_authenticated/cookbook': typeof AuthenticatedCookbookRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/documents': typeof AuthenticatedDocumentsRoute
   '/_authenticated/email': typeof AuthenticatedEmailRoute
@@ -252,6 +269,7 @@ export interface FileRoutesById {
   '/api/backup/import': typeof ApiBackupImportRoute
   '/api/chat/stream': typeof ApiChatStreamRoute
   '/api/compare/stream': typeof ApiCompareStreamRoute
+  '/api/cookbook/pull': typeof ApiCookbookPullRoute
   '/api/gallery/upload': typeof ApiGalleryUploadRoute
   '/api/research/stream': typeof ApiResearchStreamRoute
   '/api/stt/transcribe': typeof ApiSttTranscribeRoute
@@ -264,6 +282,7 @@ export interface FileRouteTypes {
     | '/calendar'
     | '/compare'
     | '/contacts'
+    | '/cookbook'
     | '/dashboard'
     | '/documents'
     | '/email'
@@ -281,6 +300,7 @@ export interface FileRouteTypes {
     | '/api/backup/import'
     | '/api/chat/stream'
     | '/api/compare/stream'
+    | '/api/cookbook/pull'
     | '/api/gallery/upload'
     | '/api/research/stream'
     | '/api/stt/transcribe'
@@ -291,6 +311,7 @@ export interface FileRouteTypes {
     | '/calendar'
     | '/compare'
     | '/contacts'
+    | '/cookbook'
     | '/dashboard'
     | '/documents'
     | '/email'
@@ -308,6 +329,7 @@ export interface FileRouteTypes {
     | '/api/backup/import'
     | '/api/chat/stream'
     | '/api/compare/stream'
+    | '/api/cookbook/pull'
     | '/api/gallery/upload'
     | '/api/research/stream'
     | '/api/stt/transcribe'
@@ -319,6 +341,7 @@ export interface FileRouteTypes {
     | '/_authenticated/calendar'
     | '/_authenticated/compare'
     | '/_authenticated/contacts'
+    | '/_authenticated/cookbook'
     | '/_authenticated/dashboard'
     | '/_authenticated/documents'
     | '/_authenticated/email'
@@ -337,6 +360,7 @@ export interface FileRouteTypes {
     | '/api/backup/import'
     | '/api/chat/stream'
     | '/api/compare/stream'
+    | '/api/cookbook/pull'
     | '/api/gallery/upload'
     | '/api/research/stream'
     | '/api/stt/transcribe'
@@ -350,6 +374,7 @@ export interface RootRouteChildren {
   ApiBackupImportRoute: typeof ApiBackupImportRoute
   ApiChatStreamRoute: typeof ApiChatStreamRoute
   ApiCompareStreamRoute: typeof ApiCompareStreamRoute
+  ApiCookbookPullRoute: typeof ApiCookbookPullRoute
   ApiGalleryUploadRoute: typeof ApiGalleryUploadRoute
   ApiResearchStreamRoute: typeof ApiResearchStreamRoute
   ApiSttTranscribeRoute: typeof ApiSttTranscribeRoute
@@ -455,6 +480,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/cookbook': {
+      id: '/_authenticated/cookbook'
+      path: '/cookbook'
+      fullPath: '/cookbook'
+      preLoaderRoute: typeof AuthenticatedCookbookRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/contacts': {
       id: '/_authenticated/contacts'
       path: '/contacts'
@@ -502,6 +534,13 @@ declare module '@tanstack/react-router' {
       path: '/api/gallery/upload'
       fullPath: '/api/gallery/upload'
       preLoaderRoute: typeof ApiGalleryUploadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/cookbook/pull': {
+      id: '/api/cookbook/pull'
+      path: '/api/cookbook/pull'
+      fullPath: '/api/cookbook/pull'
+      preLoaderRoute: typeof ApiCookbookPullRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/compare/stream': {
@@ -554,6 +593,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedCalendarRoute: typeof AuthenticatedCalendarRoute
   AuthenticatedCompareRoute: typeof AuthenticatedCompareRoute
   AuthenticatedContactsRoute: typeof AuthenticatedContactsRoute
+  AuthenticatedCookbookRoute: typeof AuthenticatedCookbookRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedDocumentsRoute: typeof AuthenticatedDocumentsRoute
   AuthenticatedEmailRoute: typeof AuthenticatedEmailRoute
@@ -572,6 +612,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedCalendarRoute: AuthenticatedCalendarRoute,
   AuthenticatedCompareRoute: AuthenticatedCompareRoute,
   AuthenticatedContactsRoute: AuthenticatedContactsRoute,
+  AuthenticatedCookbookRoute: AuthenticatedCookbookRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedDocumentsRoute: AuthenticatedDocumentsRoute,
   AuthenticatedEmailRoute: AuthenticatedEmailRoute,
@@ -610,6 +651,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiBackupImportRoute: ApiBackupImportRoute,
   ApiChatStreamRoute: ApiChatStreamRoute,
   ApiCompareStreamRoute: ApiCompareStreamRoute,
+  ApiCookbookPullRoute: ApiCookbookPullRoute,
   ApiGalleryUploadRoute: ApiGalleryUploadRoute,
   ApiResearchStreamRoute: ApiResearchStreamRoute,
   ApiSttTranscribeRoute: ApiSttTranscribeRoute,
