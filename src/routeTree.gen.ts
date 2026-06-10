@@ -22,7 +22,6 @@ import { Route as AuthenticatedNotesRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedGalleryRouteImport } from './routes/_authenticated/gallery'
 import { Route as AuthenticatedEmailRouteImport } from './routes/_authenticated/email'
 import { Route as AuthenticatedDocumentsRouteImport } from './routes/_authenticated/documents'
-import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedCookbookRouteImport } from './routes/_authenticated/cookbook'
 import { Route as AuthenticatedContactsRouteImport } from './routes/_authenticated/contacts'
 import { Route as AuthenticatedCompareRouteImport } from './routes/_authenticated/compare'
@@ -100,11 +99,6 @@ const AuthenticatedEmailRoute = AuthenticatedEmailRouteImport.update({
 const AuthenticatedDocumentsRoute = AuthenticatedDocumentsRouteImport.update({
   id: '/documents',
   path: '/documents',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedCookbookRoute = AuthenticatedCookbookRouteImport.update({
@@ -191,7 +185,6 @@ export interface FileRoutesByFullPath {
   '/compare': typeof AuthenticatedCompareRoute
   '/contacts': typeof AuthenticatedContactsRoute
   '/cookbook': typeof AuthenticatedCookbookRoute
-  '/dashboard': typeof AuthenticatedDashboardRoute
   '/documents': typeof AuthenticatedDocumentsRoute
   '/email': typeof AuthenticatedEmailRoute
   '/gallery': typeof AuthenticatedGalleryRoute
@@ -220,7 +213,6 @@ export interface FileRoutesByTo {
   '/compare': typeof AuthenticatedCompareRoute
   '/contacts': typeof AuthenticatedContactsRoute
   '/cookbook': typeof AuthenticatedCookbookRoute
-  '/dashboard': typeof AuthenticatedDashboardRoute
   '/documents': typeof AuthenticatedDocumentsRoute
   '/email': typeof AuthenticatedEmailRoute
   '/gallery': typeof AuthenticatedGalleryRoute
@@ -251,7 +243,6 @@ export interface FileRoutesById {
   '/_authenticated/compare': typeof AuthenticatedCompareRoute
   '/_authenticated/contacts': typeof AuthenticatedContactsRoute
   '/_authenticated/cookbook': typeof AuthenticatedCookbookRoute
-  '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/documents': typeof AuthenticatedDocumentsRoute
   '/_authenticated/email': typeof AuthenticatedEmailRoute
   '/_authenticated/gallery': typeof AuthenticatedGalleryRoute
@@ -283,7 +274,6 @@ export interface FileRouteTypes {
     | '/compare'
     | '/contacts'
     | '/cookbook'
-    | '/dashboard'
     | '/documents'
     | '/email'
     | '/gallery'
@@ -312,7 +302,6 @@ export interface FileRouteTypes {
     | '/compare'
     | '/contacts'
     | '/cookbook'
-    | '/dashboard'
     | '/documents'
     | '/email'
     | '/gallery'
@@ -342,7 +331,6 @@ export interface FileRouteTypes {
     | '/_authenticated/compare'
     | '/_authenticated/contacts'
     | '/_authenticated/cookbook'
-    | '/_authenticated/dashboard'
     | '/_authenticated/documents'
     | '/_authenticated/email'
     | '/_authenticated/gallery'
@@ -473,13 +461,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDocumentsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/dashboard': {
-      id: '/_authenticated/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
     '/_authenticated/cookbook': {
       id: '/_authenticated/cookbook'
       path: '/cookbook'
@@ -594,7 +575,6 @@ interface AuthenticatedRouteChildren {
   AuthenticatedCompareRoute: typeof AuthenticatedCompareRoute
   AuthenticatedContactsRoute: typeof AuthenticatedContactsRoute
   AuthenticatedCookbookRoute: typeof AuthenticatedCookbookRoute
-  AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedDocumentsRoute: typeof AuthenticatedDocumentsRoute
   AuthenticatedEmailRoute: typeof AuthenticatedEmailRoute
   AuthenticatedGalleryRoute: typeof AuthenticatedGalleryRoute
@@ -613,7 +593,6 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedCompareRoute: AuthenticatedCompareRoute,
   AuthenticatedContactsRoute: AuthenticatedContactsRoute,
   AuthenticatedCookbookRoute: AuthenticatedCookbookRoute,
-  AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedDocumentsRoute: AuthenticatedDocumentsRoute,
   AuthenticatedEmailRoute: AuthenticatedEmailRoute,
   AuthenticatedGalleryRoute: AuthenticatedGalleryRoute,

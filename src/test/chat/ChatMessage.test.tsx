@@ -1,6 +1,6 @@
-import { render, screen } from "#/test/utils";
 import { describe, expect, it } from "vitest";
 import { ChatMessage } from "#/features/chat/components/ChatMessage";
+import { render, screen } from "#/test/utils";
 
 describe("ChatMessage", () => {
 	describe("user messages", () => {
