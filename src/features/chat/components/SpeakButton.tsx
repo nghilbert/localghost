@@ -1,6 +1,7 @@
 import { Volume2Icon, VolumeXIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "#/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "#/components/ui/tooltip";
 import { cn } from "#/lib/utils";
 
 type Props = {
@@ -48,20 +49,25 @@ export function SpeakButton({ text, autoPlay = false }: Props) {
 	if (!supported) return null;
 
 	return (
-		<Button
-			variant="ghost"
-			size="icon"
-			onClick={toggle}
-			title={speaking ? "Stop speaking" : "Read aloud"}
-			className={cn(
-				"h-6 w-6 rounded transition-colors",
-				speaking
-					? "text-primary"
-					: "text-muted-foreground/50 opacity-0 group-hover:opacity-100 hover:text-foreground",
-			)}
-		>
-			{speaking ? <VolumeXIcon size={13} /> : <Volume2Icon size={13} />}
-			<span className="sr-only">{speaking ? "Stop speaking" : "Read aloud"}</span>
-		</Button>
+		<Tooltip>
+			<TooltipTrigger asChild>
+				<Button
+					variant="ghost"
+					size="icon"
+					onClick={toggle}
+					aria-label={speaking ? "Stop speaking" : "Read aloud"}
+					className={cn(
+						"h-6 w-6 rounded transition-colors",
+						speaking
+							? "text-primary"
+							: "text-muted-foreground/50 opacity-0 group-hover:opacity-100 hover:text-foreground",
+					)}
+				>
+					{speaking ? <VolumeXIcon size={13} /> : <Volume2Icon size={13} />}
+					<span className="sr-only">{speaking ? "Stop speaking" : "Read aloud"}</span>
+				</Button>
+			</TooltipTrigger>
+			<TooltipContent>{speaking ? "Stop speaking" : "Read aloud"}</TooltipContent>
+		</Tooltip>
 	);
 }

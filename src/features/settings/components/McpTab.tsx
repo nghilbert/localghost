@@ -165,7 +165,7 @@ export function McpTab() {
 									<div className="w-full rounded bg-muted/50 p-2 text-xs">
 										<div className="flex items-center gap-1 font-medium">
 											{result.ok ? (
-												<CheckCircleIcon size={12} className="text-green-500" />
+												<CheckCircleIcon size={12} className="text-success" />
 											) : (
 												<XCircleIcon size={12} className="text-destructive" />
 											)}

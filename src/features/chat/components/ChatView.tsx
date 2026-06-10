@@ -18,6 +18,7 @@ import {
 } from "#/components/ui/dropdown-menu";
 import { Slider } from "#/components/ui/slider";
 import { Textarea } from "#/components/ui/textarea";
+import { Tooltip, TooltipContent, TooltipTrigger } from "#/components/ui/tooltip";
 import { ChatFeed } from "#/features/chat/components/ChatFeed";
 import { ChatInput } from "#/features/chat/components/ChatInput";
 import { ChatMessage } from "#/features/chat/components/ChatMessage";
@@ -142,53 +143,79 @@ export function ChatView({ session }: ChatViewProps) {
 				<div className="flex items-center justify-between px-4 py-2">
 					<h1 className="truncate text-sm font-medium text-foreground">{session.name}</h1>
 					<div className="flex items-center gap-1.5">
-						<Button
-							variant="ghost"
-							onClick={handleRagToggle}
-							className={cn(
-								"h-7 gap-1 px-2 text-xs",
-								ragEnabled ? "bg-primary/10 text-primary" : "text-muted-foreground",
-							)}
-							title={ragEnabled ? "RAG enabled — click to disable" : "Enable document RAG"}
-						>
-							<DatabaseIcon size={13} />
-						</Button>
-						<Button
-							variant="ghost"
-							onClick={handleAutoSpeakToggle}
-							className={cn(
-								"h-7 gap-1 px-2 text-xs",
-								autoSpeak ? "bg-primary/10 text-primary" : "text-muted-foreground",
-							)}
-							title={autoSpeak ? "Auto-speak enabled — click to disable" : "Enable auto-speak"}
-						>
-							<Volume2Icon size={13} />
-						</Button>
-						<Button
-							variant="ghost"
-							onClick={() => setShowPresets((p) => !p)}
-							className={cn(
-								"h-7 gap-1 px-2 text-xs text-muted-foreground",
-								showPresets && "bg-muted text-foreground",
-							)}
-							title="Session settings"
-						>
-							<SlidersHorizontalIcon size={13} />
-							<ChevronDownIcon
-								size={11}
-								className={cn("transition-transform", showPresets && "rotate-180")}
-							/>
-						</Button>
-						<DropdownMenu>
-							<DropdownMenuTrigger asChild>
+						<Tooltip>
+							<TooltipTrigger asChild>
 								<Button
 									variant="ghost"
-									className="h-7 gap-1 px-2 text-xs text-muted-foreground"
-									title="Export conversation"
+									onClick={handleRagToggle}
+									className={cn(
+										"h-7 gap-1 px-2 text-xs",
+										ragEnabled ? "bg-primary/10 text-primary" : "text-muted-foreground",
+									)}
+									aria-label={ragEnabled ? "RAG enabled — click to disable" : "Enable document RAG"}
 								>
-									<DownloadIcon size={13} />
+									<DatabaseIcon size={13} />
 								</Button>
-							</DropdownMenuTrigger>
+							</TooltipTrigger>
+							<TooltipContent>
+								{ragEnabled ? "RAG enabled — click to disable" : "Enable document RAG"}
+							</TooltipContent>
+						</Tooltip>
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<Button
+									variant="ghost"
+									onClick={handleAutoSpeakToggle}
+									className={cn(
+										"h-7 gap-1 px-2 text-xs",
+										autoSpeak ? "bg-primary/10 text-primary" : "text-muted-foreground",
+									)}
+									aria-label={
+										autoSpeak ? "Auto-speak enabled — click to disable" : "Enable auto-speak"
+									}
+								>
+									<Volume2Icon size={13} />
+								</Button>
+							</TooltipTrigger>
+							<TooltipContent>
+								{autoSpeak ? "Auto-speak enabled — click to disable" : "Enable auto-speak"}
+							</TooltipContent>
+						</Tooltip>
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<Button
+									variant="ghost"
+									onClick={() => setShowPresets((p) => !p)}
+									className={cn(
+										"h-7 gap-1 px-2 text-xs text-muted-foreground",
+										showPresets && "bg-muted text-foreground",
+									)}
+									aria-label="Session settings"
+								>
+									<SlidersHorizontalIcon size={13} />
+									<ChevronDownIcon
+										size={11}
+										className={cn("transition-transform", showPresets && "rotate-180")}
+									/>
+								</Button>
+							</TooltipTrigger>
+							<TooltipContent>Session settings</TooltipContent>
+						</Tooltip>
+						<DropdownMenu>
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<DropdownMenuTrigger asChild>
+										<Button
+											variant="ghost"
+											className="h-7 gap-1 px-2 text-xs text-muted-foreground"
+											aria-label="Export conversation"
+										>
+											<DownloadIcon size={13} />
+										</Button>
+									</DropdownMenuTrigger>
+								</TooltipTrigger>
+								<TooltipContent>Export conversation</TooltipContent>
+							</Tooltip>
 							<DropdownMenuContent align="end" className="min-w-36">
 								<DropdownMenuItem onClick={() => exportAs("md")}>
 									Export as Markdown
@@ -241,19 +268,24 @@ export function ChatView({ session }: ChatViewProps) {
 										System prompt
 									</label>
 									{systemPrompt.trim() && (
-										<Button
-											variant="ghost"
-											size="sm"
-											className="h-auto gap-0.5 px-1 py-0 text-[10px] text-muted-foreground"
-											onClick={() => {
-												const name = prompt("Preset name:");
-												if (name?.trim()) savePresetMutation.mutate(name.trim());
-											}}
-											title="Save as preset"
-										>
-											<BookmarkIcon size={11} />
-											Save
-										</Button>
+										<Tooltip>
+											<TooltipTrigger asChild>
+												<Button
+													variant="ghost"
+													size="sm"
+													className="h-auto gap-0.5 px-1 py-0 text-[10px] text-muted-foreground"
+													onClick={() => {
+														const name = prompt("Preset name:");
+														if (name?.trim()) savePresetMutation.mutate(name.trim());
+													}}
+													aria-label="Save as preset"
+												>
+													<BookmarkIcon size={11} />
+													Save
+												</Button>
+											</TooltipTrigger>
+											<TooltipContent>Save as preset</TooltipContent>
+										</Tooltip>
 									)}
 								</div>
 								<Textarea

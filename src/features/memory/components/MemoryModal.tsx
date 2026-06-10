@@ -14,6 +14,7 @@ import {
 } from "#/components/ui/dialog";
 import { Input } from "#/components/ui/input";
 import { Item, ItemGroup } from "#/components/ui/item";
+import { ScrollArea } from "#/components/ui/scroll-area";
 import {
 	Select,
 	SelectContent,
@@ -22,6 +23,7 @@ import {
 	SelectValue,
 } from "#/components/ui/select";
 import { Textarea } from "#/components/ui/textarea";
+import { Tooltip, TooltipContent, TooltipTrigger } from "#/components/ui/tooltip";
 import {
 	addMemory,
 	deleteMemory,
@@ -78,12 +80,16 @@ export function MemoryModal() {
 
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
-			<DialogTrigger asChild>
-				<Button variant="ghost" size="icon" className="h-8 w-8" title="Memory">
-					<BrainIcon size={15} />
-					<span className="sr-only">Memory</span>
-				</Button>
-			</DialogTrigger>
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<DialogTrigger asChild>
+						<Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Memory">
+							<BrainIcon size={15} />
+						</Button>
+					</DialogTrigger>
+				</TooltipTrigger>
+				<TooltipContent>Memory</TooltipContent>
+			</Tooltip>
 			<DialogContent className="max-w-xl">
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
@@ -154,38 +160,40 @@ export function MemoryModal() {
 					/>
 				</div>
 
-				<ItemGroup className="max-h-64 overflow-y-auto">
-					{displayed.length === 0 && (
-						<p className="py-6 text-center text-sm text-muted-foreground">
-							{searchQuery.length > 2 ? "No matching memories." : "No memories yet."}
-						</p>
-					)}
-					{displayed.map((m) => (
-						<Item key={m.id} variant="default" className="group items-start hover:bg-muted/40">
-							<Badge
-								variant="outline"
-								className={cn(
-									"mt-0.5 shrink-0 border-transparent",
-									CATEGORY_COLORS[m.category as (typeof CATEGORIES)[number]] ??
-										CATEGORY_COLORS.fact,
-								)}
-							>
-								{m.category}
-							</Badge>
-							<span className="flex-1 text-sm leading-snug">{m.text}</span>
-							<Button
-								variant="ghost"
-								size="icon-sm"
-								className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
-								onClick={() => deleteMutation.mutate(m.id)}
-								disabled={deleteMutation.isPending}
-								aria-label="Delete memory"
-							>
-								<Trash2Icon size={12} />
-							</Button>
-						</Item>
-					))}
-				</ItemGroup>
+				<ScrollArea className="max-h-64">
+					<ItemGroup>
+						{displayed.length === 0 && (
+							<p className="py-6 text-center text-sm text-muted-foreground">
+								{searchQuery.length > 2 ? "No matching memories." : "No memories yet."}
+							</p>
+						)}
+						{displayed.map((m) => (
+							<Item key={m.id} variant="default" className="group items-start hover:bg-muted/40">
+								<Badge
+									variant="outline"
+									className={cn(
+										"mt-0.5 shrink-0 border-transparent",
+										CATEGORY_COLORS[m.category as (typeof CATEGORIES)[number]] ??
+											CATEGORY_COLORS.fact,
+									)}
+								>
+									{m.category}
+								</Badge>
+								<span className="flex-1 text-sm leading-snug">{m.text}</span>
+								<Button
+									variant="ghost"
+									size="icon-sm"
+									className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
+									onClick={() => deleteMutation.mutate(m.id)}
+									disabled={deleteMutation.isPending}
+									aria-label="Delete memory"
+								>
+									<Trash2Icon size={12} />
+								</Button>
+							</Item>
+						))}
+					</ItemGroup>
+				</ScrollArea>
 			</DialogContent>
 		</Dialog>
 	);

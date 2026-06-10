@@ -11,7 +11,7 @@ export const Route = createFileRoute("/_authenticated")({
 		<SidebarProvider className="bg-background">
 			<AppSidebar />
 			{/* SidebarInset renders a <main /> element */}
-			<SidebarInset className="flex container justify-center">
+			<SidebarInset className="flex container">
 				<Outlet />
 			</SidebarInset>
 		</SidebarProvider>
