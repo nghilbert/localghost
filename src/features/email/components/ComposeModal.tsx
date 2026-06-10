@@ -1,7 +1,13 @@
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { Button } from "#/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "#/components/ui/dialog";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogHeader,
+	DialogTitle,
+} from "#/components/ui/dialog";
 import { Input } from "#/components/ui/input";
 import { Textarea } from "#/components/ui/textarea";
 import { sendEmail } from "#/features/email/lib/email.functions";
@@ -33,6 +39,7 @@ export function ComposeModal({ accountId, open, onOpenChange, replyTo }: Compose
 			<DialogContent className="max-w-2xl">
 				<DialogHeader>
 					<DialogTitle>Compose</DialogTitle>
+					<DialogDescription>Send an email from your connected account.</DialogDescription>
 				</DialogHeader>
 				<div className="flex flex-col gap-3">
 					<Input placeholder="To" value={to} onChange={(e) => setTo(e.target.value)} />

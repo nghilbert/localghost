@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import { Input } from "#/components/ui/input";
+import { Item, ItemGroup } from "#/components/ui/item";
+import { ToggleGroup, ToggleGroupItem } from "#/components/ui/toggle-group";
 import {
 	createMcpServer,
 	deleteMcpServer,
@@ -86,23 +88,16 @@ export function McpTab() {
 							value={url}
 							onChange={(e) => setUrl(e.target.value)}
 						/>
-						<div className="flex gap-2">
-							{(["streamable-http", "sse"] as const).map((t) => (
-								<button
-									key={t}
-									type="button"
-									onClick={() => setType(t)}
-									className={cn(
-										"rounded-full border px-3 py-1 text-xs",
-										type === t
-											? "border-primary bg-primary/10 text-primary"
-											: "border-border text-muted-foreground hover:border-primary/50",
-									)}
-								>
-									{t}
-								</button>
-							))}
-						</div>
+						<ToggleGroup
+							type="single"
+							value={type}
+							onValueChange={(v) => v && setType(v as typeof type)}
+							variant="outline"
+							size="sm"
+						>
+							<ToggleGroupItem value="streamable-http">streamable-http</ToggleGroupItem>
+							<ToggleGroupItem value="sse">sse</ToggleGroupItem>
+						</ToggleGroup>
 						<Button
 							size="sm"
 							disabled={!name.trim() || !url.trim() || createMutation.isPending}
@@ -118,13 +113,13 @@ export function McpTab() {
 				<p className="text-sm text-muted-foreground">No MCP servers configured.</p>
 			)}
 
-			<div className="space-y-2">
-				{servers.map((srv) => {
-					const result = testResults[srv.id];
-					return (
-						<Card key={srv.id} size="sm">
-							<CardContent className="space-y-2">
-								<div className="flex items-center gap-3">
+			{servers.length > 0 && (
+				<ItemGroup>
+					{servers.map((srv) => {
+						const result = testResults[srv.id];
+						return (
+							<Item key={srv.id} variant="outline" className="flex-col items-start gap-2">
+								<div className="flex w-full items-center gap-3">
 									<div className="min-w-0 flex-1">
 										<p className="text-sm font-medium">{srv.name}</p>
 										<p className="truncate text-xs text-muted-foreground">{srv.url}</p>
@@ -140,20 +135,21 @@ export function McpTab() {
 										>
 											{testingId === srv.id ? "Testing…" : "Test"}
 										</Button>
-										<button
-											type="button"
+										<Button
+											variant="ghost"
+											size="sm"
+											className={cn(
+												"h-7 px-2 text-xs",
+												srv.enabled
+													? "bg-primary/10 text-primary hover:bg-primary/20"
+													: "bg-muted text-muted-foreground",
+											)}
 											onClick={() =>
 												toggleMutation.mutate({ data: { id: srv.id, enabled: !srv.enabled } })
 											}
-											className={cn(
-												"rounded px-2 py-0.5 text-xs",
-												srv.enabled
-													? "bg-primary/10 text-primary"
-													: "bg-muted text-muted-foreground",
-											)}
 										>
 											{srv.enabled ? "Enabled" : "Disabled"}
-										</button>
+										</Button>
 										<Button
 											variant="ghost"
 											size="icon"
@@ -166,7 +162,7 @@ export function McpTab() {
 									</div>
 								</div>
 								{result !== undefined && result !== null && (
-									<div className="rounded bg-muted/50 p-2 text-xs">
+									<div className="w-full rounded bg-muted/50 p-2 text-xs">
 										<div className="flex items-center gap-1 font-medium">
 											{result.ok ? (
 												<CheckCircleIcon size={12} className="text-green-500" />
@@ -190,11 +186,11 @@ export function McpTab() {
 										)}
 									</div>
 								)}
-							</CardContent>
-						</Card>
-					);
-				})}
-			</div>
+							</Item>
+						);
+					})}
+				</ItemGroup>
+			)}
 		</div>
 	);
 }

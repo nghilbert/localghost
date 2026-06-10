@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { PageHeader } from "#/components/PageHeader";
+import { Avatar, AvatarFallback } from "#/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import { adminQueryOptions } from "#/features/admin/lib/admin.functions";
 
@@ -58,9 +59,11 @@ function AdminPage() {
 							<ul className="divide-y">
 								{users.map((u) => (
 									<li key={u.id} className="flex items-center gap-3 px-4 py-3">
-										<div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium">
-											{u.name.slice(0, 2).toUpperCase()}
-										</div>
+										<Avatar className="h-8 w-8 shrink-0">
+											<AvatarFallback className="text-xs">
+												{u.name.slice(0, 2).toUpperCase()}
+											</AvatarFallback>
+										</Avatar>
 										<div className="min-w-0 flex-1">
 											<div className="truncate text-sm font-medium">{u.name}</div>
 											<div className="truncate text-xs text-muted-foreground">{u.email}</div>

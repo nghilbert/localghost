@@ -5,6 +5,7 @@ import { Button } from "#/components/ui/button";
 import {
 	Dialog,
 	DialogContent,
+	DialogDescription,
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
@@ -63,6 +64,7 @@ export function CreateContactDialog({ onCreated }: CreateContactDialogProps) {
 			<DialogContent className="max-w-sm">
 				<DialogHeader>
 					<DialogTitle>New Contact</DialogTitle>
+					<DialogDescription>Add a contact with email and phone details.</DialogDescription>
 				</DialogHeader>
 				<div className="flex flex-col gap-3">
 					<Input

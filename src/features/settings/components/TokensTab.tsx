@@ -6,6 +6,14 @@ import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import { Input } from "#/components/ui/input";
 import {
+	Item,
+	ItemActions,
+	ItemContent,
+	ItemDescription,
+	ItemGroup,
+	ItemTitle,
+} from "#/components/ui/item";
+import {
 	createToken,
 	deleteToken,
 	tokensQueryOptions,
@@ -106,18 +114,18 @@ export function TokensTab() {
 			{tokens.length === 0 ? (
 				<p className="text-sm text-muted-foreground">No tokens yet.</p>
 			) : (
-				<div className="space-y-2">
+				<ItemGroup>
 					{tokens.map((t) => (
-						<Card key={t.id} size="sm">
-							<CardContent className="flex items-center gap-3">
-								<div className="min-w-0 flex-1">
-									<p className="text-sm font-medium">{t.name}</p>
-									<p className="text-xs text-muted-foreground">
-										<code>{t.prefix}…</code>
-										{t.expiresAt && ` · Expires ${new Date(t.expiresAt).toLocaleDateString()}`}
-										{t.lastUsedAt && ` · Last used ${new Date(t.lastUsedAt).toLocaleDateString()}`}
-									</p>
-								</div>
+						<Item key={t.id} variant="outline">
+							<ItemContent>
+								<ItemTitle>{t.name}</ItemTitle>
+								<ItemDescription>
+									<code>{t.prefix}…</code>
+									{t.expiresAt && ` · Expires ${new Date(t.expiresAt).toLocaleDateString()}`}
+									{t.lastUsedAt && ` · Last used ${new Date(t.lastUsedAt).toLocaleDateString()}`}
+								</ItemDescription>
+							</ItemContent>
+							<ItemActions>
 								<Button
 									variant="ghost"
 									size="icon"
@@ -127,10 +135,10 @@ export function TokensTab() {
 								>
 									<TrashIcon size={13} />
 								</Button>
-							</CardContent>
-						</Card>
+							</ItemActions>
+						</Item>
 					))}
-				</div>
+				</ItemGroup>
 			)}
 		</div>
 	);

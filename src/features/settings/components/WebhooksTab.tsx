@@ -2,9 +2,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { TrashIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import { Input } from "#/components/ui/input";
+import { Item, ItemGroup } from "#/components/ui/item";
+import { ToggleGroup, ToggleGroupItem } from "#/components/ui/toggle-group";
 import {
 	createWebhook,
 	deleteWebhook,
@@ -59,10 +62,6 @@ export function WebhooksTab() {
 		onError: (e) => toast.error(`Test failed: ${(e as Error).message}`),
 	});
 
-	function handleToggleEvent(evt: string) {
-		setEvents((prev) => (prev.includes(evt) ? prev.filter((e) => e !== evt) : [...prev, evt]));
-	}
-
 	return (
 		<div className="space-y-4">
 			<div className="flex items-center justify-between">
@@ -94,23 +93,19 @@ export function WebhooksTab() {
 							onChange={(e) => setSecret(e.target.value)}
 						/>
 						<p className="text-xs text-muted-foreground">Events</p>
-						<div className="flex flex-wrap gap-2">
+						<ToggleGroup
+							type="multiple"
+							value={events}
+							onValueChange={setEvents}
+							variant="outline"
+							size="sm"
+						>
 							{WEBHOOK_EVENT_OPTIONS.map((evt) => (
-								<button
-									key={evt}
-									type="button"
-									onClick={() => handleToggleEvent(evt)}
-									className={cn(
-										"rounded-full border px-2.5 py-0.5 text-xs",
-										events.includes(evt)
-											? "border-primary bg-primary/10 text-primary"
-											: "border-border text-muted-foreground hover:border-primary/50",
-									)}
-								>
+								<ToggleGroupItem key={evt} value={evt}>
 									{evt}
-								</button>
+								</ToggleGroupItem>
 							))}
-						</div>
+						</ToggleGroup>
 						<Button
 							size="sm"
 							disabled={!name.trim() || !url.trim() || !events.length || createMutation.isPending}
@@ -130,11 +125,11 @@ export function WebhooksTab() {
 				<p className="text-sm text-muted-foreground">No webhooks yet.</p>
 			)}
 
-			<div className="space-y-2">
-				{webhooks.map((wh) => (
-					<Card key={wh.id} size="sm">
-						<CardContent className="space-y-1">
-							<div className="flex items-center justify-between gap-2">
+			{webhooks.length > 0 && (
+				<ItemGroup>
+					{webhooks.map((wh) => (
+						<Item key={wh.id} variant="outline" className="flex-col items-start gap-1">
+							<div className="flex w-full items-center justify-between gap-2">
 								<div className="min-w-0">
 									<p className="truncate text-sm font-medium">{wh.name}</p>
 									<p className="truncate text-xs text-muted-foreground">{wh.url}</p>
@@ -149,18 +144,21 @@ export function WebhooksTab() {
 									>
 										Test
 									</Button>
-									<button
-										type="button"
+									<Button
+										variant="ghost"
+										size="sm"
+										className={cn(
+											"h-7 px-2 text-xs",
+											wh.isActive
+												? "bg-primary/10 text-primary hover:bg-primary/20"
+												: "bg-muted text-muted-foreground",
+										)}
 										onClick={() =>
 											toggleMutation.mutate({ data: { id: wh.id, isActive: !wh.isActive } })
 										}
-										className={cn(
-											"rounded px-2 py-0.5 text-xs",
-											wh.isActive ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground",
-										)}
 									>
 										{wh.isActive ? "Active" : "Paused"}
-									</button>
+									</Button>
 									<Button
 										variant="ghost"
 										size="icon"
@@ -174,12 +172,9 @@ export function WebhooksTab() {
 							</div>
 							<div className="flex flex-wrap gap-1">
 								{wh.events.map((e) => (
-									<span
-										key={e}
-										className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground"
-									>
+									<Badge key={e} variant="secondary" className="text-[10px] font-normal">
 										{e}
-									</span>
+									</Badge>
 								))}
 							</div>
 							{wh.lastTriggeredAt && (
@@ -189,10 +184,10 @@ export function WebhooksTab() {
 									{wh.lastError && <span className="text-destructive"> · {wh.lastError}</span>}
 								</p>
 							)}
-						</CardContent>
-					</Card>
-				))}
-			</div>
+						</Item>
+					))}
+				</ItemGroup>
+			)}
 		</div>
 	);
 }

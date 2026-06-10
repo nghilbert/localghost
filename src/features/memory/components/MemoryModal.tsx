@@ -2,15 +2,18 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { BrainIcon, PlusIcon, SearchIcon, Trash2Icon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import {
 	Dialog,
 	DialogContent,
+	DialogDescription,
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
 } from "#/components/ui/dialog";
 import { Input } from "#/components/ui/input";
+import { Item, ItemGroup } from "#/components/ui/item";
 import {
 	Select,
 	SelectContent,
@@ -90,9 +93,11 @@ export function MemoryModal() {
 							{memories.length} saved
 						</span>
 					</DialogTitle>
+					<DialogDescription>
+						Store facts and preferences the agent can recall during conversations.
+					</DialogDescription>
 				</DialogHeader>
 
-				{/* Add memory form */}
 				<div className="space-y-2 border-b pb-4">
 					<Textarea
 						value={newText}
@@ -136,7 +141,6 @@ export function MemoryModal() {
 					</div>
 				</div>
 
-				{/* Search */}
 				<div className="relative">
 					<SearchIcon
 						size={14}
@@ -150,27 +154,24 @@ export function MemoryModal() {
 					/>
 				</div>
 
-				{/* Memory list */}
-				<ul className="max-h-64 space-y-1 overflow-y-auto" aria-label="Saved memories">
+				<ItemGroup className="max-h-64 overflow-y-auto">
 					{displayed.length === 0 && (
-						<li className="py-6 text-center text-sm text-muted-foreground">
+						<p className="py-6 text-center text-sm text-muted-foreground">
 							{searchQuery.length > 2 ? "No matching memories." : "No memories yet."}
-						</li>
+						</p>
 					)}
 					{displayed.map((m) => (
-						<li
-							key={m.id}
-							className="group flex items-start gap-2 rounded-lg px-2 py-2 hover:bg-muted/40"
-						>
-							<span
+						<Item key={m.id} variant="default" className="group items-start hover:bg-muted/40">
+							<Badge
+								variant="outline"
 								className={cn(
-									"mt-0.5 shrink-0 rounded-md px-1.5 py-0.5 text-xs font-medium",
+									"mt-0.5 shrink-0 border-transparent",
 									CATEGORY_COLORS[m.category as (typeof CATEGORIES)[number]] ??
-										"bg-muted text-muted-foreground",
+										CATEGORY_COLORS.fact,
 								)}
 							>
 								{m.category}
-							</span>
+							</Badge>
 							<span className="flex-1 text-sm leading-snug">{m.text}</span>
 							<Button
 								variant="ghost"
@@ -182,9 +183,9 @@ export function MemoryModal() {
 							>
 								<Trash2Icon size={12} />
 							</Button>
-						</li>
+						</Item>
 					))}
-				</ul>
+				</ItemGroup>
 			</DialogContent>
 		</Dialog>
 	);

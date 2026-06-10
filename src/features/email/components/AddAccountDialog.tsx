@@ -4,6 +4,7 @@ import { Button } from "#/components/ui/button";
 import {
 	Dialog,
 	DialogContent,
+	DialogDescription,
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
@@ -103,6 +104,9 @@ export function AddAccountDialog({ onAdded }: AddAccountDialogProps) {
 			<DialogContent className="max-w-lg">
 				<DialogHeader>
 					<DialogTitle>Add Email Account</DialogTitle>
+					<DialogDescription>
+						Connect an IMAP/SMTP account to read and send email.
+					</DialogDescription>
 				</DialogHeader>
 				<div className="grid grid-cols-2 gap-3">
 					{renderField("name", "Account name")}
