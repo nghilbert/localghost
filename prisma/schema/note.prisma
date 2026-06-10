@@ -1,20 +1,20 @@
 model Note {
-  id        String    @id @default(uuid(7))
-  title     String    @default("")
-  content   String?
-  items     Json?
-  noteType  String    @default("note")
-  color     String?
-  label     String?
-  pinned    Boolean   @default(false)
-  archived  Boolean   @default(false)
-  dueDate   DateTime?
-  sortOrder Int?
-  ownerId   String
-  owner     User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+    id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+    title     String    @default("")
+    content   String?
+    items     Json?
+    noteType  String    @default("note") @map("note_type")
+    color     String?
+    label     String?
+    pinned    Boolean   @default(false)
+    archived  Boolean   @default(false)
+    dueDate   DateTime? @map("due_date")
+    sortOrder Int?      @map("sort_order")
+    ownerId   String    @map("owner_id") @db.Uuid
+    owner     User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+    createdAt DateTime  @default(now()) @map("created_at")
+    updatedAt DateTime  @updatedAt @map("updated_at")
 
-  @@index([ownerId])
-  @@map("note")
+    @@index([ownerId])
+    @@map("note")
 }

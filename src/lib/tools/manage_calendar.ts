@@ -59,7 +59,7 @@ async function findEvent(uid: string, ownerId: string) {
 	return prisma.calendarEvent.findFirst({
 		where: {
 			ownerId,
-			OR: [{ uid }, { id: uid }, { id: { startsWith: uid } }],
+			OR: [{ uid }, { id: uid }],
 		},
 	});
 }

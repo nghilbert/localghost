@@ -1,49 +1,49 @@
 model EmailAccount {
-    id            String   @id @default(uuid(7))
-    name          String
+    id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+    name                  String
     /// Display email address (the From address)
-    fromAddress   String   @default("")
-    isDefault     Boolean  @default(false)
-    enabled       Boolean  @default(true)
+    fromAddress           String   @default("") @map("from_address")
+    isDefault             Boolean  @default(false) @map("is_default")
+    enabled               Boolean  @default(true)
 
     /// IMAP (receiving)
-    imapHost      String   @default("")
-    imapPort      Int      @default(993)
-    imapUser      String   @default("")
+    imapHost              String   @default("") @map("imap_host")
+    imapPort              Int      @default(993) @map("imap_port")
+    imapUser              String   @default("") @map("imap_user")
     /// AES-256-GCM encrypted via crypto.server.ts
-    imapPasswordEncrypted String @default("")
-    imapStarttls  Boolean  @default(true)
+    imapPasswordEncrypted String   @default("") @map("imap_password_encrypted")
+    imapStarttls          Boolean  @default(true) @map("imap_starttls")
 
     /// SMTP (sending)
-    smtpHost      String   @default("")
-    smtpPort      Int      @default(465)
+    smtpHost              String   @default("") @map("smtp_host")
+    smtpPort              Int      @default(465) @map("smtp_port")
     /// ssl | starttls | none
-    smtpSecurity  String   @default("ssl")
-    smtpUser      String   @default("")
+    smtpSecurity          String   @default("ssl") @map("smtp_security")
+    smtpUser              String   @default("") @map("smtp_user")
     /// AES-256-GCM encrypted via crypto.server.ts
-    smtpPasswordEncrypted String @default("")
+    smtpPasswordEncrypted String   @default("") @map("smtp_password_encrypted")
 
-    ownerId       String
-    owner         User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-    createdAt     DateTime @default(now())
-    updatedAt     DateTime @updatedAt
+    ownerId               String   @map("owner_id") @db.Uuid
+    owner                 User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+    createdAt             DateTime @default(now()) @map("created_at")
+    updatedAt             DateTime @updatedAt @map("updated_at")
 
     @@index([ownerId])
     @@map("email_account")
 }
 
 model EmailSummary {
-    id         String   @id @default(uuid(7))
-    accountId  String
-    messageId  String
-    folder     String   @default("INBOX")
-    subject    String   @default("")
-    fromAddr   String   @default("")
-    summary    String
-    date       DateTime
-    ownerId    String
-    owner      User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-    createdAt  DateTime @default(now())
+    id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+    accountId String   @map("account_id")
+    messageId String   @map("message_id")
+    folder    String   @default("INBOX")
+    subject   String   @default("")
+    fromAddr  String   @default("") @map("from_addr")
+    summary   String
+    date      DateTime
+    ownerId   String   @map("owner_id") @db.Uuid
+    owner     User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+    createdAt DateTime @default(now()) @map("created_at")
 
     @@unique([accountId, messageId])
     @@index([ownerId])

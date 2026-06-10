@@ -1,17 +1,17 @@
 model Webhook {
-    id              String    @id @default(uuid(7))
+    id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
     name            String
     url             String
     events          String    @default("chat.completed")
-    secretEncrypted String?
-    isActive        Boolean   @default(true)
-    lastTriggeredAt DateTime?
-    lastStatusCode  Int?
-    lastError       String?
-    ownerId         String
+    secretEncrypted String?   @map("secret_encrypted")
+    isActive        Boolean   @default(true) @map("is_active")
+    lastTriggeredAt DateTime? @map("last_triggered_at")
+    lastStatusCode  Int?      @map("last_status_code")
+    lastError       String?   @map("last_error")
+    ownerId         String    @map("owner_id") @db.Uuid
     owner           User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-    createdAt       DateTime  @default(now())
-    updatedAt       DateTime  @updatedAt
+    createdAt       DateTime  @default(now()) @map("created_at")
+    updatedAt       DateTime  @updatedAt @map("updated_at")
 
     @@index([ownerId])
     @@map("webhook")
