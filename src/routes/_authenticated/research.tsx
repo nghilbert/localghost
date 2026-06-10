@@ -6,7 +6,7 @@ import { PageHeader } from "#/components/PageHeader";
 import { Button } from "#/components/ui/button";
 import { Textarea } from "#/components/ui/textarea";
 import { createDocument } from "#/features/documents/lib/document.functions";
-import { useResearchStream } from "#/features/research/lib/use-research-stream";
+import { useResearchStream } from "#/features/research/hooks/use-research-stream";
 
 export const Route = createFileRoute("/_authenticated/research")({
 	component: ResearchPage,

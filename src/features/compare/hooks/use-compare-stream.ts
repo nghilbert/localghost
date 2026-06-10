@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import type { Slot, SlotState } from "./types";
+import type { Slot, SlotState } from "#/features/compare/lib/types";
 
 export function useCompareStream() {
 	const [results, setResults] = useState<Record<number, SlotState>>({});

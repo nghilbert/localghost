@@ -9,20 +9,22 @@ import {
 	Volume2Icon,
 } from "lucide-react";
 import { useState } from "react";
+import { Button } from "#/components/ui/button";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "#/components/ui/dropdown-menu";
+import { Slider } from "#/components/ui/slider";
 import { Textarea } from "#/components/ui/textarea";
 import { ChatFeed } from "#/features/chat/components/ChatFeed";
 import { ChatInput } from "#/features/chat/components/ChatInput";
 import { ChatMessage } from "#/features/chat/components/ChatMessage";
 import { ModelPicker } from "#/features/chat/components/ModelPicker";
+import { useChatStream } from "#/features/chat/hooks/use-chat-stream";
 import { updateSession } from "#/features/chat/lib/chat.functions";
 import { createPreset, presetsQueryOptions } from "#/features/chat/lib/preset.functions";
-import { useChatStream } from "#/features/chat/lib/use-chat-stream";
 import { MemoryModal } from "#/features/memory/components/MemoryModal";
 import { cn } from "#/lib/utils";
 
@@ -140,33 +142,33 @@ export function ChatView({ session }: ChatViewProps) {
 				<div className="flex items-center justify-between px-4 py-2">
 					<h1 className="truncate text-sm font-medium text-foreground">{session.name}</h1>
 					<div className="flex items-center gap-1.5">
-						<button
-							type="button"
+						<Button
+							variant="ghost"
 							onClick={handleRagToggle}
 							className={cn(
-								"flex h-7 items-center gap-1 rounded-md px-2 text-xs hover:bg-muted",
+								"h-7 gap-1 px-2 text-xs",
 								ragEnabled ? "bg-primary/10 text-primary" : "text-muted-foreground",
 							)}
 							title={ragEnabled ? "RAG enabled — click to disable" : "Enable document RAG"}
 						>
 							<DatabaseIcon size={13} />
-						</button>
-						<button
-							type="button"
+						</Button>
+						<Button
+							variant="ghost"
 							onClick={handleAutoSpeakToggle}
 							className={cn(
-								"flex h-7 items-center gap-1 rounded-md px-2 text-xs hover:bg-muted",
+								"h-7 gap-1 px-2 text-xs",
 								autoSpeak ? "bg-primary/10 text-primary" : "text-muted-foreground",
 							)}
 							title={autoSpeak ? "Auto-speak enabled — click to disable" : "Enable auto-speak"}
 						>
 							<Volume2Icon size={13} />
-						</button>
-						<button
-							type="button"
+						</Button>
+						<Button
+							variant="ghost"
 							onClick={() => setShowPresets((p) => !p)}
 							className={cn(
-								"flex h-7 items-center gap-1 rounded-md px-2 text-xs text-muted-foreground hover:bg-muted",
+								"h-7 gap-1 px-2 text-xs text-muted-foreground",
 								showPresets && "bg-muted text-foreground",
 							)}
 							title="Session settings"
@@ -176,16 +178,16 @@ export function ChatView({ session }: ChatViewProps) {
 								size={11}
 								className={cn("transition-transform", showPresets && "rotate-180")}
 							/>
-						</button>
+						</Button>
 						<DropdownMenu>
 							<DropdownMenuTrigger asChild>
-								<button
-									type="button"
-									className="flex h-7 items-center gap-1 rounded-md px-2 text-xs text-muted-foreground hover:bg-muted"
+								<Button
+									variant="ghost"
+									className="h-7 gap-1 px-2 text-xs text-muted-foreground"
 									title="Export conversation"
 								>
 									<DownloadIcon size={13} />
-								</button>
+								</Button>
 							</DropdownMenuTrigger>
 							<DropdownMenuContent align="end" className="min-w-36">
 								<DropdownMenuItem onClick={() => exportAs("md")}>
@@ -209,9 +211,11 @@ export function ChatView({ session }: ChatViewProps) {
 								<span className="text-xs text-muted-foreground">Load preset:</span>
 								<div className="flex flex-wrap gap-1">
 									{presets.map((p) => (
-										<button
+										<Button
 											key={p.id}
-											type="button"
+											variant="outline"
+											size="sm"
+											className="h-auto px-2 py-0.5 text-xs"
 											onClick={() => {
 												setSystemPrompt(p.systemPrompt);
 												if (p.temperature !== null) setTemperature(p.temperature);
@@ -220,10 +224,9 @@ export function ChatView({ session }: ChatViewProps) {
 													...(p.temperature !== null ? { temperature: p.temperature } : {}),
 												});
 											}}
-											className="rounded border bg-background px-2 py-0.5 text-xs hover:bg-muted"
 										>
 											{p.name}
-										</button>
+										</Button>
 									))}
 								</div>
 							</div>
@@ -238,18 +241,19 @@ export function ChatView({ session }: ChatViewProps) {
 										System prompt
 									</label>
 									{systemPrompt.trim() && (
-										<button
-											type="button"
+										<Button
+											variant="ghost"
+											size="sm"
+											className="h-auto gap-0.5 px-1 py-0 text-[10px] text-muted-foreground"
 											onClick={() => {
 												const name = prompt("Preset name:");
 												if (name?.trim()) savePresetMutation.mutate(name.trim());
 											}}
-											className="flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-foreground"
 											title="Save as preset"
 										>
 											<BookmarkIcon size={11} />
 											Save
-										</button>
+										</Button>
 									)}
 								</div>
 								<Textarea
@@ -271,17 +275,17 @@ export function ChatView({ session }: ChatViewProps) {
 								>
 									Temperature: {temperature.toFixed(1)}
 								</label>
-								<input
+								<Slider
 									id="temperature"
-									type="range"
 									min={0}
 									max={2}
 									step={0.1}
-									value={temperature}
-									onChange={(e) => setTemperature(Number(e.target.value))}
-									onMouseUp={() => sessionSettingsMutation.mutate({ temperature })}
-									onTouchEnd={() => sessionSettingsMutation.mutate({ temperature })}
-									className="w-full accent-primary"
+									value={[temperature]}
+									onValueChange={([v]) => setTemperature(v ?? temperature)}
+									onValueCommit={([v]) =>
+										sessionSettingsMutation.mutate({ temperature: v ?? temperature })
+									}
+									className="w-full"
 								/>
 								<div className="flex justify-between text-[10px] text-muted-foreground">
 									<span>Precise</span>

@@ -8,8 +8,8 @@ import { Textarea } from "#/components/ui/textarea";
 import { endpointsQueryOptions } from "#/features/chat/lib/chat.functions";
 import { CompareResults } from "#/features/compare/components/CompareResults";
 import { SlotPicker } from "#/features/compare/components/SlotPicker";
+import { useCompareStream } from "#/features/compare/hooks/use-compare-stream";
 import { nextSlotId, type Slot } from "#/features/compare/lib/types";
-import { useCompareStream } from "#/features/compare/lib/use-compare-stream";
 
 export const Route = createFileRoute("/_authenticated/compare")({
 	component: ComparePage,

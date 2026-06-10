@@ -1,9 +1,11 @@
 import { PinIcon, XIcon } from "lucide-react";
 import { Button } from "#/components/ui/button";
+import { Checkbox } from "#/components/ui/checkbox";
 import { Input } from "#/components/ui/input";
 import { Textarea } from "#/components/ui/textarea";
+import { ToggleGroup, ToggleGroupItem } from "#/components/ui/toggle-group";
+import { type NoteFormData, useNoteForm } from "#/features/notes/hooks/use-note-form";
 import { NOTE_COLORS, type Note, noteColorClasses } from "#/features/notes/lib/types";
-import { type NoteFormData, useNoteForm } from "#/features/notes/lib/use-note-form";
 import { cn } from "#/lib/utils";
 
 type NoteFormProps = {
@@ -25,24 +27,21 @@ export function NoteForm({ initial, isPending, onSave, onCancel }: NoteFormProps
 				className="mb-2 border-none bg-transparent px-0 shadow-none focus-visible:ring-0"
 			/>
 
-			{/* Note type toggle */}
-			<div className="mb-2 flex gap-1">
-				{(["note", "checklist"] as const).map((type) => (
-					<button
-						key={type}
-						type="button"
-						onClick={() => form.setNoteType(type)}
-						className={cn(
-							"rounded px-2 py-0.5 text-xs capitalize",
-							form.noteType === type
-								? "bg-primary/10 text-primary"
-								: "text-muted-foreground hover:bg-muted",
-						)}
-					>
-						{type}
-					</button>
-				))}
-			</div>
+			<ToggleGroup
+				type="single"
+				value={form.noteType}
+				onValueChange={(v) => v && form.setNoteType(v as "note" | "checklist")}
+				variant="default"
+				size="sm"
+				className="mb-2 justify-start"
+			>
+				<ToggleGroupItem value="note" className="h-auto px-2 py-0.5 text-xs capitalize">
+					note
+				</ToggleGroupItem>
+				<ToggleGroupItem value="checklist" className="h-auto px-2 py-0.5 text-xs capitalize">
+					checklist
+				</ToggleGroupItem>
+			</ToggleGroup>
 
 			{form.noteType === "note" ? (
 				<Textarea
@@ -56,33 +55,32 @@ export function NoteForm({ initial, isPending, onSave, onCancel }: NoteFormProps
 				<div className="mb-2 space-y-1">
 					{form.checklistItems.map((item) => (
 						<div key={item.id} className="flex items-center gap-1.5">
-							<button
-								type="button"
-								onClick={() => form.toggleChecklistItem(item.id)}
-								className="shrink-0 text-muted-foreground"
-							>
-								{item.checked ? "☑" : "☐"}
-							</button>
+							<Checkbox
+								checked={item.checked}
+								onCheckedChange={() => form.toggleChecklistItem(item.id)}
+								className="shrink-0"
+							/>
 							<span className={cn("flex-1 text-sm", item.checked && "line-through opacity-40")}>
 								{item.text}
 							</span>
-							<button
-								type="button"
+							<Button
+								variant="ghost"
+								size="icon"
+								className="h-5 w-5 shrink-0 text-muted-foreground hover:text-destructive"
 								onClick={() => form.removeChecklistItem(item.id)}
-								className="shrink-0 text-muted-foreground hover:text-destructive"
+								aria-label="Remove item"
 							>
 								<XIcon size={11} />
-							</button>
+							</Button>
 						</div>
 					))}
 					<div className="flex items-center gap-1.5">
 						<span className="shrink-0 text-muted-foreground">+</span>
-						<input
-							type="text"
+						<Input
 							value={form.newItemText}
 							onChange={(e) => form.setNewItemText(e.target.value)}
 							placeholder="Add item…"
-							className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+							className="h-auto flex-1 border-none bg-transparent px-0 py-0 text-sm shadow-none focus-visible:ring-0"
 							onKeyDown={(e) => e.key === "Enter" && form.addChecklistItem()}
 						/>
 					</div>
