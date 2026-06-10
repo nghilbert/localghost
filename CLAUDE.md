@@ -33,7 +33,7 @@ Optional: `SEARXNG_URL` (falls back to DuckDuckGo).
 
 **Data fetching:** TanStack Query + `createServerFn`. Server functions in `*.functions.ts` files co-located with their feature. Call `getRequestHeaders()` inside the handler to retrieve session auth. Calling convention: `fn({ data: { ... } })`.
 
-**Database:** Prisma 7 with `@prisma/adapter-pg`. Schema in `prisma/schema/` (multi-file). Generated client in `src/generated/prisma/`. Model types importable from `#/generated/prisma/models`. All IDs: `@default(uuid(7))`. Import `prisma` — never alias it (`prisma as db`).
+**Database:** Prisma 7 with `@prisma/adapter-pg`. Schema in `prisma/schema/` (multi-file). Generated client in `src/generated/prisma/`. Model types importable from `#/generated/prisma/models`. App model IDs: `@default(dbgenerated("gen_random_uuid()")) @db.Uuid`. Auth table IDs (user/session/account/verification): `@id @db.Uuid` with no `@default` — better-auth supplies them via `advanced.database.generateId`. All FK fields annotated `@db.Uuid`. All camelCase fields mapped to snake_case columns via `@map("snake_case")`. Import `prisma` — never alias it (`prisma as db`).
 
 **Forms:** `src/hooks/use-app-form.tsx` exports `useAppForm` with `InputField`, `PasswordField`, and `SubmitButton`. Use for all new forms.
 
@@ -97,7 +97,7 @@ Tests live in `src/test/` mirroring the source tree (e.g. `src/test/features/cha
 
 - **Zod v4:** `z.uuid()` not `z.string().uuid()`
 - **`createServerFn`:** `.validator(schema)` — `.inputValidator()` is deprecated
-- **Prisma IDs:** `@default(uuid(7))`
+- **Prisma IDs:** app models use `@default(dbgenerated("gen_random_uuid()")) @db.Uuid`; auth tables use `@id @db.Uuid` (no `@default`); all FKs annotated `@db.Uuid`; all camelCase fields use `@map("snake_case")`
 - **`LLMMessage.content`:** `string | LLMContentBlock[]` — never `null`
 - **Biome:** fix all warnings, never use `biome-ignore`; run `npm run fix` before every commit
 - **Server-only:** `.server.ts` files must not be imported from client code
@@ -146,9 +146,9 @@ return new Response(readable, {
              "Connection": "keep-alive", "X-Accel-Buffering": "no" },
 });
 
-// pgvector raw query
+// pgvector raw query (use snake_case column names — no quoted identifiers)
 await prisma.$executeRawUnsafe(
-  `UPDATE "Memory" SET embedding = $1::vector WHERE id = $2`,
+  `UPDATE memory SET embedding = $1::vector WHERE id = $2`,
   toVectorLiteral(embedding), id,
 );
 ```
