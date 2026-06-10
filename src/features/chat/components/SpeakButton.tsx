@@ -1,5 +1,6 @@
 import { Volume2Icon, VolumeXIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Button } from "#/components/ui/button";
 import { cn } from "#/lib/utils";
 
 type Props = {
@@ -47,12 +48,13 @@ export function SpeakButton({ text, autoPlay = false }: Props) {
 	if (!supported) return null;
 
 	return (
-		<button
-			type="button"
+		<Button
+			variant="ghost"
+			size="icon"
 			onClick={toggle}
 			title={speaking ? "Stop speaking" : "Read aloud"}
 			className={cn(
-				"flex h-6 w-6 items-center justify-center rounded transition-colors",
+				"h-6 w-6 rounded transition-colors",
 				speaking
 					? "text-primary"
 					: "text-muted-foreground/50 opacity-0 group-hover:opacity-100 hover:text-foreground",
@@ -60,6 +62,6 @@ export function SpeakButton({ text, autoPlay = false }: Props) {
 		>
 			{speaking ? <VolumeXIcon size={13} /> : <Volume2Icon size={13} />}
 			<span className="sr-only">{speaking ? "Stop speaking" : "Read aloud"}</span>
-		</button>
+		</Button>
 	);
 }

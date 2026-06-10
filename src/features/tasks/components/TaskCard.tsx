@@ -1,4 +1,5 @@
 import { PauseIcon, PlayIcon, Trash2Icon, ZapIcon } from "lucide-react";
+import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { SCHEDULE_LABELS, type Task } from "#/features/tasks/lib/types";
 import { cn } from "#/lib/utils";
@@ -33,17 +34,13 @@ export function TaskCard({
 					<span className={cn("text-sm font-medium", !isActive && "text-muted-foreground")}>
 						{task.name}
 					</span>
-					<span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
-						{SCHEDULE_LABELS[task.schedule] ?? task.schedule}
-					</span>
-					<span
-						className={cn(
-							"rounded px-1.5 py-0.5 text-xs",
-							isActive ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground",
-						)}
+					<Badge variant="secondary">{SCHEDULE_LABELS[task.schedule] ?? task.schedule}</Badge>
+					<Badge
+						variant={isActive ? "default" : "secondary"}
+						className={isActive ? "bg-primary/10 text-primary hover:bg-primary/20" : ""}
 					>
 						{task.status}
-					</span>
+					</Badge>
 				</div>
 				{task.prompt && (
 					<p className="mt-1 truncate text-xs text-muted-foreground">{task.prompt}</p>

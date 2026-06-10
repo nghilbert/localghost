@@ -1,5 +1,6 @@
 import { MicIcon, MicOffIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { Button } from "#/components/ui/button";
 import { cn } from "#/lib/utils";
 
 type Props = {
@@ -71,25 +72,27 @@ export function MicButton({ onTranscript, disabled }: Props) {
 
 	if (!supported) {
 		return (
-			<button
-				type="button"
+			<Button
+				variant="ghost"
+				size="icon"
 				disabled
 				title="Speech recognition not supported in this browser"
-				className="flex h-8 w-8 shrink-0 cursor-not-allowed items-center justify-center rounded-full text-muted-foreground/40"
+				className="h-8 w-8 shrink-0 cursor-not-allowed rounded-full text-muted-foreground/40"
 			>
 				<MicOffIcon size={15} />
-			</button>
+			</Button>
 		);
 	}
 
 	return (
-		<button
-			type="button"
+		<Button
+			variant="ghost"
+			size="icon"
 			onClick={toggle}
 			disabled={disabled}
 			title={listening ? "Stop recording" : "Voice input"}
 			className={cn(
-				"flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors",
+				"h-8 w-8 shrink-0 rounded-full transition-colors",
 				listening
 					? "animate-pulse bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
 					: "text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -98,6 +101,6 @@ export function MicButton({ onTranscript, disabled }: Props) {
 		>
 			<MicIcon size={15} />
 			<span className="sr-only">{listening ? "Stop recording" : "Voice input"}</span>
-		</button>
+		</Button>
 	);
 }

@@ -18,6 +18,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "#/components/ui/select";
+import { Textarea } from "#/components/ui/textarea";
 import {
 	addMemory,
 	deleteMemory,
@@ -93,12 +94,12 @@ export function MemoryModal() {
 
 				{/* Add memory form */}
 				<div className="space-y-2 border-b pb-4">
-					<textarea
+					<Textarea
 						value={newText}
 						onChange={(e) => setNewText(e.target.value)}
 						placeholder="Add a memory…"
 						rows={2}
-						className="w-full resize-none rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-ring"
+						className="resize-none"
 						onKeyDown={(e) => {
 							if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
 								e.preventDefault();

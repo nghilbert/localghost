@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { Button } from "#/components/ui/button";
+import { NativeSelect, NativeSelectOption } from "#/components/ui/native-select";
 import { getEndpointModels } from "#/features/chat/lib/chat.functions";
 import type { Slot } from "../lib/types";
 
@@ -23,41 +25,43 @@ export function SlotPicker({ slot, label, endpoints, onChange, onRemove }: SlotP
 	return (
 		<div className="flex items-center gap-1 rounded-lg border bg-background px-2 py-1.5">
 			{label && <span className="mr-1 text-xs font-medium text-muted-foreground">{label}</span>}
-			<select
+			<NativeSelect
 				value={slot.endpointId}
 				onChange={(e) => onChange({ endpointId: e.target.value, model: "" })}
-				className="cursor-pointer bg-transparent text-xs outline-none"
+				size="sm"
 				aria-label="Select endpoint"
 			>
-				<option value="">Endpoint…</option>
+				<NativeSelectOption value="">Endpoint…</NativeSelectOption>
 				{endpoints.map((ep) => (
-					<option key={ep.id} value={ep.id}>
+					<NativeSelectOption key={ep.id} value={ep.id}>
 						{ep.name}
-					</option>
+					</NativeSelectOption>
 				))}
-			</select>
-			<select
+			</NativeSelect>
+			<NativeSelect
 				value={slot.model}
 				onChange={(e) => onChange({ model: e.target.value })}
-				className="max-w-40 cursor-pointer truncate bg-transparent text-xs outline-none"
+				size="sm"
+				className="max-w-44"
 				aria-label="Select model"
 			>
-				<option value="">Model…</option>
+				<NativeSelectOption value="">Model…</NativeSelectOption>
 				{models.map((m) => (
-					<option key={m} value={m}>
+					<NativeSelectOption key={m} value={m}>
 						{m}
-					</option>
+					</NativeSelectOption>
 				))}
-			</select>
+			</NativeSelect>
 			{onRemove && (
-				<button
-					type="button"
+				<Button
+					variant="ghost"
+					size="icon"
+					className="ml-1 h-6 w-6 text-muted-foreground"
 					onClick={onRemove}
-					className="ml-1 text-muted-foreground hover:text-foreground"
 					aria-label="Remove slot"
 				>
 					✕
-				</button>
+				</Button>
 			)}
 		</div>
 	);

@@ -10,6 +10,7 @@ import {
 	DialogTrigger,
 } from "#/components/ui/dialog";
 import { Input } from "#/components/ui/input";
+import { NativeSelect, NativeSelectOption } from "#/components/ui/native-select";
 import { Textarea } from "#/components/ui/textarea";
 import { createTask } from "#/features/tasks/lib/task.functions";
 import { SCHEDULE_LABELS } from "#/features/tasks/lib/types";
@@ -73,18 +74,18 @@ export function CreateTaskDialog({ onCreated }: CreateTaskDialogProps) {
 							<label htmlFor="task-schedule" className="text-xs text-muted-foreground">
 								Schedule
 							</label>
-							<select
+							<NativeSelect
 								id="task-schedule"
 								value={schedule}
 								onChange={(e) => setSchedule(e.target.value as Schedule)}
-								className="rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-ring"
+								className="w-full"
 							>
 								{Object.entries(SCHEDULE_LABELS).map(([v, l]) => (
-									<option key={v} value={v}>
+									<NativeSelectOption key={v} value={v}>
 										{l}
-									</option>
+									</NativeSelectOption>
 								))}
-							</select>
+							</NativeSelect>
 						</div>
 						{schedule !== "once" && schedule !== "cron" && (
 							<div className="flex flex-col gap-1">

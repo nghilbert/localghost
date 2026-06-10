@@ -10,6 +10,7 @@ import {
 	DialogTrigger,
 } from "#/components/ui/dialog";
 import { Input } from "#/components/ui/input";
+import { NativeSelect, NativeSelectOption } from "#/components/ui/native-select";
 import { createEvent } from "#/features/calendar/lib/calendar.functions";
 import type { CalendarData } from "#/features/calendar/lib/types";
 
@@ -115,17 +116,17 @@ export function NewEventDialog({
 						</div>
 					</div>
 					{calendars.length > 0 && (
-						<select
+						<NativeSelect
 							value={calendarId}
 							onChange={(e) => setCalendarId(e.target.value)}
-							className="rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-ring"
+							className="w-full"
 						>
 							{calendars.map((c) => (
-								<option key={c.id} value={c.id}>
+								<NativeSelectOption key={c.id} value={c.id}>
 									{c.name}
-								</option>
+								</NativeSelectOption>
 							))}
-						</select>
+						</NativeSelect>
 					)}
 					<Button
 						onClick={() => createMutation.mutate()}

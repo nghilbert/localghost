@@ -1,4 +1,5 @@
 import { XIcon } from "lucide-react";
+import { Button } from "#/components/ui/button";
 import type { GalleryItem } from "../lib/types";
 
 type GalleryLightboxProps = {
@@ -30,39 +31,42 @@ export function GalleryLightbox({
 			aria-modal="true"
 			tabIndex={-1}
 		>
-			<button
-				type="button"
+			<Button
+				variant="ghost"
+				size="icon"
 				onClick={onClose}
-				className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
+				className="absolute right-4 top-4 rounded-full bg-white/10 text-white hover:bg-white/20 hover:text-white"
 				aria-label="Close preview"
 			>
 				<XIcon size={16} />
-			</button>
+			</Button>
 			{idx > 0 && (
-				<button
-					type="button"
+				<Button
+					variant="ghost"
+					size="icon"
 					onClick={(e) => {
 						e.stopPropagation();
 						onPrev();
 					}}
-					className="absolute left-4 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
+					className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-white/10 text-white hover:bg-white/20 hover:text-white"
 					aria-label="Previous"
 				>
 					‹
-				</button>
+				</Button>
 			)}
 			{idx < total - 1 && (
-				<button
-					type="button"
+				<Button
+					variant="ghost"
+					size="icon"
 					onClick={(e) => {
 						e.stopPropagation();
 						onNext();
 					}}
-					className="absolute right-4 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
+					className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/10 text-white hover:bg-white/20 hover:text-white"
 					aria-label="Next"
 				>
 					›
-				</button>
+				</Button>
 			)}
 			<img
 				src={item.path}
