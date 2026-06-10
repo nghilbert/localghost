@@ -1,6 +1,8 @@
 import { PencilIcon, RefreshCwIcon } from "lucide-react";
 import { Button } from "#/components/ui/button";
+import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "#/components/ui/empty";
 import { NativeSelect, NativeSelectOption } from "#/components/ui/native-select";
+import { Tooltip, TooltipContent, TooltipTrigger } from "#/components/ui/tooltip";
 import { AddAccountDialog } from "#/features/email/components/AddAccountDialog";
 import type { EmailAccount, EmailMessage } from "#/features/email/lib/types";
 
@@ -48,30 +50,47 @@ export function EmailMessageList({
 						</NativeSelectOption>
 					))}
 				</NativeSelect>
-				<Button
-					variant="ghost"
-					size="icon"
-					className="h-7 w-7 shrink-0"
-					onClick={onRefresh}
-					disabled={isFetching}
-					title="Refresh"
-				>
-					<RefreshCwIcon size={13} className={isFetching ? "animate-spin" : ""} />
-				</Button>
-				<Button
-					variant="ghost"
-					size="icon"
-					className="h-7 w-7 shrink-0"
-					onClick={onCompose}
-					title="Compose"
-				>
-					<PencilIcon size={13} />
-				</Button>
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<Button
+							variant="ghost"
+							size="icon"
+							className="h-7 w-7 shrink-0"
+							onClick={onRefresh}
+							disabled={isFetching}
+							aria-label="Refresh"
+						>
+							<RefreshCwIcon size={13} className={isFetching ? "animate-spin" : ""} />
+						</Button>
+					</TooltipTrigger>
+					<TooltipContent>Refresh</TooltipContent>
+				</Tooltip>
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<Button
+							variant="ghost"
+							size="icon"
+							className="h-7 w-7 shrink-0"
+							onClick={onCompose}
+							aria-label="Compose"
+						>
+							<PencilIcon size={13} />
+						</Button>
+					</TooltipTrigger>
+					<TooltipContent>Compose</TooltipContent>
+				</Tooltip>
 			</div>
 
 			<ul className="flex-1 overflow-y-auto">
 				{messages.length === 0 && !isFetching && (
-					<li className="p-4 text-center text-xs text-muted-foreground">No messages</li>
+					<li>
+						<Empty className="border-0 py-8">
+							<EmptyHeader>
+								<EmptyTitle>No messages</EmptyTitle>
+								<EmptyDescription>Your inbox is empty.</EmptyDescription>
+							</EmptyHeader>
+						</Empty>
+					</li>
 				)}
 				{messages.map((msg) => (
 					<li key={msg.uid}>

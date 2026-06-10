@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { PlusIcon } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "#/components/ui/button";
 import {
 	Dialog,
@@ -21,6 +21,7 @@ export function NewCalendarDialog({ onCreated }: NewCalendarDialogProps) {
 	const [isOpen, setIsOpen] = useState(false);
 	const [name, setName] = useState("");
 	const [color, setColor] = useState("#5b8abf");
+	const colorInputRef = useRef<HTMLInputElement>(null);
 
 	const createMutation = useMutation({
 		mutationFn: () => createCalendar({ data: { name, color } }),
@@ -52,15 +53,22 @@ export function NewCalendarDialog({ onCreated }: NewCalendarDialogProps) {
 						autoFocus
 					/>
 					<div className="flex items-center gap-2">
-						<label htmlFor="cal-color" className="text-sm text-muted-foreground">
-							Color
-						</label>
+						<span className="text-sm text-muted-foreground">Color</span>
+						<Button
+							type="button"
+							variant="outline"
+							size="sm"
+							className="h-8 w-8 rounded-full border-2 p-0"
+							style={{ backgroundColor: color }}
+							onClick={() => colorInputRef.current?.click()}
+							aria-label="Pick calendar color"
+						/>
 						<input
-							id="cal-color"
+							ref={colorInputRef}
 							type="color"
 							value={color}
 							onChange={(e) => setColor(e.target.value)}
-							className="h-8 w-16 cursor-pointer rounded border"
+							className="sr-only"
 						/>
 					</div>
 					<Button

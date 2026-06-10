@@ -1,6 +1,7 @@
 import { MicIcon, MicOffIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "#/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "#/components/ui/tooltip";
 import { cn } from "#/lib/utils";
 
 type Props = {
@@ -72,35 +73,45 @@ export function MicButton({ onTranscript, disabled }: Props) {
 
 	if (!supported) {
 		return (
-			<Button
-				variant="ghost"
-				size="icon"
-				disabled
-				title="Speech recognition not supported in this browser"
-				className="h-8 w-8 shrink-0 cursor-not-allowed rounded-full text-muted-foreground/40"
-			>
-				<MicOffIcon size={15} />
-			</Button>
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<Button
+						variant="ghost"
+						size="icon"
+						disabled
+						aria-label="Speech recognition not supported"
+						className="h-8 w-8 shrink-0 cursor-not-allowed rounded-full text-muted-foreground/40"
+					>
+						<MicOffIcon size={15} />
+					</Button>
+				</TooltipTrigger>
+				<TooltipContent>Speech recognition not supported in this browser</TooltipContent>
+			</Tooltip>
 		);
 	}
 
 	return (
-		<Button
-			variant="ghost"
-			size="icon"
-			onClick={toggle}
-			disabled={disabled}
-			title={listening ? "Stop recording" : "Voice input"}
-			className={cn(
-				"h-8 w-8 shrink-0 rounded-full transition-colors",
-				listening
-					? "animate-pulse bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
-					: "text-muted-foreground hover:bg-muted hover:text-foreground",
-				disabled && "cursor-not-allowed opacity-40",
-			)}
-		>
-			<MicIcon size={15} />
-			<span className="sr-only">{listening ? "Stop recording" : "Voice input"}</span>
-		</Button>
+		<Tooltip>
+			<TooltipTrigger asChild>
+				<Button
+					variant="ghost"
+					size="icon"
+					onClick={toggle}
+					disabled={disabled}
+					aria-label={listening ? "Stop recording" : "Voice input"}
+					className={cn(
+						"h-8 w-8 shrink-0 rounded-full transition-colors",
+						listening
+							? "animate-pulse bg-destructive/10 text-destructive"
+							: "text-muted-foreground hover:bg-muted hover:text-foreground",
+						disabled && "cursor-not-allowed opacity-40",
+					)}
+				>
+					<MicIcon size={15} />
+					<span className="sr-only">{listening ? "Stop recording" : "Voice input"}</span>
+				</Button>
+			</TooltipTrigger>
+			<TooltipContent>{listening ? "Stop recording" : "Voice input"}</TooltipContent>
+		</Tooltip>
 	);
 }

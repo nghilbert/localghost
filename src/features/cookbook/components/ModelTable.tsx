@@ -37,6 +37,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "#/components/ui/table";
+import { Tooltip, TooltipContent, TooltipTrigger } from "#/components/ui/tooltip";
 import { CATALOG, computeFit } from "#/features/cookbook/lib/catalog";
 import type {
 	CatalogModel,
@@ -81,8 +82,8 @@ function FitBadge({ tier, overall }: FitBadgeProps) {
 				className={cn(
 					"text-[10px]",
 					tier === "too-large" && "text-muted-foreground",
-					tier === "gpu-optimal" && "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20",
-					tier === "gpu-tight" && "text-yellow-600",
+					tier === "gpu-optimal" && "bg-success/10 text-success hover:bg-success/20",
+					tier === "gpu-tight" && "text-warning",
 				)}
 			>
 				{label}
@@ -178,7 +179,7 @@ export function ModelTable({
 						<div className="flex items-center gap-1.5">
 							<span className="font-medium text-sm">{model.name}</span>
 							<span className="text-xs text-muted-foreground">{model.paramB}B</span>
-							{installed && <CheckCircle2Icon size={12} className="shrink-0 text-emerald-500" />}
+							{installed && <CheckCircle2Icon size={12} className="shrink-0 text-success" />}
 						</div>
 						<p className="text-xs text-muted-foreground truncate max-w-xs">{model.description}</p>
 						<div className="mt-1 flex flex-wrap gap-0.5">
@@ -323,15 +324,20 @@ export function ModelTable({
 
 				if (installed) {
 					return (
-						<Button
-							variant="ghost"
-							size="icon-sm"
-							className="text-muted-foreground hover:text-destructive"
-							onClick={() => onDelete(model.id)}
-							title="Delete model"
-						>
-							<Trash2Icon size={13} />
-						</Button>
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<Button
+									variant="ghost"
+									size="icon-sm"
+									className="text-muted-foreground hover:text-destructive"
+									onClick={() => onDelete(model.id)}
+									aria-label="Delete model"
+								>
+									<Trash2Icon size={13} />
+								</Button>
+							</TooltipTrigger>
+							<TooltipContent>Delete model</TooltipContent>
+						</Tooltip>
 					);
 				}
 
@@ -415,7 +421,7 @@ export function ModelTable({
 							</TableRow>
 						) : (
 							table.getRowModel().rows.map((row) => (
-								<TableRow key={row.id} className={cn(row.original.installed && "bg-emerald-500/5")}>
+								<TableRow key={row.id} className={cn(row.original.installed && "bg-success/5")}>
 									{row.getVisibleCells().map((cell) => (
 										<TableCell key={cell.id} className="py-2">
 											{flexRender(cell.column.columnDef.cell, cell.getContext())}

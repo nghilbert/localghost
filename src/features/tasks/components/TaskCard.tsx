@@ -2,6 +2,7 @@ import { PauseIcon, PlayIcon, Trash2Icon, ZapIcon } from "lucide-react";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent } from "#/components/ui/card";
+import { Tooltip, TooltipContent, TooltipTrigger } from "#/components/ui/tooltip";
 import { SCHEDULE_LABELS, type Task } from "#/features/tasks/lib/types";
 import { cn } from "#/lib/utils";
 import { TaskRunsDialog } from "./TaskRunsDialog";
@@ -69,17 +70,21 @@ export function TaskCard({
 
 					<div className="flex shrink-0 gap-1">
 						<TaskRunsDialog taskId={task.id} taskName={task.name} />
-						<Button
-							variant="ghost"
-							size="icon"
-							className="h-7 w-7"
-							onClick={onRunNow}
-							disabled={isRunNowPending}
-							aria-label="Run now"
-							title="Run now"
-						>
-							<ZapIcon size={13} />
-						</Button>
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<Button
+									variant="ghost"
+									size="icon"
+									className="h-7 w-7"
+									onClick={onRunNow}
+									disabled={isRunNowPending}
+									aria-label="Run now"
+								>
+									<ZapIcon size={13} />
+								</Button>
+							</TooltipTrigger>
+							<TooltipContent>Run now</TooltipContent>
+						</Tooltip>
 						<Button
 							variant="ghost"
 							size="icon"

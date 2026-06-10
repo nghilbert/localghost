@@ -1,4 +1,11 @@
 import { DownloadIcon, ImageIcon, TrashIcon, UploadCloudIcon } from "lucide-react";
+import {
+	Empty,
+	EmptyDescription,
+	EmptyHeader,
+	EmptyMedia,
+	EmptyTitle,
+} from "#/components/ui/empty";
 import { cn } from "#/lib/utils";
 import { type GalleryItem, isImage } from "../lib/types";
 
@@ -35,15 +42,15 @@ export function GalleryGrid({
 			aria-label="File drop zone"
 		>
 			{items.length === 0 && (
-				<div className="flex h-full flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed border-border">
-					<div className="flex size-16 items-center justify-center rounded-full bg-muted">
-						<UploadCloudIcon size={24} className="text-muted-foreground" />
-					</div>
-					<div className="text-center">
-						<p className="text-sm font-medium">Drop files here</p>
-						<p className="text-xs text-muted-foreground">or click Upload above</p>
-					</div>
-				</div>
+				<Empty className="h-full border-2">
+					<EmptyHeader>
+						<EmptyMedia>
+							<UploadCloudIcon size={24} className="text-muted-foreground" />
+						</EmptyMedia>
+						<EmptyTitle>Drop files here</EmptyTitle>
+						<EmptyDescription>or click Upload above</EmptyDescription>
+					</EmptyHeader>
+				</Empty>
 			)}
 
 			{items.length > 0 && (

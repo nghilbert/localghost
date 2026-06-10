@@ -1,5 +1,7 @@
 import { PlusIcon } from "lucide-react";
 import { Button } from "#/components/ui/button";
+import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "#/components/ui/empty";
+import { Item, ItemContent, ItemDescription, ItemGroup, ItemTitle } from "#/components/ui/item";
 import { cn } from "#/lib/utils";
 import type { Skill } from "../lib/types";
 
@@ -20,28 +22,33 @@ export function SkillList({ skills, selectedId, isNew, onSelect, onNew }: SkillL
 					New skill
 				</Button>
 			</div>
-			<div className="flex-1 overflow-y-auto">
+			<div className="flex-1 overflow-y-auto py-1">
 				{skills.length === 0 && !isNew && (
-					<p className="px-4 py-6 text-center text-xs text-muted-foreground">
-						No skills yet. Create one to give the agent reusable procedures.
-					</p>
+					<Empty className="border-0 py-6 px-3">
+						<EmptyHeader>
+							<EmptyTitle>No skills yet</EmptyTitle>
+							<EmptyDescription>Create one to give the agent reusable procedures.</EmptyDescription>
+						</EmptyHeader>
+					</Empty>
 				)}
-				{skills.map((s) => (
-					<button
-						key={s.id}
-						type="button"
-						onClick={() => onSelect(s)}
-						className={cn(
-							"flex w-full flex-col items-start gap-0.5 px-3 py-2.5 text-left text-sm transition-colors hover:bg-muted",
-							selectedId === s.id && "bg-muted font-medium",
-						)}
-					>
-						<span className="truncate">{s.name}</span>
-						{s.description && (
-							<span className="truncate text-[11px] text-muted-foreground">{s.description}</span>
-						)}
-					</button>
-				))}
+				<ItemGroup className="gap-0 px-1">
+					{skills.map((s) => (
+						<Item
+							key={s.id}
+							size="sm"
+							className={cn(
+								"cursor-pointer rounded-md",
+								selectedId === s.id ? "bg-muted font-medium" : "",
+							)}
+							onClick={() => onSelect(s)}
+						>
+							<ItemContent>
+								<ItemTitle>{s.name}</ItemTitle>
+								{s.description && <ItemDescription>{s.description}</ItemDescription>}
+							</ItemContent>
+						</Item>
+					))}
+				</ItemGroup>
 			</div>
 		</div>
 	);

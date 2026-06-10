@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FileTextIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { Button } from "#/components/ui/button";
+import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "#/components/ui/empty";
 import {
 	createDocument,
 	deleteDocument,
@@ -51,7 +52,14 @@ export function DocumentList({ selectedId, onSelect }: Props) {
 
 			<ul className="flex-1 overflow-y-auto py-1">
 				{docs.length === 0 && (
-					<li className="px-3 py-6 text-center text-xs text-muted-foreground">No documents yet</li>
+					<li>
+						<Empty className="border-0 py-6">
+							<EmptyHeader>
+								<EmptyTitle>No documents yet</EmptyTitle>
+								<EmptyDescription>Create one with the + button above.</EmptyDescription>
+							</EmptyHeader>
+						</Empty>
+					</li>
 				)}
 				{docs.map((doc) => (
 					<li key={doc.id} className="group">
