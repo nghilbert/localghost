@@ -116,8 +116,6 @@ Write tests for new pure logic (server functions, utilities, hooks with complex 
 3. `npx vitest run` — all tests pass
 4. `npm run build` — type-check passes
 
-**Claude Code project config** lives in `.claude/` (checked in, so every machine behaves the same): hooks block edits to generated files (`src/components/ui/`, `routeTree.gen.ts`, `src/generated/`), auto-run biome on every edited file, and block any `git commit` until check/vitest/build pass (`.claude/hooks/pre-commit-gate.ts`). `/ship` runs the full gate → commit → PR → merge flow. Project MCP servers (shadcn, better-auth) are in `.mcp.json`.
-
 ## Non-negotiable Rules
 
 - **Zod v4:** import from `"zod/v4"`; `z.uuid()` not `z.string().uuid()`
