@@ -1,3 +1,19 @@
+# Ollama runs behind compose profiles so you can pick the build that matches your hardware.
+# Start exactly one of:
+#   docker compose --profile cpu up -d          # CPU-only, works everywhere
+#   docker compose --profile gpu-nvidia up -d   # requires the NVIDIA Container Toolkit
+#   docker compose --profile gpu-amd up -d      # requires a ROCm-capable AMD GPU
+# Or skip all profiles ("docker compose up -d") if you run Ollama natively on the host.
+# All variants alias to "ollama" on the network, so OLLAMA_URL stays the same.
+x-ollama-base: &ollama-base
+  image: ollama/ollama
+  volumes:
+    - ollama_data:/root/.ollama
+  networks:
+    default:
+      aliases:
+        - ollama
+
 services:
   db:
     image: pgvector/pgvector:pg16
@@ -15,6 +31,29 @@ services:
       timeout: 5s
       retries: 5
 
+  ollama-cpu:
+    <<: *ollama-base
+    profiles: [cpu]
+
+  ollama-nvidia:
+    <<: *ollama-base
+    profiles: [gpu-nvidia]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  ollama-amd:
+    <<: *ollama-base
+    image: ollama/ollama:rocm
+    profiles: [gpu-amd]
+    devices:
+      - /dev/kfd
+      - /dev/dri
+
   web:
     image: node:24-alpine
     working_dir: /app
@@ -27,11 +66,14 @@ services:
       DATABASE_URL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}"
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
       BETTER_AUTH_URL: ${BETTER_AUTH_URL}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      OLLAMA_URL: "http://ollama:11434"
     depends_on:
       db:
         condition: service_healthy
-    command: sh -c "npm install && npm run prisma generate deploy && npm run prisma migrate deploy && npm run dev -- --host"
+    command: sh -c "npm install && npm run prisma -- generate && npm run prisma -- migrate deploy && npm run dev -- --host"
 
 volumes:
   db_data:
   node_modules:
+  ollama_data:

@@ -1,11 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertCircleIcon, ExternalLinkIcon } from "lucide-react";
 import { PageHeader } from "#/components/PageHeader";
-import { Alert, AlertDescription, AlertTitle } from "#/components/ui/alert";
-import { Button } from "#/components/ui/button";
 import { Separator } from "#/components/ui/separator";
 import { HardwareCard } from "#/features/cookbook/components/HardwareCard";
 import { ModelTable } from "#/features/cookbook/components/ModelTable";
+import { OllamaSetupCard } from "#/features/cookbook/components/OllamaSetupCard";
 import { useModelPull } from "#/features/cookbook/hooks/use-model-pull";
 import {
 	deleteModel,
@@ -55,28 +53,7 @@ export function CookbookPage() {
 					<Separator />
 
 					{!isLoading && ollamaStatus && !ollamaStatus.reachable && (
-						<Alert>
-							<AlertCircleIcon size={15} />
-							<AlertTitle>Ollama not reachable</AlertTitle>
-							<AlertDescription className="flex items-center gap-2">
-								<span>
-									Cannot connect to Ollama at{" "}
-									<code className="text-xs">{ollamaStatus.ollamaUrl}</code>. Make sure Ollama is
-									running.
-								</span>
-								<Button
-									variant="outline"
-									size="sm"
-									className="ml-auto shrink-0 gap-1 text-xs"
-									asChild
-								>
-									<a href="https://ollama.com" target="_blank" rel="noopener noreferrer">
-										<ExternalLinkIcon size={11} />
-										Get Ollama
-									</a>
-								</Button>
-							</AlertDescription>
-						</Alert>
+						<OllamaSetupCard ollamaUrl={ollamaStatus.ollamaUrl} gpus={hardware?.gpus ?? null} />
 					)}
 
 					<ModelTable

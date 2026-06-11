@@ -11,10 +11,11 @@ function detectNvidiaGpus(): GpuInfo[] | null {
 			.toString()
 			.trim();
 		if (!out) return null;
-		return out.split("\n").map((line) => {
+		return out.split("\n").map((line): GpuInfo => {
 			const [name, total, free] = line.split(", ").map((s) => s.trim());
 			return {
 				name: name ?? "Unknown GPU",
+				vendor: "nvidia",
 				totalVramMb: Number.parseInt(total ?? "0", 10),
 				freeVramMb: Number.parseInt(free ?? "0", 10),
 			};
@@ -35,15 +36,18 @@ function detectAmdGpus(): GpuInfo[] | null {
 		const data = JSON.parse(out) as Record<string, Record<string, number>>;
 		const entries = Object.entries(data);
 		if (!entries.length) return null;
-		return entries.map(([name, info]) => ({
-			name,
-			totalVramMb: Math.round((info["VRAM Total Memory (B)"] ?? 0) / 1024 / 1024),
-			freeVramMb: Math.round(
-				((info["VRAM Total Memory (B)"] ?? 0) - (info["VRAM Total Used Memory (B)"] ?? 0)) /
-					1024 /
-					1024,
-			),
-		}));
+		return entries.map(
+			([name, info]): GpuInfo => ({
+				name,
+				vendor: "amd",
+				totalVramMb: Math.round((info["VRAM Total Memory (B)"] ?? 0) / 1024 / 1024),
+				freeVramMb: Math.round(
+					((info["VRAM Total Memory (B)"] ?? 0) - (info["VRAM Total Used Memory (B)"] ?? 0)) /
+						1024 /
+						1024,
+				),
+			}),
+		);
 	} catch {
 		return null;
 	}

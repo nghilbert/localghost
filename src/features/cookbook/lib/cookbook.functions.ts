@@ -4,20 +4,13 @@ import { z } from "zod/v4";
 import { auth } from "#/features/auth/lib/auth.server";
 import { prisma } from "#/lib/db.server";
 import { getHardwareInfo } from "#/lib/hardware.server";
+import { getOllamaUrl } from "#/lib/ollama.server";
 
 async function getCurrentUserId(): Promise<string> {
 	const headers = getRequestHeaders();
 	const session = await auth.api.getSession({ headers });
 	if (!session) throw new Error("Unauthorized");
 	return session.user.id;
-}
-
-async function getOllamaUrl(userId: string): Promise<string> {
-	const ep = await prisma.modelEndpoint.findFirst({
-		where: { ownerId: userId, provider: "ollama" },
-		orderBy: { createdAt: "asc" },
-	});
-	return (ep?.url ?? "http://localhost:11434").replace(/\/+$/, "");
 }
 
 export const getHardware = createServerFn({ method: "GET" }).handler(async () => {
