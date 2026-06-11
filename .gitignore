@@ -8,6 +8,7 @@ dist/
 .tanstack/
 .wrangler/
 .cache/
+/src/generated/prisma
 
 # Environment
 .env
@@ -33,7 +34,3 @@ pnpm-debug.log*
 .DS_Store
 Thumbs.db
 *.sw?
-
-/src/generated/prisma
-
-odysseus/

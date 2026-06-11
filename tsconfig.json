@@ -1,6 +1,6 @@
 {
 	"include": ["**/*.ts", "**/*.tsx"],
-	"exclude": ["odysseus", "node_modules"],
+	"exclude": ["node_modules"],
 	"compilerOptions": {
 		"target": "ES2022",
 		"jsx": "react-jsx",

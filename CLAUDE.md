@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Purpose
 
-This is a ground-up reimplementation of [Odysseus](https://github.com/pewdiepie-archdaemon/odysseus) (the Python/FastAPI app in the `odysseus/` folder) using a modern TypeScript stack. The goal is feature parity with the original — chat, agent, cookbook, research, email, calendar, notes, tasks, contacts, gallery, and more — but with cleaner architecture, type safety, and better UX.
+This is a ground-up reimplementation of [Odysseus](https://github.com/pewdiepie-archdaemon/odysseus) (the Python/FastAPI app at `../odysseus/`) using a modern TypeScript stack. The goal is feature parity with the original — chat, agent, cookbook, research, email, calendar, notes, tasks, contacts, gallery, and more — but with cleaner architecture, type safety, and better UX.
 
-The `odysseus/` directory is the reference implementation. When adding or improving a feature, check the corresponding Python source for behavior expectations, but do not port the implementation verbatim — improve on it.
+The `../odysseus/` directory is the reference implementation. When adding or improving a feature, check the corresponding Python source for behavior expectations, but do not port the implementation verbatim — improve on it.
 
 ## Commands
 
