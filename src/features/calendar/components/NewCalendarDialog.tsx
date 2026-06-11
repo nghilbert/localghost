@@ -8,6 +8,7 @@ import {
 	Dialog,
 	DialogContent,
 	DialogDescription,
+	DialogFooter,
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
@@ -80,7 +81,9 @@ export function NewCalendarDialog({ onCreated }: NewCalendarDialogProps) {
 								{(field) => <field.ColorField label="Color" />}
 							</form.AppField>
 							<FieldError>{formError}</FieldError>
-							<form.SubmitButton>Create calendar</form.SubmitButton>
+							<DialogFooter>
+								<form.SubmitButton>Create calendar</form.SubmitButton>
+							</DialogFooter>
 						</FieldGroup>
 					</form.AppForm>
 				</form>

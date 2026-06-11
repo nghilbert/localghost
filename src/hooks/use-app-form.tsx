@@ -2,7 +2,7 @@ import { createFormHook, createFormHookContexts } from "@tanstack/react-form";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
 import { type ComponentProps, type ElementType, useRef, useState } from "react";
 import { Button } from "#/components/ui/button";
-import { Field, FieldError, FieldLabel } from "#/components/ui/field";
+import { Field, FieldDescription, FieldError, FieldLabel } from "#/components/ui/field";
 import { Input } from "#/components/ui/input";
 import {
 	InputGroup,
@@ -24,11 +24,12 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "#/components/ui/tooltip
 
 type FieldProps<TProps extends ElementType> = {
 	label: string;
+	description?: string;
 } & Omit<ComponentProps<TProps>, "id" | "value" | "onChange" | "onBlur">;
 
 const { fieldContext, formContext, useFieldContext, useFormContext } = createFormHookContexts();
 
-function InputField({ label, ...props }: FieldProps<typeof Input>) {
+function InputField({ label, description, ...props }: FieldProps<typeof Input>) {
 	const field = useFieldContext<string>();
 	const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 	return (
@@ -42,6 +43,7 @@ function InputField({ label, ...props }: FieldProps<typeof Input>) {
 				aria-invalid={isInvalid}
 				{...props}
 			/>
+			{description && <FieldDescription>{description}</FieldDescription>}
 			<FieldError>{field.state.meta.errorMap.onDynamic?.[0]?.message}</FieldError>
 		</Field>
 	);
@@ -81,7 +83,7 @@ function PasswordField({ label, ...props }: FieldProps<typeof InputGroupInput>) 
 	);
 }
 
-function TextareaField({ label, ...props }: FieldProps<typeof Textarea>) {
+function TextareaField({ label, description, ...props }: FieldProps<typeof Textarea>) {
 	const field = useFieldContext<string>();
 	const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 	return (
@@ -95,6 +97,7 @@ function TextareaField({ label, ...props }: FieldProps<typeof Textarea>) {
 				aria-invalid={isInvalid}
 				{...props}
 			/>
+			{description && <FieldDescription>{description}</FieldDescription>}
 			<FieldError>{field.state.meta.errorMap.onDynamic?.[0]?.message}</FieldError>
 		</Field>
 	);
@@ -102,11 +105,12 @@ function TextareaField({ label, ...props }: FieldProps<typeof Textarea>) {
 
 type SelectFieldProps = {
 	label: string;
+	description?: string;
 	options: { value: string; label: string }[];
 	placeholder?: string;
 };
 
-function SelectField({ label, options, placeholder }: SelectFieldProps) {
+function SelectField({ label, description, options, placeholder }: SelectFieldProps) {
 	const field = useFieldContext<string>();
 	const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 	return (
@@ -124,6 +128,7 @@ function SelectField({ label, options, placeholder }: SelectFieldProps) {
 					))}
 				</SelectContent>
 			</Select>
+			{description && <FieldDescription>{description}</FieldDescription>}
 			<FieldError>{field.state.meta.errorMap.onDynamic?.[0]?.message}</FieldError>
 		</Field>
 	);
@@ -219,7 +224,7 @@ function SubmitButton({ children, ...props }: ComponentProps<typeof Button>) {
 	return (
 		<Subscribe selector={(state) => state.isSubmitting}>
 			{(isSubmitting) => (
-				<Button type="submit" className="w-full" disabled={isSubmitting} {...props}>
+				<Button type="submit" disabled={isSubmitting} {...props}>
 					{isSubmitting && <Spinner data-icon="inline-start" />}
 					{children}
 				</Button>

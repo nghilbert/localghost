@@ -90,7 +90,7 @@ export function ComposeModal({ accountId, open, onOpenChange, replyTo }: Compose
 								<Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
 									Cancel
 								</Button>
-								<form.SubmitButton className="w-fit">Send</form.SubmitButton>
+								<form.SubmitButton>Send</form.SubmitButton>
 							</DialogFooter>
 						</FieldGroup>
 					</form.AppForm>

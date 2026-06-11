@@ -8,6 +8,7 @@ import {
 	Dialog,
 	DialogContent,
 	DialogDescription,
+	DialogFooter,
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
@@ -104,7 +105,9 @@ export function CreateContactDialog({ onCreated }: CreateContactDialogProps) {
 								{(field) => <field.TextareaField label="Notes (optional)" rows={2} />}
 							</form.AppField>
 							<FieldError>{formError}</FieldError>
-							<form.SubmitButton>Create contact</form.SubmitButton>
+							<DialogFooter>
+								<form.SubmitButton>Create contact</form.SubmitButton>
+							</DialogFooter>
 						</FieldGroup>
 					</form.AppForm>
 				</form>

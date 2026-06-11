@@ -53,9 +53,7 @@ export function SavePresetDialog({ open, onOpenChange, onSave }: SavePresetDialo
 							{(field) => <field.InputField label="Name" placeholder="My preset" />}
 						</form.AppField>
 						<DialogFooter>
-							<form.SubmitButton className="w-auto" size="sm">
-								Save
-							</form.SubmitButton>
+							<form.SubmitButton>Save</form.SubmitButton>
 						</DialogFooter>
 					</form.AppForm>
 				</form>

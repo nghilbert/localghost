@@ -4,7 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod/v4";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
-import { FieldError, FieldGroup } from "#/components/ui/field";
+import { Field, FieldError, FieldGroup } from "#/components/ui/field";
 import { createWebhook } from "#/features/webhooks/lib/webhook.functions";
 import { useAppForm } from "#/hooks/use-app-form";
 
@@ -90,9 +90,9 @@ export function WebhookAddForm({ onCreated }: WebhookAddFormProps) {
 								)}
 							</form.AppField>
 							<FieldError>{formError}</FieldError>
-							<form.SubmitButton size="sm" className="w-fit">
-								Create
-							</form.SubmitButton>
+							<Field orientation="horizontal">
+								<form.SubmitButton size="sm">Create</form.SubmitButton>
+							</Field>
 						</FieldGroup>
 					</form.AppForm>
 				</form>

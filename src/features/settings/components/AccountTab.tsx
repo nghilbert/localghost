@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { z } from "zod/v4";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
-import { Field, FieldLabel } from "#/components/ui/field";
+import { Field, FieldGroup, FieldLabel } from "#/components/ui/field";
 import { authClient } from "#/features/auth/lib/auth-client";
 import { useAppForm } from "#/hooks/use-app-form";
 
@@ -54,14 +54,14 @@ export function AccountTab() {
 						}}
 					>
 						<form.AppForm>
-							<div className="flex items-end gap-2">
+							<FieldGroup className="gap-3">
 								<form.AppField name="name">
-									{(field) => <field.InputField label="Name" className="max-w-xs" />}
+									{(field) => <field.InputField label="Name" />}
 								</form.AppField>
-								<form.SubmitButton size="sm" className="w-fit">
-									Save
-								</form.SubmitButton>
-							</div>
+								<Field orientation="horizontal">
+									<form.SubmitButton size="sm">Save</form.SubmitButton>
+								</Field>
+							</FieldGroup>
 						</form.AppForm>
 					</form>
 					<Field>
