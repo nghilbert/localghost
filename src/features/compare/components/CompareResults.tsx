@@ -1,5 +1,4 @@
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { Markdown } from "#/components/Markdown";
 import { cn } from "#/lib/utils";
 import type { Slot, SlotState } from "../lib/types";
 
@@ -38,11 +37,7 @@ export function CompareResults({ slots, results, isBlind }: CompareResultsProps)
 							<div className="flex-1 overflow-auto rounded-xl border bg-muted/20 p-4 text-sm">
 								{!state && <span className="text-xs text-muted-foreground">Waiting…</span>}
 								{state?.error && <span className="text-xs text-destructive">{state.error}</span>}
-								{state?.text && (
-									<div className="prose prose-sm dark:prose-invert max-w-none">
-										<ReactMarkdown remarkPlugins={[remarkGfm]}>{state.text}</ReactMarkdown>
-									</div>
-								)}
+								{state?.text && <Markdown content={state.text} />}
 							</div>
 						</div>
 					);
