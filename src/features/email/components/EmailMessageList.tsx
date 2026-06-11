@@ -43,6 +43,7 @@ export function EmailMessageList({
 					className="min-w-0 flex-1"
 					value={activeAccountId}
 					onChange={(e) => onAccountChange(e.target.value)}
+					aria-label="Email account"
 				>
 					{accounts.map((a) => (
 						<NativeSelectOption key={a.id} value={a.id}>

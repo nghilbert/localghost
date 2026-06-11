@@ -12,14 +12,15 @@ export function EmailMessageReader({ message, onBack, onReply }: EmailMessageRea
 	return (
 		<div className="flex flex-1 flex-col overflow-auto">
 			<div className="border-b px-4 py-3">
-				<button
-					type="button"
-					className="mb-2 flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground md:hidden"
+				<Button
+					variant="ghost"
+					size="sm"
+					className="mb-2 -ml-2 h-7 gap-1.5 text-xs text-muted-foreground md:hidden"
 					onClick={onBack}
 				>
 					<ArrowLeftIcon size={13} />
 					Inbox
-				</button>
+				</Button>
 				<h2 className="text-base font-semibold">{message.subject}</h2>
 				<p className="text-sm text-muted-foreground">From: {message.from}</p>
 				<p className="text-sm text-muted-foreground">{new Date(message.date).toLocaleString()}</p>

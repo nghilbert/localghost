@@ -1,4 +1,5 @@
 import { DownloadIcon, ImageIcon, TrashIcon, UploadCloudIcon } from "lucide-react";
+import { Button } from "#/components/ui/button";
 import {
 	Empty,
 	EmptyDescription,
@@ -85,22 +86,25 @@ export function GalleryGrid({
 									<p className="truncate text-xs text-muted-foreground">{item.name}</p>
 								</div>
 								<div className="absolute right-1.5 top-1.5 hidden gap-1 group-hover:flex">
-									<a
-										href={item.path}
-										download={item.name}
-										className="flex h-7 w-7 items-center justify-center rounded-lg bg-black/60 text-white backdrop-blur-sm hover:bg-black/80"
-										aria-label={`Download ${item.name}`}
+									<Button
+										size="icon"
+										variant="secondary"
+										className="h-7 w-7 bg-black/60 text-white backdrop-blur-sm hover:bg-black/80"
+										asChild
 									>
-										<DownloadIcon size={12} />
-									</a>
-									<button
-										type="button"
+										<a href={item.path} download={item.name} aria-label={`Download ${item.name}`}>
+											<DownloadIcon size={12} />
+										</a>
+									</Button>
+									<Button
+										size="icon"
+										variant="secondary"
+										className="h-7 w-7 bg-black/60 text-white backdrop-blur-sm hover:bg-destructive"
 										onClick={() => onRemove(item.path)}
-										className="flex h-7 w-7 items-center justify-center rounded-lg bg-black/60 text-white backdrop-blur-sm hover:bg-destructive"
 										aria-label={`Remove ${item.name}`}
 									>
 										<TrashIcon size={12} />
-									</button>
+									</Button>
 								</div>
 							</div>
 						);
