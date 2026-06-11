@@ -1,0 +1,37 @@
+{
+	"enableAllProjectMcpServers": true,
+	"hooks": {
+		"PreToolUse": [
+			{
+				"matcher": "Edit|Write|NotebookEdit",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "node .claude/hooks/protect-generated.ts"
+					}
+				]
+			},
+			{
+				"matcher": "Bash",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "node .claude/hooks/pre-commit-gate.ts",
+						"timeout": 300
+					}
+				]
+			}
+		],
+		"PostToolUse": [
+			{
+				"matcher": "Edit|Write",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "node .claude/hooks/biome-fix.ts"
+					}
+				]
+			}
+		]
+	}
+}
