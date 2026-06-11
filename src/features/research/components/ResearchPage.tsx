@@ -1,7 +1,6 @@
 import { useRouter } from "@tanstack/react-router";
 import { useState } from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { Markdown } from "#/components/Markdown";
 import { PageHeader } from "#/components/PageHeader";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
@@ -103,8 +102,8 @@ export function ResearchPage() {
 							)}
 						</div>
 						<Card className="flex-1 overflow-auto">
-							<CardContent className="prose prose-sm dark:prose-invert max-w-none">
-								<ReactMarkdown remarkPlugins={[remarkGfm]}>{report}</ReactMarkdown>
+							<CardContent>
+								<Markdown content={report} />
 							</CardContent>
 						</Card>
 					</>
