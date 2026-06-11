@@ -1,7 +1,7 @@
-import { render, screen } from "#/test/utils";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { ChatInput } from "#/features/chat/components/ChatInput";
+import { render, screen } from "#/test/utils";
 
 describe("ChatInput", () => {
 	describe("submission", () => {
