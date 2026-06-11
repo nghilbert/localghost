@@ -78,6 +78,10 @@ src/features/<name>/
 
 Route files under `src/routes/_authenticated/` are thin: only the `Route` export plus a page-level component that composes feature components. No inline sub-components.
 
+### Large components → folders
+
+A component that grows past ~250 lines or accumulates inline sub-components becomes a folder: `ComponentName/index.tsx` (main component) with each sizable sub-component in its own sibling file (`ComponentName/SubPart.tsx`). The import path stays `.../ComponentName`. Precedents: `src/components/AppSidebar/`, `src/features/cookbook/components/ModelTable/`.
+
 ### File naming
 
 TanStack Start has special meaning for three suffixes only:
@@ -94,7 +98,9 @@ Feature-specific hooks go in `src/features/<name>/hooks/use-<name>.ts`. App-wide
 ### Global components
 
 `src/components/ui/` — shadcn-generated primitives. **Never edit these files manually** — use `npx shadcn add <component> --overwrite` to regenerate.  
-`src/components/` — `AppSidebar`, `PageHeader`, and other cross-feature UI.
+`src/components/` — `AppSidebar`, `PageHeader`, `DataTable`, and other cross-feature UI.
+
+`src/components/DataTable/` is the single table implementation (shadcn `Table` + `@tanstack/react-table`): generic `DataTable` plus `DataTableColumnHeader` for sortable headers. All tabular features consume it — never hand-roll another `useReactTable` + `Table` combination in a feature.
 
 ### Tests
 
@@ -129,7 +135,8 @@ Tests live in `src/test/` with one flat folder per feature/area (e.g. `src/test/
 - **Biome:** fix all warnings, never use `biome-ignore`; run `npm run fix` before every commit
 - **Server-only:** `.server.ts` files must not be imported from client code
 - **No dead code:** delete unused code; no re-exports or `// removed` comments
-- **shadcn-first mindset:** Before building a component, ask "what shadcn component best serves this?" Think composition — combine `Card`, `Table`, `Badge`, `Progress`, `Alert`, `Tabs`, `Select` etc. to get the right UX without building from scratch. Use `DataTable` (shadcn table + `@tanstack/react-table`) for tabular data that may grow columns later. Use `Sonner` (`toast`) for post-action feedback. Never use raw HTML where a shadcn equivalent exists;
+- **shadcn-first mindset:** Before building a component, ask "what shadcn component best serves this?" Think composition — combine `Card`, `Table`, `Badge`, `Progress`, `Alert`, `Tabs`, `Select` etc. to get the right UX without building from scratch. Use the shared `DataTable` (`src/components/DataTable/`) for tabular data that may grow columns later. Use `Sonner` (`toast`) for post-action feedback. Never use raw HTML where a shadcn equivalent exists. The whole UI must stay themeable purely by overriding CSS variables — composing shadcn primitives is what makes global restyling possible;
+- **shadcn MCP registry:** before building any composite UI (especially tables, complex forms, pickers), consult the shadcn MCP server (`search_items_in_registries`, `get_item_examples_from_registries`) for the canonical pattern and follow it;
 - **Let components do the work:** Reach for `className` only when you need something the component cannot provide on its own (width constraints, conditional active state, custom color). Never manually reproduce styling a shadcn component already applies — e.g. `<Card>` handles border/background/radius/padding, so `<div className="rounded-lg border bg-card p-4">` is always wrong. Use `CardHeader`/`CardTitle`/`CardDescription`/`CardContent`/`CardFooter` for structure inside cards. Use `<Field>` + `<FieldLabel>` for label-input pairs. Use `<DialogHeader>`/`<DialogTitle>`/`<DialogDescription>` inside every Dialog.
 - **No unnecessary nesting:** Never wrap content in a `<div>` unless the wrapper is doing real layout work (flex/grid parent). Flatten wherever possible — prefer direct children in `space-y-*` over intermediate wrapper divs. Two sibling `<p>` tags don't need a wrapping `<div>` just to be together.
 - **Layout-agnostic components:** Reusable components (`TaskCard`, `NoteCard`, etc.) must never set their own outer width, max-width, or margins — those are the parent's responsibility. Components fill the space given to them (`w-full`, `flex-1`, or no width at all). Page-level route components are the exception and may set layout constraints.
@@ -137,7 +144,7 @@ Tests live in `src/test/` with one flat folder per feature/area (e.g. `src/test/
 - **No `as` casts:** type things correctly from the start using generics, proper type annotations, or Prisma model types from `#/generated/prisma/models`; `as` is a last resort for genuinely untyped external data
 - **Naming:** variables describe what they are (`filteredContacts` not `arr`); booleans use `is`/`has`/`can` prefix; event handlers use `handle` prefix (`handleSubmit`, `handleDelete`); mutations named `<verb>Mutation` not `<verb>Mut`
 - **Comments:** only for non-obvious behavior or workarounds; JSDoc on exported functions when the signature isn't self-explanatory
-- **Sortable data tables:** use `@tanstack/react-table` with shadcn's `Table` primitives; scores/metrics should have both an overall value and the component scores it's derived from; always make numeric columns sortable by clicking the header
+- **Sortable data tables:** use the shared `DataTable` (`src/components/DataTable/`); scores/metrics should have both an overall value and the component scores it's derived from; always make numeric columns sortable by clicking the header (`DataTableColumnHeader`)
 - **Post-action toasts:** after mutations that the user waits for (pull, delete, save), always fire a `toast.success` / `toast.error` from `sonner`
 - **Branching:** always create a `feat/`, `fix/`, `refactor/`, or `chore/` branch before starting work; never commit directly to `main`; use `gh pr create` to open PRs
 
