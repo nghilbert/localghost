@@ -18,6 +18,7 @@ import { Route as AuthenticatedTasksRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedSkillsRouteImport } from './routes/_authenticated/skills'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedResearchRouteImport } from './routes/_authenticated/research'
+import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as AuthenticatedNotesRouteImport } from './routes/_authenticated/notes'
 import { Route as AuthenticatedGalleryRouteImport } from './routes/_authenticated/gallery'
 import { Route as AuthenticatedEmailRouteImport } from './routes/_authenticated/email'
@@ -79,6 +80,11 @@ const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
 const AuthenticatedResearchRoute = AuthenticatedResearchRouteImport.update({
   id: '/research',
   path: '/research',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedNotesRoute = AuthenticatedNotesRouteImport.update({
@@ -189,6 +195,7 @@ export interface FileRoutesByFullPath {
   '/email': typeof AuthenticatedEmailRoute
   '/gallery': typeof AuthenticatedGalleryRoute
   '/notes': typeof AuthenticatedNotesRoute
+  '/onboarding': typeof AuthenticatedOnboardingRoute
   '/research': typeof AuthenticatedResearchRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/skills': typeof AuthenticatedSkillsRoute
@@ -217,6 +224,7 @@ export interface FileRoutesByTo {
   '/email': typeof AuthenticatedEmailRoute
   '/gallery': typeof AuthenticatedGalleryRoute
   '/notes': typeof AuthenticatedNotesRoute
+  '/onboarding': typeof AuthenticatedOnboardingRoute
   '/research': typeof AuthenticatedResearchRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/skills': typeof AuthenticatedSkillsRoute
@@ -247,6 +255,7 @@ export interface FileRoutesById {
   '/_authenticated/email': typeof AuthenticatedEmailRoute
   '/_authenticated/gallery': typeof AuthenticatedGalleryRoute
   '/_authenticated/notes': typeof AuthenticatedNotesRoute
+  '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/_authenticated/research': typeof AuthenticatedResearchRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/skills': typeof AuthenticatedSkillsRoute
@@ -278,6 +287,7 @@ export interface FileRouteTypes {
     | '/email'
     | '/gallery'
     | '/notes'
+    | '/onboarding'
     | '/research'
     | '/settings'
     | '/skills'
@@ -306,6 +316,7 @@ export interface FileRouteTypes {
     | '/email'
     | '/gallery'
     | '/notes'
+    | '/onboarding'
     | '/research'
     | '/settings'
     | '/skills'
@@ -335,6 +346,7 @@ export interface FileRouteTypes {
     | '/_authenticated/email'
     | '/_authenticated/gallery'
     | '/_authenticated/notes'
+    | '/_authenticated/onboarding'
     | '/_authenticated/research'
     | '/_authenticated/settings'
     | '/_authenticated/skills'
@@ -431,6 +443,13 @@ declare module '@tanstack/react-router' {
       path: '/research'
       fullPath: '/research'
       preLoaderRoute: typeof AuthenticatedResearchRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/onboarding': {
+      id: '/_authenticated/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof AuthenticatedOnboardingRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/notes': {
@@ -579,6 +598,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedEmailRoute: typeof AuthenticatedEmailRoute
   AuthenticatedGalleryRoute: typeof AuthenticatedGalleryRoute
   AuthenticatedNotesRoute: typeof AuthenticatedNotesRoute
+  AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
   AuthenticatedResearchRoute: typeof AuthenticatedResearchRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedSkillsRoute: typeof AuthenticatedSkillsRoute
@@ -597,6 +617,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedEmailRoute: AuthenticatedEmailRoute,
   AuthenticatedGalleryRoute: AuthenticatedGalleryRoute,
   AuthenticatedNotesRoute: AuthenticatedNotesRoute,
+  AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
   AuthenticatedResearchRoute: AuthenticatedResearchRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedSkillsRoute: AuthenticatedSkillsRoute,

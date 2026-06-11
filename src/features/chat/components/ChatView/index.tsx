@@ -192,8 +192,8 @@ export function ChatView({ session }: ChatViewProps) {
 						{!session.endpointId ? (
 							<>
 								No provider configured —{" "}
-								<Link to="/settings" className="underline underline-offset-2">
-									add one in Settings
+								<Link to="/onboarding" className="underline underline-offset-2">
+									run setup
 								</Link>
 							</>
 						) : (
