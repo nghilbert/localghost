@@ -1,14 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { auth } from "#/features/auth/lib/auth.server";
-import { prisma } from "#/lib/db.server";
-
-async function getOllamaUrl(userId: string): Promise<string> {
-	const ep = await prisma.modelEndpoint.findFirst({
-		where: { ownerId: userId, provider: "ollama" },
-		orderBy: { createdAt: "asc" },
-	});
-	return (ep?.url ?? "http://localhost:11434").replace(/\/+$/, "");
-}
+import { getOllamaUrl } from "#/lib/ollama.server";
 
 export const Route = createFileRoute("/api/cookbook/pull")({
 	server: {

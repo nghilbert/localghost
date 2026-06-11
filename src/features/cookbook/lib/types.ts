@@ -1,5 +1,8 @@
+export type GpuVendor = "nvidia" | "amd";
+
 export type GpuInfo = {
 	name: string;
+	vendor: GpuVendor;
 	totalVramMb: number;
 	freeVramMb: number;
 };
