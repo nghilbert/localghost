@@ -27,6 +27,8 @@
 	--color-input: var(--input);
 	--color-border: var(--border);
 	--color-destructive: var(--destructive);
+	--color-success: var(--success);
+	--color-warning: var(--warning);
 	--color-accent-foreground: var(--accent-foreground);
 	--color-accent: var(--accent);
 	--color-muted-foreground: var(--muted-foreground);
@@ -51,6 +53,9 @@
 }
 
 :root {
+	color-scheme: light;
+	--success: oklch(0.565 0.145 153.5);
+	--warning: oklch(0.66 0.15 75);
 	--background: oklch(1 0 0);
 	--foreground: oklch(0.145 0 0);
 	--card: oklch(1 0 0);
@@ -86,6 +91,9 @@
 }
 
 .dark {
+	color-scheme: dark;
+	--success: oklch(0.639 0.162 153.5);
+	--warning: oklch(0.85 0.14 84);
 	--background: oklch(0.145 0 0);
 	--foreground: oklch(0.985 0 0);
 	--card: oklch(0.205 0 0);
@@ -117,6 +125,18 @@
 	--sidebar-accent-foreground: oklch(0.985 0 0);
 	--sidebar-border: oklch(1 0 0 / 10%);
 	--sidebar-ring: oklch(0.556 0 0);
+}
+
+/* ── Shiki dual-theme (the .dark class is always authoritative) ── */
+.shiki,
+.shiki span {
+	color: var(--shiki-light);
+	background-color: var(--shiki-light-bg);
+}
+.dark .shiki,
+.dark .shiki span {
+	color: var(--shiki-dark);
+	background-color: var(--shiki-dark-bg);
 }
 
 @layer base {

@@ -1,41 +1,46 @@
 import { createContext, type ReactNode, useContext, useEffect, useState } from "react";
 
-export type Theme = "default" | "ocean" | "forest" | "rose" | "midnight";
+export type ThemeMode = "light" | "dark" | "system";
 
-const THEMES: Theme[] = ["default", "ocean", "forest", "rose", "midnight"];
+const MODES: ThemeMode[] = ["light", "dark", "system"];
 
-export const THEME_LABELS: Record<Theme, string> = {
-	default: "Default",
-	ocean: "Ocean",
-	forest: "Forest",
-	rose: "Rose",
-	midnight: "Midnight",
+const MODE_STORAGE_KEY = "odysseus-mode";
+
+export function isThemeMode(value: string | null): value is ThemeMode {
+	return MODES.some((mode) => mode === value);
+}
+
+type ThemeCtx = {
+	mode: ThemeMode;
+	setMode: (mode: ThemeMode) => void;
 };
 
-const STORAGE_KEY = "odysseus-theme";
-
-type ThemeCtx = { theme: Theme; setTheme: (t: Theme) => void; themes: Theme[] };
-
 const Ctx = createContext<ThemeCtx>({
-	theme: "default",
-	setTheme: () => {},
-	themes: THEMES,
+	mode: "system",
+	setMode: () => {},
 });
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-	const [theme, setThemeState] = useState<Theme>(() => {
-		if (typeof window === "undefined") return "default";
-		return (localStorage.getItem(STORAGE_KEY) as Theme) ?? "default";
+	const [mode, setModeState] = useState<ThemeMode>(() => {
+		if (typeof window === "undefined") return "system";
+		const stored = localStorage.getItem(MODE_STORAGE_KEY);
+		return isThemeMode(stored) ? stored : "system";
 	});
 
 	useEffect(() => {
-		const root = document.documentElement;
-		for (const t of THEMES) root.classList.remove(`theme-${t}`);
-		if (theme !== "default") root.classList.add(`theme-${theme}`);
-		localStorage.setItem(STORAGE_KEY, theme);
-	}, [theme]);
+		const media = window.matchMedia("(prefers-color-scheme: dark)");
+		function applyMode() {
+			const isDark = mode === "dark" || (mode === "system" && media.matches);
+			document.documentElement.classList.toggle("dark", isDark);
+		}
+		applyMode();
+		localStorage.setItem(MODE_STORAGE_KEY, mode);
+		if (mode !== "system") return;
+		media.addEventListener("change", applyMode);
+		return () => media.removeEventListener("change", applyMode);
+	}, [mode]);
 
-	return <Ctx value={{ theme, setTheme: setThemeState, themes: THEMES }}>{children}</Ctx>;
+	return <Ctx value={{ mode, setMode: setModeState }}>{children}</Ctx>;
 }
 
 export function useTheme() {

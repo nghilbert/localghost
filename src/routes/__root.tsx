@@ -34,6 +34,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 			{ rel: "icon", href: "/favicon.ico" },
 			{ rel: "manifest", href: "/manifest.json" },
 		],
+		scripts: [
+			{
+				// Apply dark mode + accent theme before first paint to avoid a flash
+				// of the wrong scheme; mirrors ThemeProvider's storage keys.
+				children: `(function(){try{var m=localStorage.getItem("odysseus-mode");var d=m==="dark"||(m!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches);if(d)document.documentElement.classList.add("dark");}catch(e){}})();`,
+			},
+		],
 	}),
 });
 
@@ -41,7 +48,7 @@ function RootDocument() {
 	const { queryClient } = Route.useRouteContext();
 
 	return (
-		<html lang="en">
+		<html lang="en" suppressHydrationWarning>
 			<head>
 				<HeadContent />
 				<meta charSet="UTF-8" />

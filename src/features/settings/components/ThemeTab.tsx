@@ -1,40 +1,38 @@
-import { THEME_LABELS, type Theme, useTheme } from "#/features/theme/ThemeProvider";
-import { cn } from "#/lib/utils";
+import { MonitorIcon, MoonIcon, SunIcon } from "lucide-react";
+import { Field, FieldDescription, FieldLabel } from "#/components/ui/field";
+import { ToggleGroup, ToggleGroupItem } from "#/components/ui/toggle-group";
+import { isThemeMode, type ThemeMode, useTheme } from "#/features/theme/ThemeProvider";
 
-const THEME_SWATCHES: Record<Theme, string> = {
-	default: "oklch(0.5 0.134 242.749)",
-	ocean: "oklch(0.6 0.14 195)",
-	forest: "oklch(0.58 0.14 150)",
-	rose: "oklch(0.65 0.18 10)",
-	midnight: "oklch(0.62 0.2 280)",
-};
+const MODE_OPTIONS: { value: ThemeMode; label: string; icon: typeof SunIcon }[] = [
+	{ value: "light", label: "Light", icon: SunIcon },
+	{ value: "dark", label: "Dark", icon: MoonIcon },
+	{ value: "system", label: "System", icon: MonitorIcon },
+];
 
 export function ThemeTab() {
-	const { theme, setTheme, themes } = useTheme();
+	const { mode, setMode } = useTheme();
 
 	return (
-		<div className="space-y-4">
-			<p className="text-sm text-muted-foreground">Choose an accent color theme.</p>
-			<div className="flex flex-wrap gap-3">
-				{themes.map((t) => (
-					<button
-						key={t}
-						type="button"
-						onClick={() => setTheme(t)}
-						className={cn(
-							"flex flex-col items-center gap-1.5 rounded-lg border p-3 transition-colors",
-							theme === t && "border-primary bg-primary/5",
-						)}
-						aria-pressed={theme === t}
-					>
-						<span
-							className="h-8 w-8 rounded-full border"
-							style={{ backgroundColor: THEME_SWATCHES[t] }}
-						/>
-						<span className="text-xs">{THEME_LABELS[t]}</span>
-					</button>
+		<Field>
+			<FieldLabel>Mode</FieldLabel>
+			<FieldDescription>
+				System follows your operating system's light/dark preference.
+			</FieldDescription>
+			<ToggleGroup
+				type="single"
+				variant="outline"
+				value={mode}
+				onValueChange={(value) => {
+					if (isThemeMode(value)) setMode(value);
+				}}
+			>
+				{MODE_OPTIONS.map(({ value, label, icon: Icon }) => (
+					<ToggleGroupItem key={value} value={value} aria-label={label}>
+						<Icon size={14} />
+						{label}
+					</ToggleGroupItem>
 				))}
-			</div>
-		</div>
+			</ToggleGroup>
+		</Field>
 	);
 }
