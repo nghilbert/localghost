@@ -1,6 +1,8 @@
-import { useMutation } from "@tanstack/react-query";
+import { revalidateLogic } from "@tanstack/react-form";
 import { PlusIcon } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
+import { z } from "zod/v4";
 import { Button } from "#/components/ui/button";
 import {
 	Dialog,
@@ -10,9 +12,30 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "#/components/ui/dialog";
-import { Input } from "#/components/ui/input";
-import { Textarea } from "#/components/ui/textarea";
+import { FieldError, FieldGroup } from "#/components/ui/field";
 import { createContact } from "#/features/contacts/lib/contact.functions";
+import { useAppForm } from "#/hooks/use-app-form";
+
+const ContactSchema = z.object({
+	name: z.string().trim().min(1, "Name is required"),
+	emailsInput: z.string(),
+	phonesInput: z.string(),
+	notes: z.string(),
+});
+
+const ContactDefaults: z.infer<typeof ContactSchema> = {
+	name: "",
+	emailsInput: "",
+	phonesInput: "",
+	notes: "",
+};
+
+function splitList(input: string): string[] {
+	return input
+		.split(",")
+		.map((entry) => entry.trim())
+		.filter(Boolean);
+}
 
 type CreateContactDialogProps = {
 	onCreated: () => void;
@@ -20,38 +43,32 @@ type CreateContactDialogProps = {
 
 export function CreateContactDialog({ onCreated }: CreateContactDialogProps) {
 	const [isOpen, setIsOpen] = useState(false);
-	const [name, setName] = useState("");
-	const [emailsInput, setEmailsInput] = useState("");
-	const [phonesInput, setPhonesInput] = useState("");
-	const [notes, setNotes] = useState("");
+	const [formError, setFormError] = useState<string | null>(null);
 
-	const createMutation = useMutation({
-		mutationFn: createContact,
-		onSuccess: () => {
-			onCreated();
-			setIsOpen(false);
-			resetForm();
+	const form = useAppForm({
+		defaultValues: ContactDefaults,
+		validators: { onDynamic: ContactSchema },
+		validationLogic: revalidateLogic(),
+		onSubmit: async ({ value, formApi }) => {
+			setFormError(null);
+			try {
+				await createContact({
+					data: {
+						name: value.name.trim(),
+						emails: splitList(value.emailsInput),
+						phones: splitList(value.phonesInput),
+						notes: value.notes || undefined,
+					},
+				});
+				toast.success("Contact created");
+				onCreated();
+				setIsOpen(false);
+				formApi.reset();
+			} catch (error) {
+				setFormError(error instanceof Error ? error.message : "Failed to create contact");
+			}
 		},
 	});
-
-	function resetForm() {
-		setName("");
-		setEmailsInput("");
-		setPhonesInput("");
-		setNotes("");
-	}
-
-	function handleCreate() {
-		const emails = emailsInput
-			.split(",")
-			.map((s) => s.trim())
-			.filter(Boolean);
-		const phones = phonesInput
-			.split(",")
-			.map((s) => s.trim())
-			.filter(Boolean);
-		createMutation.mutate({ data: { name, emails, phones, notes: notes || undefined } });
-	}
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -66,33 +83,31 @@ export function CreateContactDialog({ onCreated }: CreateContactDialogProps) {
 					<DialogTitle>New Contact</DialogTitle>
 					<DialogDescription>Add a contact with email and phone details.</DialogDescription>
 				</DialogHeader>
-				<div className="flex flex-col gap-3">
-					<Input
-						placeholder="Name *"
-						value={name}
-						onChange={(e) => setName(e.target.value)}
-						autoFocus
-					/>
-					<Input
-						placeholder="Email(s), comma-separated"
-						value={emailsInput}
-						onChange={(e) => setEmailsInput(e.target.value)}
-					/>
-					<Input
-						placeholder="Phone(s), comma-separated"
-						value={phonesInput}
-						onChange={(e) => setPhonesInput(e.target.value)}
-					/>
-					<Textarea
-						placeholder="Notes (optional)"
-						value={notes}
-						onChange={(e) => setNotes(e.target.value)}
-						rows={2}
-					/>
-					<Button onClick={handleCreate} disabled={!name.trim() || createMutation.isPending}>
-						{createMutation.isPending ? "Creating…" : "Create contact"}
-					</Button>
-				</div>
+				<form
+					onSubmit={(event) => {
+						event.preventDefault();
+						form.handleSubmit();
+					}}
+				>
+					<form.AppForm>
+						<FieldGroup className="gap-3">
+							<form.AppField name="name">
+								{(field) => <field.InputField label="Name" autoFocus />}
+							</form.AppField>
+							<form.AppField name="emailsInput">
+								{(field) => <field.InputField label="Email(s)" placeholder="Comma-separated" />}
+							</form.AppField>
+							<form.AppField name="phonesInput">
+								{(field) => <field.InputField label="Phone(s)" placeholder="Comma-separated" />}
+							</form.AppField>
+							<form.AppField name="notes">
+								{(field) => <field.TextareaField label="Notes (optional)" rows={2} />}
+							</form.AppField>
+							<FieldError>{formError}</FieldError>
+							<form.SubmitButton>Create contact</form.SubmitButton>
+						</FieldGroup>
+					</form.AppForm>
+				</form>
 			</DialogContent>
 		</Dialog>
 	);

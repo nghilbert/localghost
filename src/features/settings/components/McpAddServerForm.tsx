@@ -1,14 +1,29 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { revalidateLogic } from "@tanstack/react-form";
+import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Button } from "#/components/ui/button";
+import { z } from "zod/v4";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
-import { Field, FieldLabel } from "#/components/ui/field";
-import { Input } from "#/components/ui/input";
-import { ToggleGroup, ToggleGroupItem } from "#/components/ui/toggle-group";
+import { FieldError, FieldGroup } from "#/components/ui/field";
 import { createMcpServer } from "#/features/mcp/lib/mcp.functions";
+import { useAppForm } from "#/hooks/use-app-form";
 
-type McpServerType = "streamable-http" | "sse";
+const TYPE_OPTIONS = [
+	{ value: "streamable-http", label: "streamable-http" },
+	{ value: "sse", label: "sse" },
+];
+
+const McpServerSchema = z.object({
+	name: z.string().trim().min(1, "Name is required").max(100),
+	url: z.url("Must be a valid URL").max(2048),
+	type: z.enum(["streamable-http", "sse"]),
+});
+
+const McpServerDefaults: z.infer<typeof McpServerSchema> = {
+	name: "",
+	url: "",
+	type: "streamable-http",
+};
 
 type McpAddServerFormProps = {
 	onCreated: () => void;
@@ -16,19 +31,26 @@ type McpAddServerFormProps = {
 
 export function McpAddServerForm({ onCreated }: McpAddServerFormProps) {
 	const queryClient = useQueryClient();
-	const [name, setName] = useState("");
-	const [url, setUrl] = useState("");
-	const [type, setType] = useState<McpServerType>("streamable-http");
 	const [formError, setFormError] = useState<string | null>(null);
 
-	const createMutation = useMutation({
-		mutationFn: createMcpServer,
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["mcp-servers"] });
-			toast.success("MCP server added");
-			onCreated();
+	const form = useAppForm({
+		defaultValues: McpServerDefaults,
+		validators: { onDynamic: McpServerSchema },
+		validationLogic: revalidateLogic(),
+		onSubmit: async ({ value, formApi }) => {
+			setFormError(null);
+			try {
+				await createMcpServer({
+					data: { name: value.name.trim(), url: value.url.trim(), type: value.type },
+				});
+				queryClient.invalidateQueries({ queryKey: ["mcp-servers"] });
+				toast.success("MCP server added");
+				formApi.reset();
+				onCreated();
+			} catch (error) {
+				setFormError(error instanceof Error ? error.message : "Failed to add MCP server");
+			}
 		},
-		onError: (error) => setFormError(error.message),
 	});
 
 	return (
@@ -36,48 +58,33 @@ export function McpAddServerForm({ onCreated }: McpAddServerFormProps) {
 			<CardHeader>
 				<CardTitle>New MCP server</CardTitle>
 			</CardHeader>
-			<CardContent className="space-y-3">
-				{formError && <p className="text-xs text-destructive">{formError}</p>}
-				<Field>
-					<FieldLabel htmlFor="mcp-server-name">Name</FieldLabel>
-					<Input
-						id="mcp-server-name"
-						placeholder="My MCP server"
-						value={name}
-						onChange={(e) => setName(e.target.value)}
-					/>
-				</Field>
-				<Field>
-					<FieldLabel htmlFor="mcp-server-url">URL</FieldLabel>
-					<Input
-						id="mcp-server-url"
-						placeholder="https://mcp.example.com/mcp"
-						value={url}
-						onChange={(e) => setUrl(e.target.value)}
-					/>
-				</Field>
-				<Field>
-					<FieldLabel>Transport</FieldLabel>
-					<ToggleGroup
-						type="single"
-						value={type}
-						onValueChange={(value) => {
-							if (value === "streamable-http" || value === "sse") setType(value);
-						}}
-						variant="outline"
-						size="sm"
-					>
-						<ToggleGroupItem value="streamable-http">streamable-http</ToggleGroupItem>
-						<ToggleGroupItem value="sse">sse</ToggleGroupItem>
-					</ToggleGroup>
-				</Field>
-				<Button
-					size="sm"
-					disabled={!name.trim() || !url.trim() || createMutation.isPending}
-					onClick={() => createMutation.mutate({ data: { name, url, type } })}
+			<CardContent>
+				<form
+					onSubmit={(event) => {
+						event.preventDefault();
+						form.handleSubmit();
+					}}
 				>
-					{createMutation.isPending ? "Adding…" : "Add"}
-				</Button>
+					<form.AppForm>
+						<FieldGroup className="gap-3">
+							<form.AppField name="name">
+								{(field) => <field.InputField label="Name" placeholder="My MCP server" />}
+							</form.AppField>
+							<form.AppField name="url">
+								{(field) => (
+									<field.InputField label="URL" placeholder="https://mcp.example.com/mcp" />
+								)}
+							</form.AppField>
+							<form.AppField name="type">
+								{(field) => <field.ToggleGroupField label="Transport" options={TYPE_OPTIONS} />}
+							</form.AppField>
+							<FieldError>{formError}</FieldError>
+							<form.SubmitButton size="sm" className="w-fit">
+								Add
+							</form.SubmitButton>
+						</FieldGroup>
+					</form.AppForm>
+				</form>
 			</CardContent>
 		</Card>
 	);

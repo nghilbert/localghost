@@ -1,36 +1,46 @@
-import { useMutation } from "@tanstack/react-query";
+import { revalidateLogic } from "@tanstack/react-form";
 import { useState } from "react";
+import { z } from "zod/v4";
 import { Button } from "#/components/ui/button";
 import {
 	Dialog,
 	DialogContent,
 	DialogDescription,
+	DialogFooter,
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
 } from "#/components/ui/dialog";
-import { Input } from "#/components/ui/input";
+import { FieldError, FieldGroup, FieldLegend, FieldSet } from "#/components/ui/field";
 import { createEmailAccount } from "#/features/email/lib/email.functions";
+import { useAppForm } from "#/hooks/use-app-form";
 
-type AddAccountDialogProps = {
-	onAdded: (id: string) => void;
-};
+const SMTP_SECURITY_OPTIONS = [
+	{ value: "ssl", label: "SSL/TLS" },
+	{ value: "starttls", label: "STARTTLS" },
+	{ value: "none", label: "None" },
+];
 
-type FormState = {
-	name: string;
-	fromAddress: string;
-	imapHost: string;
-	imapPort: string;
-	imapUser: string;
-	imapPassword: string;
-	smtpHost: string;
-	smtpPort: string;
-	smtpSecurity: string;
-	smtpUser: string;
-	smtpPassword: string;
-};
+const PortSchema = z
+	.string()
+	.regex(/^\d+$/, "Must be a number")
+	.refine((port) => Number(port) >= 1 && Number(port) <= 65535, "Must be a valid port");
 
-const DEFAULT_FORM: FormState = {
+const EmailAccountSchema = z.object({
+	name: z.string().trim().min(1, "Account name is required"),
+	fromAddress: z.email("Must be a valid email address"),
+	imapHost: z.string().trim().min(1, "IMAP host is required"),
+	imapPort: PortSchema,
+	imapUser: z.string(),
+	imapPassword: z.string(),
+	smtpHost: z.string(),
+	smtpPort: PortSchema,
+	smtpSecurity: z.enum(["ssl", "starttls", "none"]),
+	smtpUser: z.string(),
+	smtpPassword: z.string(),
+});
+
+const EmailAccountDefaults: z.infer<typeof EmailAccountSchema> = {
 	name: "",
 	fromAddress: "",
 	imapHost: "",
@@ -44,55 +54,44 @@ const DEFAULT_FORM: FormState = {
 	smtpPassword: "",
 };
 
+type AddAccountDialogProps = {
+	onAdded: (id: string) => void;
+};
+
 export function AddAccountDialog({ onAdded }: AddAccountDialogProps) {
 	const [isOpen, setIsOpen] = useState(false);
-	const [form, setForm] = useState<FormState>(DEFAULT_FORM);
+	const [formError, setFormError] = useState<string | null>(null);
 
-	function setField(key: keyof FormState, value: string) {
-		setForm((prev) => ({ ...prev, [key]: value }));
-	}
-
-	const addMutation = useMutation({
-		mutationFn: () =>
-			createEmailAccount({
-				data: {
-					name: form.name,
-					fromAddress: form.fromAddress,
-					imapHost: form.imapHost,
-					imapPort: Number(form.imapPort),
-					imapUser: form.imapUser,
-					imapPassword: form.imapPassword,
-					smtpHost: form.smtpHost,
-					smtpPort: Number(form.smtpPort),
-					smtpSecurity: form.smtpSecurity as "ssl" | "starttls" | "none",
-					smtpUser: form.smtpUser,
-					smtpPassword: form.smtpPassword,
-				},
-			}),
-		onSuccess: (account) => {
-			onAdded(account.id);
-			setIsOpen(false);
-			setForm(DEFAULT_FORM);
+	const form = useAppForm({
+		defaultValues: EmailAccountDefaults,
+		validators: { onDynamic: EmailAccountSchema },
+		validationLogic: revalidateLogic(),
+		onSubmit: async ({ value, formApi }) => {
+			setFormError(null);
+			try {
+				const account = await createEmailAccount({
+					data: {
+						name: value.name.trim(),
+						fromAddress: value.fromAddress.trim(),
+						imapHost: value.imapHost.trim(),
+						imapPort: Number(value.imapPort),
+						imapUser: value.imapUser,
+						imapPassword: value.imapPassword,
+						smtpHost: value.smtpHost.trim(),
+						smtpPort: Number(value.smtpPort),
+						smtpSecurity: value.smtpSecurity,
+						smtpUser: value.smtpUser,
+						smtpPassword: value.smtpPassword,
+					},
+				});
+				onAdded(account.id);
+				setIsOpen(false);
+				formApi.reset();
+			} catch (error) {
+				setFormError(error instanceof Error ? error.message : "Failed to add account");
+			}
 		},
 	});
-
-	function renderField(key: keyof FormState, label: string, type = "text") {
-		const id = `email-field-${key}`;
-		return (
-			<div className="flex flex-col gap-1">
-				<label htmlFor={id} className="text-xs text-muted-foreground">
-					{label}
-				</label>
-				<Input
-					id={id}
-					type={type}
-					value={form[key]}
-					onChange={(e) => setField(key, e.target.value)}
-					className="h-8 text-sm"
-				/>
-			</div>
-		);
-	}
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -108,31 +107,68 @@ export function AddAccountDialog({ onAdded }: AddAccountDialogProps) {
 						Connect an IMAP/SMTP account to read and send email.
 					</DialogDescription>
 				</DialogHeader>
-				<div className="grid grid-cols-2 gap-3">
-					{renderField("name", "Account name")}
-					{renderField("fromAddress", "From address")}
-					<p className="col-span-2 text-xs font-medium text-muted-foreground">IMAP (incoming)</p>
-					{renderField("imapHost", "Host")}
-					{renderField("imapPort", "Port")}
-					{renderField("imapUser", "Username")}
-					{renderField("imapPassword", "Password", "password")}
-					<p className="col-span-2 text-xs font-medium text-muted-foreground">SMTP (outgoing)</p>
-					{renderField("smtpHost", "Host")}
-					{renderField("smtpPort", "Port")}
-					{renderField("smtpUser", "Username (leave blank = same as IMAP)")}
-					{renderField("smtpPassword", "Password (leave blank = same as IMAP)", "password")}
-				</div>
-				<div className="flex justify-end">
-					<Button
-						onClick={() => addMutation.mutate()}
-						disabled={!form.name || !form.imapHost || addMutation.isPending}
-					>
-						{addMutation.isPending ? "Adding…" : "Add Account"}
-					</Button>
-				</div>
-				{addMutation.isError && (
-					<p className="text-sm text-destructive">{(addMutation.error as Error).message}</p>
-				)}
+				<form
+					onSubmit={(event) => {
+						event.preventDefault();
+						form.handleSubmit();
+					}}
+				>
+					<form.AppForm>
+						<FieldGroup className="gap-4">
+							<div className="grid grid-cols-2 gap-3">
+								<form.AppField name="name">
+									{(field) => <field.InputField label="Account name" />}
+								</form.AppField>
+								<form.AppField name="fromAddress">
+									{(field) => <field.InputField label="From address" />}
+								</form.AppField>
+							</div>
+							<FieldSet>
+								<FieldLegend>IMAP (incoming)</FieldLegend>
+								<div className="grid grid-cols-2 gap-3">
+									<form.AppField name="imapHost">
+										{(field) => <field.InputField label="Host" />}
+									</form.AppField>
+									<form.AppField name="imapPort">
+										{(field) => <field.InputField label="Port" inputMode="numeric" />}
+									</form.AppField>
+									<form.AppField name="imapUser">
+										{(field) => <field.InputField label="Username" />}
+									</form.AppField>
+									<form.AppField name="imapPassword">
+										{(field) => <field.PasswordField label="Password" />}
+									</form.AppField>
+								</div>
+							</FieldSet>
+							<FieldSet>
+								<FieldLegend>SMTP (outgoing)</FieldLegend>
+								<div className="grid grid-cols-2 gap-3">
+									<form.AppField name="smtpHost">
+										{(field) => <field.InputField label="Host" />}
+									</form.AppField>
+									<form.AppField name="smtpPort">
+										{(field) => <field.InputField label="Port" inputMode="numeric" />}
+									</form.AppField>
+									<form.AppField name="smtpSecurity">
+										{(field) => (
+											<field.SelectField label="Security" options={SMTP_SECURITY_OPTIONS} />
+										)}
+									</form.AppField>
+									<form.AppField name="smtpUser">
+										{(field) => <field.InputField label="Username (blank = same as IMAP)" />}
+									</form.AppField>
+									<form.AppField name="smtpPassword">
+										{(field) => <field.PasswordField label="Password (blank = same as IMAP)" />}
+									</form.AppField>
+								</div>
+							</FieldSet>
+							<FieldError>{formError}</FieldError>
+							<DialogFooter>
+								<form.SubmitButton className="w-fit">Add Account</form.SubmitButton>
+							</DialogFooter>
+						</FieldGroup>
+					</form.AppForm>
+				</form>
 			</DialogContent>
 		</Dialog>
 	);

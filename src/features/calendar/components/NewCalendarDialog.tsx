@@ -1,6 +1,8 @@
-import { useMutation } from "@tanstack/react-query";
+import { revalidateLogic } from "@tanstack/react-form";
 import { PlusIcon } from "lucide-react";
-import { useRef, useState } from "react";
+import { useState } from "react";
+import { toast } from "sonner";
+import { z } from "zod/v4";
 import { Button } from "#/components/ui/button";
 import {
 	Dialog,
@@ -10,8 +12,19 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "#/components/ui/dialog";
-import { Input } from "#/components/ui/input";
+import { FieldError, FieldGroup } from "#/components/ui/field";
 import { createCalendar } from "#/features/calendar/lib/calendar.functions";
+import { useAppForm } from "#/hooks/use-app-form";
+
+const CalendarSchema = z.object({
+	name: z.string().trim().min(1, "Name is required"),
+	color: z.string(),
+});
+
+const CalendarDefaults: z.infer<typeof CalendarSchema> = {
+	name: "",
+	color: "#5b8abf",
+};
 
 type NewCalendarDialogProps = {
 	onCreated: () => void;
@@ -19,16 +32,23 @@ type NewCalendarDialogProps = {
 
 export function NewCalendarDialog({ onCreated }: NewCalendarDialogProps) {
 	const [isOpen, setIsOpen] = useState(false);
-	const [name, setName] = useState("");
-	const [color, setColor] = useState("#5b8abf");
-	const colorInputRef = useRef<HTMLInputElement>(null);
+	const [formError, setFormError] = useState<string | null>(null);
 
-	const createMutation = useMutation({
-		mutationFn: () => createCalendar({ data: { name, color } }),
-		onSuccess: () => {
-			onCreated();
-			setIsOpen(false);
-			setName("");
+	const form = useAppForm({
+		defaultValues: CalendarDefaults,
+		validators: { onDynamic: CalendarSchema },
+		validationLogic: revalidateLogic(),
+		onSubmit: async ({ value, formApi }) => {
+			setFormError(null);
+			try {
+				await createCalendar({ data: { name: value.name.trim(), color: value.color } });
+				toast.success("Calendar created");
+				onCreated();
+				setIsOpen(false);
+				formApi.reset();
+			} catch (error) {
+				setFormError(error instanceof Error ? error.message : "Failed to create calendar");
+			}
 		},
 	});
 
@@ -45,39 +65,25 @@ export function NewCalendarDialog({ onCreated }: NewCalendarDialogProps) {
 					<DialogTitle>New Calendar</DialogTitle>
 					<DialogDescription>Create a local calendar to organize events.</DialogDescription>
 				</DialogHeader>
-				<div className="flex flex-col gap-3">
-					<Input
-						placeholder="Calendar name"
-						value={name}
-						onChange={(e) => setName(e.target.value)}
-						autoFocus
-					/>
-					<div className="flex items-center gap-2">
-						<span className="text-sm text-muted-foreground">Color</span>
-						<Button
-							type="button"
-							variant="outline"
-							size="sm"
-							className="h-8 w-8 rounded-full border-2 p-0"
-							style={{ backgroundColor: color }}
-							onClick={() => colorInputRef.current?.click()}
-							aria-label="Pick calendar color"
-						/>
-						<input
-							ref={colorInputRef}
-							type="color"
-							value={color}
-							onChange={(e) => setColor(e.target.value)}
-							className="sr-only"
-						/>
-					</div>
-					<Button
-						onClick={() => createMutation.mutate()}
-						disabled={!name || createMutation.isPending}
-					>
-						{createMutation.isPending ? "Creating…" : "Create calendar"}
-					</Button>
-				</div>
+				<form
+					onSubmit={(event) => {
+						event.preventDefault();
+						form.handleSubmit();
+					}}
+				>
+					<form.AppForm>
+						<FieldGroup className="gap-3">
+							<form.AppField name="name">
+								{(field) => <field.InputField label="Name" placeholder="Calendar name" autoFocus />}
+							</form.AppField>
+							<form.AppField name="color">
+								{(field) => <field.ColorField label="Color" />}
+							</form.AppField>
+							<FieldError>{formError}</FieldError>
+							<form.SubmitButton>Create calendar</form.SubmitButton>
+						</FieldGroup>
+					</form.AppForm>
+				</form>
 			</DialogContent>
 		</Dialog>
 	);

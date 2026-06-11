@@ -1,10 +1,12 @@
+import { revalidateLogic } from "@tanstack/react-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { TrashIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { z } from "zod/v4";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
-import { Input } from "#/components/ui/input";
+import { FieldError } from "#/components/ui/field";
 import {
 	Item,
 	ItemActions,
@@ -18,30 +20,54 @@ import {
 	deleteToken,
 	tokensQueryOptions,
 } from "#/features/tokens/lib/token.functions";
+import { useAppForm } from "#/hooks/use-app-form";
+
+const TokenSchema = z.object({
+	name: z.string().trim().min(1, "Name is required"),
+	expiresInDays: z.string().regex(/^\d*$/, "Must be a number of days"),
+});
+
+const TokenDefaults: z.infer<typeof TokenSchema> = {
+	name: "",
+	expiresInDays: "",
+};
 
 export function TokensTab() {
 	const queryClient = useQueryClient();
 	const { data: tokens = [] } = useQuery(tokensQueryOptions());
-	const [name, setName] = useState("");
-	const [expiresInDays, setExpiresInDays] = useState<string>("");
 	const [newToken, setNewToken] = useState<string | null>(null);
-	const [error, setError] = useState<string | null>(null);
+	const [formError, setFormError] = useState<string | null>(null);
 
-	const createMutation = useMutation({
-		mutationFn: createToken,
-		onSuccess: (res) => {
-			queryClient.invalidateQueries({ queryKey: ["api-tokens"] });
-			setNewToken(res.raw);
-			setName("");
-			setExpiresInDays("");
-			setError(null);
+	const form = useAppForm({
+		defaultValues: TokenDefaults,
+		validators: { onDynamic: TokenSchema },
+		validationLogic: revalidateLogic(),
+		onSubmit: async ({ value, formApi }) => {
+			setFormError(null);
+			try {
+				const result = await createToken({
+					data: {
+						name: value.name.trim(),
+						expiresInDays: value.expiresInDays ? Number(value.expiresInDays) : undefined,
+					},
+				});
+				queryClient.invalidateQueries({ queryKey: ["api-tokens"] });
+				setNewToken(result.raw);
+				toast.success("Token created");
+				formApi.reset();
+			} catch (error) {
+				setFormError(error instanceof Error ? error.message : "Failed to create token");
+			}
 		},
-		onError: (e) => setError((e as Error).message),
 	});
 
 	const deleteMutation = useMutation({
 		mutationFn: deleteToken,
-		onSuccess: () => queryClient.invalidateQueries({ queryKey: ["api-tokens"] }),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["api-tokens"] });
+			toast.success("Token revoked");
+		},
+		onError: (error) => toast.error(`Failed to revoke token: ${error.message}`),
 	});
 
 	return (
@@ -77,37 +103,38 @@ export function TokensTab() {
 				<CardHeader>
 					<CardTitle>Create token</CardTitle>
 				</CardHeader>
-				<CardContent className="space-y-2">
-					{error && <p className="text-xs text-destructive">{error}</p>}
-					<div className="flex gap-2">
-						<Input
-							placeholder="Token name"
-							value={name}
-							onChange={(e) => setName(e.target.value)}
-							className="flex-1"
-						/>
-						<Input
-							placeholder="Expires in days"
-							type="number"
-							value={expiresInDays}
-							onChange={(e) => setExpiresInDays(e.target.value)}
-							className="w-36"
-						/>
-						<Button
-							size="sm"
-							disabled={!name.trim() || createMutation.isPending}
-							onClick={() =>
-								createMutation.mutate({
-									data: {
-										name,
-										expiresInDays: expiresInDays ? Number(expiresInDays) : undefined,
-									},
-								})
-							}
-						>
-							{createMutation.isPending ? "Creating…" : "Create"}
-						</Button>
-					</div>
+				<CardContent>
+					<form
+						onSubmit={(event) => {
+							event.preventDefault();
+							form.handleSubmit();
+						}}
+					>
+						<form.AppForm>
+							<div className="flex items-start gap-2">
+								<div className="flex-1">
+									<form.AppField name="name">
+										{(field) => <field.InputField label="Name" placeholder="Token name" />}
+									</form.AppField>
+								</div>
+								<div className="w-36">
+									<form.AppField name="expiresInDays">
+										{(field) => (
+											<field.InputField
+												label="Expires in days"
+												inputMode="numeric"
+												placeholder="Never"
+											/>
+										)}
+									</form.AppField>
+								</div>
+								<form.SubmitButton size="sm" className="mt-5 w-fit">
+									Create
+								</form.SubmitButton>
+							</div>
+							<FieldError>{formError}</FieldError>
+						</form.AppForm>
+					</form>
 				</CardContent>
 			</Card>
 
