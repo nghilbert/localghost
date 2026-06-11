@@ -23,7 +23,7 @@ export function ChatMessage({ senderRole, content, isStreaming, toolCalls, autoS
 		return (
 			<article aria-label="Your message" className="flex justify-end px-4 py-2">
 				<div className="max-w-[75%] rounded-2xl rounded-br-sm bg-primary px-4 py-2.5 text-sm text-primary-foreground">
-					<p className="whitespace-pre-wrap break-words leading-relaxed">{content}</p>
+					<p className="whitespace-pre-wrap wrap-break-word leading-relaxed">{content}</p>
 				</div>
 			</article>
 		);
@@ -174,7 +174,7 @@ function ToolCallBlock({ tool, result }: { tool: string; result: string }) {
 				/>
 			</CollapsibleTrigger>
 			<CollapsibleContent>
-				<pre className="max-h-56 overflow-y-auto whitespace-pre-wrap break-words border-t px-3 py-2.5 font-mono leading-relaxed text-muted-foreground">
+				<pre className="max-h-56 overflow-y-auto whitespace-pre-wrap wrap-break-word border-t px-3 py-2.5 font-mono leading-relaxed text-muted-foreground">
 					{result}
 				</pre>
 			</CollapsibleContent>

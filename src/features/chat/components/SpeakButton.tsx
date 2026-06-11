@@ -64,7 +64,6 @@ export function SpeakButton({ text, autoPlay = false }: Props) {
 					)}
 				>
 					{speaking ? <VolumeXIcon size={13} /> : <Volume2Icon size={13} />}
-					<span className="sr-only">{speaking ? "Stop speaking" : "Read aloud"}</span>
 				</Button>
 			</TooltipTrigger>
 			<TooltipContent>{speaking ? "Stop speaking" : "Read aloud"}</TooltipContent>
