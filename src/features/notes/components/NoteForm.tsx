@@ -1,12 +1,41 @@
-import { PinIcon, XIcon } from "lucide-react";
+import { revalidateLogic } from "@tanstack/react-form";
+import { z } from "zod/v4";
 import { Button } from "#/components/ui/button";
-import { Checkbox } from "#/components/ui/checkbox";
-import { Input } from "#/components/ui/input";
-import { Textarea } from "#/components/ui/textarea";
-import { ToggleGroup, ToggleGroupItem } from "#/components/ui/toggle-group";
-import { type NoteFormData, useNoteForm } from "#/features/notes/hooks/use-note-form";
-import { NOTE_COLORS, type Note, noteColorClasses } from "#/features/notes/lib/types";
+import { Card } from "#/components/ui/card";
+import { Field, FieldGroup } from "#/components/ui/field";
+import {
+	type ChecklistItem,
+	NOTE_COLORS,
+	type Note,
+	type NoteFormData,
+	noteColorClasses,
+} from "#/features/notes/lib/types";
+import { useAppForm } from "#/hooks/use-app-form";
 import { cn } from "#/lib/utils";
+
+const NOTE_TYPE_OPTIONS = [
+	{ value: "note", label: "Note" },
+	{ value: "checklist", label: "Checklist" },
+];
+
+// ToggleGroup items can't carry an empty value, so the default color uses a sentinel.
+const DEFAULT_COLOR = "default";
+
+const COLOR_OPTIONS = NOTE_COLORS.map((color) => ({
+	value: color.value ?? DEFAULT_COLOR,
+	label: color.label,
+	swatchClassName: `${color.bg} ${color.border}`,
+}));
+
+const NoteSchema = z.object({
+	title: z.string(),
+	noteType: z.enum(["note", "checklist"]),
+	content: z.string(),
+	items: z.array(z.object({ id: z.string(), text: z.string(), checked: z.boolean() })),
+	color: z.string(),
+	label: z.string(),
+	pinned: z.boolean(),
+});
 
 type NoteFormProps = {
 	initial?: Partial<Note>;
@@ -16,128 +45,90 @@ type NoteFormProps = {
 };
 
 export function NoteForm({ initial, isPending, onSave, onCancel }: NoteFormProps) {
-	const form = useNoteForm(initial);
+	const form = useAppForm({
+		defaultValues: {
+			title: initial?.title ?? "",
+			noteType: initial?.noteType === "checklist" ? "checklist" : "note",
+			content: initial?.content ?? "",
+			items: (initial?.items as ChecklistItem[] | null) ?? [],
+			color: initial?.color ?? DEFAULT_COLOR,
+			label: initial?.label ?? "",
+			pinned: initial?.pinned ?? false,
+		} satisfies z.infer<typeof NoteSchema>,
+		validators: { onDynamic: NoteSchema },
+		validationLogic: revalidateLogic(),
+		onSubmit: ({ value }) => {
+			onSave({
+				title: value.title.trim(),
+				content: value.noteType === "note" ? value.content || undefined : undefined,
+				items: value.noteType === "checklist" ? value.items : undefined,
+				noteType: value.noteType,
+				color: value.color === DEFAULT_COLOR ? undefined : value.color,
+				label: value.label.trim() || undefined,
+				pinned: value.pinned,
+			});
+		},
+	});
 
 	return (
-		<div className={cn("rounded-xl border p-3 shadow-lg", noteColorClasses(form.color))}>
-			<Input
-				value={form.title}
-				onChange={(e) => form.setTitle(e.target.value)}
-				placeholder="Title"
-				className="mb-2 border-none bg-transparent px-0 shadow-none focus-visible:ring-0"
-			/>
-
-			<ToggleGroup
-				type="single"
-				value={form.noteType}
-				onValueChange={(v) => v && form.setNoteType(v as "note" | "checklist")}
-				variant="default"
-				size="sm"
-				className="mb-2 justify-start"
-			>
-				<ToggleGroupItem value="note" className="h-auto px-2 py-0.5 text-xs capitalize">
-					note
-				</ToggleGroupItem>
-				<ToggleGroupItem value="checklist" className="h-auto px-2 py-0.5 text-xs capitalize">
-					checklist
-				</ToggleGroupItem>
-			</ToggleGroup>
-
-			{form.noteType === "note" ? (
-				<Textarea
-					value={form.content}
-					onChange={(e) => form.setContent(e.target.value)}
-					placeholder="Take a note…"
-					rows={3}
-					className="mb-2 resize-none border-none bg-transparent px-0 shadow-none focus-visible:ring-0"
-				/>
-			) : (
-				<div className="mb-2 space-y-1">
-					{form.checklistItems.map((item) => (
-						<div key={item.id} className="flex items-center gap-1.5">
-							<Checkbox
-								checked={item.checked}
-								onCheckedChange={() => form.toggleChecklistItem(item.id)}
-								className="shrink-0"
-							/>
-							<span className={cn("flex-1 text-sm", item.checked && "line-through opacity-40")}>
-								{item.text}
-							</span>
-							<Button
-								variant="ghost"
-								size="icon"
-								className="h-5 w-5 shrink-0 text-muted-foreground hover:text-destructive"
-								onClick={() => form.removeChecklistItem(item.id)}
-								aria-label="Remove item"
-							>
-								<XIcon size={11} />
-							</Button>
-						</div>
-					))}
-					<div className="flex items-center gap-1.5">
-						<span className="shrink-0 text-muted-foreground">+</span>
-						<Input
-							value={form.newItemText}
-							onChange={(e) => form.setNewItemText(e.target.value)}
-							placeholder="Add item…"
-							className="h-auto flex-1 border-none bg-transparent px-0 py-0 text-sm shadow-none focus-visible:ring-0"
-							onKeyDown={(e) => e.key === "Enter" && form.addChecklistItem()}
-						/>
-					</div>
-				</div>
+		<form.Subscribe selector={(state) => state.values.color}>
+			{(color) => (
+				<Card className={cn("p-4", noteColorClasses(color === DEFAULT_COLOR ? null : color))}>
+					<form
+						onSubmit={(event) => {
+							event.preventDefault();
+							form.handleSubmit();
+						}}
+					>
+						<form.AppForm>
+							<FieldGroup className="gap-3">
+								<form.AppField name="title">
+									{(field) => <field.InputField label="Title" autoFocus />}
+								</form.AppField>
+								<form.AppField name="noteType">
+									{(field) => <field.ToggleGroupField label="Type" options={NOTE_TYPE_OPTIONS} />}
+								</form.AppField>
+								<form.Subscribe selector={(state) => state.values.noteType}>
+									{(noteType) =>
+										noteType === "note" ? (
+											<form.AppField name="content">
+												{(field) => (
+													<field.TextareaField
+														label="Content"
+														placeholder="Take a note…"
+														rows={3}
+													/>
+												)}
+											</form.AppField>
+										) : (
+											<form.AppField name="items">
+												{(field) => <field.ChecklistField label="Items" />}
+											</form.AppField>
+										)
+									}
+								</form.Subscribe>
+								<form.AppField name="label">
+									{(field) => <field.InputField label="Label (optional)" />}
+								</form.AppField>
+								<form.AppField name="color">
+									{(field) => <field.SwatchField label="Color" options={COLOR_OPTIONS} />}
+								</form.AppField>
+								<form.AppField name="pinned">
+									{(field) => <field.SwitchField label="Pinned" />}
+								</form.AppField>
+								<Field orientation="horizontal">
+									<form.SubmitButton size="sm" disabled={isPending}>
+										{isPending ? "Saving…" : "Save"}
+									</form.SubmitButton>
+									<Button type="button" variant="ghost" size="sm" onClick={onCancel}>
+										Cancel
+									</Button>
+								</Field>
+							</FieldGroup>
+						</form.AppForm>
+					</form>
+				</Card>
 			)}
-
-			<Input
-				value={form.label}
-				onChange={(e) => form.setLabel(e.target.value)}
-				placeholder="Label (optional)"
-				className="mb-2 border-none bg-transparent px-0 text-xs shadow-none focus-visible:ring-0"
-			/>
-
-			{/* Color swatches */}
-			<div className="mb-3 flex flex-wrap gap-1">
-				{NOTE_COLORS.map((noteColor) => (
-					<button
-						key={noteColor.label}
-						type="button"
-						title={noteColor.label}
-						onClick={() => form.setColor(noteColor.value)}
-						className={cn(
-							"h-5 w-5 rounded-full border-2",
-							noteColor.value ? "" : "bg-card",
-							form.color === noteColor.value ? "border-primary" : "border-transparent",
-						)}
-						style={noteColor.value ? { backgroundColor: noteColor.value } : undefined}
-					/>
-				))}
-			</div>
-
-			<div className="flex items-center gap-2">
-				<Button
-					variant="ghost"
-					size="sm"
-					onClick={() => form.setIsPinned((prev) => !prev)}
-					className={cn(
-						"h-auto gap-1 px-1.5 py-0.5 text-xs",
-						form.isPinned ? "text-primary" : "text-muted-foreground",
-					)}
-				>
-					<PinIcon size={11} />
-					{form.isPinned ? "Pinned" : "Pin"}
-				</Button>
-				<div className="flex-1" />
-				<Button variant="ghost" size="sm" onClick={onCancel} className="h-auto px-2 py-1 text-xs">
-					Cancel
-				</Button>
-				<Button
-					size="sm"
-					onClick={() => onSave(form.buildFormData())}
-					disabled={isPending}
-					className="h-auto px-2 py-1 text-xs"
-				>
-					{isPending ? "Saving…" : "Save"}
-				</Button>
-			</div>
-		</div>
+		</form.Subscribe>
 	);
 }

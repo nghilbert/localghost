@@ -4,6 +4,16 @@ export type ChecklistItem = {
 	checked: boolean;
 };
 
+export type NoteFormData = {
+	title: string;
+	content?: string;
+	items?: ChecklistItem[];
+	noteType: "note" | "checklist";
+	color?: string;
+	label?: string;
+	pinned: boolean;
+};
+
 export type Note = {
 	id: string;
 	title: string;
