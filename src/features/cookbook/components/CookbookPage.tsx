@@ -1,9 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
+import { CircleAlertIcon } from "lucide-react";
 import { PageHeader } from "#/components/PageHeader";
+import { Alert, AlertDescription, AlertTitle } from "#/components/ui/alert";
+import { Button } from "#/components/ui/button";
 import { Separator } from "#/components/ui/separator";
 import { HardwareCard } from "#/features/cookbook/components/HardwareCard";
 import { ModelTable } from "#/features/cookbook/components/ModelTable";
-import { OllamaSetupCard } from "#/features/cookbook/components/OllamaSetupCard";
 import { useModelPull } from "#/features/cookbook/hooks/use-model-pull";
 import {
 	deleteModel,
@@ -53,7 +56,19 @@ export function CookbookPage() {
 					<Separator />
 
 					{!isLoading && ollamaStatus && !ollamaStatus.reachable && (
-						<OllamaSetupCard ollamaUrl={ollamaStatus.ollamaUrl} gpus={hardware?.gpus ?? null} />
+						<Alert>
+							<CircleAlertIcon className="text-warning" />
+							<AlertTitle>Ollama not reachable</AlertTitle>
+							<AlertDescription className="flex flex-col gap-2">
+								Cannot connect to Ollama at{" "}
+								<code className="text-xs">{ollamaStatus.ollamaUrl}</code>.
+								<Button variant="outline" size="sm" className="w-fit" asChild>
+									<Link to="/settings" search={{ tab: "setup" }}>
+										Set up Ollama
+									</Link>
+								</Button>
+							</AlertDescription>
+						</Alert>
 					)}
 
 					<ModelTable

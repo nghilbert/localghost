@@ -8,7 +8,9 @@ import {
 	ServerIcon,
 	UserIcon,
 	WebhookIcon,
+	WrenchIcon,
 } from "lucide-react";
+import { z } from "zod/v4";
 import { PageHeader } from "#/components/PageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "#/components/ui/tabs";
 import { AccountTab } from "#/features/settings/components/AccountTab";
@@ -16,17 +18,37 @@ import { DataTab } from "#/features/settings/components/DataTab";
 import { McpTab } from "#/features/settings/components/McpTab";
 import { PresetsTab } from "#/features/settings/components/PresetsTab";
 import { ProvidersTab } from "#/features/settings/components/ProvidersTab";
-import { ThemeTab } from "#/features/settings/components/ThemeTab";
+import { SetupTab } from "#/features/settings/components/SetupTab";
 import { TokensTab } from "#/features/settings/components/TokensTab";
 import { WebhooksTab } from "#/features/settings/components/WebhooksTab";
+import { AppearanceSettings } from "#/features/theme/AppearanceSettings";
+
+const TAB_VALUES = [
+	"account",
+	"setup",
+	"providers",
+	"theme",
+	"webhooks",
+	"tokens",
+	"presets",
+	"data",
+	"mcp",
+] as const;
+
+const SettingsSearchSchema = z.object({
+	tab: z.enum(TAB_VALUES).optional().catch(undefined),
+});
 
 export const Route = createFileRoute("/_authenticated/settings")({
 	component: SettingsPage,
+	validateSearch: (search) => SettingsSearchSchema.parse(search),
 });
 
 function SettingsPage() {
+	const { tab } = Route.useSearch();
+
 	return (
-		<Tabs defaultValue="account" className="flex h-full flex-col overflow-hidden">
+		<Tabs defaultValue={tab ?? "account"} className="flex h-full flex-col overflow-hidden">
 			<PageHeader
 				title="Settings"
 				actions={
@@ -34,6 +56,10 @@ function SettingsPage() {
 						<TabsTrigger value="account" className="gap-1.5">
 							<UserIcon size={13} />
 							Account
+						</TabsTrigger>
+						<TabsTrigger value="setup" className="gap-1.5">
+							<WrenchIcon size={13} />
+							Setup
 						</TabsTrigger>
 						<TabsTrigger value="providers" className="gap-1.5">
 							<PlugIcon size={13} />
@@ -70,11 +96,14 @@ function SettingsPage() {
 				<TabsContent value="account">
 					<AccountTab />
 				</TabsContent>
+				<TabsContent value="setup">
+					<SetupTab />
+				</TabsContent>
 				<TabsContent value="providers">
 					<ProvidersTab />
 				</TabsContent>
 				<TabsContent value="theme">
-					<ThemeTab />
+					<AppearanceSettings />
 				</TabsContent>
 				<TabsContent value="webhooks">
 					<WebhooksTab />

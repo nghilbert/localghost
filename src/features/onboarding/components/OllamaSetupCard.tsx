@@ -34,19 +34,21 @@ const SETUP_OPTIONS: SetupOption[] = [
 		id: "gpu-nvidia",
 		title: "NVIDIA GPU (CUDA)",
 		description: "GPU-accelerated container. Requires the NVIDIA Container Toolkit on the host.",
-		command: "docker compose --profile gpu-nvidia up -d",
+		command:
+			"docker run -d --gpus=all -v ollama:/root/.ollama -p 11434:11434 --name ollama ollama/ollama",
 	},
 	{
 		id: "gpu-amd",
 		title: "AMD GPU (ROCm)",
 		description: "GPU-accelerated container using the ROCm image (/dev/kfd, /dev/dri).",
-		command: "docker compose --profile gpu-amd up -d",
+		command:
+			"docker run -d --device /dev/kfd --device /dev/dri -v ollama:/root/.ollama -p 11434:11434 --name ollama ollama/ollama:rocm",
 	},
 	{
 		id: "cpu",
 		title: "CPU only",
 		description: "Container that runs anywhere; inference is slower without a GPU.",
-		command: "docker compose --profile cpu up -d",
+		command: "docker run -d -v ollama:/root/.ollama -p 11434:11434 --name ollama ollama/ollama",
 	},
 	{
 		id: "native",

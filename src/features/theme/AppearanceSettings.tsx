@@ -17,7 +17,7 @@ const MODE_OPTIONS: { value: ThemeMode; label: string; icon: typeof SunIcon }[] 
 	{ value: "system", label: "System", icon: MonitorIcon },
 ];
 
-export function ThemeTab() {
+export function AppearanceSettings() {
 	const { theme, setTheme, themes, mode, setMode } = useTheme();
 
 	return (
