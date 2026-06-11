@@ -1,45 +1,21 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircleIcon, TrashIcon, XCircleIcon } from "lucide-react";
 import { useState } from "react";
 import { Button } from "#/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
-import { Input } from "#/components/ui/input";
-import { Item, ItemGroup } from "#/components/ui/item";
-import { ToggleGroup, ToggleGroupItem } from "#/components/ui/toggle-group";
 import {
-	createMcpServer,
 	deleteMcpServer,
 	mcpServersQueryOptions,
 	testMcpServer,
 	updateMcpServer,
 } from "#/features/mcp/lib/mcp.functions";
-import { cn } from "#/lib/utils";
-
-type McpTestResult = { ok: boolean; tools: { name: string; description: string }[] };
+import { McpAddServerForm } from "#/features/settings/components/McpAddServerForm";
+import { McpServerList, type McpTestResult } from "#/features/settings/components/McpServerList";
 
 export function McpTab() {
 	const queryClient = useQueryClient();
 	const { data: servers = [] } = useQuery(mcpServersQueryOptions());
 	const [showForm, setShowForm] = useState(false);
-	const [name, setName] = useState("");
-	const [url, setUrl] = useState("");
-	const [type, setType] = useState<"streamable-http" | "sse">("streamable-http");
-	const [formError, setFormError] = useState<string | null>(null);
 	const [testResults, setTestResults] = useState<Record<string, McpTestResult | null>>({});
 	const [testingId, setTestingId] = useState<string | null>(null);
-
-	const createMutation = useMutation({
-		mutationFn: createMcpServer,
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["mcp-servers"] });
-			setShowForm(false);
-			setName("");
-			setUrl("");
-			setType("streamable-http");
-			setFormError(null);
-		},
-		onError: (e) => setFormError((e as Error).message),
-	});
 
 	const toggleMutation = useMutation({
 		mutationFn: updateMcpServer,
@@ -70,126 +46,28 @@ export function McpTab() {
 				<p className="text-sm text-muted-foreground">
 					Connect external MCP servers to expose their tools to the agent.
 				</p>
-				<Button size="sm" onClick={() => setShowForm((p) => !p)}>
+				<Button size="sm" onClick={() => setShowForm((isShown) => !isShown)}>
 					{showForm ? "Cancel" : "Add server"}
 				</Button>
 			</div>
 
-			{showForm && (
-				<Card>
-					<CardHeader>
-						<CardTitle>New MCP server</CardTitle>
-					</CardHeader>
-					<CardContent className="space-y-3">
-						{formError && <p className="text-xs text-destructive">{formError}</p>}
-						<Input placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} />
-						<Input
-							placeholder="https://mcp.example.com/mcp"
-							value={url}
-							onChange={(e) => setUrl(e.target.value)}
-						/>
-						<ToggleGroup
-							type="single"
-							value={type}
-							onValueChange={(v) => v && setType(v as typeof type)}
-							variant="outline"
-							size="sm"
-						>
-							<ToggleGroupItem value="streamable-http">streamable-http</ToggleGroupItem>
-							<ToggleGroupItem value="sse">sse</ToggleGroupItem>
-						</ToggleGroup>
-						<Button
-							size="sm"
-							disabled={!name.trim() || !url.trim() || createMutation.isPending}
-							onClick={() => createMutation.mutate({ data: { name, url, type } })}
-						>
-							{createMutation.isPending ? "Adding…" : "Add"}
-						</Button>
-					</CardContent>
-				</Card>
-			)}
+			{showForm && <McpAddServerForm onCreated={() => setShowForm(false)} />}
 
 			{servers.length === 0 && !showForm && (
 				<p className="text-sm text-muted-foreground">No MCP servers configured.</p>
 			)}
 
 			{servers.length > 0 && (
-				<ItemGroup>
-					{servers.map((srv) => {
-						const result = testResults[srv.id];
-						return (
-							<Item key={srv.id} variant="outline" className="flex-col items-start gap-2">
-								<div className="flex w-full items-center gap-3">
-									<div className="min-w-0 flex-1">
-										<p className="text-sm font-medium">{srv.name}</p>
-										<p className="truncate text-xs text-muted-foreground">{srv.url}</p>
-										<p className="text-xs text-muted-foreground">{srv.type}</p>
-									</div>
-									<div className="flex shrink-0 items-center gap-2">
-										<Button
-											variant="outline"
-											size="sm"
-											className="h-7 px-2 text-xs"
-											onClick={() => handleTest(srv.id)}
-											disabled={testingId === srv.id}
-										>
-											{testingId === srv.id ? "Testing…" : "Test"}
-										</Button>
-										<Button
-											variant="ghost"
-											size="sm"
-											className={cn(
-												"h-7 px-2 text-xs",
-												srv.enabled
-													? "bg-primary/10 text-primary hover:bg-primary/20"
-													: "bg-muted text-muted-foreground",
-											)}
-											onClick={() =>
-												toggleMutation.mutate({ data: { id: srv.id, enabled: !srv.enabled } })
-											}
-										>
-											{srv.enabled ? "Enabled" : "Disabled"}
-										</Button>
-										<Button
-											variant="ghost"
-											size="icon"
-											className="h-6 w-6 text-destructive hover:text-destructive"
-											onClick={() => deleteMutation.mutate({ data: { id: srv.id } })}
-											aria-label="Delete MCP server"
-										>
-											<TrashIcon size={13} />
-										</Button>
-									</div>
-								</div>
-								{result !== undefined && result !== null && (
-									<div className="w-full rounded bg-muted/50 p-2 text-xs">
-										<div className="flex items-center gap-1 font-medium">
-											{result.ok ? (
-												<CheckCircleIcon size={12} className="text-success" />
-											) : (
-												<XCircleIcon size={12} className="text-destructive" />
-											)}
-											{result.ok
-												? `Connected — ${result.tools.length} tool${result.tools.length === 1 ? "" : "s"}`
-												: "Connection failed"}
-										</div>
-										{result.tools.length > 0 && (
-											<ul className="mt-1 space-y-0.5 text-muted-foreground">
-												{result.tools.slice(0, 8).map((t) => (
-													<li key={t.name}>
-														<code>{t.name}</code>
-														{t.description && ` — ${t.description}`}
-													</li>
-												))}
-												{result.tools.length > 8 && <li>…and {result.tools.length - 8} more</li>}
-											</ul>
-										)}
-									</div>
-								)}
-							</Item>
-						);
-					})}
-				</ItemGroup>
+				<McpServerList
+					servers={servers}
+					testResults={testResults}
+					testingId={testingId}
+					onTest={handleTest}
+					onToggle={(server) =>
+						toggleMutation.mutate({ data: { id: server.id, enabled: !server.enabled } })
+					}
+					onDelete={(id) => deleteMutation.mutate({ data: { id } })}
+				/>
 			)}
 		</div>
 	);
