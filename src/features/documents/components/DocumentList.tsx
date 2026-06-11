@@ -62,31 +62,29 @@ export function DocumentList({ selectedId, onSelect }: Props) {
 					</li>
 				)}
 				{docs.map((doc) => (
-					<li key={doc.id} className="group">
+					<li key={doc.id} className="group relative">
 						<button
 							type="button"
 							className={cn(
-								"flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 hover:bg-sidebar-accent",
+								"flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 pr-8 hover:bg-sidebar-accent",
 								selectedId === doc.id && "bg-sidebar-accent text-sidebar-accent-foreground",
 							)}
 							onClick={() => onSelect(doc.id)}
 						>
 							<FileTextIcon size={13} className="shrink-0 text-muted-foreground" />
 							<span className="flex-1 truncate text-left text-sm">{doc.title}</span>
-							<Button
-								variant="ghost"
-								size="icon"
-								className="h-5 w-5 shrink-0 opacity-0 group-hover:opacity-100"
-								onClick={(e) => {
-									e.stopPropagation();
-									deleteMutation.mutate(doc.id);
-								}}
-								disabled={deleteMutation.isPending}
-								aria-label="Delete document"
-							>
-								<Trash2Icon size={11} />
-							</Button>
 						</button>
+						{/* Sibling, not child: a button must not contain another button */}
+						<Button
+							variant="ghost"
+							size="icon"
+							className="absolute right-2 top-1/2 h-5 w-5 -translate-y-1/2 opacity-0 group-hover:opacity-100"
+							onClick={() => deleteMutation.mutate(doc.id)}
+							disabled={deleteMutation.isPending}
+							aria-label="Delete document"
+						>
+							<Trash2Icon size={11} />
+						</Button>
 					</li>
 				))}
 			</ul>
