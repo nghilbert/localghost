@@ -8,6 +8,7 @@ import {
 	Dialog,
 	DialogContent,
 	DialogDescription,
+	DialogFooter,
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
@@ -109,33 +110,31 @@ export function CreateTaskDialog({ onCreated }: CreateTaskDialogProps) {
 									/>
 								)}
 							</form.AppField>
-							<div className="flex gap-3 [&>*:first-child]:flex-1">
-								<form.AppField name="schedule">
-									{(field) => <field.SelectField label="Schedule" options={SCHEDULE_OPTIONS} />}
-								</form.AppField>
-								<form.Subscribe selector={(state) => state.values.schedule}>
-									{(schedule) => (
-										<>
-											{schedule !== "once" && schedule !== "cron" && (
-												<form.AppField name="scheduledTime">
-													{(field) => (
-														<field.InputField label="Time (UTC)" type="time" className="w-28" />
-													)}
-												</form.AppField>
-											)}
-											{schedule === "cron" && (
-												<form.AppField name="cronExpression">
-													{(field) => (
-														<field.InputField label="Cron expression" placeholder="0 9 * * *" />
-													)}
-												</form.AppField>
-											)}
-										</>
-									)}
-								</form.Subscribe>
-							</div>
+							<form.AppField name="schedule">
+								{(field) => <field.SelectField label="Schedule" options={SCHEDULE_OPTIONS} />}
+							</form.AppField>
+							<form.Subscribe selector={(state) => state.values.schedule}>
+								{(schedule) => (
+									<>
+										{schedule !== "once" && schedule !== "cron" && (
+											<form.AppField name="scheduledTime">
+												{(field) => <field.InputField label="Time (UTC)" type="time" />}
+											</form.AppField>
+										)}
+										{schedule === "cron" && (
+											<form.AppField name="cronExpression">
+												{(field) => (
+													<field.InputField label="Cron expression" placeholder="0 9 * * *" />
+												)}
+											</form.AppField>
+										)}
+									</>
+								)}
+							</form.Subscribe>
 							<FieldError>{formError}</FieldError>
-							<form.SubmitButton>Create Task</form.SubmitButton>
+							<DialogFooter>
+								<form.SubmitButton>Create Task</form.SubmitButton>
+							</DialogFooter>
 						</FieldGroup>
 					</form.AppForm>
 				</form>

@@ -8,6 +8,7 @@ import {
 	Dialog,
 	DialogContent,
 	DialogDescription,
+	DialogFooter,
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
@@ -144,7 +145,9 @@ export function NewEventDialog({
 								</form.AppField>
 							)}
 							<FieldError>{formError}</FieldError>
-							<form.SubmitButton>Create event</form.SubmitButton>
+							<DialogFooter>
+								<form.SubmitButton>Create event</form.SubmitButton>
+							</DialogFooter>
 						</FieldGroup>
 					</form.AppForm>
 				</form>

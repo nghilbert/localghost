@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { z } from "zod/v4";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
-import { FieldError } from "#/components/ui/field";
+import { Field, FieldError, FieldGroup } from "#/components/ui/field";
 import {
 	Item,
 	ItemActions,
@@ -111,28 +111,25 @@ export function TokensTab() {
 						}}
 					>
 						<form.AppForm>
-							<div className="flex items-start gap-2">
-								<div className="flex-1">
-									<form.AppField name="name">
-										{(field) => <field.InputField label="Name" placeholder="Token name" />}
-									</form.AppField>
-								</div>
-								<div className="w-36">
-									<form.AppField name="expiresInDays">
-										{(field) => (
-											<field.InputField
-												label="Expires in days"
-												inputMode="numeric"
-												placeholder="Never"
-											/>
-										)}
-									</form.AppField>
-								</div>
-								<form.SubmitButton size="sm" className="mt-5 w-fit">
-									Create
-								</form.SubmitButton>
-							</div>
-							<FieldError>{formError}</FieldError>
+							<FieldGroup className="gap-3">
+								<form.AppField name="name">
+									{(field) => <field.InputField label="Name" placeholder="Token name" />}
+								</form.AppField>
+								<form.AppField name="expiresInDays">
+									{(field) => (
+										<field.InputField
+											label="Expires in days"
+											description="Leave blank for a token that never expires"
+											inputMode="numeric"
+											placeholder="Never"
+										/>
+									)}
+								</form.AppField>
+								<FieldError>{formError}</FieldError>
+								<Field orientation="horizontal">
+									<form.SubmitButton size="sm">Create</form.SubmitButton>
+								</Field>
+							</FieldGroup>
 						</form.AppForm>
 					</form>
 				</CardContent>

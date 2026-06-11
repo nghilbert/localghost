@@ -1,7 +1,9 @@
+import { revalidateLogic } from "@tanstack/react-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { BrainIcon, PlusIcon, SearchIcon, Trash2Icon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { z } from "zod/v4";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import {
@@ -12,17 +14,10 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "#/components/ui/dialog";
+import { Field, FieldError, FieldGroup } from "#/components/ui/field";
 import { Input } from "#/components/ui/input";
 import { Item, ItemGroup } from "#/components/ui/item";
 import { ScrollArea } from "#/components/ui/scroll-area";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "#/components/ui/select";
-import { Textarea } from "#/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "#/components/ui/tooltip";
 import {
 	addMemory,
@@ -30,11 +25,14 @@ import {
 	memoriesQueryOptions,
 	searchMemories,
 } from "#/features/memory/lib/memory.functions";
+import { useAppForm } from "#/hooks/use-app-form";
 import { cn } from "#/lib/utils";
 
 const CATEGORIES = ["fact", "preference", "contact", "project", "instruction"] as const;
 
-const CATEGORY_COLORS: Record<(typeof CATEGORIES)[number], string> = {
+const CATEGORY_OPTIONS = CATEGORIES.map((category) => ({ value: category, label: category }));
+
+const CATEGORY_COLORS: Record<string, string> = {
 	fact: "bg-muted text-muted-foreground",
 	preference: "bg-secondary text-secondary-foreground",
 	contact: "bg-accent text-accent-foreground",
@@ -42,12 +40,21 @@ const CATEGORY_COLORS: Record<(typeof CATEGORIES)[number], string> = {
 	instruction: "bg-destructive/10 text-destructive",
 };
 
+const MemorySchema = z.object({
+	text: z.string().trim().min(1, "Memory text is required"),
+	category: z.enum(CATEGORIES),
+});
+
+const MemoryDefaults: z.infer<typeof MemorySchema> = {
+	text: "",
+	category: "fact",
+};
+
 export function MemoryModal() {
 	const queryClient = useQueryClient();
 	const [open, setOpen] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
-	const [newText, setNewText] = useState("");
-	const [newCategory, setNewCategory] = useState<(typeof CATEGORIES)[number]>("fact");
+	const [formError, setFormError] = useState<string | null>(null);
 
 	const { data: memories = [] } = useQuery(memoriesQueryOptions());
 
@@ -58,14 +65,21 @@ export function MemoryModal() {
 		staleTime: 5_000,
 	});
 
-	const addMutation = useMutation({
-		mutationFn: () => addMemory({ data: { text: newText, category: newCategory } }),
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["memories"] });
-			setNewText("");
-			toast.success("Memory saved");
+	const form = useAppForm({
+		defaultValues: MemoryDefaults,
+		validators: { onDynamic: MemorySchema },
+		validationLogic: revalidateLogic(),
+		onSubmit: async ({ value, formApi }) => {
+			setFormError(null);
+			try {
+				await addMemory({ data: { text: value.text.trim(), category: value.category } });
+				queryClient.invalidateQueries({ queryKey: ["memories"] });
+				toast.success("Memory saved");
+				formApi.reset();
+			} catch (error) {
+				setFormError(error instanceof Error ? error.message : "Failed to save memory");
+			}
 		},
-		onError: () => toast.error("Failed to save memory"),
 	});
 
 	const deleteMutation = useMutation({
@@ -104,48 +118,45 @@ export function MemoryModal() {
 					</DialogDescription>
 				</DialogHeader>
 
-				<div className="space-y-2 border-b pb-4">
-					<Textarea
-						value={newText}
-						onChange={(e) => setNewText(e.target.value)}
-						placeholder="Add a memory…"
-						rows={2}
-						className="resize-none"
-						onKeyDown={(e) => {
-							if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-								e.preventDefault();
-								addMutation.mutate();
-							}
-						}}
-					/>
-					<div className="flex items-center gap-2">
-						<Select
-							value={newCategory}
-							onValueChange={(v) => setNewCategory(v as (typeof CATEGORIES)[number])}
-						>
-							<SelectTrigger className="w-36">
-								<SelectValue />
-							</SelectTrigger>
-							<SelectContent>
-								{CATEGORIES.map((c) => (
-									<SelectItem key={c} value={c}>
-										{c}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-						<Button
-							size="sm"
-							onClick={() => addMutation.mutate()}
-							disabled={!newText.trim() || addMutation.isPending}
-							className="gap-1.5"
-						>
-							<PlusIcon size={13} />
-							{addMutation.isPending ? "Saving…" : "Save"}
-						</Button>
-						<span className="ml-auto text-xs text-muted-foreground">Ctrl+Enter</span>
-					</div>
-				</div>
+				<form
+					className="border-b pb-4"
+					onSubmit={(event) => {
+						event.preventDefault();
+						form.handleSubmit();
+					}}
+				>
+					<form.AppForm>
+						<FieldGroup className="gap-3">
+							<form.AppField name="text">
+								{(field) => (
+									<field.TextareaField
+										label="New memory"
+										description="Press Ctrl+Enter to save"
+										placeholder="Add a memory…"
+										rows={2}
+										className="resize-none"
+										onKeyDown={(event) => {
+											if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
+												event.preventDefault();
+												form.handleSubmit();
+											}
+										}}
+									/>
+								)}
+							</form.AppField>
+							<form.AppField name="category">
+								{(field) => <field.SelectField label="Category" options={CATEGORY_OPTIONS} />}
+							</form.AppField>
+							<FieldError>{formError}</FieldError>
+							<Field orientation="horizontal">
+								<form.SubmitButton size="sm">
+									<PlusIcon size={13} />
+									Save
+								</form.SubmitButton>
+							</Field>
+						</FieldGroup>
+					</form.AppForm>
+				</form>
 
 				<div className="relative">
 					<SearchIcon
@@ -173,8 +184,7 @@ export function MemoryModal() {
 									variant="outline"
 									className={cn(
 										"mt-0.5 shrink-0 border-transparent",
-										CATEGORY_COLORS[m.category as (typeof CATEGORIES)[number]] ??
-											CATEGORY_COLORS.fact,
+										CATEGORY_COLORS[m.category] ?? CATEGORY_COLORS.fact,
 									)}
 								>
 									{m.category}

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod/v4";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
-import { FieldError, FieldGroup } from "#/components/ui/field";
+import { Field, FieldError, FieldGroup } from "#/components/ui/field";
 import { createMcpServer } from "#/features/mcp/lib/mcp.functions";
 import { useAppForm } from "#/hooks/use-app-form";
 
@@ -79,9 +79,9 @@ export function McpAddServerForm({ onCreated }: McpAddServerFormProps) {
 								{(field) => <field.ToggleGroupField label="Transport" options={TYPE_OPTIONS} />}
 							</form.AppField>
 							<FieldError>{formError}</FieldError>
-							<form.SubmitButton size="sm" className="w-fit">
-								Add
-							</form.SubmitButton>
+							<Field orientation="horizontal">
+								<form.SubmitButton size="sm">Add</form.SubmitButton>
+							</Field>
 						</FieldGroup>
 					</form.AppForm>
 				</form>

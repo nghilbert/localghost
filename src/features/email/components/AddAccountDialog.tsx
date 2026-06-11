@@ -164,7 +164,7 @@ export function AddAccountDialog({ onAdded }: AddAccountDialogProps) {
 							</FieldSet>
 							<FieldError>{formError}</FieldError>
 							<DialogFooter>
-								<form.SubmitButton className="w-fit">Add Account</form.SubmitButton>
+								<form.SubmitButton>Add Account</form.SubmitButton>
 							</DialogFooter>
 						</FieldGroup>
 					</form.AppForm>
