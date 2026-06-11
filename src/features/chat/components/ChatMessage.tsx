@@ -1,8 +1,9 @@
-import { CheckIcon, ChevronDownIcon, ChevronRightIcon, CopyIcon, TerminalIcon } from "lucide-react";
+import { CheckIcon, ChevronRightIcon, CopyIcon, TerminalIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Button } from "#/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "#/components/ui/collapsible";
 import { SpeakButton } from "#/features/chat/components/SpeakButton";
 import { highlight } from "#/lib/highlighter";
 import { cn } from "#/lib/utils";
@@ -162,24 +163,21 @@ function CodeBlock({ children }: { children: React.ReactNode }) {
 }
 
 function ToolCallBlock({ tool, result }: { tool: string; result: string }) {
-	const [expanded, setExpanded] = useState(false);
-
 	return (
-		<div className="overflow-hidden rounded-lg border bg-muted/30 text-xs">
-			<button
-				type="button"
-				className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left font-medium text-muted-foreground transition-colors hover:bg-muted/50"
-				onClick={() => setExpanded((v) => !v)}
-			>
+		<Collapsible className="overflow-hidden rounded-lg border bg-muted/30 text-xs">
+			<CollapsibleTrigger className="group flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left font-medium text-muted-foreground transition-colors hover:bg-muted/50">
 				<TerminalIcon size={12} className="shrink-0" />
 				<span className="flex-1 font-mono">{tool}</span>
-				{expanded ? <ChevronDownIcon size={12} /> : <ChevronRightIcon size={12} />}
-			</button>
-			{expanded && (
+				<ChevronRightIcon
+					size={12}
+					className="transition-transform group-data-[state=open]:rotate-90"
+				/>
+			</CollapsibleTrigger>
+			<CollapsibleContent>
 				<pre className="max-h-56 overflow-y-auto whitespace-pre-wrap break-words border-t px-3 py-2.5 font-mono leading-relaxed text-muted-foreground">
 					{result}
 				</pre>
-			)}
-		</div>
+			</CollapsibleContent>
+		</Collapsible>
 	);
 }

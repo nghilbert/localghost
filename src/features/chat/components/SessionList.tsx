@@ -1,22 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
-import {
-	ArchiveIcon,
-	GitForkIcon,
-	MoreHorizontalIcon,
-	PlusIcon,
-	SearchIcon,
-	XIcon,
-} from "lucide-react";
+import { ArchiveIcon, GitForkIcon, MoreHorizontalIcon, PlusIcon, SearchIcon } from "lucide-react";
 import { useState } from "react";
 import { Button } from "#/components/ui/button";
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogHeader,
-	DialogTitle,
-} from "#/components/ui/dialog";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -33,10 +19,10 @@ import {
 	SidebarMenuButton,
 	SidebarMenuItem,
 } from "#/components/ui/sidebar";
+import { SearchSessionsDialog } from "#/features/chat/components/SearchSessionsDialog";
 import {
 	createSession,
 	forkSession,
-	searchMessages,
 	sessionsQueryOptions,
 	updateSession,
 } from "#/features/chat/lib/chat.functions";
@@ -83,7 +69,7 @@ export function SessionList() {
 
 	return (
 		<>
-			<SearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} navigate={navigate} />
+			<SearchSessionsDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
 			<SidebarGroup>
 				<SidebarGroupLabel className="flex items-center justify-between pr-1">
 					Chats
@@ -164,102 +150,5 @@ export function SessionList() {
 				</SidebarGroupContent>
 			</SidebarGroup>
 		</>
-	);
-}
-
-type SearchResult = {
-	messageId: string;
-	sessionId: string;
-	sessionName: string;
-	role: string;
-	snippet: string;
-	createdAt: Date | string;
-};
-
-function SearchDialog({
-	open,
-	onClose,
-	navigate,
-}: {
-	open: boolean;
-	onClose: () => void;
-	navigate: ReturnType<typeof useNavigate>;
-}) {
-	const [query, setQuery] = useState("");
-	const [results, setResults] = useState<SearchResult[]>([]);
-	const [loading, setLoading] = useState(false);
-
-	async function handleSearch(q: string) {
-		setQuery(q);
-		if (!q.trim()) {
-			setResults([]);
-			return;
-		}
-		setLoading(true);
-		try {
-			const res = await searchMessages({ data: { query: q } });
-			setResults(res);
-		} catch {
-			setResults([]);
-		} finally {
-			setLoading(false);
-		}
-	}
-
-	function openSession(sessionId: string) {
-		navigate({ to: "/sessions/$sessionId", params: { sessionId } });
-		onClose();
-	}
-
-	return (
-		<Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-			<DialogContent className="max-w-lg">
-				<DialogHeader>
-					<DialogTitle>Search chats</DialogTitle>
-					<DialogDescription>Find messages across all your chat sessions.</DialogDescription>
-				</DialogHeader>
-				<div className="relative">
-					<SearchIcon
-						size={14}
-						className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
-					/>
-					<Input
-						value={query}
-						onChange={(e) => handleSearch(e.target.value)}
-						placeholder="Search messages…"
-						className="pl-8 pr-8"
-					/>
-					{query && (
-						<button
-							type="button"
-							onClick={() => {
-								setQuery("");
-								setResults([]);
-							}}
-							className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
-						>
-							<XIcon size={13} />
-						</button>
-					)}
-				</div>
-				<div className="max-h-80 space-y-1 overflow-auto">
-					{loading && <p className="py-4 text-center text-xs text-muted-foreground">Searching…</p>}
-					{!loading && results.length === 0 && query && (
-						<p className="py-4 text-center text-xs text-muted-foreground">No results</p>
-					)}
-					{results.map((r) => (
-						<button
-							key={r.messageId}
-							type="button"
-							onClick={() => openSession(r.sessionId)}
-							className="w-full rounded-md p-2.5 text-left hover:bg-muted"
-						>
-							<p className="text-xs font-medium text-muted-foreground">{r.sessionName}</p>
-							<p className="mt-0.5 truncate text-sm">{r.snippet}</p>
-						</button>
-					))}
-				</div>
-			</DialogContent>
-		</Dialog>
 	);
 }

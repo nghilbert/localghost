@@ -1,8 +1,12 @@
 import { ArrowUpIcon, BotIcon, MessageSquareIcon, SquareIcon } from "lucide-react";
 import { type KeyboardEvent, useRef } from "react";
 import { Button } from "#/components/ui/button";
+import { ToggleGroup, ToggleGroupItem } from "#/components/ui/toggle-group";
 import { MicButton } from "#/features/chat/components/MicButton";
 import { cn } from "#/lib/utils";
+
+const MODE_TOGGLE_ITEM_CLASSES =
+	"h-auto gap-1.5 rounded-full px-3 py-1 text-xs font-medium text-muted-foreground data-[state=on]:bg-primary/10 data-[state=on]:text-primary";
 
 type Props = {
 	onSubmit: (message: string) => void;
@@ -73,34 +77,23 @@ export function ChatInput({
 			<div className="flex items-center justify-between px-2 pb-2">
 				{/* Mode toggle */}
 				{onModeChange ? (
-					<div className="flex gap-1">
-						<button
-							type="button"
-							onClick={() => onModeChange("chat")}
-							className={cn(
-								"flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors",
-								mode === "chat"
-									? "bg-primary/10 text-primary"
-									: "text-muted-foreground hover:text-foreground",
-							)}
-						>
+					<ToggleGroup
+						type="single"
+						spacing={1}
+						value={mode}
+						onValueChange={(value) => {
+							if (value === "chat" || value === "agent") onModeChange(value);
+						}}
+					>
+						<ToggleGroupItem value="chat" className={MODE_TOGGLE_ITEM_CLASSES}>
 							<MessageSquareIcon size={12} />
 							Chat
-						</button>
-						<button
-							type="button"
-							onClick={() => onModeChange("agent")}
-							className={cn(
-								"flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors",
-								mode === "agent"
-									? "bg-primary/10 text-primary"
-									: "text-muted-foreground hover:text-foreground",
-							)}
-						>
+						</ToggleGroupItem>
+						<ToggleGroupItem value="agent" className={MODE_TOGGLE_ITEM_CLASSES}>
 							<BotIcon size={12} />
 							Agent
-						</button>
-					</div>
+						</ToggleGroupItem>
+					</ToggleGroup>
 				) : (
 					<div />
 				)}
