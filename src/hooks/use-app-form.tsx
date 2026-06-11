@@ -1,6 +1,6 @@
 import { createFormHook, createFormHookContexts } from "@tanstack/react-form";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
-import { type ComponentProps, type ElementType, useState } from "react";
+import { type ComponentProps, type ElementType, useRef, useState } from "react";
 import { Button } from "#/components/ui/button";
 import { Field, FieldError, FieldLabel } from "#/components/ui/field";
 import { Input } from "#/components/ui/input";
@@ -18,6 +18,8 @@ import {
 	SelectValue,
 } from "#/components/ui/select";
 import { Spinner } from "#/components/ui/spinner";
+import { Textarea } from "#/components/ui/textarea";
+import { ToggleGroup, ToggleGroupItem } from "#/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "#/components/ui/tooltip";
 
 type FieldProps<TProps extends ElementType> = {
@@ -79,6 +81,25 @@ function PasswordField({ label, ...props }: FieldProps<typeof InputGroupInput>) 
 	);
 }
 
+function TextareaField({ label, ...props }: FieldProps<typeof Textarea>) {
+	const field = useFieldContext<string>();
+	const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
+	return (
+		<Field data-invalid={isInvalid}>
+			<FieldLabel htmlFor={field.name}>{label}</FieldLabel>
+			<Textarea
+				id={field.name}
+				value={field.state.value}
+				onBlur={field.handleBlur}
+				onChange={(event) => field.handleChange(event.target.value)}
+				aria-invalid={isInvalid}
+				{...props}
+			/>
+			<FieldError>{field.state.meta.errorMap.onDynamic?.[0]?.message}</FieldError>
+		</Field>
+	);
+}
+
 type SelectFieldProps = {
 	label: string;
 	options: { value: string; label: string }[];
@@ -108,6 +129,90 @@ function SelectField({ label, options, placeholder }: SelectFieldProps) {
 	);
 }
 
+type ToggleGroupFieldProps = {
+	label: string;
+	options: { value: string; label: string }[];
+};
+
+function ToggleGroupField({ label, options }: ToggleGroupFieldProps) {
+	const field = useFieldContext<string>();
+	const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
+	return (
+		<Field data-invalid={isInvalid}>
+			<FieldLabel>{label}</FieldLabel>
+			<ToggleGroup
+				type="single"
+				variant="outline"
+				size="sm"
+				value={field.state.value}
+				onValueChange={(value) => {
+					if (value) field.handleChange(value);
+				}}
+				onBlur={field.handleBlur}
+			>
+				{options.map((option) => (
+					<ToggleGroupItem key={option.value} value={option.value} aria-invalid={isInvalid}>
+						{option.label}
+					</ToggleGroupItem>
+				))}
+			</ToggleGroup>
+			<FieldError>{field.state.meta.errorMap.onDynamic?.[0]?.message}</FieldError>
+		</Field>
+	);
+}
+
+function MultiToggleField({ label, options }: ToggleGroupFieldProps) {
+	const field = useFieldContext<string[]>();
+	const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
+	return (
+		<Field data-invalid={isInvalid}>
+			<FieldLabel>{label}</FieldLabel>
+			<ToggleGroup
+				type="multiple"
+				variant="outline"
+				size="sm"
+				value={field.state.value}
+				onValueChange={(value) => field.handleChange(value)}
+				onBlur={field.handleBlur}
+			>
+				{options.map((option) => (
+					<ToggleGroupItem key={option.value} value={option.value} aria-invalid={isInvalid}>
+						{option.label}
+					</ToggleGroupItem>
+				))}
+			</ToggleGroup>
+			<FieldError>{field.state.meta.errorMap.onDynamic?.[0]?.message}</FieldError>
+		</Field>
+	);
+}
+
+function ColorField({ label }: { label: string }) {
+	const field = useFieldContext<string>();
+	const colorInputRef = useRef<HTMLInputElement>(null);
+	return (
+		<Field orientation="horizontal">
+			<FieldLabel htmlFor={field.name}>{label}</FieldLabel>
+			<Button
+				type="button"
+				variant="outline"
+				size="sm"
+				className="h-8 w-8 rounded-full border-2 p-0"
+				style={{ backgroundColor: field.state.value }}
+				onClick={() => colorInputRef.current?.click()}
+				aria-label={`Pick ${label.toLowerCase()}`}
+			/>
+			<input
+				ref={colorInputRef}
+				id={field.name}
+				type="color"
+				value={field.state.value}
+				onChange={(event) => field.handleChange(event.target.value)}
+				className="sr-only"
+			/>
+		</Field>
+	);
+}
+
 function SubmitButton({ children, ...props }: ComponentProps<typeof Button>) {
 	const { Subscribe } = useFormContext();
 
@@ -126,6 +231,14 @@ function SubmitButton({ children, ...props }: ComponentProps<typeof Button>) {
 export const { useAppForm, withForm } = createFormHook({
 	fieldContext,
 	formContext,
-	fieldComponents: { InputField, PasswordField, SelectField },
+	fieldComponents: {
+		InputField,
+		PasswordField,
+		SelectField,
+		TextareaField,
+		ToggleGroupField,
+		MultiToggleField,
+		ColorField,
+	},
 	formComponents: { SubmitButton },
 });

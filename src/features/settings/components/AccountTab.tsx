@@ -1,11 +1,17 @@
+import { revalidateLogic } from "@tanstack/react-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useRouteContext } from "@tanstack/react-router";
-import { useState } from "react";
 import { toast } from "sonner";
+import { z } from "zod/v4";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
-import { Input } from "#/components/ui/input";
+import { Field, FieldLabel } from "#/components/ui/field";
 import { authClient } from "#/features/auth/lib/auth-client";
+import { useAppForm } from "#/hooks/use-app-form";
+
+const ProfileSchema = z.object({
+	name: z.string().trim().min(1, "Name is required"),
+});
 
 export function AccountTab() {
 	const queryClient = useQueryClient();
@@ -14,15 +20,19 @@ export function AccountTab() {
 		auth: { user },
 	} = useRouteContext({ from: "/_authenticated" });
 
-	const [name, setName] = useState(user?.name ?? "");
-
-	const updateMutation = useMutation({
-		mutationFn: () => authClient.updateUser({ name }),
-		onSuccess: () => {
+	const form = useAppForm({
+		defaultValues: { name: user?.name ?? "" },
+		validators: { onDynamic: ProfileSchema },
+		validationLogic: revalidateLogic(),
+		onSubmit: async ({ value }) => {
+			const { error } = await authClient.updateUser({ name: value.name.trim() });
+			if (error) {
+				toast.error("Failed to update profile");
+				return;
+			}
 			queryClient.invalidateQueries({ queryKey: ["session"] });
 			toast.success("Profile updated");
 		},
-		onError: () => toast.error("Failed to update profile"),
 	});
 
 	const signOutMutation = useMutation({
@@ -37,30 +47,27 @@ export function AccountTab() {
 					<CardTitle>Profile</CardTitle>
 				</CardHeader>
 				<CardContent className="space-y-3">
-					<div className="flex flex-col gap-1">
-						<label htmlFor="settings-name" className="text-xs text-muted-foreground">
-							Name
-						</label>
-						<div className="flex gap-2">
-							<Input
-								id="settings-name"
-								value={name}
-								onChange={(e) => setName(e.target.value)}
-								className="max-w-xs"
-							/>
-							<Button
-								onClick={() => updateMutation.mutate()}
-								disabled={!name.trim() || name === user?.name || updateMutation.isPending}
-								size="sm"
-							>
-								{updateMutation.isPending ? "Saving…" : "Save"}
-							</Button>
-						</div>
-					</div>
-					<div className="flex flex-col gap-1">
-						<span className="text-xs text-muted-foreground">Email</span>
+					<form
+						onSubmit={(event) => {
+							event.preventDefault();
+							form.handleSubmit();
+						}}
+					>
+						<form.AppForm>
+							<div className="flex items-end gap-2">
+								<form.AppField name="name">
+									{(field) => <field.InputField label="Name" className="max-w-xs" />}
+								</form.AppField>
+								<form.SubmitButton size="sm" className="w-fit">
+									Save
+								</form.SubmitButton>
+							</div>
+						</form.AppForm>
+					</form>
+					<Field>
+						<FieldLabel>Email</FieldLabel>
 						<span className="text-sm">{user?.email}</span>
-					</div>
+					</Field>
 				</CardContent>
 			</Card>
 

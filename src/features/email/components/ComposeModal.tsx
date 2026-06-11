@@ -1,16 +1,25 @@
-import { useMutation } from "@tanstack/react-query";
+import { revalidateLogic } from "@tanstack/react-form";
 import { useState } from "react";
+import { toast } from "sonner";
+import { z } from "zod/v4";
 import { Button } from "#/components/ui/button";
 import {
 	Dialog,
 	DialogContent,
 	DialogDescription,
+	DialogFooter,
 	DialogHeader,
 	DialogTitle,
 } from "#/components/ui/dialog";
-import { Input } from "#/components/ui/input";
-import { Textarea } from "#/components/ui/textarea";
+import { FieldError, FieldGroup } from "#/components/ui/field";
 import { sendEmail } from "#/features/email/lib/email.functions";
+import { useAppForm } from "#/hooks/use-app-form";
+
+const ComposeSchema = z.object({
+	to: z.email("Must be a valid email address"),
+	subject: z.string().trim().min(1, "Subject is required"),
+	body: z.string().trim().min(1, "Message is required"),
+});
 
 type ComposeModalProps = {
 	accountId: string;
@@ -20,17 +29,28 @@ type ComposeModalProps = {
 };
 
 export function ComposeModal({ accountId, open, onOpenChange, replyTo }: ComposeModalProps) {
-	const [to, setTo] = useState(replyTo?.to ?? "");
-	const [subject, setSubject] = useState(replyTo ? `Re: ${replyTo.subject}` : "");
-	const [body, setBody] = useState("");
+	const [formError, setFormError] = useState<string | null>(null);
 
-	const sendMutation = useMutation({
-		mutationFn: () => sendEmail({ data: { accountId, to, subject, text: body } }),
-		onSuccess: () => {
-			onOpenChange(false);
-			setTo("");
-			setSubject("");
-			setBody("");
+	const form = useAppForm({
+		defaultValues: {
+			to: replyTo?.to ?? "",
+			subject: replyTo ? `Re: ${replyTo.subject}` : "",
+			body: "",
+		},
+		validators: { onDynamic: ComposeSchema },
+		validationLogic: revalidateLogic(),
+		onSubmit: async ({ value, formApi }) => {
+			setFormError(null);
+			try {
+				await sendEmail({
+					data: { accountId, to: value.to, subject: value.subject, text: value.body },
+				});
+				toast.success("Email sent");
+				onOpenChange(false);
+				formApi.reset();
+			} catch (error) {
+				setFormError(error instanceof Error ? error.message : "Failed to send");
+			}
 		},
 	});
 
@@ -41,37 +61,40 @@ export function ComposeModal({ accountId, open, onOpenChange, replyTo }: Compose
 					<DialogTitle>Compose</DialogTitle>
 					<DialogDescription>Send an email from your connected account.</DialogDescription>
 				</DialogHeader>
-				<div className="flex flex-col gap-3">
-					<Input placeholder="To" value={to} onChange={(e) => setTo(e.target.value)} />
-					<Input
-						placeholder="Subject"
-						value={subject}
-						onChange={(e) => setSubject(e.target.value)}
-					/>
-					<Textarea
-						value={body}
-						onChange={(e) => setBody(e.target.value)}
-						placeholder="Write your message…"
-						rows={12}
-						className="resize-y"
-					/>
-					<div className="flex justify-end gap-2">
-						<Button variant="outline" onClick={() => onOpenChange(false)}>
-							Cancel
-						</Button>
-						<Button
-							onClick={() => sendMutation.mutate()}
-							disabled={!to || !subject || !body || sendMutation.isPending}
-						>
-							{sendMutation.isPending ? "Sending…" : "Send"}
-						</Button>
-					</div>
-					{sendMutation.isError && (
-						<p className="text-sm text-destructive">
-							Failed to send: {(sendMutation.error as Error).message}
-						</p>
-					)}
-				</div>
+				<form
+					onSubmit={(event) => {
+						event.preventDefault();
+						form.handleSubmit();
+					}}
+				>
+					<form.AppForm>
+						<FieldGroup className="gap-3">
+							<form.AppField name="to">
+								{(field) => <field.InputField label="To" placeholder="someone@example.com" />}
+							</form.AppField>
+							<form.AppField name="subject">
+								{(field) => <field.InputField label="Subject" />}
+							</form.AppField>
+							<form.AppField name="body">
+								{(field) => (
+									<field.TextareaField
+										label="Message"
+										placeholder="Write your message…"
+										rows={12}
+										className="resize-y"
+									/>
+								)}
+							</form.AppField>
+							<FieldError>{formError}</FieldError>
+							<DialogFooter>
+								<Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+									Cancel
+								</Button>
+								<form.SubmitButton className="w-fit">Send</form.SubmitButton>
+							</DialogFooter>
+						</FieldGroup>
+					</form.AppForm>
+				</form>
 			</DialogContent>
 		</Dialog>
 	);
