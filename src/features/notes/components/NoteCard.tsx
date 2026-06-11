@@ -1,6 +1,7 @@
 import { PinIcon, Trash2Icon } from "lucide-react";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
+import { Card } from "#/components/ui/card";
 import { type ChecklistItem, type Note, noteColorClasses } from "#/features/notes/lib/types";
 import { cn } from "#/lib/utils";
 
@@ -15,15 +16,16 @@ export function NoteCard({ note, onEdit, onPin, onDelete }: NoteCardProps) {
 	const checklistItems = note.items as ChecklistItem[] | null;
 
 	return (
-		<button
-			type="button"
+		<Card
 			className={cn(
-				"group mb-3 block w-full break-inside-avoid rounded-xl border p-3 text-left transition-shadow hover:shadow-md",
+				"group relative gap-2 p-3 transition-shadow hover:shadow-md",
 				noteColorClasses(note.color),
 			)}
-			onClick={onEdit}
 		>
-			{note.title && <p className="mb-1.5 font-medium leading-snug">{note.title}</p>}
+			{/* Sibling overlay, not a wrapper: a button must not contain the action buttons below */}
+			<button type="button" className="absolute inset-0" onClick={onEdit} aria-label="Edit note" />
+
+			{note.title && <p className="font-medium leading-snug">{note.title}</p>}
 
 			{note.noteType === "checklist" && checklistItems ? (
 				<ul className="space-y-1">
@@ -48,37 +50,31 @@ export function NoteCard({ note, onEdit, onPin, onDelete }: NoteCardProps) {
 			)}
 
 			{note.label && (
-				<Badge variant="secondary" className="mt-2">
+				<Badge variant="secondary" className="w-fit">
 					{note.label}
 				</Badge>
 			)}
 
-			<div className="mt-2 flex items-center justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+			<div className="relative flex items-center justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100">
 				<Button
 					variant="ghost"
-					size="icon"
-					className={cn("h-6 w-6 rounded-full", note.pinned && "text-primary")}
+					size="icon-sm"
+					className={cn(note.pinned && "text-primary")}
 					aria-label={note.pinned ? "Unpin" : "Pin"}
-					onClick={(e) => {
-						e.stopPropagation();
-						onPin();
-					}}
+					onClick={onPin}
 				>
 					<PinIcon size={12} />
 				</Button>
 				<Button
 					variant="ghost"
-					size="icon"
-					className="h-6 w-6 rounded-full text-destructive hover:bg-destructive/10"
+					size="icon-sm"
+					className="text-destructive hover:text-destructive"
 					aria-label="Delete note"
-					onClick={(e) => {
-						e.stopPropagation();
-						onDelete();
-					}}
+					onClick={onDelete}
 				>
 					<Trash2Icon size={12} />
 				</Button>
 			</div>
-		</button>
+		</Card>
 	);
 }

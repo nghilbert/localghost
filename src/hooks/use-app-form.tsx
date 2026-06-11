@@ -1,8 +1,15 @@
 import { createFormHook, createFormHookContexts } from "@tanstack/react-form";
-import { EyeIcon, EyeOffIcon } from "lucide-react";
+import { EyeIcon, EyeOffIcon, PlusIcon, XIcon } from "lucide-react";
 import { type ComponentProps, type ElementType, useRef, useState } from "react";
 import { Button } from "#/components/ui/button";
-import { Field, FieldDescription, FieldError, FieldLabel } from "#/components/ui/field";
+import { Checkbox } from "#/components/ui/checkbox";
+import {
+	Field,
+	FieldContent,
+	FieldDescription,
+	FieldError,
+	FieldLabel,
+} from "#/components/ui/field";
 import { Input } from "#/components/ui/input";
 import {
 	InputGroup,
@@ -18,9 +25,11 @@ import {
 	SelectValue,
 } from "#/components/ui/select";
 import { Spinner } from "#/components/ui/spinner";
+import { Switch } from "#/components/ui/switch";
 import { Textarea } from "#/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "#/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "#/components/ui/tooltip";
+import { cn } from "#/lib/utils";
 
 type FieldProps<TProps extends ElementType> = {
 	label: string;
@@ -218,6 +227,126 @@ function ColorField({ label }: { label: string }) {
 	);
 }
 
+function SwitchField({ label, description }: { label: string; description?: string }) {
+	const field = useFieldContext<boolean>();
+	return (
+		<Field orientation="horizontal">
+			<FieldContent>
+				<FieldLabel htmlFor={field.name}>{label}</FieldLabel>
+				{description && <FieldDescription>{description}</FieldDescription>}
+			</FieldContent>
+			<Switch
+				id={field.name}
+				checked={field.state.value}
+				onCheckedChange={(checked) => field.handleChange(checked)}
+				onBlur={field.handleBlur}
+			/>
+		</Field>
+	);
+}
+
+type SwatchFieldProps = {
+	label: string;
+	options: { value: string; label: string; swatchClassName: string }[];
+};
+
+function SwatchField({ label, options }: SwatchFieldProps) {
+	const field = useFieldContext<string>();
+	return (
+		<Field>
+			<FieldLabel>{label}</FieldLabel>
+			<ToggleGroup
+				type="single"
+				variant="outline"
+				size="sm"
+				value={field.state.value}
+				onValueChange={(value) => {
+					if (value) field.handleChange(value);
+				}}
+				onBlur={field.handleBlur}
+			>
+				{options.map((option) => (
+					<ToggleGroupItem key={option.value} value={option.value} aria-label={option.label}>
+						<span className={cn("size-3 rounded-full border", option.swatchClassName)} />
+					</ToggleGroupItem>
+				))}
+			</ToggleGroup>
+		</Field>
+	);
+}
+
+export type ChecklistFieldItem = {
+	id: string;
+	text: string;
+	checked: boolean;
+};
+
+function ChecklistField({ label, placeholder }: { label: string; placeholder?: string }) {
+	const field = useFieldContext<ChecklistFieldItem[]>();
+	const [newItemText, setNewItemText] = useState("");
+
+	function addItem() {
+		const text = newItemText.trim();
+		if (!text) return;
+		field.handleChange([...field.state.value, { id: crypto.randomUUID(), text, checked: false }]);
+		setNewItemText("");
+	}
+
+	return (
+		<Field>
+			<FieldLabel>{label}</FieldLabel>
+			{field.state.value.map((item) => (
+				<Field key={item.id} orientation="horizontal">
+					<Checkbox
+						id={item.id}
+						checked={item.checked}
+						onCheckedChange={(checked) =>
+							field.handleChange(
+								field.state.value.map((entry) =>
+									entry.id === item.id ? { ...entry, checked: checked === true } : entry,
+								),
+							)
+						}
+					/>
+					<FieldLabel htmlFor={item.id} className={cn("flex-1", item.checked && "line-through")}>
+						{item.text}
+					</FieldLabel>
+					<Button
+						type="button"
+						variant="ghost"
+						size="icon-sm"
+						aria-label={`Remove ${item.text}`}
+						onClick={() =>
+							field.handleChange(field.state.value.filter((entry) => entry.id !== item.id))
+						}
+					>
+						<XIcon />
+					</Button>
+				</Field>
+			))}
+			<InputGroup>
+				<InputGroupInput
+					value={newItemText}
+					placeholder={placeholder ?? "Add item…"}
+					onChange={(event) => setNewItemText(event.target.value)}
+					onKeyDown={(event) => {
+						if (event.key === "Enter") {
+							event.preventDefault();
+							addItem();
+						}
+					}}
+				/>
+				<InputGroupAddon align="inline-end">
+					<InputGroupButton onClick={addItem} aria-label="Add item">
+						<PlusIcon />
+					</InputGroupButton>
+				</InputGroupAddon>
+			</InputGroup>
+			<FieldError>{field.state.meta.errorMap.onDynamic?.[0]?.message}</FieldError>
+		</Field>
+	);
+}
+
 function SubmitButton({ children, ...props }: ComponentProps<typeof Button>) {
 	const { Subscribe } = useFormContext();
 
@@ -244,6 +373,9 @@ export const { useAppForm, withForm } = createFormHook({
 		ToggleGroupField,
 		MultiToggleField,
 		ColorField,
+		SwitchField,
+		SwatchField,
+		ChecklistField,
 	},
 	formComponents: { SubmitButton },
 });

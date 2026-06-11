@@ -15,9 +15,21 @@ const EVENT_OPTIONS = [
 	{ value: "task.finished", label: "Task finished" },
 ];
 
+const SWATCH_OPTIONS = [
+	{ value: "default", label: "Default", swatchClassName: "bg-card" },
+	{ value: "red", label: "Red", swatchClassName: "bg-destructive" },
+];
+
 function FieldsHarness() {
 	const form = useAppForm({
-		defaultValues: { transport: "http", events: [] as string[], color: "#ff0000" },
+		defaultValues: {
+			transport: "http",
+			events: [] as string[],
+			color: "#ff0000",
+			swatch: "default",
+			pinned: false,
+			items: [{ id: "item-1", text: "First", checked: false }],
+		},
 	});
 	return (
 		<form.AppForm>
@@ -28,6 +40,13 @@ function FieldsHarness() {
 				{(field) => <field.MultiToggleField label="Events" options={EVENT_OPTIONS} />}
 			</form.AppField>
 			<form.AppField name="color">{(field) => <field.ColorField label="Color" />}</form.AppField>
+			<form.AppField name="swatch">
+				{(field) => <field.SwatchField label="Swatch" options={SWATCH_OPTIONS} />}
+			</form.AppField>
+			<form.AppField name="pinned">{(field) => <field.SwitchField label="Pinned" />}</form.AppField>
+			<form.AppField name="items">
+				{(field) => <field.ChecklistField label="Items" placeholder="Add item…" />}
+			</form.AppField>
 			<form.Subscribe selector={(state) => state.values}>
 				{(values) => <pre data-testid="values">{JSON.stringify(values)}</pre>}
 			</form.Subscribe>
@@ -77,6 +96,48 @@ describe("ColorField", () => {
 		});
 		fireEvent.change(screen.getByLabelText("Color"), { target: { value: "#00ff00" } });
 		expect(getValues().color).toBe("#00ff00");
+	});
+});
+
+describe("SwatchField", () => {
+	it("selects a swatch and keeps the value on re-click", async () => {
+		const user = userEvent.setup();
+		render(<FieldsHarness />);
+		await user.click(screen.getByRole("radio", { name: "Red" }));
+		expect(getValues().swatch).toBe("red");
+		await user.click(screen.getByRole("radio", { name: "Red" }));
+		expect(getValues().swatch).toBe("red");
+	});
+});
+
+describe("SwitchField", () => {
+	it("toggles the boolean value", async () => {
+		const user = userEvent.setup();
+		render(<FieldsHarness />);
+		await user.click(screen.getByRole("switch", { name: "Pinned" }));
+		expect(getValues().pinned).toBe(true);
+		await user.click(screen.getByRole("switch", { name: "Pinned" }));
+		expect(getValues().pinned).toBe(false);
+	});
+});
+
+describe("ChecklistField", () => {
+	it("toggles an item's checked state", async () => {
+		const user = userEvent.setup();
+		render(<FieldsHarness />);
+		await user.click(screen.getByRole("checkbox", { name: "First" }));
+		expect(getValues().items).toEqual([{ id: "item-1", text: "First", checked: true }]);
+	});
+
+	it("adds an item with Enter and removes it with the remove button", async () => {
+		const user = userEvent.setup();
+		render(<FieldsHarness />);
+		await user.type(screen.getByPlaceholderText("Add item…"), "Second{Enter}");
+		expect(getValues().items).toHaveLength(2);
+		expect(getValues().items[1].text).toBe("Second");
+		await user.click(screen.getByRole("button", { name: "Remove Second" }));
+		expect(getValues().items).toHaveLength(1);
+		expect(screen.getByPlaceholderText("Add item…")).toHaveValue("");
 	});
 });
 

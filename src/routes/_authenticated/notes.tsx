@@ -66,11 +66,13 @@ function NotesPage() {
 
 			<div className="flex-1 overflow-auto p-4">
 				{isCreating && (
-					<NoteForm
-						isPending={createMutation.isPending}
-						onSave={(formData) => createMutation.mutate({ data: formData })}
-						onCancel={() => setIsCreating(false)}
-					/>
+					<div className="mb-4">
+						<NoteForm
+							isPending={createMutation.isPending}
+							onSave={(formData) => createMutation.mutate({ data: formData })}
+							onCancel={() => setIsCreating(false)}
+						/>
+					</div>
 				)}
 
 				{notes.length === 0 && !isCreating && (

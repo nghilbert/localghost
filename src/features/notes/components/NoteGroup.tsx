@@ -1,5 +1,4 @@
-import type { NoteFormData } from "#/features/notes/hooks/use-note-form";
-import type { Note } from "#/features/notes/lib/types";
+import type { Note, NoteFormData } from "#/features/notes/lib/types";
 import { NoteCard } from "./NoteCard";
 import { NoteForm } from "./NoteForm";
 
@@ -30,26 +29,25 @@ export function NoteGroup({
 				</p>
 			)}
 			<div className="columns-1 gap-3 sm:columns-2 md:columns-3 lg:columns-4">
-				{notes.map((note) =>
-					editingId === note.id ? (
-						<div key={note.id} className="mb-3 break-inside-avoid">
+				{notes.map((note) => (
+					<div key={note.id} className="mb-3 break-inside-avoid">
+						{editingId === note.id ? (
 							<NoteForm
 								initial={note}
 								isPending={isUpdatePending}
 								onSave={(formData) => onUpdate(note.id, formData)}
 								onCancel={() => onEdit(null)}
 							/>
-						</div>
-					) : (
-						<NoteCard
-							key={note.id}
-							note={note}
-							onEdit={() => onEdit(note.id)}
-							onPin={() => onUpdate(note.id, { pinned: !note.pinned })}
-							onDelete={() => onDelete(note.id)}
-						/>
-					),
-				)}
+						) : (
+							<NoteCard
+								note={note}
+								onEdit={() => onEdit(note.id)}
+								onPin={() => onUpdate(note.id, { pinned: !note.pinned })}
+								onDelete={() => onDelete(note.id)}
+							/>
+						)}
+					</div>
+				))}
 			</div>
 		</section>
 	);
