@@ -1,9 +1,10 @@
 import { ArrowUpIcon, BotIcon, MessageSquareIcon, SquareIcon } from "lucide-react";
 import { type KeyboardEvent, useRef } from "react";
 import { Button } from "#/components/ui/button";
+import { Card, CardAction, CardContent, CardFooter } from "#/components/ui/card";
+import { Textarea } from "#/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "#/components/ui/toggle-group";
 import { MicButton } from "#/features/chat/components/MicButton";
-import { cn } from "#/lib/utils";
 
 const MODE_TOGGLE_ITEM_CLASSES =
 	"h-auto gap-1.5 rounded-full px-3 py-1 text-xs font-medium text-muted-foreground data-[state=on]:bg-primary/10 data-[state=on]:text-primary";
@@ -57,31 +58,27 @@ export function ChatInput({
 	}
 
 	return (
-		<div
-			className={cn(
-				"flex flex-col rounded-2xl border bg-background shadow-sm",
-				"transition-shadow focus-within:shadow-md focus-within:ring-1 focus-within:ring-ring",
-				disabled && "opacity-60",
-			)}
-		>
-			<textarea
-				ref={ref}
-				rows={1}
-				placeholder="Message…"
-				className="max-h-[200px] flex-1 resize-none bg-transparent px-4 pt-3 pb-2 text-sm outline-none placeholder:text-muted-foreground"
-				onKeyDown={handleKeyDown}
-				onInput={resize}
-				disabled={disabled}
-			/>
-
-			<div className="flex items-center justify-between px-2 pb-2">
+		<Card>
+			<CardContent>
+				<Textarea
+					ref={ref}
+					rows={1}
+					placeholder="Message…"
+					className="max-h-50 resize-none disabled:bg-transparent dark:bg-transparent dark:disabled:bg-transparent"
+					onKeyDown={handleKeyDown}
+					onInput={resize}
+					disabled={disabled}
+				/>
+			</CardContent>
+			<CardFooter className="justify-between gap-2">
 				{/* Mode toggle */}
-				{onModeChange ? (
+				<CardAction>
 					<ToggleGroup
 						type="single"
 						spacing={1}
 						value={mode}
 						onValueChange={(value) => {
+							if (!onModeChange) return;
 							if (value === "chat" || value === "agent") onModeChange(value);
 						}}
 					>
@@ -94,11 +91,9 @@ export function ChatInput({
 							Agent
 						</ToggleGroupItem>
 					</ToggleGroup>
-				) : (
-					<div />
-				)}
+				</CardAction>
 
-				<div className="flex items-center gap-1">
+				<CardAction>
 					{/* Mic / Voice input */}
 					<MicButton onTranscript={handleTranscript} disabled={disabled || isStreaming} />
 
@@ -124,8 +119,8 @@ export function ChatInput({
 							<span className="sr-only">Send</span>
 						</Button>
 					)}
-				</div>
-			</div>
-		</div>
+				</CardAction>
+			</CardFooter>
+		</Card>
 	);
 }

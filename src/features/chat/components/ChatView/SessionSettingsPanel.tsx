@@ -7,6 +7,7 @@ import { Field, FieldLabel } from "#/components/ui/field";
 import { Slider } from "#/components/ui/slider";
 import { Textarea } from "#/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "#/components/ui/tooltip";
+import { SavePresetDialog } from "#/features/chat/components/ChatView/SavePresetDialog";
 import { createPreset, presetsQueryOptions } from "#/features/chat/lib/preset.functions";
 
 type SessionSettingsPanelProps = {
@@ -24,6 +25,7 @@ export function SessionSettingsPanel({
 }: SessionSettingsPanelProps) {
 	const [systemPrompt, setSystemPrompt] = useState(initialSystemPrompt);
 	const [temperature, setTemperature] = useState(initialTemperature);
+	const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
 
 	const { data: presets = [] } = useQuery(presetsQueryOptions());
 
@@ -36,6 +38,11 @@ export function SessionSettingsPanel({
 
 	return (
 		<div className="border-t bg-muted/30 px-4 py-3">
+			<SavePresetDialog
+				open={isSaveDialogOpen}
+				onOpenChange={setIsSaveDialogOpen}
+				onSave={(name) => savePresetMutation.mutate(name)}
+			/>
 			{presets.length > 0 && (
 				<div className="mb-3 flex items-center gap-2">
 					<span className="text-xs text-muted-foreground">Load preset:</span>
@@ -74,10 +81,7 @@ export function SessionSettingsPanel({
 										variant="ghost"
 										size="sm"
 										className="h-auto gap-0.5 px-1 py-0 text-[10px] text-muted-foreground"
-										onClick={() => {
-											const name = prompt("Preset name:");
-											if (name?.trim()) savePresetMutation.mutate(name.trim());
-										}}
+										onClick={() => setIsSaveDialogOpen(true)}
 										aria-label="Save as preset"
 									>
 										<BookmarkIcon size={11} />

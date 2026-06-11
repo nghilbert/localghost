@@ -108,7 +108,6 @@ export function MicButton({ onTranscript, disabled }: Props) {
 					)}
 				>
 					<MicIcon size={15} />
-					<span className="sr-only">{listening ? "Stop recording" : "Voice input"}</span>
 				</Button>
 			</TooltipTrigger>
 			<TooltipContent>{listening ? "Stop recording" : "Voice input"}</TooltipContent>

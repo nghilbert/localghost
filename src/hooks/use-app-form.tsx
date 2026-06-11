@@ -10,6 +10,13 @@ import {
 	InputGroupButton,
 	InputGroupInput,
 } from "#/components/ui/input-group";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "#/components/ui/select";
 import { Spinner } from "#/components/ui/spinner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "#/components/ui/tooltip";
 
@@ -72,6 +79,35 @@ function PasswordField({ label, ...props }: FieldProps<typeof InputGroupInput>) 
 	);
 }
 
+type SelectFieldProps = {
+	label: string;
+	options: { value: string; label: string }[];
+	placeholder?: string;
+};
+
+function SelectField({ label, options, placeholder }: SelectFieldProps) {
+	const field = useFieldContext<string>();
+	const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
+	return (
+		<Field data-invalid={isInvalid}>
+			<FieldLabel htmlFor={field.name}>{label}</FieldLabel>
+			<Select value={field.state.value} onValueChange={(value) => field.handleChange(value)}>
+				<SelectTrigger id={field.name} aria-invalid={isInvalid} onBlur={field.handleBlur}>
+					<SelectValue placeholder={placeholder} />
+				</SelectTrigger>
+				<SelectContent>
+					{options.map((option) => (
+						<SelectItem key={option.value} value={option.value}>
+							{option.label}
+						</SelectItem>
+					))}
+				</SelectContent>
+			</Select>
+			<FieldError>{field.state.meta.errorMap.onDynamic?.[0]?.message}</FieldError>
+		</Field>
+	);
+}
+
 function SubmitButton({ children, ...props }: ComponentProps<typeof Button>) {
 	const { Subscribe } = useFormContext();
 
@@ -90,6 +126,6 @@ function SubmitButton({ children, ...props }: ComponentProps<typeof Button>) {
 export const { useAppForm, withForm } = createFormHook({
 	fieldContext,
 	formContext,
-	fieldComponents: { InputField, PasswordField },
+	fieldComponents: { InputField, PasswordField, SelectField },
 	formComponents: { SubmitButton },
 });

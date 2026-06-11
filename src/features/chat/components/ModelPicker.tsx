@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronDownIcon } from "lucide-react";
+import { CheckIcon, ChevronDownIcon } from "lucide-react";
 import { Button } from "#/components/ui/button";
 import {
 	DropdownMenu,
@@ -10,6 +10,7 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "#/components/ui/dropdown-menu";
+import { Spinner } from "#/components/ui/spinner";
 import {
 	endpointsQueryOptions,
 	getEndpointModels,
@@ -37,7 +38,7 @@ export function ModelPicker({ sessionId, currentModel, currentEndpointId }: Prop
 	return (
 		<DropdownMenu>
 			<DropdownMenuTrigger asChild>
-				<Button variant="outline" size="sm" className="max-w-[200px] gap-1 truncate">
+				<Button variant="outline" size="sm" className="max-w-50 gap-1 truncate">
 					<span className="truncate">{label}</span>
 					<ChevronDownIcon size={14} className="shrink-0" />
 				</Button>
@@ -87,20 +88,19 @@ function EndpointGroup({
 			<DropdownMenuGroup>
 				{isLoading && (
 					<DropdownMenuItem disabled>
+						<Spinner className="size-3" />
 						<span className="text-muted-foreground">Loading models…</span>
 					</DropdownMenuItem>
 				)}
-				{models.map((model) => (
-					<DropdownMenuItem
-						key={model}
-						onClick={() => onSelect(endpoint.id, model)}
-						className={
-							currentEndpointId === endpoint.id && currentModel === model ? "bg-accent" : ""
-						}
-					>
-						<span className="truncate">{model}</span>
-					</DropdownMenuItem>
-				))}
+				{models.map((model) => {
+					const isSelected = currentEndpointId === endpoint.id && currentModel === model;
+					return (
+						<DropdownMenuItem key={model} onClick={() => onSelect(endpoint.id, model)}>
+							<span className="truncate">{model}</span>
+							{isSelected && <CheckIcon size={13} className="ml-auto shrink-0" />}
+						</DropdownMenuItem>
+					);
+				})}
 				{!isLoading && models.length === 0 && (
 					<DropdownMenuItem disabled>
 						<span className="text-muted-foreground">No models found</span>

@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { ChevronDownIcon, DatabaseIcon, SlidersHorizontalIcon, Volume2Icon } from "lucide-react";
 import { useState } from "react";
 import { Button } from "#/components/ui/button";
+import { Empty, EmptyDescription, EmptyHeader } from "#/components/ui/empty";
 import { Tooltip, TooltipContent, TooltipTrigger } from "#/components/ui/tooltip";
 import { ChatFeed } from "#/features/chat/components/ChatFeed";
 import { ChatInput } from "#/features/chat/components/ChatInput";
@@ -149,13 +150,15 @@ export function ChatView({ session }: ChatViewProps) {
 
 			<ChatFeed className="flex-1 px-4">
 				{allDisplayMessages.length === 0 && (
-					<div className="flex h-full items-center justify-center">
-						<p className="text-sm text-muted-foreground">
-							{session.model
-								? "Send a message to start chatting."
-								: "Select a model above to get started."}
-						</p>
-					</div>
+					<Empty className="h-full">
+						<EmptyHeader>
+							<EmptyDescription>
+								{session.model
+									? "Send a message to start chatting."
+									: "Select a model above to get started."}
+							</EmptyDescription>
+						</EmptyHeader>
+					</Empty>
 				)}
 				{allDisplayMessages.map((msg, idx) => (
 					<ChatMessage
@@ -175,7 +178,7 @@ export function ChatView({ session }: ChatViewProps) {
 				<div ref={bottomRef} />
 			</ChatFeed>
 
-			<div className="border-t px-4 py-3">
+			<div className="px-4 py-3">
 				<ChatInput
 					onSubmit={handleSubmit}
 					isStreaming={isStreaming}

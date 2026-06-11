@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { ArchiveIcon, GitForkIcon, MoreHorizontalIcon, PlusIcon, SearchIcon } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 import { Button } from "#/components/ui/button";
 import {
 	DropdownMenu,
@@ -34,8 +35,7 @@ export function SessionList() {
 	const [renamingId, setRenamingId] = useState<string | null>(null);
 	const [searchOpen, setSearchOpen] = useState(false);
 
-	const params = useParams({ strict: false }) as { sessionId?: string };
-	const currentSessionId = params.sessionId;
+	const { sessionId: currentSessionId } = useParams({ strict: false });
 
 	const createMutation = useMutation({
 		mutationFn: () => createSession({ data: { name: "New Chat" } }),
@@ -47,7 +47,11 @@ export function SessionList() {
 
 	const archiveMutation = useMutation({
 		mutationFn: (id: string) => updateSession({ data: { id, data: { archived: true } } }),
-		onSuccess: () => queryClient.invalidateQueries({ queryKey: ["sessions"] }),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["sessions"] });
+			toast.success("Chat archived");
+		},
+		onError: (error) => toast.error(`Failed to archive chat: ${error.message}`),
 	});
 
 	const renameMutation = useMutation({

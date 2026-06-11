@@ -15,6 +15,7 @@ import {
 	InputGroupInput,
 } from "#/components/ui/input-group";
 import { Item, ItemContent, ItemDescription, ItemTitle } from "#/components/ui/item";
+import { Spinner } from "#/components/ui/spinner";
 import { searchMessages } from "#/features/chat/lib/chat.functions";
 
 type SearchResult = {
@@ -92,7 +93,10 @@ export function SearchSessionsDialog({ open, onClose }: SearchSessionsDialogProp
 				</InputGroup>
 				<div className="max-h-80 space-y-1 overflow-auto">
 					{isSearching && (
-						<p className="py-4 text-center text-xs text-muted-foreground">Searching…</p>
+						<p className="flex items-center justify-center gap-1.5 py-4 text-xs text-muted-foreground">
+							<Spinner className="size-3" />
+							Searching…
+						</p>
 					)}
 					{!isSearching && results.length === 0 && query && (
 						<p className="py-4 text-center text-xs text-muted-foreground">No results</p>
