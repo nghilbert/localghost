@@ -1,0 +1,123 @@
+import { useNavigate } from "@tanstack/react-router";
+import { SearchIcon, XIcon } from "lucide-react";
+import { useState } from "react";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogHeader,
+	DialogTitle,
+} from "#/components/ui/dialog";
+import {
+	InputGroup,
+	InputGroupAddon,
+	InputGroupButton,
+	InputGroupInput,
+} from "#/components/ui/input-group";
+import { Item, ItemContent, ItemDescription, ItemTitle } from "#/components/ui/item";
+import { searchMessages } from "#/features/chat/lib/chat.functions";
+
+type SearchResult = {
+	messageId: string;
+	sessionId: string;
+	sessionName: string;
+	role: string;
+	snippet: string;
+	createdAt: Date | string;
+};
+
+type SearchSessionsDialogProps = {
+	open: boolean;
+	onClose: () => void;
+};
+
+export function SearchSessionsDialog({ open, onClose }: SearchSessionsDialogProps) {
+	const navigate = useNavigate();
+	const [query, setQuery] = useState("");
+	const [results, setResults] = useState<SearchResult[]>([]);
+	const [isSearching, setIsSearching] = useState(false);
+
+	async function handleSearch(nextQuery: string) {
+		setQuery(nextQuery);
+		if (!nextQuery.trim()) {
+			setResults([]);
+			return;
+		}
+		setIsSearching(true);
+		try {
+			const res = await searchMessages({ data: { query: nextQuery } });
+			setResults(res);
+		} catch {
+			setResults([]);
+		} finally {
+			setIsSearching(false);
+		}
+	}
+
+	function handleOpenSession(sessionId: string) {
+		navigate({ to: "/sessions/$sessionId", params: { sessionId } });
+		onClose();
+	}
+
+	return (
+		<Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+			<DialogContent className="max-w-lg">
+				<DialogHeader>
+					<DialogTitle>Search chats</DialogTitle>
+					<DialogDescription>Find messages across all your chat sessions.</DialogDescription>
+				</DialogHeader>
+				<InputGroup>
+					<InputGroupAddon>
+						<SearchIcon size={14} />
+					</InputGroupAddon>
+					<InputGroupInput
+						value={query}
+						onChange={(e) => handleSearch(e.target.value)}
+						placeholder="Search messages…"
+					/>
+					{query && (
+						<InputGroupAddon align="inline-end">
+							<InputGroupButton
+								size="icon-xs"
+								aria-label="Clear search"
+								onClick={() => {
+									setQuery("");
+									setResults([]);
+								}}
+							>
+								<XIcon size={13} />
+							</InputGroupButton>
+						</InputGroupAddon>
+					)}
+				</InputGroup>
+				<div className="max-h-80 space-y-1 overflow-auto">
+					{isSearching && (
+						<p className="py-4 text-center text-xs text-muted-foreground">Searching…</p>
+					)}
+					{!isSearching && results.length === 0 && query && (
+						<p className="py-4 text-center text-xs text-muted-foreground">No results</p>
+					)}
+					{results.map((result) => (
+						<Item
+							key={result.messageId}
+							asChild
+							size="sm"
+							className="cursor-pointer hover:bg-muted"
+						>
+							<button type="button" onClick={() => handleOpenSession(result.sessionId)}>
+								<ItemContent className="gap-0.5">
+									<ItemDescription className="text-xs font-medium">
+										{result.sessionName}
+									</ItemDescription>
+									<ItemTitle className="block w-full truncate font-normal">
+										{result.snippet}
+									</ItemTitle>
+								</ItemContent>
+							</button>
+						</Item>
+					))}
+				</div>
+			</DialogContent>
+		</Dialog>
+	);
+}
