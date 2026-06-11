@@ -28,6 +28,7 @@ import {
 	SidebarTrigger,
 } from "#/components/ui/sidebar";
 import { SessionList } from "#/features/chat/components/SessionList";
+import { ModeToggle } from "#/features/theme/ModeToggle";
 import { APP_NAME } from "#/lib/constants";
 import { AuthMenu } from "./AuthMenu";
 
@@ -119,6 +120,11 @@ export function AppSidebar() {
 			</SidebarContent>
 
 			<SidebarFooter>
+				<SidebarMenu>
+					<SidebarMenuItem>
+						<ModeToggle />
+					</SidebarMenuItem>
+				</SidebarMenu>
 				<AuthMenu />
 			</SidebarFooter>
 		</Sidebar>
