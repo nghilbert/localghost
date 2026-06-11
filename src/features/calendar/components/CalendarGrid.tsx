@@ -1,3 +1,5 @@
+import { Badge } from "#/components/ui/badge";
+import { Button } from "#/components/ui/button";
 import { type CalendarData, type EventData, sameDay } from "#/features/calendar/lib/types";
 import { cn } from "#/lib/utils";
 
@@ -40,14 +42,8 @@ export function CalendarGrid({
 
 			{/* Week rows */}
 			<div
-				className="flex-1 overflow-auto"
-				style={{
-					display: "grid",
-					gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
-					gridTemplateRows: `repeat(${weeks.length}, minmax(60px, 1fr))`,
-					borderLeft: "1px solid var(--color-border)",
-					borderTop: "1px solid var(--color-border)",
-				}}
+				className="grid flex-1 grid-cols-7 overflow-auto border-l border-t"
+				style={{ gridTemplateRows: `repeat(${weeks.length}, minmax(60px, 1fr))` }}
 			>
 				{weeks.flat().map((day) => {
 					const isCurrentMonth = day.getMonth() === viewDate.getMonth();
@@ -59,31 +55,30 @@ export function CalendarGrid({
 							key={day.toISOString()}
 							className={cn("border-b border-r p-1", !isCurrentMonth && "bg-muted/20")}
 						>
-							<button
-								type="button"
+							<Button
+								variant={isToday ? "default" : "ghost"}
+								size="icon-sm"
 								className={cn(
-									"mb-1 flex h-6 w-6 items-center justify-center rounded-full text-xs",
-									isToday
-										? "bg-primary font-bold text-primary-foreground"
-										: "text-muted-foreground hover:bg-muted",
+									"mb-1 size-6 rounded-full text-xs",
+									!isToday && "text-muted-foreground",
 									!isCurrentMonth && "opacity-40",
 								)}
 								onClick={() => onDayClick(day)}
 							>
 								{day.getDate()}
-							</button>
+							</Button>
 							<div className="space-y-0.5">
 								{dayEvents.slice(0, 2).map((ev) => (
-									<button
+									<Badge
 										key={ev.id}
-										type="button"
-										title={ev.summary}
-										className="block w-full truncate rounded px-1 py-0.5 text-left text-[11px] text-white transition-opacity hover:opacity-80"
+										asChild
+										className="w-full justify-start border-transparent text-white"
 										style={{ backgroundColor: ev.color ?? ev.calendar.color }}
-										onClick={() => onEventClick(ev)}
 									>
-										{ev.summary}
-									</button>
+										<button type="button" title={ev.summary} onClick={() => onEventClick(ev)}>
+											<span className="truncate">{ev.summary}</span>
+										</button>
+									</Badge>
 								))}
 								{dayEvents.length > 2 && (
 									<p className="px-1 text-[10px] text-muted-foreground">+{dayEvents.length - 2}</p>

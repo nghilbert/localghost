@@ -6,9 +6,6 @@ import { Textarea } from "#/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "#/components/ui/toggle-group";
 import { MicButton } from "#/features/chat/components/MicButton";
 
-const MODE_TOGGLE_ITEM_CLASSES =
-	"h-auto gap-1.5 rounded-full px-3 py-1 text-xs font-medium text-muted-foreground data-[state=on]:bg-primary/10 data-[state=on]:text-primary";
-
 type Props = {
 	onSubmit: (message: string) => void;
 	isStreaming: boolean;
@@ -75,18 +72,19 @@ export function ChatInput({
 				<CardAction>
 					<ToggleGroup
 						type="single"
-						spacing={1}
+						variant="outline"
+						size="sm"
 						value={mode}
 						onValueChange={(value) => {
 							if (!onModeChange) return;
 							if (value === "chat" || value === "agent") onModeChange(value);
 						}}
 					>
-						<ToggleGroupItem value="chat" className={MODE_TOGGLE_ITEM_CLASSES}>
+						<ToggleGroupItem value="chat">
 							<MessageSquareIcon size={12} />
 							Chat
 						</ToggleGroupItem>
-						<ToggleGroupItem value="agent" className={MODE_TOGGLE_ITEM_CLASSES}>
+						<ToggleGroupItem value="agent">
 							<BotIcon size={12} />
 							Agent
 						</ToggleGroupItem>
