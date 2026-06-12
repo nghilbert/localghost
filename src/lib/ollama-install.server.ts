@@ -1,7 +1,13 @@
 import { execFile } from "node:child_process";
 import { existsSync } from "node:fs";
 import { promisify } from "node:util";
-import type { GpuVendor } from "#/features/cookbook/lib/types";
+import type {
+	GpuVendor,
+	InstallCapabilities,
+	InstallPhase,
+	InstallState,
+	OllamaContainerStatus,
+} from "#/features/cookbook/lib/types";
 import { probeOllama } from "#/lib/ollama.server";
 
 const execFileAsync = promisify(execFile);
@@ -9,29 +15,6 @@ const execFileAsync = promisify(execFile);
 const OLLAMA_CONTAINER_NAME = "ollama";
 const API_POLL_INTERVAL_MS = 1000;
 const API_POLL_TIMEOUT_MS = 60_000;
-
-export type OllamaContainerStatus = "running" | "stopped" | "absent" | "docker-unavailable";
-
-export type InstallCapabilities = {
-	dockerAvailable: boolean;
-	inContainer: boolean;
-	platform: NodeJS.Platform;
-	containerStatus: OllamaContainerStatus;
-};
-
-export type InstallPhase =
-	| "idle"
-	| "pulling-image"
-	| "starting"
-	| "waiting-api"
-	| "ready"
-	| "error";
-
-export type InstallState = {
-	phase: InstallPhase;
-	message?: string;
-	error?: string;
-};
 
 // Single-process server: one in-memory install at a time is all we need.
 let installState: InstallState = { phase: "idle" };

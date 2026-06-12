@@ -8,11 +8,7 @@ import { Item, ItemContent, ItemDescription, ItemGroup, ItemTitle } from "#/comp
 import { Separator } from "#/components/ui/separator";
 import { EndpointForm } from "#/features/chat/components/EndpointForm";
 import { endpointsQueryOptions } from "#/features/chat/lib/chat.functions";
-import {
-	cookbookStatusQueryOptions,
-	hardwareQueryOptions,
-} from "#/features/cookbook/lib/cookbook.functions";
-import { OllamaSetupCard } from "#/features/onboarding/components/OllamaSetupCard";
+import { cookbookStatusQueryOptions } from "#/features/cookbook/lib/cookbook.functions";
 
 function StatusBadge({
 	isOk,
@@ -39,7 +35,6 @@ function StatusBadge({
 export function SetupTab() {
 	const { data: endpoints = [] } = useQuery(endpointsQueryOptions());
 	const { data: ollamaStatus } = useQuery(cookbookStatusQueryOptions());
-	const { data: hardware } = useQuery(hardwareQueryOptions());
 
 	return (
 		<div className="space-y-6">
@@ -91,7 +86,11 @@ export function SetupTab() {
 				<FieldDescription>
 					Optional. Powers the Cookbook and local inference without API keys.
 				</FieldDescription>
-				{ollamaStatus && !ollamaStatus.found && <OllamaSetupCard gpus={hardware?.gpus ?? null} />}
+				{ollamaStatus && !ollamaStatus.found && (
+					<Button variant="outline" size="sm" className="w-fit" asChild>
+						<Link to="/cookbook">Set up in Cookbook</Link>
+					</Button>
+				)}
 			</FieldSet>
 		</div>
 	);

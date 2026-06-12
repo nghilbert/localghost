@@ -48,6 +48,29 @@ export type FitScore = {
 	overall: number;
 };
 
+export type OllamaContainerStatus = "running" | "stopped" | "absent" | "docker-unavailable";
+
+export type InstallCapabilities = {
+	dockerAvailable: boolean;
+	inContainer: boolean;
+	platform: NodeJS.Platform;
+	containerStatus: OllamaContainerStatus;
+};
+
+export type InstallPhase =
+	| "idle"
+	| "pulling-image"
+	| "starting"
+	| "waiting-api"
+	| "ready"
+	| "error";
+
+export type InstallState = {
+	phase: InstallPhase;
+	message?: string;
+	error?: string;
+};
+
 export type PullProgress = {
 	status: string;
 	completed?: number;

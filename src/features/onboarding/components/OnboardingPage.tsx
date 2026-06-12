@@ -18,11 +18,8 @@ import { Item, ItemContent, ItemDescription, ItemGroup, ItemTitle } from "#/comp
 import { Progress } from "#/components/ui/progress";
 import { EndpointForm } from "#/features/chat/components/EndpointForm";
 import { endpointsQueryOptions } from "#/features/chat/lib/chat.functions";
-import {
-	cookbookStatusQueryOptions,
-	hardwareQueryOptions,
-} from "#/features/cookbook/lib/cookbook.functions";
-import { OllamaSetupCard } from "#/features/onboarding/components/OllamaSetupCard";
+import { OllamaSetupFlow } from "#/features/cookbook/components/OllamaSetupFlow";
+import { cookbookStatusQueryOptions } from "#/features/cookbook/lib/cookbook.functions";
 import { AppearanceSettings } from "#/features/theme/AppearanceSettings";
 
 const STEPS = [
@@ -122,8 +119,10 @@ function ProviderStep() {
 }
 
 function OllamaStep() {
-	const { data: ollamaStatus, refetch } = useQuery(cookbookStatusQueryOptions());
-	const { data: hardware } = useQuery(hardwareQueryOptions());
+	const { data: ollamaStatus } = useQuery({
+		...cookbookStatusQueryOptions(),
+		refetchInterval: (query) => (query.state.data?.found ? false : 5_000),
+	});
 
 	if (!ollamaStatus) return null;
 
@@ -140,12 +139,5 @@ function OllamaStep() {
 		);
 	}
 
-	return (
-		<div className="space-y-3">
-			<OllamaSetupCard gpus={hardware?.gpus ?? null} />
-			<Button variant="outline" size="sm" onClick={() => refetch()}>
-				Re-check connection
-			</Button>
-		</div>
-	);
+	return <OllamaSetupFlow />;
 }

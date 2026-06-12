@@ -1,12 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
-import { CircleAlertIcon } from "lucide-react";
 import { PageHeader } from "#/components/PageHeader";
-import { Alert, AlertDescription, AlertTitle } from "#/components/ui/alert";
-import { Button } from "#/components/ui/button";
 import { Separator } from "#/components/ui/separator";
 import { HardwareCard } from "#/features/cookbook/components/HardwareCard";
 import { ModelTable } from "#/features/cookbook/components/ModelTable";
+import { OllamaSetupFlow } from "#/features/cookbook/components/OllamaSetupFlow";
 import { useModelPull } from "#/features/cookbook/hooks/use-model-pull";
 import {
 	cookbookStatusQueryOptions,
@@ -19,9 +16,9 @@ export function CookbookPage() {
 
 	const { data: hardware, isLoading: isLoadingHardware } = useQuery(hardwareQueryOptions());
 
-	const { data: ollamaStatus, isLoading: isLoadingStatus } = useQuery({
+	const { data: ollamaStatus } = useQuery({
 		...cookbookStatusQueryOptions(),
-		refetchInterval: 30_000,
+		refetchInterval: (query) => (query.state.data?.found ? 30_000 : 5_000),
 	});
 
 	const { pulling, pull } = useModelPull();
@@ -36,8 +33,6 @@ export function CookbookPage() {
 		pull(model, ollamaStatus.ollamaUrl);
 	}
 
-	const isLoading = isLoadingHardware || isLoadingStatus;
-
 	return (
 		<div className="flex h-full flex-col overflow-hidden">
 			<PageHeader
@@ -50,28 +45,17 @@ export function CookbookPage() {
 
 					<Separator />
 
-					{!isLoading && ollamaStatus && !ollamaStatus.found && (
-						<Alert>
-							<CircleAlertIcon className="text-warning" />
-							<AlertTitle>Ollama not found</AlertTitle>
-							<AlertDescription className="flex flex-col gap-2">
-								No running Ollama instance was detected on this machine.
-								<Button variant="outline" size="sm" className="w-fit" asChild>
-									<Link to="/settings" search={{ tab: "setup" }}>
-										Set up Ollama
-									</Link>
-								</Button>
-							</AlertDescription>
-						</Alert>
+					{ollamaStatus?.found ? (
+						<ModelTable
+							hardware={hardware}
+							installedModels={ollamaStatus.installedModels}
+							pulling={pulling}
+							onPull={handlePull}
+							onDelete={(model) => deleteMutation.mutate(model)}
+						/>
+					) : (
+						<OllamaSetupFlow />
 					)}
-
-					<ModelTable
-						hardware={hardware}
-						installedModels={ollamaStatus?.installedModels ?? []}
-						pulling={pulling}
-						onPull={handlePull}
-						onDelete={(model) => deleteMutation.mutate(model)}
-					/>
 				</div>
 			</div>
 		</div>
