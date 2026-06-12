@@ -6,10 +6,9 @@ import { Button } from "#/components/ui/button";
 import { FieldDescription, FieldLegend, FieldSet } from "#/components/ui/field";
 import { Item, ItemContent, ItemDescription, ItemGroup, ItemTitle } from "#/components/ui/item";
 import { Separator } from "#/components/ui/separator";
-import { EndpointForm } from "#/features/chat/components/EndpointForm";
+import { ProviderSetupForm } from "#/features/chat/components/ProviderSetupForm";
 import { endpointsQueryOptions } from "#/features/chat/lib/chat.functions";
-import { getHardware, getOllamaStatus } from "#/features/cookbook/lib/cookbook.functions";
-import { OllamaSetupCard } from "#/features/onboarding/components/OllamaSetupCard";
+import { cookbookStatusQueryOptions } from "#/features/cookbook/lib/cookbook.functions";
 
 function StatusBadge({
 	isOk,
@@ -35,15 +34,7 @@ function StatusBadge({
 
 export function SetupTab() {
 	const { data: endpoints = [] } = useQuery(endpointsQueryOptions());
-	const { data: ollamaStatus } = useQuery({
-		queryKey: ["cookbook-status"],
-		queryFn: () => getOllamaStatus(),
-	});
-	const { data: hardware } = useQuery({
-		queryKey: ["cookbook-hardware"],
-		queryFn: () => getHardware(),
-		staleTime: 60_000,
-	});
+	const { data: ollamaStatus } = useQuery(cookbookStatusQueryOptions());
 
 	return (
 		<div className="space-y-6">
@@ -78,7 +69,7 @@ export function SetupTab() {
 						))}
 					</ItemGroup>
 				)}
-				<EndpointForm />
+				<ProviderSetupForm />
 			</FieldSet>
 
 			<Separator />
@@ -87,16 +78,18 @@ export function SetupTab() {
 				<FieldLegend className="flex items-center gap-2">
 					Ollama (local models)
 					<StatusBadge
-						isOk={ollamaStatus?.reachable ?? false}
+						isOk={ollamaStatus?.found ?? false}
 						okLabel="Reachable"
-						missingLabel="Not reachable"
+						missingLabel="Not found"
 					/>
 				</FieldLegend>
 				<FieldDescription>
 					Optional. Powers the Cookbook and local inference without API keys.
 				</FieldDescription>
-				{ollamaStatus && !ollamaStatus.reachable && (
-					<OllamaSetupCard ollamaUrl={ollamaStatus.ollamaUrl} gpus={hardware?.gpus ?? null} />
+				{ollamaStatus && !ollamaStatus.found && (
+					<Button variant="outline" size="sm" className="w-fit" asChild>
+						<Link to="/cookbook">Set up in Cookbook</Link>
+					</Button>
 				)}
 			</FieldSet>
 		</div>

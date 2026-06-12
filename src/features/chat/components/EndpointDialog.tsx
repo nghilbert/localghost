@@ -21,7 +21,7 @@ import {
 	ItemTitle,
 } from "#/components/ui/item";
 import { Separator } from "#/components/ui/separator";
-import { EndpointForm } from "#/features/chat/components/EndpointForm";
+import { ProviderSetupForm } from "#/features/chat/components/ProviderSetupForm";
 import { deleteEndpoint, endpointsQueryOptions } from "#/features/chat/lib/chat.functions";
 
 export function EndpointDialog() {
@@ -83,7 +83,7 @@ export function EndpointDialog() {
 
 					<FieldSet>
 						<FieldLegend>Add provider</FieldLegend>
-						<EndpointForm />
+						<ProviderSetupForm />
 					</FieldSet>
 				</div>
 			</DialogContent>

@@ -1,21 +1,9 @@
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeaders } from "@tanstack/react-start/server";
+import { isAdmin } from "#/features/admin/lib/admin.server";
 import { auth } from "#/features/auth/lib/auth.server";
 import { prisma } from "#/lib/db.server";
-
-async function isAdmin(userId: string): Promise<boolean> {
-	const adminEmail = process.env.ADMIN_EMAIL;
-	if (adminEmail) {
-		const user = await prisma.user.findFirst({ where: { id: userId }, select: { email: true } });
-		return user?.email === adminEmail;
-	}
-	const first = await prisma.user.findFirst({
-		orderBy: { createdAt: "asc" },
-		select: { id: true },
-	});
-	return first?.id === userId;
-}
 
 export const getAdminStats = createServerFn({ method: "GET" }).handler(async () => {
 	const headers = getRequestHeaders();

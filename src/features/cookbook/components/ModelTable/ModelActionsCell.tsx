@@ -13,7 +13,8 @@ type ModelActionsCellProps = {
 	installed: OllamaInstalledModel | null;
 	pullState: PullProgress | undefined;
 	onPull: (model: string) => void;
-	onDelete: (model: string) => void;
+	/** Omit when the cell can never show an installed model. */
+	onDelete?: (model: string) => void;
 };
 
 export function ModelActionsCell({
@@ -49,7 +50,7 @@ export function ModelActionsCell({
 						variant="ghost"
 						size="icon-sm"
 						className="text-muted-foreground hover:text-destructive"
-						onClick={() => onDelete(model.id)}
+						onClick={() => onDelete?.(model.id)}
 						aria-label="Delete model"
 					>
 						<Trash2Icon size={13} />

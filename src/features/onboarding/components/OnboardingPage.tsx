@@ -16,10 +16,10 @@ import {
 import { FieldLegend, FieldSet } from "#/components/ui/field";
 import { Item, ItemContent, ItemDescription, ItemGroup, ItemTitle } from "#/components/ui/item";
 import { Progress } from "#/components/ui/progress";
-import { EndpointForm } from "#/features/chat/components/EndpointForm";
+import { ProviderSetupForm } from "#/features/chat/components/ProviderSetupForm";
 import { endpointsQueryOptions } from "#/features/chat/lib/chat.functions";
-import { getHardware, getOllamaStatus } from "#/features/cookbook/lib/cookbook.functions";
-import { OllamaSetupCard } from "#/features/onboarding/components/OllamaSetupCard";
+import { OllamaSetupFlow } from "#/features/cookbook/components/OllamaSetupFlow";
+import { cookbookStatusQueryOptions } from "#/features/cookbook/lib/cookbook.functions";
 import { AppearanceSettings } from "#/features/theme/AppearanceSettings";
 
 const STEPS = [
@@ -112,26 +112,21 @@ function ProviderStep() {
 			)}
 			<FieldSet>
 				<FieldLegend>Add provider</FieldLegend>
-				<EndpointForm />
+				<ProviderSetupForm />
 			</FieldSet>
 		</div>
 	);
 }
 
 function OllamaStep() {
-	const { data: ollamaStatus, refetch } = useQuery({
-		queryKey: ["cookbook-status"],
-		queryFn: () => getOllamaStatus(),
-	});
-	const { data: hardware } = useQuery({
-		queryKey: ["cookbook-hardware"],
-		queryFn: () => getHardware(),
-		staleTime: 60_000,
+	const { data: ollamaStatus } = useQuery({
+		...cookbookStatusQueryOptions(),
+		refetchInterval: (query) => (query.state.data?.found ? false : 5_000),
 	});
 
 	if (!ollamaStatus) return null;
 
-	if (ollamaStatus.reachable) {
+	if (ollamaStatus.found) {
 		return (
 			<Alert>
 				<CheckCircle2Icon className="text-success" />
@@ -144,12 +139,5 @@ function OllamaStep() {
 		);
 	}
 
-	return (
-		<div className="space-y-3">
-			<OllamaSetupCard ollamaUrl={ollamaStatus.ollamaUrl} gpus={hardware?.gpus ?? null} />
-			<Button variant="outline" size="sm" onClick={() => refetch()}>
-				Re-check connection
-			</Button>
-		</div>
-	);
+	return <OllamaSetupFlow />;
 }
