@@ -40,7 +40,7 @@ describe("buildDockerRunArgs", () => {
 	});
 
 	it("builds the cpu variant without device flags", () => {
-		expect(buildDockerRunArgs(null)).toEqual([
+		expect(buildDockerRunArgs("cpu")).toEqual([
 			"run",
 			"-d",
 			"-v",
@@ -60,6 +60,6 @@ describe("dockerImageFor", () => {
 	it("selects the rocm image only for amd", () => {
 		expect(dockerImageFor("amd")).toBe("ollama/ollama:rocm");
 		expect(dockerImageFor("nvidia")).toBe("ollama/ollama");
-		expect(dockerImageFor(null)).toBe("ollama/ollama");
+		expect(dockerImageFor("cpu")).toBe("ollama/ollama");
 	});
 });

@@ -40,10 +40,7 @@ export function OllamaContainerControls() {
 		onError: (error) => toast.error("Failed to stop Ollama", { description: error.message }),
 	});
 
-	if (!installInfo?.isAdmin || !installInfo.dockerAvailable) return null;
-	if (installInfo.containerStatus !== "running" && installInfo.containerStatus !== "stopped") {
-		return null;
-	}
+	if (!installInfo?.isAdmin || installInfo.containerStatus === "absent") return null;
 
 	const isRunning = installInfo.containerStatus === "running";
 
