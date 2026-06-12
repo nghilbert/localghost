@@ -4,7 +4,7 @@ import { getRequestHeaders } from "@tanstack/react-start/server";
 import { z } from "zod/v4";
 import { decrypt, encrypt } from "#/lib/crypto.server";
 import { prisma } from "#/lib/db.server";
-import { listModels } from "#/lib/llm.server";
+import { listModels, probeEndpoint } from "#/lib/llm.server";
 import {
 	createEndpointSchema,
 	createSessionSchema,
@@ -88,6 +88,13 @@ export const getEndpointModels = createServerFn({ method: "POST" })
 		if (!endpoint) throw new Error("Not found");
 		const apiKey = endpoint.apiKeyEncrypted ? decrypt(endpoint.apiKeyEncrypted) : undefined;
 		return listModels(endpoint.url, apiKey);
+	});
+
+export const testEndpoint = createServerFn({ method: "POST" })
+	.validator(z.object({ url: z.url().max(2048), apiKey: z.string().max(4096).optional() }))
+	.handler(async ({ data }) => {
+		await getCurrentUserId();
+		return probeEndpoint(data.url, data.apiKey);
 	});
 
 // ── Chat Sessions ─────────────────────────────────────────────

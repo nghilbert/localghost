@@ -405,6 +405,37 @@ export async function callLLM(opts: StreamLLMOptions): Promise<string> {
 	return text;
 }
 
+export type EndpointProbeResult = {
+	ok: boolean;
+	status?: number;
+	modelCount?: number;
+	error?: string;
+};
+
+/**
+ * Probes a provider's model-list endpoint with real auth so failures are
+ * distinguishable — unlike listModels, which collapses errors into [].
+ */
+export async function probeEndpoint(url: string, apiKey?: string): Promise<EndpointProbeResult> {
+	const provider = detectProvider(url);
+	const base = url.replace(/\/$/, "");
+	const modelsUrl = provider === "ollama" ? `${base}/api/tags` : `${base}/v1/models`;
+	try {
+		const res = await fetch(modelsUrl, {
+			headers: buildHeaders(provider, apiKey),
+			signal: AbortSignal.timeout(8000),
+		});
+		if (!res.ok) {
+			const reason = res.status === 401 || res.status === 403 ? "API key rejected" : res.statusText;
+			return { ok: false, status: res.status, error: `${reason} (HTTP ${res.status})` };
+		}
+		const data = (await res.json()) as { data?: unknown[]; models?: unknown[] };
+		return { ok: true, status: res.status, modelCount: (data.data ?? data.models ?? []).length };
+	} catch (err) {
+		return { ok: false, error: err instanceof Error ? err.message : "Request failed" };
+	}
+}
+
 export async function listModels(url: string, apiKey?: string): Promise<string[]> {
 	const provider = detectProvider(url);
 	const base = url.replace(/\/$/, "");
