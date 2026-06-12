@@ -57,9 +57,9 @@ export function OllamaSetupFlow() {
 					<EmptyMedia>
 						<Spinner className="size-6" />
 					</EmptyMedia>
-					<EmptyTitle>Looking for Ollama…</EmptyTitle>
+					<EmptyTitle>Checking setup options…</EmptyTitle>
 					<EmptyDescription>
-						Checking this machine and known addresses for a running instance.
+						Ollama wasn't found, so we're working out the best way to set it up here.
 					</EmptyDescription>
 				</EmptyHeader>
 			</Empty>

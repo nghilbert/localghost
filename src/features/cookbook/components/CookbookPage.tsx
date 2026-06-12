@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { PageHeader } from "#/components/PageHeader";
 import { Separator } from "#/components/ui/separator";
 import { HardwareCard } from "#/features/cookbook/components/HardwareCard";
@@ -26,7 +27,11 @@ export function CookbookPage() {
 
 	const deleteMutation = useMutation({
 		mutationFn: (model: string) => deleteModel({ data: { model } }),
-		onSuccess: () => queryClient.invalidateQueries({ queryKey: ["cookbook-status"] }),
+		onSuccess: (_data, model) => {
+			queryClient.invalidateQueries({ queryKey: ["cookbook-status"] });
+			toast.success(`${model} deleted`);
+		},
+		onError: (error) => toast.error("Failed to delete model", { description: error.message }),
 	});
 
 	function handlePull(model: string) {

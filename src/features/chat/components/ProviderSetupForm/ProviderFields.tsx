@@ -60,7 +60,10 @@ export function ProviderFields({ definition, onCreated }: ProviderFieldsProps) {
 
 	function handleTest() {
 		const parsed = schema.safeParse(form.state.values);
-		if (!parsed.success) return;
+		if (!parsed.success) {
+			toast.error("Fill in the provider details first");
+			return;
+		}
 		testMutation.mutate({
 			url: parsed.data.url.trim(),
 			apiKey: parsed.data.apiKey || undefined,

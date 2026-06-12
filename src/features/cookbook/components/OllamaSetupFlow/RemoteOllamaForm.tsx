@@ -44,9 +44,11 @@ export function RemoteOllamaForm({ onBack }: { onBack: () => void }) {
 	});
 
 	function handleTest() {
-		const { host, port } = form.state.values;
-		const parsed = RemoteFormSchema.safeParse({ host, port });
-		if (!parsed.success) return;
+		const parsed = RemoteFormSchema.safeParse(form.state.values);
+		if (!parsed.success) {
+			toast.error("Enter a valid host and port first");
+			return;
+		}
 		testMutation.mutate({ host: parsed.data.host, port: Number(parsed.data.port) });
 	}
 
