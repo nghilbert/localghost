@@ -11,26 +11,22 @@ const WELL_KNOWN_URLS = [
 
 /**
  * Resolves the Ollama base URL for a user: their configured ollama endpoint first,
- * then the OLLAMA_URL environment variable (set by docker-compose), then localhost.
+ * then localhost.
  */
 export async function getOllamaUrl(userId: string): Promise<string> {
 	const endpoint = await prisma.modelEndpoint.findFirst({
 		where: { ownerId: userId, provider: "ollama" },
 		orderBy: { createdAt: "asc" },
 	});
-	// `||` (not `??`) so empty-string env vars count as unset
-	return (endpoint?.url || process.env.OLLAMA_URL || DEFAULT_OLLAMA_URL).replace(/\/+$/, "");
+	return (endpoint?.url ?? DEFAULT_OLLAMA_URL).replace(/\/+$/, "");
 }
 
 /**
  * Ordered, deduplicated list of URLs where Ollama might be running: the user's
- * saved endpoints, then the OLLAMA_URL env var, then well-known local addresses.
+ * saved endpoints, then well-known local addresses.
  */
-export function buildOllamaCandidateUrls(opts: {
-	savedUrls: string[];
-	envUrl: string | undefined;
-}): string[] {
-	const candidates = [...opts.savedUrls, opts.envUrl ?? "", ...WELL_KNOWN_URLS]
+export function buildOllamaCandidateUrls(opts: { savedUrls: string[] }): string[] {
+	const candidates = [...opts.savedUrls, ...WELL_KNOWN_URLS]
 		.map((url) => url.trim().replace(/\/+$/, ""))
 		.filter((url) => url.length > 0);
 	return [...new Set(candidates)];
@@ -90,10 +86,7 @@ export async function scanForOllama(userId: string): Promise<OllamaScanResult | 
 		orderBy: { createdAt: "asc" },
 		select: { id: true, url: true },
 	});
-	const candidates = buildOllamaCandidateUrls({
-		savedUrls: saved.map((endpoint) => endpoint.url),
-		envUrl: process.env.OLLAMA_URL,
-	});
+	const candidates = buildOllamaCandidateUrls({ savedUrls: saved.map((endpoint) => endpoint.url) });
 
 	const probes = await Promise.all(
 		candidates.map(async (url) => ({ url, ...(await probeOllama(url)) })),

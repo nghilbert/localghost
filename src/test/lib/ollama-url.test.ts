@@ -24,19 +24,11 @@ describe("getOllamaUrl", () => {
 
 	it("prefers the user's configured ollama endpoint", async () => {
 		findFirst.mockResolvedValue({ url: "http://my-ollama:9999/" });
-		vi.stubEnv("OLLAMA_URL", "http://env-ollama:11434");
 		await expect(getOllamaUrl("user-1")).resolves.toBe("http://my-ollama:9999");
 	});
 
-	it("falls back to OLLAMA_URL when no endpoint is configured", async () => {
+	it("falls back to localhost when endpoint is set", async () => {
 		findFirst.mockResolvedValue(null);
-		vi.stubEnv("OLLAMA_URL", "http://env-ollama:11434///");
-		await expect(getOllamaUrl("user-1")).resolves.toBe("http://env-ollama:11434");
-	});
-
-	it("falls back to localhost when neither endpoint nor env is set", async () => {
-		findFirst.mockResolvedValue(null);
-		vi.stubEnv("OLLAMA_URL", "");
 		await expect(getOllamaUrl("user-1")).resolves.toBe("http://localhost:11434");
 	});
 
@@ -51,15 +43,9 @@ describe("getOllamaUrl", () => {
 });
 
 describe("buildOllamaCandidateUrls", () => {
-	it("orders saved urls before env before well-known addresses", () => {
-		expect(
-			buildOllamaCandidateUrls({
-				savedUrls: ["http://my-server:11434"],
-				envUrl: "http://env-host:11434",
-			}),
-		).toEqual([
+	it("orders saved urls before well-known addresses", () => {
+		expect(buildOllamaCandidateUrls({ savedUrls: ["http://my-server:11434"] })).toEqual([
 			"http://my-server:11434",
-			"http://env-host:11434",
 			"http://localhost:11434",
 			"http://127.0.0.1:11434",
 			"http://host.docker.internal:11434",
@@ -67,21 +53,12 @@ describe("buildOllamaCandidateUrls", () => {
 	});
 
 	it("dedupes after normalizing trailing slashes", () => {
-		const candidates = buildOllamaCandidateUrls({
-			savedUrls: ["http://localhost:11434///"],
-			envUrl: "http://localhost:11434/",
-		});
+		const candidates = buildOllamaCandidateUrls({ savedUrls: ["http://localhost:11434///"] });
 		expect(candidates).toEqual([
 			"http://localhost:11434",
 			"http://127.0.0.1:11434",
 			"http://host.docker.internal:11434",
 		]);
-	});
-
-	it("treats missing and empty env urls as unset", () => {
-		expect(buildOllamaCandidateUrls({ savedUrls: [], envUrl: undefined })).toEqual(
-			buildOllamaCandidateUrls({ savedUrls: [], envUrl: "  " }),
-		);
 	});
 });
 

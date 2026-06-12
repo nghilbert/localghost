@@ -25,7 +25,7 @@ Start Postgres: `docker compose up db -d`
 
 Copy `.env.example` to `.env`. Required: `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `ENCRYPTION_KEY` (64-char hex — `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`).
 
-Optional: `SEARXNG_URL` (falls back to DuckDuckGo), `OLLAMA_URL` (resolved by `getOllamaUrl()` in `src/lib/ollama.server.ts`: user endpoint row → env var → localhost).
+Optional: `SEARXNG_URL` (falls back to DuckDuckGo)
 
 ## Architecture
 

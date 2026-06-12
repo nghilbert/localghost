@@ -28,10 +28,6 @@ services:
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
       BETTER_AUTH_URL: ${BETTER_AUTH_URL}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY}
-      # Ollama is not part of this compose file — the in-app onboarding/setup
-      # flow guides each install. host-gateway lets the container reach an
-      # Ollama instance running on the host.
-      OLLAMA_URL: ${OLLAMA_URL:-http://host.docker.internal:11434}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
