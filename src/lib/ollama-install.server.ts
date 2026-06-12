@@ -95,7 +95,7 @@ function truncateError(err: unknown): string {
 
 async function waitForOllamaApi(): Promise<string> {
 	// The container publishes on the host; from inside a container the host is
-	// reachable via host.docker.internal (mapped by docker-compose).
+	// reachable via host.docker.internal (mapped by compose.yaml).
 	const urls = localOllamaUrls(existsSync("/.dockerenv"));
 
 	const deadline = Date.now() + API_POLL_TIMEOUT_MS;
