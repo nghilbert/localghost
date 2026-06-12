@@ -2,11 +2,11 @@ import { execFile } from "node:child_process";
 import { existsSync } from "node:fs";
 import { promisify } from "node:util";
 import {
-	type GpuVendor,
 	INSTALL_IN_PROGRESS_PHASES,
 	type InstallCapabilities,
 	type InstallState,
 	type OllamaContainerStatus,
+	type OllamaInstallVariant,
 } from "#/features/cookbook/lib/types";
 import { localOllamaUrls, probeOllama } from "#/lib/ollama.server";
 
@@ -20,14 +20,15 @@ const API_POLL_TIMEOUT_MS = 60_000;
 let installState: InstallState = { phase: "idle" };
 
 /**
- * Fixed docker argv templates keyed only by detected GPU vendor. Nothing here
- * may ever be derived from request data — these arrays reach execFile verbatim.
+ * Fixed docker argv templates keyed only by the install variant — a
+ * Zod-validated enum. Nothing here may ever be derived from free-form request
+ * data — these arrays reach execFile verbatim.
  */
-export function buildDockerRunArgs(gpuVendor: GpuVendor | null): string[] {
+export function buildDockerRunArgs(variant: OllamaInstallVariant): string[] {
 	const gpuFlags =
-		gpuVendor === "nvidia"
+		variant === "nvidia"
 			? ["--gpus=all"]
-			: gpuVendor === "amd"
+			: variant === "amd"
 				? ["--device", "/dev/kfd", "--device", "/dev/dri"]
 				: [];
 	return [
@@ -42,20 +43,26 @@ export function buildDockerRunArgs(gpuVendor: GpuVendor | null): string[] {
 		OLLAMA_CONTAINER_NAME,
 		"--restart",
 		"unless-stopped",
-		dockerImageFor(gpuVendor),
+		dockerImageFor(variant),
 	];
 }
 
-export function dockerImageFor(gpuVendor: GpuVendor | null): string {
-	return gpuVendor === "amd" ? "ollama/ollama:rocm" : "ollama/ollama";
+export function dockerImageFor(variant: OllamaInstallVariant): string {
+	return variant === "amd" ? "ollama/ollama:rocm" : "ollama/ollama";
 }
 
-async function isDockerAvailable(): Promise<boolean> {
+/**
+ * Whether the host docker daemon has the nvidia container runtime registered —
+ * the actual precondition for `--gpus=all`, and the only NVIDIA signal visible
+ * from inside a container (no nvidia-smi here).
+ */
+export async function hasNvidiaContainerRuntime(): Promise<boolean> {
 	try {
-		await execFileAsync("docker", ["version", "--format", "{{.Server.Version}}"], {
+		const { stdout } = await execFileAsync("docker", ["info", "--format", "{{json .Runtimes}}"], {
 			timeout: 5000,
 		});
-		return true;
+		const runtimes = JSON.parse(stdout.trim()) as Record<string, unknown>;
+		return "nvidia" in runtimes;
 	} catch {
 		return false;
 	}
@@ -75,12 +82,15 @@ async function getContainerStatus(): Promise<OllamaContainerStatus> {
 }
 
 export async function getInstallCapabilities(): Promise<InstallCapabilities> {
-	const dockerAvailable = await isDockerAvailable();
+	const [containerStatus, nvidiaRuntime] = await Promise.all([
+		getContainerStatus(),
+		hasNvidiaContainerRuntime(),
+	]);
 	return {
-		dockerAvailable,
 		inContainer: existsSync("/.dockerenv"),
 		platform: process.platform,
-		containerStatus: dockerAvailable ? await getContainerStatus() : "docker-unavailable",
+		containerStatus,
+		nvidiaRuntime,
 	};
 }
 
@@ -109,7 +119,7 @@ async function waitForOllamaApi(): Promise<string> {
 	throw new Error("Ollama container started but its API never became reachable");
 }
 
-async function runInstall(gpuVendor: GpuVendor | null): Promise<void> {
+async function runInstall(variant: OllamaInstallVariant): Promise<void> {
 	const containerStatus = await getContainerStatus();
 
 	if (containerStatus !== "running") {
@@ -118,11 +128,11 @@ async function runInstall(gpuVendor: GpuVendor | null): Promise<void> {
 			await execFileAsync("docker", ["start", OLLAMA_CONTAINER_NAME], { timeout: 60_000 });
 		} else {
 			installState = { phase: "pulling-image", message: "Downloading the Ollama image" };
-			await execFileAsync("docker", ["pull", dockerImageFor(gpuVendor)], {
+			await execFileAsync("docker", ["pull", dockerImageFor(variant)], {
 				timeout: 600_000,
 			});
 			installState = { phase: "starting", message: "Starting the Ollama container" };
-			await execFileAsync("docker", buildDockerRunArgs(gpuVendor), { timeout: 60_000 });
+			await execFileAsync("docker", buildDockerRunArgs(variant), { timeout: 60_000 });
 		}
 	}
 
@@ -135,11 +145,11 @@ async function runInstall(gpuVendor: GpuVendor | null): Promise<void> {
  * Kicks off the docker-based Ollama install in the background. Idempotent
  * while an install is already in progress.
  */
-export function beginOllamaInstall(gpuVendor: GpuVendor | null): InstallState {
+export function beginOllamaInstall(variant: OllamaInstallVariant): InstallState {
 	if (INSTALL_IN_PROGRESS_PHASES.includes(installState.phase)) return installState;
 
 	installState = { phase: "pulling-image", message: "Preparing install" };
-	void runInstall(gpuVendor).catch((err) => {
+	void runInstall(variant).catch((err) => {
 		installState = { phase: "error", error: truncateError(err) };
 	});
 	return installState;

@@ -1,6 +1,5 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { toast } from "sonner";
 import {
 	Empty,
 	EmptyDescription,
@@ -9,25 +8,17 @@ import {
 	EmptyTitle,
 } from "#/components/ui/empty";
 import { Spinner } from "#/components/ui/spinner";
-import { InstallProgressCard } from "#/features/cookbook/components/OllamaSetupFlow/InstallProgressCard";
-import { ManualInstallCard } from "#/features/cookbook/components/OllamaSetupFlow/ManualInstallCard";
+import { InstallCard } from "#/features/cookbook/components/OllamaSetupFlow/InstallCard";
 import { RemoteOllamaForm } from "#/features/cookbook/components/OllamaSetupFlow/RemoteOllamaForm";
-import { SetupChoiceCards } from "#/features/cookbook/components/OllamaSetupFlow/SetupChoiceCards";
-import {
-	installOllama,
-	ollamaInstallQueryOptions,
-} from "#/features/cookbook/lib/install.functions";
+import { ollamaInstallQueryOptions } from "#/features/cookbook/lib/install.functions";
 import { INSTALL_IN_PROGRESS_PHASES } from "#/features/cookbook/lib/types";
-
-export type SetupPath = "install" | "manual" | "remote";
 
 /**
  * Guided Ollama setup shown when no running instance was found. The parent's
  * status query keeps polling; once Ollama appears this component unmounts.
  */
 export function OllamaSetupFlow() {
-	const queryClient = useQueryClient();
-	const [chosenPath, setChosenPath] = useState<SetupPath | null>(null);
+	const [isRemoteFormOpen, setIsRemoteFormOpen] = useState(false);
 
 	const { data: installInfo } = useQuery({
 		...ollamaInstallQueryOptions(),
@@ -38,17 +29,6 @@ export function OllamaSetupFlow() {
 			return isInstalling ? 2000 : false;
 		},
 	});
-
-	const installMutation = useMutation({
-		mutationFn: () => installOllama(),
-		onSuccess: () => queryClient.invalidateQueries({ queryKey: ["ollama-install"] }),
-		onError: (error) => toast.error("Could not start the install", { description: error.message }),
-	});
-
-	function handleChoose(path: SetupPath) {
-		if (path === "install") installMutation.mutate();
-		setChosenPath(path);
-	}
 
 	if (!installInfo) {
 		return (
@@ -66,17 +46,7 @@ export function OllamaSetupFlow() {
 		);
 	}
 
-	if (chosenPath === "install" && installInfo.isAdmin) {
-		return (
-			<InstallProgressCard
-				installState={installInfo.installState}
-				onRetry={() => installMutation.mutate()}
-				onBack={() => setChosenPath(null)}
-			/>
-		);
-	}
-	if (chosenPath === "manual") return <ManualInstallCard onBack={() => setChosenPath(null)} />;
-	if (chosenPath === "remote") return <RemoteOllamaForm onBack={() => setChosenPath(null)} />;
+	if (isRemoteFormOpen) return <RemoteOllamaForm onBack={() => setIsRemoteFormOpen(false)} />;
 
-	return <SetupChoiceCards installInfo={installInfo} onChoose={handleChoose} />;
+	return <InstallCard installInfo={installInfo} onRemote={() => setIsRemoteFormOpen(true)} />;
 }

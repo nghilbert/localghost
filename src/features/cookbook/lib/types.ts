@@ -48,13 +48,15 @@ export type FitScore = {
 	overall: number;
 };
 
-export type OllamaContainerStatus = "running" | "stopped" | "absent" | "docker-unavailable";
+export type OllamaContainerStatus = "running" | "stopped" | "absent";
+
+export type OllamaInstallVariant = "cpu" | "nvidia" | "amd";
 
 export type InstallCapabilities = {
-	dockerAvailable: boolean;
 	inContainer: boolean;
 	platform: NodeJS.Platform;
 	containerStatus: OllamaContainerStatus;
+	nvidiaRuntime: boolean;
 };
 
 export type InstallPhase =

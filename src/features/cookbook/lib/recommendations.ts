@@ -2,9 +2,25 @@ import { CATALOG, computeFit } from "#/features/cookbook/lib/catalog";
 import type {
 	CatalogModel,
 	FitScore,
+	GpuInfo,
 	HardwareInfo,
 	OllamaInstalledModel,
+	OllamaInstallVariant,
 } from "#/features/cookbook/lib/types";
+
+/**
+ * Picks the Ollama install variant to recommend: a directly detected GPU wins;
+ * otherwise a registered nvidia container runtime implies an NVIDIA GPU (the
+ * only signal visible from inside a container); CPU is the safe fallback.
+ */
+export function recommendInstallVariant(opts: {
+	gpus: GpuInfo[] | null;
+	nvidiaRuntime: boolean;
+}): OllamaInstallVariant {
+	const detectedVendor = opts.gpus?.[0]?.vendor;
+	if (detectedVendor) return detectedVendor;
+	return opts.nvidiaRuntime ? "nvidia" : "cpu";
+}
 
 export type RecommendationReason = "best-overall" | "fastest" | "best-coding";
 
