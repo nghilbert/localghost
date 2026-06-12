@@ -6,7 +6,7 @@ import { Button } from "#/components/ui/button";
 import { FieldDescription, FieldLegend, FieldSet } from "#/components/ui/field";
 import { Item, ItemContent, ItemDescription, ItemGroup, ItemTitle } from "#/components/ui/item";
 import { Separator } from "#/components/ui/separator";
-import { EndpointForm } from "#/features/chat/components/EndpointForm";
+import { ProviderSetupForm } from "#/features/chat/components/ProviderSetupForm";
 import { endpointsQueryOptions } from "#/features/chat/lib/chat.functions";
 import { cookbookStatusQueryOptions } from "#/features/cookbook/lib/cookbook.functions";
 
@@ -69,7 +69,7 @@ export function SetupTab() {
 						))}
 					</ItemGroup>
 				)}
-				<EndpointForm />
+				<ProviderSetupForm />
 			</FieldSet>
 
 			<Separator />

@@ -16,7 +16,7 @@ import {
 import { FieldLegend, FieldSet } from "#/components/ui/field";
 import { Item, ItemContent, ItemDescription, ItemGroup, ItemTitle } from "#/components/ui/item";
 import { Progress } from "#/components/ui/progress";
-import { EndpointForm } from "#/features/chat/components/EndpointForm";
+import { ProviderSetupForm } from "#/features/chat/components/ProviderSetupForm";
 import { endpointsQueryOptions } from "#/features/chat/lib/chat.functions";
 import { OllamaSetupFlow } from "#/features/cookbook/components/OllamaSetupFlow";
 import { cookbookStatusQueryOptions } from "#/features/cookbook/lib/cookbook.functions";
@@ -112,7 +112,7 @@ function ProviderStep() {
 			)}
 			<FieldSet>
 				<FieldLegend>Add provider</FieldLegend>
-				<EndpointForm />
+				<ProviderSetupForm />
 			</FieldSet>
 		</div>
 	);
