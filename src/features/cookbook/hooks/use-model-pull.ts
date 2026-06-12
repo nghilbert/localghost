@@ -1,7 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { ensureOllamaEndpoint } from "#/features/cookbook/lib/cookbook.functions";
 import type { PullProgress } from "#/features/cookbook/lib/types";
 
 export function useModelPull() {
@@ -62,11 +61,7 @@ export function useModelPull() {
 								return next;
 							});
 							await queryClient.invalidateQueries({ queryKey: ["cookbook-status"] });
-							await ensureOllamaEndpoint({ data: { url: ollamaUrl } });
-							await queryClient.invalidateQueries({ queryKey: ["endpoints"] });
-							toast.success(`${model} is ready`, {
-								description: "Model pulled and endpoint registered.",
-							});
+							toast.success(`${model} is ready`);
 						} else if (chunk.type === "error") {
 							throw new Error(chunk.error ?? "Unknown error");
 						}

@@ -18,7 +18,10 @@ import { Item, ItemContent, ItemDescription, ItemGroup, ItemTitle } from "#/comp
 import { Progress } from "#/components/ui/progress";
 import { EndpointForm } from "#/features/chat/components/EndpointForm";
 import { endpointsQueryOptions } from "#/features/chat/lib/chat.functions";
-import { getHardware, getOllamaStatus } from "#/features/cookbook/lib/cookbook.functions";
+import {
+	cookbookStatusQueryOptions,
+	hardwareQueryOptions,
+} from "#/features/cookbook/lib/cookbook.functions";
 import { OllamaSetupCard } from "#/features/onboarding/components/OllamaSetupCard";
 import { AppearanceSettings } from "#/features/theme/AppearanceSettings";
 
@@ -119,19 +122,12 @@ function ProviderStep() {
 }
 
 function OllamaStep() {
-	const { data: ollamaStatus, refetch } = useQuery({
-		queryKey: ["cookbook-status"],
-		queryFn: () => getOllamaStatus(),
-	});
-	const { data: hardware } = useQuery({
-		queryKey: ["cookbook-hardware"],
-		queryFn: () => getHardware(),
-		staleTime: 60_000,
-	});
+	const { data: ollamaStatus, refetch } = useQuery(cookbookStatusQueryOptions());
+	const { data: hardware } = useQuery(hardwareQueryOptions());
 
 	if (!ollamaStatus) return null;
 
-	if (ollamaStatus.reachable) {
+	if (ollamaStatus.found) {
 		return (
 			<Alert>
 				<CheckCircle2Icon className="text-success" />
@@ -146,7 +142,7 @@ function OllamaStep() {
 
 	return (
 		<div className="space-y-3">
-			<OllamaSetupCard ollamaUrl={ollamaStatus.ollamaUrl} gpus={hardware?.gpus ?? null} />
+			<OllamaSetupCard gpus={hardware?.gpus ?? null} />
 			<Button variant="outline" size="sm" onClick={() => refetch()}>
 				Re-check connection
 			</Button>

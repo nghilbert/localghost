@@ -9,23 +9,18 @@ import { HardwareCard } from "#/features/cookbook/components/HardwareCard";
 import { ModelTable } from "#/features/cookbook/components/ModelTable";
 import { useModelPull } from "#/features/cookbook/hooks/use-model-pull";
 import {
+	cookbookStatusQueryOptions,
 	deleteModel,
-	getHardware,
-	getOllamaStatus,
+	hardwareQueryOptions,
 } from "#/features/cookbook/lib/cookbook.functions";
 
 export function CookbookPage() {
 	const queryClient = useQueryClient();
 
-	const { data: hardware, isLoading: isLoadingHardware } = useQuery({
-		queryKey: ["cookbook-hardware"],
-		queryFn: () => getHardware(),
-		staleTime: 60_000,
-	});
+	const { data: hardware, isLoading: isLoadingHardware } = useQuery(hardwareQueryOptions());
 
 	const { data: ollamaStatus, isLoading: isLoadingStatus } = useQuery({
-		queryKey: ["cookbook-status"],
-		queryFn: () => getOllamaStatus(),
+		...cookbookStatusQueryOptions(),
 		refetchInterval: 30_000,
 	});
 
@@ -37,7 +32,7 @@ export function CookbookPage() {
 	});
 
 	function handlePull(model: string) {
-		if (!ollamaStatus?.ollamaUrl) return;
+		if (!ollamaStatus?.found) return;
 		pull(model, ollamaStatus.ollamaUrl);
 	}
 
@@ -55,13 +50,12 @@ export function CookbookPage() {
 
 					<Separator />
 
-					{!isLoading && ollamaStatus && !ollamaStatus.reachable && (
+					{!isLoading && ollamaStatus && !ollamaStatus.found && (
 						<Alert>
 							<CircleAlertIcon className="text-warning" />
-							<AlertTitle>Ollama not reachable</AlertTitle>
+							<AlertTitle>Ollama not found</AlertTitle>
 							<AlertDescription className="flex flex-col gap-2">
-								Cannot connect to Ollama at{" "}
-								<code className="text-xs">{ollamaStatus.ollamaUrl}</code>.
+								No running Ollama instance was detected on this machine.
 								<Button variant="outline" size="sm" className="w-fit" asChild>
 									<Link to="/settings" search={{ tab: "setup" }}>
 										Set up Ollama

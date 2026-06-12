@@ -8,7 +8,10 @@ import { Item, ItemContent, ItemDescription, ItemGroup, ItemTitle } from "#/comp
 import { Separator } from "#/components/ui/separator";
 import { EndpointForm } from "#/features/chat/components/EndpointForm";
 import { endpointsQueryOptions } from "#/features/chat/lib/chat.functions";
-import { getHardware, getOllamaStatus } from "#/features/cookbook/lib/cookbook.functions";
+import {
+	cookbookStatusQueryOptions,
+	hardwareQueryOptions,
+} from "#/features/cookbook/lib/cookbook.functions";
 import { OllamaSetupCard } from "#/features/onboarding/components/OllamaSetupCard";
 
 function StatusBadge({
@@ -35,15 +38,8 @@ function StatusBadge({
 
 export function SetupTab() {
 	const { data: endpoints = [] } = useQuery(endpointsQueryOptions());
-	const { data: ollamaStatus } = useQuery({
-		queryKey: ["cookbook-status"],
-		queryFn: () => getOllamaStatus(),
-	});
-	const { data: hardware } = useQuery({
-		queryKey: ["cookbook-hardware"],
-		queryFn: () => getHardware(),
-		staleTime: 60_000,
-	});
+	const { data: ollamaStatus } = useQuery(cookbookStatusQueryOptions());
+	const { data: hardware } = useQuery(hardwareQueryOptions());
 
 	return (
 		<div className="space-y-6">
@@ -87,17 +83,15 @@ export function SetupTab() {
 				<FieldLegend className="flex items-center gap-2">
 					Ollama (local models)
 					<StatusBadge
-						isOk={ollamaStatus?.reachable ?? false}
+						isOk={ollamaStatus?.found ?? false}
 						okLabel="Reachable"
-						missingLabel="Not reachable"
+						missingLabel="Not found"
 					/>
 				</FieldLegend>
 				<FieldDescription>
 					Optional. Powers the Cookbook and local inference without API keys.
 				</FieldDescription>
-				{ollamaStatus && !ollamaStatus.reachable && (
-					<OllamaSetupCard ollamaUrl={ollamaStatus.ollamaUrl} gpus={hardware?.gpus ?? null} />
-				)}
+				{ollamaStatus && !ollamaStatus.found && <OllamaSetupCard gpus={hardware?.gpus ?? null} />}
 			</FieldSet>
 		</div>
 	);

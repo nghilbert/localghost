@@ -70,11 +70,10 @@ function getRecommendedOptionId(gpus: GpuInfo[] | null): SetupOptionId {
 }
 
 type OllamaSetupCardProps = {
-	ollamaUrl: string;
 	gpus: GpuInfo[] | null;
 };
 
-export function OllamaSetupCard({ ollamaUrl, gpus }: OllamaSetupCardProps) {
+export function OllamaSetupCard({ gpus }: OllamaSetupCardProps) {
 	const recommendedId = getRecommendedOptionId(gpus);
 	const [selectedId, setSelectedId] = useState<SetupOptionId>(recommendedId);
 	const selectedCommand = SETUP_OPTIONS.find((option) => option.id === selectedId)?.command ?? null;
@@ -87,10 +86,10 @@ export function OllamaSetupCard({ ollamaUrl, gpus }: OllamaSetupCardProps) {
 	return (
 		<Card>
 			<CardHeader>
-				<CardTitle>Ollama not reachable</CardTitle>
+				<CardTitle>Ollama not found</CardTitle>
 				<CardDescription>
-					Cannot connect to Ollama at <code className="text-xs">{ollamaUrl}</code>. Pick how to run
-					it — the recommended option matches your detected hardware.
+					No running Ollama instance was detected. Pick how to run it — the recommended option
+					matches your detected hardware.
 				</CardDescription>
 			</CardHeader>
 			<CardContent className="space-y-4">

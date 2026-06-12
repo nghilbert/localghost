@@ -23,11 +23,9 @@ export type OllamaInstalledModel = {
 	quantizationLevel: string;
 };
 
-export type OllamaStatus = {
-	ollamaUrl: string;
-	reachable: boolean;
-	installedModels: OllamaInstalledModel[];
-};
+export type OllamaStatus =
+	| { found: true; ollamaUrl: string; installedModels: OllamaInstalledModel[] }
+	| { found: false; ollamaUrl: null; installedModels: OllamaInstalledModel[] };
 
 export type CatalogModel = {
 	id: string;

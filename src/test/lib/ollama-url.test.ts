@@ -1,9 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { getOllamaUrl } from "#/lib/ollama.server";
+import { buildOllamaCandidateUrls, getOllamaUrl, upsertOllamaEndpoint } from "#/lib/ollama.server";
 
-const { findFirst } = vi.hoisted(() => ({ findFirst: vi.fn() }));
+const { findFirst, findMany, create, update } = vi.hoisted(() => ({
+	findFirst: vi.fn(),
+	findMany: vi.fn(),
+	create: vi.fn(),
+	update: vi.fn(),
+}));
 
-vi.mock("#/lib/db.server", () => ({ prisma: { modelEndpoint: { findFirst } } }));
+vi.mock("#/lib/db.server", () => ({
+	prisma: { modelEndpoint: { findFirst, findMany, create, update } },
+}));
 
 describe("getOllamaUrl", () => {
 	beforeEach(() => {
@@ -40,5 +47,79 @@ describe("getOllamaUrl", () => {
 			where: { ownerId: "user-42", provider: "ollama" },
 			orderBy: { createdAt: "asc" },
 		});
+	});
+});
+
+describe("buildOllamaCandidateUrls", () => {
+	it("orders saved urls before env before well-known addresses", () => {
+		expect(
+			buildOllamaCandidateUrls({
+				savedUrls: ["http://my-server:11434"],
+				envUrl: "http://env-host:11434",
+			}),
+		).toEqual([
+			"http://my-server:11434",
+			"http://env-host:11434",
+			"http://localhost:11434",
+			"http://127.0.0.1:11434",
+			"http://host.docker.internal:11434",
+		]);
+	});
+
+	it("dedupes after normalizing trailing slashes", () => {
+		const candidates = buildOllamaCandidateUrls({
+			savedUrls: ["http://localhost:11434///"],
+			envUrl: "http://localhost:11434/",
+		});
+		expect(candidates).toEqual([
+			"http://localhost:11434",
+			"http://127.0.0.1:11434",
+			"http://host.docker.internal:11434",
+		]);
+	});
+
+	it("treats missing and empty env urls as unset", () => {
+		expect(buildOllamaCandidateUrls({ savedUrls: [], envUrl: undefined })).toEqual(
+			buildOllamaCandidateUrls({ savedUrls: [], envUrl: "  " }),
+		);
+	});
+});
+
+describe("upsertOllamaEndpoint", () => {
+	beforeEach(() => {
+		findFirst.mockReset();
+		create.mockReset();
+		update.mockReset();
+	});
+
+	it("creates an ollama endpoint on first detection", async () => {
+		findFirst.mockResolvedValue(null);
+		await upsertOllamaEndpoint("user-1", "http://localhost:11434/");
+		expect(create).toHaveBeenCalledWith({
+			data: {
+				name: "Ollama (local)",
+				url: "http://localhost:11434",
+				provider: "ollama",
+				ownerId: "user-1",
+			},
+		});
+		expect(update).not.toHaveBeenCalled();
+	});
+
+	it("updates the existing endpoint when ollama moved", async () => {
+		findFirst.mockResolvedValue({ id: "ep-1", url: "http://old-host:11434" });
+		await upsertOllamaEndpoint("user-1", "http://localhost:11434");
+		expect(update).toHaveBeenCalledWith({
+			where: { id: "ep-1" },
+			data: { url: "http://localhost:11434" },
+		});
+		expect(create).not.toHaveBeenCalled();
+	});
+
+	it("does nothing when the saved url already matches", async () => {
+		findFirst.mockResolvedValue({ id: "ep-1", url: "http://localhost:11434" });
+		await upsertOllamaEndpoint("user-1", "http://localhost:11434/");
+		expect(create).not.toHaveBeenCalled();
+		expect(update).not.toHaveBeenCalled();
 	});
 });
