@@ -17,10 +17,9 @@ import {
 	installOllama,
 	ollamaInstallQueryOptions,
 } from "#/features/cookbook/lib/install.functions";
+import { INSTALL_IN_PROGRESS_PHASES } from "#/features/cookbook/lib/types";
 
 export type SetupPath = "install" | "manual" | "remote";
-
-const IN_PROGRESS_PHASES = ["pulling-image", "starting", "waiting-api"];
 
 /**
  * Guided Ollama setup shown when no running instance was found. The parent's
@@ -34,7 +33,8 @@ export function OllamaSetupFlow() {
 		...ollamaInstallQueryOptions(),
 		refetchInterval: (query) => {
 			const data = query.state.data;
-			const isInstalling = data?.isAdmin && IN_PROGRESS_PHASES.includes(data.installState.phase);
+			const isInstalling =
+				data?.isAdmin && INSTALL_IN_PROGRESS_PHASES.includes(data.installState.phase);
 			return isInstalling ? 2000 : false;
 		},
 	});

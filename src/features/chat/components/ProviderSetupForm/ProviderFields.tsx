@@ -1,8 +1,8 @@
 import { revalidateLogic } from "@tanstack/react-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2Icon, ChevronDownIcon, CircleAlertIcon, PlusIcon } from "lucide-react";
+import { ChevronDownIcon, PlusIcon } from "lucide-react";
 import { toast } from "sonner";
-import { Alert, AlertDescription, AlertTitle } from "#/components/ui/alert";
+import { ConnectionTestAlert } from "#/components/ConnectionTestAlert";
 import { Button } from "#/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "#/components/ui/collapsible";
 import { Field, FieldError, FieldGroup } from "#/components/ui/field";
@@ -113,21 +113,15 @@ export function ProviderFields({ definition, onCreated }: ProviderFieldsProps) {
 					)}
 
 					{testMutation.data && (
-						<Alert variant={testMutation.data.ok ? "default" : "destructive"}>
-							{testMutation.data.ok ? (
-								<CheckCircle2Icon className="text-success" />
-							) : (
-								<CircleAlertIcon />
-							)}
-							<AlertTitle>
-								{testMutation.data.ok ? "Connection works" : "Connection failed"}
-							</AlertTitle>
-							<AlertDescription>
-								{testMutation.data.ok
+						<ConnectionTestAlert
+							ok={testMutation.data.ok}
+							title={testMutation.data.ok ? "Connection works" : "Connection failed"}
+							description={
+								testMutation.data.ok
 									? `${testMutation.data.modelCount} models available.`
-									: testMutation.data.error}
-							</AlertDescription>
-						</Alert>
+									: (testMutation.data.error ?? "Request failed")
+							}
+						/>
 					)}
 					<FieldError>{createMutation.error?.message}</FieldError>
 

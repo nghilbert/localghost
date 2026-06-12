@@ -1,9 +1,8 @@
 import { revalidateLogic } from "@tanstack/react-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2Icon, CircleAlertIcon } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod/v4";
-import { Alert, AlertDescription, AlertTitle } from "#/components/ui/alert";
+import { ConnectionTestAlert } from "#/components/ConnectionTestAlert";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "#/components/ui/card";
 import { Field, FieldGroup } from "#/components/ui/field";
@@ -83,21 +82,15 @@ export function RemoteOllamaForm({ onBack }: { onBack: () => void }) {
 							</form.AppField>
 
 							{testMutation.data && (
-								<Alert variant={testMutation.data.reachable ? "default" : "destructive"}>
-									{testMutation.data.reachable ? (
-										<CheckCircle2Icon className="text-success" />
-									) : (
-										<CircleAlertIcon />
-									)}
-									<AlertTitle>
-										{testMutation.data.reachable ? "Ollama is reachable" : "Nothing answered"}
-									</AlertTitle>
-									<AlertDescription>
-										{testMutation.data.reachable
+								<ConnectionTestAlert
+									ok={testMutation.data.reachable}
+									title={testMutation.data.reachable ? "Connection works" : "Connection failed"}
+									description={
+										testMutation.data.reachable
 											? `Found ${testMutation.data.modelCount} installed model${testMutation.data.modelCount === 1 ? "" : "s"}.`
-											: "Check the address and that Ollama accepts network connections."}
-									</AlertDescription>
-								</Alert>
+											: "Check the address and that Ollama accepts network connections."
+									}
+								/>
 							)}
 
 							<Field orientation="horizontal">

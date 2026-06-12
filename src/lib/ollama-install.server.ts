@@ -1,14 +1,14 @@
 import { execFile } from "node:child_process";
 import { existsSync } from "node:fs";
 import { promisify } from "node:util";
-import type {
-	GpuVendor,
-	InstallCapabilities,
-	InstallPhase,
-	InstallState,
-	OllamaContainerStatus,
+import {
+	type GpuVendor,
+	INSTALL_IN_PROGRESS_PHASES,
+	type InstallCapabilities,
+	type InstallState,
+	type OllamaContainerStatus,
 } from "#/features/cookbook/lib/types";
-import { probeOllama } from "#/lib/ollama.server";
+import { localOllamaUrls, probeOllama } from "#/lib/ollama.server";
 
 const execFileAsync = promisify(execFile);
 
@@ -18,8 +18,6 @@ const API_POLL_TIMEOUT_MS = 60_000;
 
 // Single-process server: one in-memory install at a time is all we need.
 let installState: InstallState = { phase: "idle" };
-
-const IN_PROGRESS_PHASES: InstallPhase[] = ["pulling-image", "starting", "waiting-api"];
 
 /**
  * Fixed docker argv templates keyed only by detected GPU vendor. Nothing here
@@ -98,9 +96,7 @@ function truncateError(err: unknown): string {
 async function waitForOllamaApi(): Promise<string> {
 	// The container publishes on the host; from inside a container the host is
 	// reachable via host.docker.internal (mapped by docker-compose).
-	const urls = existsSync("/.dockerenv")
-		? ["http://host.docker.internal:11434", "http://localhost:11434"]
-		: ["http://localhost:11434", "http://127.0.0.1:11434"];
+	const urls = localOllamaUrls(existsSync("/.dockerenv"));
 
 	const deadline = Date.now() + API_POLL_TIMEOUT_MS;
 	while (Date.now() < deadline) {
@@ -140,7 +136,7 @@ async function runInstall(gpuVendor: GpuVendor | null): Promise<void> {
  * while an install is already in progress.
  */
 export function beginOllamaInstall(gpuVendor: GpuVendor | null): InstallState {
-	if (IN_PROGRESS_PHASES.includes(installState.phase)) return installState;
+	if (INSTALL_IN_PROGRESS_PHASES.includes(installState.phase)) return installState;
 
 	installState = { phase: "pulling-image", message: "Preparing install" };
 	void runInstall(gpuVendor).catch((err) => {

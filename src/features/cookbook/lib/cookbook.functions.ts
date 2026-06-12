@@ -1,18 +1,10 @@
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
-import { getRequestHeaders } from "@tanstack/react-start/server";
 import { z } from "zod/v4";
-import { auth } from "#/features/auth/lib/auth.server";
+import { getCurrentUserId } from "#/features/auth/lib/session.server";
 import type { OllamaStatus } from "#/features/cookbook/lib/types";
 import { getHardwareInfo } from "#/lib/hardware.server";
 import { getOllamaUrl, scanForOllama, upsertOllamaEndpoint } from "#/lib/ollama.server";
-
-async function getCurrentUserId(): Promise<string> {
-	const headers = getRequestHeaders();
-	const session = await auth.api.getSession({ headers });
-	if (!session) throw new Error("Unauthorized");
-	return session.user.id;
-}
 
 export const getHardware = createServerFn({ method: "GET" }).handler(async () => {
 	await getCurrentUserId();
@@ -25,7 +17,7 @@ export const scanOllamaStatus = createServerFn({ method: "GET" }).handler(
 		const found = await scanForOllama(userId);
 		if (!found) return { found: false, ollamaUrl: null, installedModels: [] };
 
-		await upsertOllamaEndpoint(userId, found.url);
+		await upsertOllamaEndpoint(userId, found.url, found.savedEndpoint);
 		return { found: true, ollamaUrl: found.url, installedModels: found.installedModels };
 	},
 );

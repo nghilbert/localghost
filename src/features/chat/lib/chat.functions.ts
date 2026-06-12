@@ -1,7 +1,7 @@
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
-import { getRequestHeaders } from "@tanstack/react-start/server";
 import { z } from "zod/v4";
+import { getCurrentUserId } from "#/features/auth/lib/session.server";
 import { decrypt, encrypt } from "#/lib/crypto.server";
 import { prisma } from "#/lib/db.server";
 import { listModels, probeEndpoint } from "#/lib/llm.server";
@@ -11,14 +11,6 @@ import {
 	updateEndpointSchema,
 	updateSessionSchema,
 } from "./schemas";
-
-async function getCurrentUserId(): Promise<string> {
-	const { auth } = await import("#/features/auth/lib/auth.server");
-	const headers = getRequestHeaders();
-	const session = await auth.api.getSession({ headers });
-	if (!session) throw new Error("Unauthorized");
-	return session.user.id;
-}
 
 // ── Model Endpoints ──────────────────────────────────────────
 

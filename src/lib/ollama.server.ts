@@ -73,46 +73,77 @@ export async function probeOllama(url: string, timeoutMs = 2500): Promise<Ollama
 	}
 }
 
-/** Probes every candidate URL for the user in priority order; first reachable instance wins. */
-export async function scanForOllama(
-	userId: string,
-): Promise<{ url: string; installedModels: OllamaInstalledModel[] } | null> {
+export type OllamaScanResult = {
+	url: string;
+	installedModels: OllamaInstalledModel[];
+	/** The user's oldest saved ollama endpoint, so callers can sync it without re-querying. */
+	savedEndpoint: { id: string; url: string } | null;
+};
+
+/**
+ * Probes all candidate URLs for the user concurrently; the first reachable
+ * instance in priority order wins.
+ */
+export async function scanForOllama(userId: string): Promise<OllamaScanResult | null> {
 	const saved = await prisma.modelEndpoint.findMany({
 		where: { ownerId: userId, provider: "ollama" },
 		orderBy: { createdAt: "asc" },
-		select: { url: true },
+		select: { id: true, url: true },
 	});
 	const candidates = buildOllamaCandidateUrls({
 		savedUrls: saved.map((endpoint) => endpoint.url),
 		envUrl: process.env.OLLAMA_URL,
 	});
 
-	for (const url of candidates) {
-		const probe = await probeOllama(url);
-		if (probe.reachable) return { url, installedModels: probe.installedModels };
-	}
-	return null;
+	const probes = await Promise.all(
+		candidates.map(async (url) => ({ url, ...(await probeOllama(url)) })),
+	);
+	const found = probes.find((probe) => probe.reachable);
+	if (!found) return null;
+
+	return {
+		url: found.url,
+		installedModels: found.installedModels,
+		savedEndpoint: saved[0] ?? null,
+	};
 }
 
 /**
  * Keeps the user's ollama endpoint row in sync with where Ollama was actually found,
  * creating it on first detection so chat can use local models with zero setup.
+ * Pass `existing` (the oldest saved ollama endpoint, or null) when already known
+ * to skip the lookup.
  */
-export async function upsertOllamaEndpoint(userId: string, url: string): Promise<void> {
+export async function upsertOllamaEndpoint(
+	userId: string,
+	url: string,
+	existing?: { id: string; url: string } | null,
+): Promise<void> {
 	const normalizedUrl = url.replace(/\/+$/, "");
-	const existing = await prisma.modelEndpoint.findFirst({
-		where: { ownerId: userId, provider: "ollama" },
-		orderBy: { createdAt: "asc" },
-	});
+	const resolved =
+		existing !== undefined
+			? existing
+			: await prisma.modelEndpoint.findFirst({
+					where: { ownerId: userId, provider: "ollama" },
+					orderBy: { createdAt: "asc" },
+					select: { id: true, url: true },
+				});
 
-	if (!existing) {
+	if (!resolved) {
 		await prisma.modelEndpoint.create({
 			data: { name: "Ollama (local)", url: normalizedUrl, provider: "ollama", ownerId: userId },
 		});
-	} else if (existing.url !== normalizedUrl) {
+	} else if (resolved.url !== normalizedUrl) {
 		await prisma.modelEndpoint.update({
-			where: { id: existing.id },
+			where: { id: resolved.id },
 			data: { url: normalizedUrl },
 		});
 	}
+}
+
+/** Local addresses where a freshly started Ollama container is reachable from this process. */
+export function localOllamaUrls(inContainer: boolean): string[] {
+	return inContainer
+		? ["http://host.docker.internal:11434", DEFAULT_OLLAMA_URL]
+		: [DEFAULT_OLLAMA_URL, "http://127.0.0.1:11434"];
 }

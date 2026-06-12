@@ -1,8 +1,7 @@
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
-import { getRequestHeaders } from "@tanstack/react-start/server";
 import { isAdmin } from "#/features/admin/lib/admin.server";
-import { auth } from "#/features/auth/lib/auth.server";
+import { getCurrentUserId } from "#/features/auth/lib/session.server";
 import { buildOllamaUrlFromHost, RemoteHostSchema } from "#/features/cookbook/lib/remote-host";
 import { getHardwareInfo } from "#/lib/hardware.server";
 import { probeOllama, upsertOllamaEndpoint } from "#/lib/ollama.server";
@@ -13,13 +12,6 @@ import {
 	startOllamaContainer,
 	stopOllamaContainer,
 } from "#/lib/ollama-install.server";
-
-async function getCurrentUserId(): Promise<string> {
-	const headers = getRequestHeaders();
-	const session = await auth.api.getSession({ headers });
-	if (!session) throw new Error("Unauthorized");
-	return session.user.id;
-}
 
 async function getAdminUserId(): Promise<string> {
 	const userId = await getCurrentUserId();

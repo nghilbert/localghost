@@ -65,6 +65,12 @@ export type InstallPhase =
 	| "ready"
 	| "error";
 
+export const INSTALL_IN_PROGRESS_PHASES: InstallPhase[] = [
+	"pulling-image",
+	"starting",
+	"waiting-api",
+];
+
 export type InstallState = {
 	phase: InstallPhase;
 	message?: string;
