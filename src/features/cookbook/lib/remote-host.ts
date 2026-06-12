@@ -17,8 +17,6 @@ export const RemoteHostSchema = z.object({
 	port: z.int().min(1).max(65535).default(11434),
 });
 
-export type RemoteHost = z.infer<typeof RemoteHostSchema>;
-
 export function buildOllamaUrlFromHost(host: string, port: number): string {
 	return `http://${host}:${port}`;
 }

@@ -4,6 +4,7 @@ import { PageHeader } from "#/components/PageHeader";
 import { Separator } from "#/components/ui/separator";
 import { HardwareCard } from "#/features/cookbook/components/HardwareCard";
 import { ModelTable } from "#/features/cookbook/components/ModelTable";
+import { OllamaContainerControls } from "#/features/cookbook/components/OllamaContainerControls";
 import { OllamaSetupFlow } from "#/features/cookbook/components/OllamaSetupFlow";
 import { RecommendedModels } from "#/features/cookbook/components/RecommendedModels";
 import { useModelPull } from "#/features/cookbook/hooks/use-model-pull";
@@ -48,6 +49,8 @@ export function CookbookPage() {
 			<div className="flex-1 overflow-auto">
 				<div className="space-y-6 p-6">
 					<HardwareCard hardware={hardware} isLoading={isLoadingHardware} />
+
+					<OllamaContainerControls />
 
 					<Separator />
 
