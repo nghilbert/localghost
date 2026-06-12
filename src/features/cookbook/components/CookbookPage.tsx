@@ -4,6 +4,7 @@ import { Separator } from "#/components/ui/separator";
 import { HardwareCard } from "#/features/cookbook/components/HardwareCard";
 import { ModelTable } from "#/features/cookbook/components/ModelTable";
 import { OllamaSetupFlow } from "#/features/cookbook/components/OllamaSetupFlow";
+import { RecommendedModels } from "#/features/cookbook/components/RecommendedModels";
 import { useModelPull } from "#/features/cookbook/hooks/use-model-pull";
 import {
 	cookbookStatusQueryOptions,
@@ -46,13 +47,21 @@ export function CookbookPage() {
 					<Separator />
 
 					{ollamaStatus?.found ? (
-						<ModelTable
-							hardware={hardware}
-							installedModels={ollamaStatus.installedModels}
-							pulling={pulling}
-							onPull={handlePull}
-							onDelete={(model) => deleteMutation.mutate(model)}
-						/>
+						<>
+							<RecommendedModels
+								hardware={hardware}
+								installedModels={ollamaStatus.installedModels}
+								pulling={pulling}
+								onPull={handlePull}
+							/>
+							<ModelTable
+								hardware={hardware}
+								installedModels={ollamaStatus.installedModels}
+								pulling={pulling}
+								onPull={handlePull}
+								onDelete={(model) => deleteMutation.mutate(model)}
+							/>
+						</>
 					) : (
 						<OllamaSetupFlow />
 					)}
