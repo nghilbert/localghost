@@ -5,12 +5,6 @@ RUN npm ci
 COPY . .
 RUN npm run prisma generate && npm run build
 
-FROM node:24-alpine AS dev
-WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci
-EXPOSE 3000
-
 FROM node:24-alpine
 WORKDIR /app
 ENV NODE_ENV=production
