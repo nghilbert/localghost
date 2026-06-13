@@ -23,12 +23,15 @@ export function SavePresetForm({
 		validators: { onDynamic: SavePresetNameFormSchema },
 		validationLogic: revalidateLogic(),
 		onSubmit: async ({ value, formApi }) => {
-			await createMutation
-				.mutateAsync({ name: value.name.trim(), systemPrompt, temperature, model })
-				.then(() => {
-					formApi.reset();
-					onSuccess?.();
-				});
+			await createMutation.mutate(
+				{ name: value.name.trim(), systemPrompt, temperature, model },
+				{
+					onSuccess: () => {
+						formApi.reset();
+						onSuccess?.();
+					},
+				},
+			);
 		},
 	});
 

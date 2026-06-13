@@ -16,7 +16,7 @@ export function UpdateProfileForm() {
 		validators: { onDynamic: ProfileFormSchema },
 		validationLogic: revalidateLogic(),
 		onSubmit: async ({ value }) => {
-			await updateMutation.mutateAsync(value.name.trim());
+			await updateMutation.mutate(value.name.trim());
 		},
 	});
 

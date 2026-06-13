@@ -18,9 +18,11 @@ export function CreateContactForm({ onSuccess }: CreateContactFormProps) {
 		validators: { onDynamic: CreateContactFormSchema },
 		validationLogic: revalidateLogic(),
 		onSubmit: async ({ value, formApi }) => {
-			await createMutation.mutateAsync(toCreateContactInput(value)).then(() => {
-				formApi.reset();
-				onSuccess?.();
+			await createMutation.mutate(toCreateContactInput(value), {
+				onSuccess: () => {
+					formApi.reset();
+					onSuccess?.();
+				},
 			});
 		},
 	});
