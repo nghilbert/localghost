@@ -1,11 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { toast } from "sonner";
 import { PageHeader } from "#/components/PageHeader";
+import { Button } from "#/components/ui/button";
+import { Item, ItemActions, ItemContent, ItemDescription, ItemTitle } from "#/components/ui/item";
 import { Separator } from "#/components/ui/separator";
 import { HardwareCard } from "#/features/cookbook/components/HardwareCard";
 import { ModelTable } from "#/features/cookbook/components/ModelTable";
 import { OllamaSetupCard } from "#/features/cookbook/components/OllamaSetupCard";
 import { RecommendedModels } from "#/features/cookbook/components/RecommendedModels";
+import { RemoteOllamaForm } from "#/features/cookbook/components/RemoteOllamaForm";
 import { useModelPull } from "#/features/cookbook/hooks/use-model-pull";
 import {
 	cookbookStatusQueryOptions,
@@ -24,6 +28,8 @@ export function CookbookPage() {
 	});
 
 	const { pulling, pull } = useModelPull();
+
+	const [isReconnecting, setIsReconnecting] = useState(false);
 
 	const deleteMutation = useMutation({
 		mutationFn: (model: string) => deleteModel({ data: { model } }),
@@ -52,21 +58,36 @@ export function CookbookPage() {
 					<Separator />
 
 					{ollamaStatus?.found ? (
-						<>
-							<RecommendedModels
-								hardware={hardware}
-								installedModels={ollamaStatus.installedModels}
-								pulling={pulling}
-								onPull={handlePull}
-							/>
-							<ModelTable
-								hardware={hardware}
-								installedModels={ollamaStatus.installedModels}
-								pulling={pulling}
-								onPull={handlePull}
-								onDelete={(model) => deleteMutation.mutate(model)}
-							/>
-						</>
+						isReconnecting ? (
+							<RemoteOllamaForm onBack={() => setIsReconnecting(false)} />
+						) : (
+							<>
+								<Item variant="muted">
+									<ItemContent>
+										<ItemTitle>Connected to Ollama</ItemTitle>
+										<ItemDescription>{ollamaStatus.ollamaUrl}</ItemDescription>
+									</ItemContent>
+									<ItemActions>
+										<Button variant="outline" size="sm" onClick={() => setIsReconnecting(true)}>
+											Use a different Ollama
+										</Button>
+									</ItemActions>
+								</Item>
+								<RecommendedModels
+									hardware={hardware}
+									installedModels={ollamaStatus.installedModels}
+									pulling={pulling}
+									onPull={handlePull}
+								/>
+								<ModelTable
+									hardware={hardware}
+									installedModels={ollamaStatus.installedModels}
+									pulling={pulling}
+									onPull={handlePull}
+									onDelete={(model) => deleteMutation.mutate(model)}
+								/>
+							</>
+						)
 					) : (
 						<OllamaSetupCard />
 					)}
