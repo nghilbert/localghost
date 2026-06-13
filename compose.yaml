@@ -40,8 +40,6 @@ services:
     image: ollama/ollama
     container_name: ollama
     profiles: [cpu]
-    ports:
-      - "11434:11434"
     volumes:
       - ollama:/root/.ollama
     restart: unless-stopped
@@ -51,8 +49,6 @@ services:
     container_name: ollama
     profiles: [nvidia]
     gpus: all
-    ports:
-      - "11434:11434"
     volumes:
       - ollama:/root/.ollama
     restart: unless-stopped
@@ -64,8 +60,6 @@ services:
     devices:
       - /dev/kfd
       - /dev/dri
-    ports:
-      - "11434:11434"
     volumes:
       - ollama:/root/.ollama
     restart: unless-stopped
