@@ -1,9 +1,9 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { MailIcon } from "lucide-react";
 import { useState } from "react";
-import { AddAccountDialog } from "#/features/email/components/AddAccountDialog";
-import { ComposeModal } from "#/features/email/components/ComposeModal";
+import { AddEmailAccountDialog } from "#/features/email/components/AddEmailAccountDialog";
+import { ComposeDialog } from "#/features/email/components/ComposeDialog";
 import { EmailMessageList } from "#/features/email/components/EmailMessageList";
 import { EmailMessageReader } from "#/features/email/components/EmailMessageReader";
 import {
@@ -17,7 +17,6 @@ export const Route = createFileRoute("/_authenticated/email")({
 });
 
 function EmailPage() {
-	const queryClient = useQueryClient();
 	const { data: accounts = [] } = useQuery(emailAccountsQueryOptions());
 	const [selectedAccountId, setSelectedAccountId] = useState<string | undefined>(
 		() => accounts[0]?.id,
@@ -51,7 +50,6 @@ function EmailPage() {
 	});
 
 	function handleAccountAdded(id: string) {
-		queryClient.invalidateQueries({ queryKey: ["email-accounts"] });
 		setSelectedAccountId(id);
 	}
 
@@ -60,7 +58,7 @@ function EmailPage() {
 			<div className="flex h-full flex-col items-center justify-center gap-4">
 				<MailIcon size={40} className="text-muted-foreground" />
 				<p className="text-muted-foreground">No email accounts configured</p>
-				<AddAccountDialog onAdded={handleAccountAdded} />
+				<AddEmailAccountDialog onAdded={handleAccountAdded} />
 			</div>
 		);
 	}
@@ -103,7 +101,7 @@ function EmailPage() {
 			</main>
 
 			{activeAccountId && (
-				<ComposeModal
+				<ComposeDialog
 					accountId={activeAccountId}
 					open={isComposeOpen}
 					onOpenChange={setIsComposeOpen}

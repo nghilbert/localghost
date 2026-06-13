@@ -3,7 +3,7 @@ import { Button } from "#/components/ui/button";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "#/components/ui/empty";
 import { NativeSelect, NativeSelectOption } from "#/components/ui/native-select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "#/components/ui/tooltip";
-import { AddAccountDialog } from "#/features/email/components/AddAccountDialog";
+import { AddEmailAccountDialog } from "#/features/email/components/AddEmailAccountDialog";
 import type { EmailAccount, EmailMessage } from "#/features/email/lib/types";
 
 type EmailMessageListProps = {
@@ -111,7 +111,7 @@ export function EmailMessageList({
 			</ul>
 
 			<div className="border-t p-2">
-				<AddAccountDialog onAdded={onAccountAdded} />
+				<AddEmailAccountDialog onAdded={onAccountAdded} />
 			</div>
 		</aside>
 	);
