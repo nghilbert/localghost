@@ -2,12 +2,12 @@ import { MailIcon, PhoneIcon, Trash2Icon, UserIcon } from "lucide-react";
 import { Button } from "#/components/ui/button";
 import type { Contact } from "#/features/contacts/lib/types";
 
-type ContactRowProps = {
+type ContactCardProps = {
 	contact: Contact;
 	onDelete: () => void;
 };
 
-export function ContactRow({ contact, onDelete }: ContactRowProps) {
+export function ContactCard({ contact, onDelete }: ContactCardProps) {
 	return (
 		<li className="group flex items-center gap-3 px-4 py-3 hover:bg-muted/30">
 			<div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10">
