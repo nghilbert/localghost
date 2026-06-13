@@ -1,14 +1,13 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { BookmarkIcon } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 import { Button } from "#/components/ui/button";
 import { Field, FieldLabel } from "#/components/ui/field";
 import { Slider } from "#/components/ui/slider";
 import { Textarea } from "#/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "#/components/ui/tooltip";
 import { SavePresetDialog } from "#/features/chat/components/ChatView/SavePresetDialog";
-import { createPreset, presetsQueryOptions } from "#/features/chat/lib/preset.functions";
+import { presetsQueryOptions } from "#/features/chat/lib/preset.functions";
 
 type SessionSettingsPanelProps = {
 	sessionModel: string;
@@ -29,19 +28,14 @@ export function SessionSettingsPanel({
 
 	const { data: presets = [] } = useQuery(presetsQueryOptions());
 
-	const savePresetMutation = useMutation({
-		mutationFn: (name: string) =>
-			createPreset({ data: { name, systemPrompt, temperature, model: sessionModel } }),
-		onSuccess: () => toast.success("Preset saved"),
-		onError: (error) => toast.error(`Failed to save preset: ${error.message}`),
-	});
-
 	return (
 		<div className="border-t bg-muted/30 px-4 py-3">
 			<SavePresetDialog
 				open={isSaveDialogOpen}
 				onOpenChange={setIsSaveDialogOpen}
-				onSave={(name) => savePresetMutation.mutate(name)}
+				systemPrompt={systemPrompt}
+				temperature={temperature}
+				model={sessionModel}
 			/>
 			{presets.length > 0 && (
 				<div className="mb-3 flex items-center gap-2">
