@@ -1,8 +1,8 @@
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeaders } from "@tanstack/react-start/server";
-import { z } from "zod/v4";
 import { auth } from "#/features/auth/lib/auth.server";
+import { createSkillInput, skillIdInput, updateSkillInput } from "#/features/skills/lib/schemas";
 import { prisma } from "#/lib/db.server";
 
 async function getCurrentUserId(): Promise<string> {
@@ -21,13 +21,7 @@ export const getSkills = createServerFn({ method: "GET" }).handler(async () => {
 });
 
 export const createSkill = createServerFn({ method: "POST" })
-	.validator(
-		z.object({
-			name: z.string().min(1).max(100),
-			description: z.string().max(500).optional(),
-			content: z.string().min(1).max(20000),
-		}),
-	)
+	.validator(createSkillInput)
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		return prisma.skill.create({
@@ -41,14 +35,7 @@ export const createSkill = createServerFn({ method: "POST" })
 	});
 
 export const updateSkill = createServerFn({ method: "POST" })
-	.validator(
-		z.object({
-			id: z.uuid(),
-			name: z.string().min(1).max(100).optional(),
-			description: z.string().max(500).optional(),
-			content: z.string().min(1).max(20000).optional(),
-		}),
-	)
+	.validator(updateSkillInput)
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		const existing = await prisma.skill.findFirst({ where: { id: data.id, ownerId: userId } });
@@ -64,7 +51,7 @@ export const updateSkill = createServerFn({ method: "POST" })
 	});
 
 export const deleteSkill = createServerFn({ method: "POST" })
-	.validator(z.object({ id: z.uuid() }))
+	.validator(skillIdInput)
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		await prisma.skill.deleteMany({ where: { id: data.id, ownerId: userId } });
