@@ -1,8 +1,14 @@
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeaders } from "@tanstack/react-start/server";
-import { z } from "zod/v4";
 import { auth } from "#/features/auth/lib/auth.server";
+import {
+	createDocumentInput,
+	documentIdInput,
+	documentVersionIdInput,
+	listDocumentsInput,
+	updateDocumentInput,
+} from "#/features/documents/lib/schemas";
 import { prisma } from "#/lib/db.server";
 import { embed, toVectorLiteral } from "#/lib/embeddings.server";
 
@@ -13,22 +19,8 @@ async function getCurrentUserId(): Promise<string> {
 	return session.user.id;
 }
 
-const LANGUAGES = [
-	"markdown",
-	"text",
-	"python",
-	"javascript",
-	"typescript",
-	"html",
-	"css",
-	"json",
-	"yaml",
-	"sql",
-	"bash",
-] as const;
-
 export const getDocuments = createServerFn({ method: "GET" })
-	.validator(z.object({ archived: z.boolean().default(false) }).optional())
+	.validator(listDocumentsInput)
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		return prisma.document.findMany({
@@ -47,7 +39,7 @@ export const getDocuments = createServerFn({ method: "GET" })
 	});
 
 export const getDocument = createServerFn({ method: "GET" })
-	.validator(z.object({ id: z.uuid() }))
+	.validator(documentIdInput)
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		const doc = await prisma.document.findFirst({
@@ -71,13 +63,7 @@ export const getDocument = createServerFn({ method: "GET" })
 	});
 
 export const createDocument = createServerFn({ method: "POST" })
-	.validator(
-		z.object({
-			title: z.string().min(1).default("Untitled"),
-			language: z.enum(LANGUAGES).default("markdown"),
-			content: z.string().default(""),
-		}),
-	)
+	.validator(createDocumentInput)
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 
@@ -109,15 +95,7 @@ export const createDocument = createServerFn({ method: "POST" })
 	});
 
 export const updateDocument = createServerFn({ method: "POST" })
-	.validator(
-		z.object({
-			id: z.uuid(),
-			title: z.string().min(1).optional(),
-			language: z.enum(LANGUAGES).optional(),
-			content: z.string().optional(),
-			summary: z.string().optional(),
-		}),
-	)
+	.validator(updateDocumentInput)
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		const doc = await prisma.document.findFirst({ where: { id: data.id, ownerId: userId } });
@@ -149,14 +127,14 @@ export const updateDocument = createServerFn({ method: "POST" })
 	});
 
 export const deleteDocument = createServerFn({ method: "POST" })
-	.validator(z.object({ id: z.uuid() }))
+	.validator(documentIdInput)
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		await prisma.document.deleteMany({ where: { id: data.id, ownerId: userId } });
 	});
 
 export const getDocumentVersion = createServerFn({ method: "GET" })
-	.validator(z.object({ versionId: z.uuid() }))
+	.validator(documentVersionIdInput)
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		const version = await prisma.documentVersion.findFirst({
