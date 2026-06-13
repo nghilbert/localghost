@@ -7,7 +7,7 @@ import {
 	testMcpServer,
 	updateMcpServer,
 } from "#/features/mcp/lib/mcp.functions";
-import { McpAddServerForm } from "#/features/settings/components/McpAddServerForm";
+import { AddMcpServerForm } from "#/features/settings/components/AddMcpServerForm";
 import { McpServerList, type McpTestResult } from "#/features/settings/components/McpServerList";
 
 export function McpTab() {
@@ -51,7 +51,7 @@ export function McpTab() {
 				</Button>
 			</div>
 
-			{showForm && <McpAddServerForm onCreated={() => setShowForm(false)} />}
+			{showForm && <AddMcpServerForm onSuccess={() => setShowForm(false)} />}
 
 			{servers.length === 0 && !showForm && (
 				<p className="text-sm text-muted-foreground">No MCP servers configured.</p>
