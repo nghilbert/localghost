@@ -14,15 +14,18 @@ export function CreateTokenForm({ onCreated }: CreateTokenFormProps) {
 		validators: { onDynamic: CreateTokenFormSchema },
 		validationLogic: revalidateLogic(),
 		onSubmit: async ({ value, formApi }) => {
-			await createMutation
-				.mutateAsync({
+			await createMutation.mutate(
+				{
 					name: value.name.trim(),
 					expiresInDays: value.expiresInDays ? Number(value.expiresInDays) : undefined,
-				})
-				.then((result) => {
-					formApi.reset();
-					onCreated?.(result.raw);
-				});
+				},
+				{
+					onSuccess: (result) => {
+						formApi.reset();
+						onCreated?.(result.raw);
+					},
+				},
+			);
 		},
 	});
 

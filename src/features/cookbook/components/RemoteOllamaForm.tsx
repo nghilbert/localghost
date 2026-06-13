@@ -30,7 +30,9 @@ export function RemoteOllamaForm({ onBack }: { onBack: () => void }) {
 		defaultValues: { url: "" },
 		validators: { onDynamic: OllamaUrlSchema },
 		validationLogic: revalidateLogic(),
-		onSubmit: ({ value }) => connectMutation.mutateAsync(value.url),
+		onSubmit: async ({ value }) => {
+			await connectMutation.mutate(value.url);
+		},
 	});
 
 	function handleTest() {

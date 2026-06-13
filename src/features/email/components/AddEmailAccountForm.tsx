@@ -24,9 +24,11 @@ export function AddEmailAccountForm({ onSuccess }: AddEmailAccountFormProps) {
 		validators: { onDynamic: EmailAccountFormSchema },
 		validationLogic: revalidateLogic(),
 		onSubmit: async ({ value, formApi }) => {
-			await createMutation.mutateAsync(toCreateEmailAccountInput(value)).then((account) => {
-				formApi.reset();
-				onSuccess?.(account.id);
+			await createMutation.mutate(toCreateEmailAccountInput(value), {
+				onSuccess: (account) => {
+					formApi.reset();
+					onSuccess?.(account.id);
+				},
 			});
 		},
 	});

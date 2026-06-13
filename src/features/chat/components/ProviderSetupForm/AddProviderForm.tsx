@@ -37,17 +37,20 @@ export function AddProviderForm({ definition, onCreated }: AddProviderFormProps)
 		validators: { onDynamic: schema },
 		validationLogic: revalidateLogic(),
 		onSubmit: async ({ value, formApi }) => {
-			await createMutation
-				.mutateAsync({
+			await createMutation.mutate(
+				{
 					name: value.name.trim(),
 					url: value.url.trim(),
 					apiKey: value.apiKey || undefined,
 					provider: dbProviderFor(definition.id),
-				})
-				.then(() => {
-					formApi.reset();
-					onCreated?.();
-				});
+				},
+				{
+					onSuccess: () => {
+						formApi.reset();
+						onCreated?.();
+					},
+				},
+			);
 		},
 	});
 

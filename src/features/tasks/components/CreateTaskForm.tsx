@@ -24,9 +24,11 @@ export function CreateTaskForm({ onSuccess }: CreateTaskFormProps) {
 		validators: { onDynamic: CreateTaskFormSchema },
 		validationLogic: revalidateLogic(),
 		onSubmit: async ({ value, formApi }) => {
-			await createMutation.mutateAsync(toCreateTaskInput(value)).then(() => {
-				formApi.reset();
-				onSuccess?.();
+			await createMutation.mutate(toCreateTaskInput(value), {
+				onSuccess: () => {
+					formApi.reset();
+					onSuccess?.();
+				},
 			});
 		},
 	});

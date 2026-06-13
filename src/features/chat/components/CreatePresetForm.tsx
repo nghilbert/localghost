@@ -16,8 +16,10 @@ export function CreatePresetForm() {
 		validators: { onDynamic: CreatePresetFormSchema },
 		validationLogic: revalidateLogic(),
 		onSubmit: async ({ value, formApi }) => {
-			await createMutation.mutateAsync(toCreatePresetInput(value)).then(() => {
-				formApi.reset();
+			await createMutation.mutate(toCreatePresetInput(value), {
+				onSuccess: () => {
+					formApi.reset();
+				},
 			});
 		},
 	});

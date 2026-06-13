@@ -18,9 +18,11 @@ export function CreateCalendarForm({ onSuccess }: CreateCalendarFormProps) {
 		validators: { onDynamic: CreateCalendarFormSchema },
 		validationLogic: revalidateLogic(),
 		onSubmit: async ({ value, formApi }) => {
-			await createMutation.mutateAsync(toCreateCalendarInput(value)).then(() => {
-				formApi.reset();
-				onSuccess?.();
+			await createMutation.mutate(toCreateCalendarInput(value), {
+				onSuccess: () => {
+					formApi.reset();
+					onSuccess?.();
+				},
 			});
 		},
 	});

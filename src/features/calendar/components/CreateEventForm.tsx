@@ -35,9 +35,11 @@ export function CreateEventForm({ calendars, defaultDate, onSuccess }: CreateEve
 		validators: { onDynamic: CreateEventFormSchema },
 		validationLogic: revalidateLogic(),
 		onSubmit: async ({ value, formApi }) => {
-			await createMutation.mutateAsync(toCreateEventInput(value)).then(() => {
-				formApi.reset();
-				onSuccess?.();
+			await createMutation.mutate(toCreateEventInput(value), {
+				onSuccess: () => {
+					formApi.reset();
+					onSuccess?.();
+				},
 			});
 		},
 	});

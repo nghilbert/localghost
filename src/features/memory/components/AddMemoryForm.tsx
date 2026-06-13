@@ -22,9 +22,11 @@ export function AddMemoryForm({ onSuccess }: AddMemoryFormProps) {
 		validators: { onDynamic: AddMemoryFormSchema },
 		validationLogic: revalidateLogic(),
 		onSubmit: async ({ value, formApi }) => {
-			await addMutation.mutateAsync(toAddMemoryInput(value)).then(() => {
-				formApi.reset();
-				onSuccess?.();
+			await addMutation.mutate(toAddMemoryInput(value), {
+				onSuccess: () => {
+					formApi.reset();
+					onSuccess?.();
+				},
 			});
 		},
 	});

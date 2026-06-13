@@ -22,9 +22,11 @@ export function ComposeEmailForm({ accountId, replyTo, onSuccess }: ComposeEmail
 		validators: { onDynamic: ComposeEmailFormSchema },
 		validationLogic: revalidateLogic(),
 		onSubmit: async ({ value, formApi }) => {
-			await sendMutation.mutateAsync(toSendEmailInput(accountId, value)).then(() => {
-				formApi.reset();
-				onSuccess?.();
+			await sendMutation.mutate(toSendEmailInput(accountId, value), {
+				onSuccess: () => {
+					formApi.reset();
+					onSuccess?.();
+				},
 			});
 		},
 	});
