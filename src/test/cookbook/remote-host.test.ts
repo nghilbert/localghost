@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { buildOllamaUrlFromHost, RemoteHostSchema } from "#/features/cookbook/lib/remote-host";
+import {
+	buildOllamaUrlFromHost,
+	HOSTNAME_OR_IP_REGEX,
+	OllamaUrlSchema,
+} from "#/features/cookbook/lib/remote-host";
 
-describe("RemoteHostSchema", () => {
+describe("HOSTNAME_OR_IP_REGEX", () => {
 	it.each([
 		"localhost",
 		"192.168.1.50",
@@ -9,7 +13,7 @@ describe("RemoteHostSchema", () => {
 		"my-server",
 		"a.b-c.example.com",
 	])("accepts %s", (host) => {
-		expect(RemoteHostSchema.safeParse({ host }).success).toBe(true);
+		expect(HOSTNAME_OR_IP_REGEX.test(host)).toBe(true);
 	});
 
 	it.each([
@@ -22,23 +26,32 @@ describe("RemoteHostSchema", () => {
 		"-leading-dash",
 		"trailing-dash-",
 	])("rejects %j", (host) => {
-		expect(RemoteHostSchema.safeParse({ host }).success).toBe(false);
-	});
-
-	it("defaults the port to 11434 and bounds it", () => {
-		expect(RemoteHostSchema.parse({ host: "localhost" }).port).toBe(11434);
-		expect(RemoteHostSchema.safeParse({ host: "localhost", port: 0 }).success).toBe(false);
-		expect(RemoteHostSchema.safeParse({ host: "localhost", port: 70000 }).success).toBe(false);
-		expect(RemoteHostSchema.safeParse({ host: "localhost", port: 8080 }).success).toBe(true);
-	});
-
-	it("trims surrounding whitespace from the host", () => {
-		expect(RemoteHostSchema.parse({ host: "  ollama.lan  " }).host).toBe("ollama.lan");
+		expect(HOSTNAME_OR_IP_REGEX.test(host)).toBe(false);
 	});
 });
 
 describe("buildOllamaUrlFromHost", () => {
 	it("assembles a plain http base url", () => {
 		expect(buildOllamaUrlFromHost("192.168.1.50", 11434)).toBe("http://192.168.1.50:11434");
+	});
+});
+
+describe("OllamaUrlSchema", () => {
+	it.each([
+		"http://localhost:11434",
+		"https://ollama.example.com",
+		"https://host/ollama",
+	])("accepts %s", (url) => {
+		expect(OllamaUrlSchema.safeParse({ url }).success).toBe(true);
+	});
+
+	it.each(["not-a-url", "ftp://host", "localhost:11434", ""])("rejects %j", (url) => {
+		expect(OllamaUrlSchema.safeParse({ url }).success).toBe(false);
+	});
+
+	it("strips the trailing slash so paths can be appended", () => {
+		expect(OllamaUrlSchema.parse({ url: "http://localhost:11434/" }).url).toBe(
+			"http://localhost:11434",
+		);
 	});
 });
