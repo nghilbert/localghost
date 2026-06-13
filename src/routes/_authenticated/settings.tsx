@@ -10,7 +10,6 @@ import {
 	WebhookIcon,
 	WrenchIcon,
 } from "lucide-react";
-import { z } from "zod/v4";
 import { PageHeader } from "#/components/PageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "#/components/ui/tabs";
 import { AccountTab } from "#/features/settings/components/AccountTab";
@@ -21,23 +20,8 @@ import { ProvidersTab } from "#/features/settings/components/ProvidersTab";
 import { SetupTab } from "#/features/settings/components/SetupTab";
 import { TokensTab } from "#/features/settings/components/TokensTab";
 import { WebhooksTab } from "#/features/settings/components/WebhooksTab";
+import { SettingsSearchSchema } from "#/features/settings/lib/schemas";
 import { AppearanceSettings } from "#/features/theme/AppearanceSettings";
-
-const TAB_VALUES = [
-	"account",
-	"setup",
-	"providers",
-	"theme",
-	"webhooks",
-	"tokens",
-	"presets",
-	"data",
-	"mcp",
-] as const;
-
-const SettingsSearchSchema = z.object({
-	tab: z.enum(TAB_VALUES).optional().catch(undefined),
-});
 
 export const Route = createFileRoute("/_authenticated/settings")({
 	component: SettingsPage,

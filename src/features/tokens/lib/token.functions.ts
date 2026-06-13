@@ -1,8 +1,8 @@
 import { createHash, randomBytes } from "node:crypto";
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeaders } from "@tanstack/react-start/server";
-import { z } from "zod/v4";
 import { auth } from "#/features/auth/lib/auth.server";
+import { createTokenInput, deleteTokenInput } from "#/features/tokens/lib/schemas";
 import { prisma } from "#/lib/db.server";
 
 const TOKEN_PREFIX = "ody_";
@@ -44,12 +44,7 @@ export const getTokens = createServerFn({ method: "GET" }).handler(async () => {
 });
 
 export const createToken = createServerFn({ method: "POST" })
-	.validator(
-		z.object({
-			name: z.string().min(1).max(100),
-			expiresInDays: z.number().int().min(1).max(365).optional(),
-		}),
-	)
+	.validator(createTokenInput)
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		const { raw, hash, prefix } = generateToken();
@@ -71,7 +66,7 @@ export const createToken = createServerFn({ method: "POST" })
 	});
 
 export const deleteToken = createServerFn({ method: "POST" })
-	.validator(z.object({ id: z.uuid() }))
+	.validator(deleteTokenInput)
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		const existing = await prisma.apiToken.findFirst({ where: { id: data.id, ownerId: userId } });
