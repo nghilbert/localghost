@@ -1,8 +1,12 @@
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeaders } from "@tanstack/react-start/server";
-import { z } from "zod/v4";
 import { auth } from "#/features/auth/lib/auth.server";
+import {
+	addMemoryInput,
+	deleteMemoryInput,
+	searchMemoriesInput,
+} from "#/features/memory/lib/schemas";
 import { prisma } from "#/lib/db.server";
 import { embed, toVectorLiteral } from "#/lib/embeddings.server";
 
@@ -12,8 +16,6 @@ async function getCurrentUserId(): Promise<string> {
 	if (!session) throw new Error("Unauthorized");
 	return session.user.id;
 }
-
-const CATEGORY_VALUES = ["fact", "preference", "contact", "project", "instruction"] as const;
 
 export const getMemories = createServerFn({ method: "GET" }).handler(async () => {
 	const userId = await getCurrentUserId();
@@ -25,12 +27,7 @@ export const getMemories = createServerFn({ method: "GET" }).handler(async () =>
 });
 
 export const addMemory = createServerFn({ method: "POST" })
-	.validator(
-		z.object({
-			text: z.string().min(1),
-			category: z.enum(CATEGORY_VALUES).default("fact"),
-		}),
-	)
+	.validator(addMemoryInput)
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		const embedding = await embed(data.text, userId);
@@ -54,14 +51,14 @@ export const addMemory = createServerFn({ method: "POST" })
 	});
 
 export const deleteMemory = createServerFn({ method: "POST" })
-	.validator(z.object({ id: z.uuid() }))
+	.validator(deleteMemoryInput)
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		await prisma.memory.deleteMany({ where: { id: data.id, ownerId: userId } });
 	});
 
 export const searchMemories = createServerFn({ method: "POST" })
-	.validator(z.object({ query: z.string().min(1), limit: z.number().default(10) }))
+	.validator(searchMemoriesInput)
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		const embedding = await embed(data.query, userId);

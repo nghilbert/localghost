@@ -14,7 +14,7 @@ import { SessionSettingsPanel } from "#/features/chat/components/ChatView/Sessio
 import { ModelPicker } from "#/features/chat/components/ModelPicker";
 import { useChatStream } from "#/features/chat/hooks/use-chat-stream";
 import { updateSession } from "#/features/chat/lib/chat.functions";
-import { MemoryModal } from "#/features/memory/components/MemoryModal";
+import { MemoryDialog } from "#/features/memory/components/MemoryDialog";
 import { cn } from "#/lib/utils";
 
 type ToolCallRecord = { id: string; tool: string; result: string };
@@ -130,7 +130,7 @@ export function ChatView({ session }: ChatViewProps) {
 							session={{ id: session.id, name: session.name, model: session.model }}
 							messages={allDisplayMessages}
 						/>
-						<MemoryModal />
+						<MemoryDialog />
 						<ModelPicker
 							sessionId={session.id}
 							currentModel={session.model}
