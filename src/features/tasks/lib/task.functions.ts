@@ -1,8 +1,14 @@
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeaders } from "@tanstack/react-start/server";
-import { z } from "zod/v4";
 import { auth } from "#/features/auth/lib/auth.server";
+import {
+	createTaskInput,
+	deleteTaskInput,
+	getTaskRunsInput,
+	runTaskInput,
+	updateTaskInput,
+} from "#/features/tasks/lib/schemas";
 import { prisma } from "#/lib/db.server";
 import { computeNextRun, executeTaskById } from "#/lib/scheduler.server";
 
@@ -12,8 +18,6 @@ async function getCurrentUserId(): Promise<string> {
 	if (!session) throw new Error("Unauthorized");
 	return session.user.id;
 }
-
-const SCHEDULES = ["once", "daily", "weekly", "monthly", "cron"] as const;
 
 export const getTasks = createServerFn({ method: "GET" }).handler(async () => {
 	const userId = await getCurrentUserId();
@@ -31,16 +35,7 @@ export const getTasks = createServerFn({ method: "GET" }).handler(async () => {
 });
 
 export const createTask = createServerFn({ method: "POST" })
-	.validator(
-		z.object({
-			name: z.string().min(1),
-			prompt: z.string().min(1),
-			schedule: z.enum(SCHEDULES).default("daily"),
-			scheduledTime: z.string().optional(),
-			cronExpression: z.string().optional(),
-			sessionId: z.uuid().optional(),
-		}),
-	)
+	.validator(createTaskInput)
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		const nextRun = computeNextRun(
@@ -65,14 +60,7 @@ export const createTask = createServerFn({ method: "POST" })
 	});
 
 export const updateTask = createServerFn({ method: "POST" })
-	.validator(
-		z.object({
-			id: z.uuid(),
-			status: z.enum(["active", "paused", "completed"]).optional(),
-			name: z.string().min(1).optional(),
-			prompt: z.string().optional(),
-		}),
-	)
+	.validator(updateTaskInput)
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		const task = await prisma.scheduledTask.findFirst({ where: { id: data.id, ownerId: userId } });
@@ -83,14 +71,14 @@ export const updateTask = createServerFn({ method: "POST" })
 	});
 
 export const deleteTask = createServerFn({ method: "POST" })
-	.validator(z.object({ id: z.uuid() }))
+	.validator(deleteTaskInput)
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		await prisma.scheduledTask.deleteMany({ where: { id: data.id, ownerId: userId } });
 	});
 
 export const runTaskNow = createServerFn({ method: "POST" })
-	.validator(z.object({ id: z.uuid() }))
+	.validator(runTaskInput)
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		const task = await prisma.scheduledTask.findFirst({ where: { id: data.id, ownerId: userId } });
@@ -100,7 +88,7 @@ export const runTaskNow = createServerFn({ method: "POST" })
 	});
 
 export const getTaskRuns = createServerFn({ method: "GET" })
-	.validator(z.object({ taskId: z.uuid() }))
+	.validator(getTaskRunsInput)
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		const task = await prisma.scheduledTask.findFirst({

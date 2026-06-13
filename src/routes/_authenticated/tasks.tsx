@@ -55,7 +55,7 @@ function TasksPage() {
 			<PageHeader
 				title="Scheduled Tasks"
 				description="Run LLM prompts on a schedule."
-				actions={<CreateTaskDialog onCreated={invalidate} />}
+				actions={<CreateTaskDialog />}
 			/>
 			<div className="flex-1 overflow-auto">
 				<div className="mx-auto max-w-3xl p-6">
