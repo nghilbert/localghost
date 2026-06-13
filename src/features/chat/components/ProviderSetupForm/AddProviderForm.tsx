@@ -1,12 +1,12 @@
 import { revalidateLogic } from "@tanstack/react-form";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { ChevronDownIcon, PlusIcon } from "lucide-react";
-import { toast } from "sonner";
 import { ConnectionTestAlert } from "#/components/ConnectionTestAlert";
 import { Button } from "#/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "#/components/ui/collapsible";
-import { Field, FieldError, FieldGroup } from "#/components/ui/field";
-import { createEndpoint, testEndpoint } from "#/features/chat/lib/chat.functions";
+import { Field, FieldGroup } from "#/components/ui/field";
+import { useCreateEndpoint } from "#/features/chat/hooks/use-create-endpoint";
+import { testEndpoint } from "#/features/chat/lib/chat.functions";
 import {
 	buildEndpointFormSchema,
 	dbProviderFor,
@@ -14,31 +14,19 @@ import {
 } from "#/features/chat/lib/providers";
 import { useAppForm } from "#/hooks/use-app-form";
 
-type ProviderFieldsProps = {
+type AddProviderFormProps = {
 	definition: ProviderDefinition;
 	onCreated?: () => void;
 };
 
-export function ProviderFields({ definition, onCreated }: ProviderFieldsProps) {
-	const queryClient = useQueryClient();
+export function AddProviderForm({ definition, onCreated }: AddProviderFormProps) {
 	const schema = buildEndpointFormSchema(definition);
 
 	const testMutation = useMutation({
 		mutationFn: (data: { url: string; apiKey?: string }) => testEndpoint({ data }),
 	});
 
-	const createMutation = useMutation({
-		mutationFn: (data: { name: string; url: string; apiKey?: string }) =>
-			createEndpoint({
-				data: { ...data, provider: dbProviderFor(definition.id) },
-			}),
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["endpoints"] });
-			toast.success(`${definition.label} added`);
-			onCreated?.();
-		},
-		onError: (error) => toast.error("Failed to add provider", { description: error.message }),
-	});
+	const createMutation = useCreateEndpoint();
 
 	const form = useAppForm({
 		defaultValues: {
@@ -49,19 +37,24 @@ export function ProviderFields({ definition, onCreated }: ProviderFieldsProps) {
 		validators: { onDynamic: schema },
 		validationLogic: revalidateLogic(),
 		onSubmit: async ({ value, formApi }) => {
-			await createMutation.mutateAsync({
-				name: value.name.trim(),
-				url: value.url.trim(),
-				apiKey: value.apiKey || undefined,
-			});
-			formApi.reset();
+			await createMutation
+				.mutateAsync({
+					name: value.name.trim(),
+					url: value.url.trim(),
+					apiKey: value.apiKey || undefined,
+					provider: dbProviderFor(definition.id),
+				})
+				.then(() => {
+					formApi.reset();
+					onCreated?.();
+				});
 		},
 	});
 
 	function handleTest() {
 		const parsed = schema.safeParse(form.state.values);
 		if (!parsed.success) {
-			toast.error("Fill in the provider details first");
+			form.validateAllFields("submit");
 			return;
 		}
 		testMutation.mutate({
@@ -131,7 +124,7 @@ export function ProviderFields({ definition, onCreated }: ProviderFieldsProps) {
 							}
 						/>
 					)}
-					<FieldError>{createMutation.error?.message}</FieldError>
+					<form.FormError>{createMutation.error?.message}</form.FormError>
 
 					<Field orientation="horizontal">
 						<form.SubmitButton>

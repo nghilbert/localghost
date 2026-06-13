@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "#/components/ui/button";
 import { Item, ItemActions, ItemContent, ItemDescription, ItemTitle } from "#/components/ui/item";
-import { ProviderFields } from "#/features/chat/components/ProviderSetupForm/ProviderFields";
+import { AddProviderForm } from "#/features/chat/components/ProviderSetupForm/AddProviderForm";
 import { ProviderPicker } from "#/features/chat/components/ProviderSetupForm/ProviderPicker";
 import { PROVIDERS, type ProviderId } from "#/features/chat/lib/providers";
 
@@ -32,7 +32,7 @@ export function ProviderSetupForm({ onCreated }: ProviderSetupFormProps) {
 					</Button>
 				</ItemActions>
 			</Item>
-			<ProviderFields key={definition.id} definition={definition} onCreated={onCreated} />
+			<AddProviderForm key={definition.id} definition={definition} onCreated={onCreated} />
 		</div>
 	);
 }
