@@ -2,9 +2,15 @@ import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod/v4";
 import { getCurrentUserId } from "#/features/auth/lib/session.server";
+import { buildOllamaUrlFromHost, RemoteHostSchema } from "#/features/cookbook/lib/remote-host";
 import type { OllamaStatus } from "#/features/cookbook/lib/types";
 import { getHardwareInfo } from "#/lib/hardware.server";
-import { getOllamaUrl, scanForOllama, upsertOllamaEndpoint } from "#/lib/ollama.server";
+import {
+	getOllamaUrl,
+	probeOllama,
+	scanForOllama,
+	upsertOllamaEndpoint,
+} from "#/lib/ollama.server";
 
 export const getHardware = createServerFn({ method: "GET" }).handler(async () => {
 	await getCurrentUserId();
@@ -33,6 +39,26 @@ export const deleteModel = createServerFn({ method: "POST" })
 			body: JSON.stringify({ name: data.model }),
 		});
 		if (!res.ok) throw new Error(`Failed to delete model: ${res.statusText}`);
+	});
+
+export const testRemoteOllama = createServerFn({ method: "POST" })
+	.validator(RemoteHostSchema)
+	.handler(async ({ data }) => {
+		await getCurrentUserId();
+		const probe = await probeOllama(buildOllamaUrlFromHost(data.host, data.port));
+		return { reachable: probe.reachable, modelCount: probe.installedModels.length };
+	});
+
+export const registerRemoteOllama = createServerFn({ method: "POST" })
+	.validator(RemoteHostSchema)
+	.handler(async ({ data }) => {
+		const userId = await getCurrentUserId();
+		const url = buildOllamaUrlFromHost(data.host, data.port);
+		const probe = await probeOllama(url);
+		if (!probe.reachable) {
+			throw new Error(`No Ollama instance is responding at ${data.host}:${data.port}`);
+		}
+		await upsertOllamaEndpoint(userId, url);
 	});
 
 export const cookbookStatusQueryOptions = () =>

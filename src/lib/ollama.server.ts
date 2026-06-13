@@ -6,6 +6,8 @@ const DEFAULT_OLLAMA_URL = "http://localhost:11434";
 const WELL_KNOWN_URLS = [
 	DEFAULT_OLLAMA_URL,
 	"http://127.0.0.1:11434",
+	// The compose-managed Ollama service (compose.yaml), resolvable by container name.
+	"http://ollama:11434",
 	"http://host.docker.internal:11434",
 ];
 
@@ -132,11 +134,4 @@ export async function upsertOllamaEndpoint(
 			data: { url: normalizedUrl },
 		});
 	}
-}
-
-/** Local addresses where a freshly started Ollama container is reachable from this process. */
-export function localOllamaUrls(inContainer: boolean): string[] {
-	return inContainer
-		? ["http://host.docker.internal:11434", DEFAULT_OLLAMA_URL]
-		: [DEFAULT_OLLAMA_URL, "http://127.0.0.1:11434"];
 }

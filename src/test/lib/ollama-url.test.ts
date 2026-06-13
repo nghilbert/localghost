@@ -48,6 +48,7 @@ describe("buildOllamaCandidateUrls", () => {
 			"http://my-server:11434",
 			"http://localhost:11434",
 			"http://127.0.0.1:11434",
+			"http://ollama:11434",
 			"http://host.docker.internal:11434",
 		]);
 	});
@@ -57,6 +58,7 @@ describe("buildOllamaCandidateUrls", () => {
 		expect(candidates).toEqual([
 			"http://localhost:11434",
 			"http://127.0.0.1:11434",
+			"http://ollama:11434",
 			"http://host.docker.internal:11434",
 		]);
 	});
