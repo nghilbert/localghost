@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "#/components/ui/button";
-import { WebhookAddForm } from "#/features/settings/components/WebhookAddForm";
+import { AddWebhookForm } from "#/features/settings/components/AddWebhookForm";
 import { WebhookList } from "#/features/settings/components/WebhookList";
 import {
 	deleteWebhook,
@@ -46,7 +46,7 @@ export function WebhooksTab() {
 				</Button>
 			</div>
 
-			{showForm && <WebhookAddForm onCreated={() => setShowForm(false)} />}
+			{showForm && <AddWebhookForm onSuccess={() => setShowForm(false)} />}
 
 			{webhooks.length === 0 && !showForm && (
 				<p className="text-sm text-muted-foreground">No webhooks yet.</p>
