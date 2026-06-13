@@ -1,8 +1,9 @@
 import { revalidateLogic } from "@tanstack/react-form";
-import { z } from "zod/v4";
+import type { z } from "zod/v4";
 import { Button } from "#/components/ui/button";
 import { Card } from "#/components/ui/card";
 import { Field, FieldGroup } from "#/components/ui/field";
+import { NoteFormSchema } from "#/features/notes/lib/schemas";
 import {
 	type ChecklistItem,
 	NOTE_COLORS,
@@ -27,16 +28,6 @@ const COLOR_OPTIONS = NOTE_COLORS.map((color) => ({
 	swatchClassName: `${color.bg} ${color.border}`,
 }));
 
-const NoteSchema = z.object({
-	title: z.string(),
-	noteType: z.enum(["note", "checklist"]),
-	content: z.string(),
-	items: z.array(z.object({ id: z.string(), text: z.string(), checked: z.boolean() })),
-	color: z.string(),
-	label: z.string(),
-	pinned: z.boolean(),
-});
-
 type NoteFormProps = {
 	initial?: Partial<Note>;
 	isPending: boolean;
@@ -54,8 +45,8 @@ export function NoteForm({ initial, isPending, onSave, onCancel }: NoteFormProps
 			color: initial?.color ?? DEFAULT_COLOR,
 			label: initial?.label ?? "",
 			pinned: initial?.pinned ?? false,
-		} satisfies z.infer<typeof NoteSchema>,
-		validators: { onDynamic: NoteSchema },
+		} satisfies z.infer<typeof NoteFormSchema>,
+		validators: { onDynamic: NoteFormSchema },
 		validationLogic: revalidateLogic(),
 		onSubmit: ({ value }) => {
 			onSave({
