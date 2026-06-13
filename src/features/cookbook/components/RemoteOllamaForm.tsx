@@ -1,34 +1,25 @@
 import { revalidateLogic } from "@tanstack/react-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { z } from "zod/v4";
 import { ConnectionTestAlert } from "#/components/ConnectionTestAlert";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "#/components/ui/card";
 import { Field, FieldGroup } from "#/components/ui/field";
 import { registerRemoteOllama, testRemoteOllama } from "#/features/cookbook/lib/cookbook.functions";
-import { RemoteHostSchema } from "#/features/cookbook/lib/remote-host";
+import { OllamaUrlSchema } from "#/features/cookbook/lib/ollama-url";
 import { useAppForm } from "#/hooks/use-app-form";
-
-const RemoteFormSchema = z.object({
-	host: RemoteHostSchema.shape.host,
-	port: z
-		.string()
-		.regex(/^\d+$/, "Port must be a number")
-		.refine((value) => Number(value) >= 1 && Number(value) <= 65535, "Port must be 1–65535"),
-});
 
 export function RemoteOllamaForm({ onBack }: { onBack: () => void }) {
 	const queryClient = useQueryClient();
 
 	const testMutation = useMutation({
-		mutationFn: (data: { host: string; port: number }) => testRemoteOllama({ data }),
+		mutationFn: (url: string) => testRemoteOllama({ data: { url } }),
 	});
 
 	const connectMutation = useMutation({
-		mutationFn: (data: { host: string; port: number }) => registerRemoteOllama({ data }),
+		mutationFn: (url: string) => registerRemoteOllama({ data: { url } }),
 		onSuccess: () => {
-			toast.success("Connected to remote Ollama");
+			toast.success("Connected to Ollama");
 			queryClient.invalidateQueries({ queryKey: ["cookbook-status"] });
 			queryClient.invalidateQueries({ queryKey: ["endpoints"] });
 		},
@@ -36,29 +27,28 @@ export function RemoteOllamaForm({ onBack }: { onBack: () => void }) {
 	});
 
 	const form = useAppForm({
-		defaultValues: { host: "", port: "11434" },
-		validators: { onDynamic: RemoteFormSchema },
+		defaultValues: { url: "" },
+		validators: { onDynamic: OllamaUrlSchema },
 		validationLogic: revalidateLogic(),
-		onSubmit: ({ value }) =>
-			connectMutation.mutateAsync({ host: value.host.trim(), port: Number(value.port) }),
+		onSubmit: ({ value }) => connectMutation.mutateAsync(value.url),
 	});
 
 	function handleTest() {
-		const parsed = RemoteFormSchema.safeParse(form.state.values);
+		const parsed = OllamaUrlSchema.safeParse(form.state.values);
 		if (!parsed.success) {
-			toast.error("Enter a valid host and port first");
+			toast.error("Enter a valid URL first");
 			return;
 		}
-		testMutation.mutate({ host: parsed.data.host, port: Number(parsed.data.port) });
+		testMutation.mutate(parsed.data.url);
 	}
 
 	return (
 		<Card>
 			<CardHeader>
-				<CardTitle>Connect to Ollama on another machine</CardTitle>
+				<CardTitle>Connect to Ollama at a URL</CardTitle>
 				<CardDescription>
-					Enter the address of the machine running Ollama — for example a homelab server. Make sure
-					Ollama listens on the network there (OLLAMA_HOST=0.0.0.0).
+					Point at an Ollama instance by URL — a homelab server, another machine, or a custom port.
+					Make sure Ollama listens on the network there (OLLAMA_HOST=0.0.0.0).
 				</CardDescription>
 			</CardHeader>
 			<CardContent>
@@ -70,17 +60,14 @@ export function RemoteOllamaForm({ onBack }: { onBack: () => void }) {
 				>
 					<form.AppForm>
 						<FieldGroup>
-							<form.AppField name="host">
+							<form.AppField name="url">
 								{(field) => (
 									<field.InputField
-										label="Host"
-										placeholder="192.168.1.50"
-										description="Hostname or IP address — no http:// or port."
+										label="Ollama URL"
+										placeholder="http://192.168.1.50:11434"
+										description="Full URL including http:// or https:// and the port."
 									/>
 								)}
-							</form.AppField>
-							<form.AppField name="port">
-								{(field) => <field.InputField label="Port" inputMode="numeric" />}
 							</form.AppField>
 
 							{testMutation.data && (

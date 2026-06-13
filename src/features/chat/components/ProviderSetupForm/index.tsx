@@ -1,4 +1,3 @@
-import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { Button } from "#/components/ui/button";
 import { Item, ItemActions, ItemContent, ItemDescription, ItemTitle } from "#/components/ui/item";
@@ -33,24 +32,7 @@ export function ProviderSetupForm({ onCreated }: ProviderSetupFormProps) {
 					</Button>
 				</ItemActions>
 			</Item>
-
-			{definition.id === "ollama" ? (
-				<Item variant="muted">
-					<ItemContent>
-						<ItemDescription>
-							Ollama is set up automatically from the Cookbook page — it finds running instances,
-							installs Ollama for you, and recommends models for your hardware.
-						</ItemDescription>
-					</ItemContent>
-					<ItemActions>
-						<Button variant="outline" size="sm" asChild>
-							<Link to="/cookbook">Open Cookbook</Link>
-						</Button>
-					</ItemActions>
-				</Item>
-			) : (
-				<ProviderFields key={definition.id} definition={definition} onCreated={onCreated} />
-			)}
+			<ProviderFields key={definition.id} definition={definition} onCreated={onCreated} />
 		</div>
 	);
 }

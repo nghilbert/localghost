@@ -50,7 +50,7 @@ export function OllamaSetupCard() {
 					</a>
 				</Button>
 				<Button variant="link" onClick={() => setIsRemoteFormOpen(true)}>
-					Ollama runs on another machine
+					Connect to a remote or custom URL
 				</Button>
 			</CardFooter>
 		</Card>

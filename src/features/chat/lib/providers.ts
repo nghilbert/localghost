@@ -10,6 +10,12 @@ export type ProviderDefinition = {
 	defaultName: string;
 	/** Prefilled base URL; null means the user must supply one. */
 	defaultBaseUrl: string | null;
+	/**
+	 * Seed value/placeholder for the URL field when `defaultBaseUrl` is null but a
+	 * sensible starting point exists (e.g. local Ollama). Unlike `defaultBaseUrl`
+	 * it carries no API-key requirement and the URL field stays directly visible.
+	 */
+	prefillBaseUrl?: string;
 	requiresApiKey: boolean;
 	keyPlaceholder?: string;
 	keyConsoleUrl?: string;
@@ -67,6 +73,7 @@ export const PROVIDERS: ProviderDefinition[] = [
 		label: "Ollama (local)",
 		defaultName: "Ollama (local)",
 		defaultBaseUrl: null,
+		prefillBaseUrl: "http://localhost:11434",
 		requiresApiKey: false,
 		description: "Run models on your own hardware — no API key needed.",
 	},

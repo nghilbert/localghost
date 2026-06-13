@@ -5,10 +5,8 @@ import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { FieldDescription, FieldLegend, FieldSet } from "#/components/ui/field";
 import { Item, ItemContent, ItemDescription, ItemGroup, ItemTitle } from "#/components/ui/item";
-import { Separator } from "#/components/ui/separator";
 import { ProviderSetupForm } from "#/features/chat/components/ProviderSetupForm";
 import { endpointsQueryOptions } from "#/features/chat/lib/chat.functions";
-import { cookbookStatusQueryOptions } from "#/features/cookbook/lib/cookbook.functions";
 
 function StatusBadge({
 	isOk,
@@ -34,7 +32,6 @@ function StatusBadge({
 
 export function SetupTab() {
 	const { data: endpoints = [] } = useQuery(endpointsQueryOptions());
-	const { data: ollamaStatus } = useQuery(cookbookStatusQueryOptions());
 
 	return (
 		<div className="space-y-6">
@@ -70,27 +67,6 @@ export function SetupTab() {
 					</ItemGroup>
 				)}
 				<ProviderSetupForm />
-			</FieldSet>
-
-			<Separator />
-
-			<FieldSet>
-				<FieldLegend className="flex items-center gap-2">
-					Ollama (local models)
-					<StatusBadge
-						isOk={ollamaStatus?.found ?? false}
-						okLabel="Reachable"
-						missingLabel="Not found"
-					/>
-				</FieldLegend>
-				<FieldDescription>
-					Optional. Powers the Cookbook and local inference without API keys.
-				</FieldDescription>
-				{ollamaStatus && !ollamaStatus.found && (
-					<Button variant="outline" size="sm" className="w-fit" asChild>
-						<Link to="/cookbook">Set up in Cookbook</Link>
-					</Button>
-				)}
 			</FieldSet>
 		</div>
 	);

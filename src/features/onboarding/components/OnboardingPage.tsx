@@ -131,8 +131,11 @@ function OllamaStep() {
 				<CheckCircle2Icon className="text-success" />
 				<AlertTitle>Ollama is up</AlertTitle>
 				<AlertDescription>
-					Reachable at <code className="text-xs">{ollamaStatus.ollamaUrl}</code>. Head to the
-					Cookbook to install models for your hardware.
+					Reachable at <code className="text-xs">{ollamaStatus.ollamaUrl}</code>. Head to the{" "}
+					<Link to="/cookbook" className="underline underline-offset-2">
+						Cookbook
+					</Link>{" "}
+					to install models for your hardware.
 				</AlertDescription>
 			</Alert>
 		);
