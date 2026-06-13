@@ -6,9 +6,6 @@ COPY . .
 RUN npm run db:generate && npm run build
 
 FROM node:24-alpine
-# docker CLI: the app manages a sibling Ollama container through the host's
-# Docker socket (mounted by compose.yaml).
-RUN apk add --no-cache docker-cli
 WORKDIR /app
 ENV NODE_ENV=production
 COPY package.json package-lock.json ./

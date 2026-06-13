@@ -1,29 +1,6 @@
 import { describe, expect, it } from "vitest";
-import {
-	pickRecommendedModels,
-	recommendInstallVariant,
-} from "#/features/cookbook/lib/recommendations";
+import { pickRecommendedModels } from "#/features/cookbook/lib/recommendations";
 import type { HardwareInfo, OllamaInstalledModel } from "#/features/cookbook/lib/types";
-
-describe("recommendInstallVariant", () => {
-	it("prefers a directly detected GPU vendor", () => {
-		expect(
-			recommendInstallVariant({
-				gpus: [{ name: "RX 7900", vendor: "amd", totalVramMb: 20480, freeVramMb: 19000 }],
-				nvidiaRuntime: false,
-			}),
-		).toBe("amd");
-	});
-
-	it("falls back to nvidia when only the container runtime is visible", () => {
-		expect(recommendInstallVariant({ gpus: null, nvidiaRuntime: true })).toBe("nvidia");
-	});
-
-	it("recommends cpu when no GPU signal exists", () => {
-		expect(recommendInstallVariant({ gpus: null, nvidiaRuntime: false })).toBe("cpu");
-		expect(recommendInstallVariant({ gpus: [], nvidiaRuntime: false })).toBe("cpu");
-	});
-});
 
 const bigGpuBox: HardwareInfo = {
 	totalRamGb: 64,

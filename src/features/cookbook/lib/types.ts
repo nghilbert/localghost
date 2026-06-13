@@ -48,37 +48,6 @@ export type FitScore = {
 	overall: number;
 };
 
-export type OllamaContainerStatus = "running" | "stopped" | "absent";
-
-export type OllamaInstallVariant = "cpu" | "nvidia" | "amd";
-
-export type InstallCapabilities = {
-	inContainer: boolean;
-	platform: NodeJS.Platform;
-	containerStatus: OllamaContainerStatus;
-	nvidiaRuntime: boolean;
-};
-
-export type InstallPhase =
-	| "idle"
-	| "pulling-image"
-	| "starting"
-	| "waiting-api"
-	| "ready"
-	| "error";
-
-export const INSTALL_IN_PROGRESS_PHASES: InstallPhase[] = [
-	"pulling-image",
-	"starting",
-	"waiting-api",
-];
-
-export type InstallState = {
-	phase: InstallPhase;
-	message?: string;
-	error?: string;
-};
-
 export type PullProgress = {
 	status: string;
 	completed?: number;

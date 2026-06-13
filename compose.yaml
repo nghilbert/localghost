@@ -18,10 +18,6 @@ services:
   web:
     build: .
     volumes:
-      # Docker socket so the app can manage the sibling Ollama container
-      # (install / start / stop). This grants the web container root-equivalent
-      # access to the host by design.
-      - /var/run/docker.sock:/var/run/docker.sock
       # Gallery uploads are written to public/uploads at runtime.
       - uploads:/app/public/uploads
     ports:
@@ -37,6 +33,44 @@ services:
       db:
         condition: service_healthy
 
+  # One Ollama service per hardware variant; COMPOSE_PROFILES in .env picks one
+  # (cpu, nvidia, or amd). All share the container name so the app reaches the
+  # active one at http://ollama:11434 and two variants can never run at once.
+  ollama-cpu:
+    image: ollama/ollama
+    container_name: ollama
+    profiles: [cpu]
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama:/root/.ollama
+    restart: unless-stopped
+
+  ollama-nvidia:
+    image: ollama/ollama
+    container_name: ollama
+    profiles: [nvidia]
+    gpus: all
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama:/root/.ollama
+    restart: unless-stopped
+
+  ollama-amd:
+    image: ollama/ollama:rocm
+    container_name: ollama
+    profiles: [amd]
+    devices:
+      - /dev/kfd
+      - /dev/dri
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama:/root/.ollama
+    restart: unless-stopped
+
 volumes:
   db_data:
   uploads:
+  ollama:

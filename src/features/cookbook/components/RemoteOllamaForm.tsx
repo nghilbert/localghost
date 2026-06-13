@@ -6,7 +6,7 @@ import { ConnectionTestAlert } from "#/components/ConnectionTestAlert";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "#/components/ui/card";
 import { Field, FieldGroup } from "#/components/ui/field";
-import { registerRemoteOllama, testRemoteOllama } from "#/features/cookbook/lib/install.functions";
+import { registerRemoteOllama, testRemoteOllama } from "#/features/cookbook/lib/cookbook.functions";
 import { RemoteHostSchema } from "#/features/cookbook/lib/remote-host";
 import { useAppForm } from "#/hooks/use-app-form";
 

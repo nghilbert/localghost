@@ -18,7 +18,7 @@ import { Item, ItemContent, ItemDescription, ItemGroup, ItemTitle } from "#/comp
 import { Progress } from "#/components/ui/progress";
 import { ProviderSetupForm } from "#/features/chat/components/ProviderSetupForm";
 import { endpointsQueryOptions } from "#/features/chat/lib/chat.functions";
-import { OllamaSetupFlow } from "#/features/cookbook/components/OllamaSetupFlow";
+import { OllamaSetupCard } from "#/features/cookbook/components/OllamaSetupCard";
 import { cookbookStatusQueryOptions } from "#/features/cookbook/lib/cookbook.functions";
 import { AppearanceSettings } from "#/features/theme/AppearanceSettings";
 
@@ -37,8 +37,7 @@ const STEPS = [
 	{
 		id: "ollama",
 		title: "Run local models (optional)",
-		description:
-			"Install Ollama to run models on this machine. The recommendation matches your detected hardware.",
+		description: "Connect an Ollama instance to run models on your own hardware.",
 	},
 ] as const;
 
@@ -139,5 +138,5 @@ function OllamaStep() {
 		);
 	}
 
-	return <OllamaSetupFlow />;
+	return <OllamaSetupCard />;
 }

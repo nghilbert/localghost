@@ -4,8 +4,7 @@ import { PageHeader } from "#/components/PageHeader";
 import { Separator } from "#/components/ui/separator";
 import { HardwareCard } from "#/features/cookbook/components/HardwareCard";
 import { ModelTable } from "#/features/cookbook/components/ModelTable";
-import { OllamaContainerControls } from "#/features/cookbook/components/OllamaContainerControls";
-import { OllamaSetupFlow } from "#/features/cookbook/components/OllamaSetupFlow";
+import { OllamaSetupCard } from "#/features/cookbook/components/OllamaSetupCard";
 import { RecommendedModels } from "#/features/cookbook/components/RecommendedModels";
 import { useModelPull } from "#/features/cookbook/hooks/use-model-pull";
 import {
@@ -50,8 +49,6 @@ export function CookbookPage() {
 				<div className="space-y-6 p-6">
 					<HardwareCard hardware={hardware} isLoading={isLoadingHardware} />
 
-					<OllamaContainerControls />
-
 					<Separator />
 
 					{ollamaStatus?.found ? (
@@ -71,7 +68,7 @@ export function CookbookPage() {
 							/>
 						</>
 					) : (
-						<OllamaSetupFlow />
+						<OllamaSetupCard />
 					)}
 				</div>
 			</div>
