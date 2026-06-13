@@ -1,6 +1,7 @@
 import { createFormHook, createFormHookContexts } from "@tanstack/react-form";
-import { EyeIcon, EyeOffIcon, PlusIcon, XIcon } from "lucide-react";
-import { type ComponentProps, type ElementType, useRef, useState } from "react";
+import { CircleAlertIcon, EyeIcon, EyeOffIcon, PlusIcon, XIcon } from "lucide-react";
+import { type ComponentProps, type ElementType, type ReactNode, useRef, useState } from "react";
+import { Alert, AlertDescription } from "#/components/ui/alert";
 import { Button } from "#/components/ui/button";
 import { Checkbox } from "#/components/ui/checkbox";
 import {
@@ -347,6 +348,16 @@ function ChecklistField({ label, placeholder }: { label: string; placeholder?: s
 	);
 }
 
+function FormError({ children }: { children?: ReactNode }) {
+	if (!children) return null;
+	return (
+		<Alert variant="destructive">
+			<CircleAlertIcon />
+			<AlertDescription>{children}</AlertDescription>
+		</Alert>
+	);
+}
+
 function SubmitButton({ children, ...props }: ComponentProps<typeof Button>) {
 	const { Subscribe } = useFormContext();
 
@@ -377,5 +388,5 @@ export const { useAppForm, withForm } = createFormHook({
 		SwatchField,
 		ChecklistField,
 	},
-	formComponents: { SubmitButton },
+	formComponents: { SubmitButton, FormError },
 });

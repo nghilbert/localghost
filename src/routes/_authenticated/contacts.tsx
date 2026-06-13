@@ -4,7 +4,7 @@ import { SearchIcon } from "lucide-react";
 import { useState } from "react";
 import { PageHeader } from "#/components/PageHeader";
 import { Input } from "#/components/ui/input";
-import { ContactRow } from "#/features/contacts/components/ContactRow";
+import { ContactCard } from "#/features/contacts/components/ContactCard";
 import { CreateContactDialog } from "#/features/contacts/components/CreateContactDialog";
 import { contactsQueryOptions, deleteContact } from "#/features/contacts/lib/contact.functions";
 import type { Contact } from "#/features/contacts/lib/types";
@@ -46,11 +46,7 @@ function ContactsPage() {
 			<PageHeader
 				title="Contacts"
 				description={`${contacts.length} contact${contacts.length !== 1 ? "s" : ""}`}
-				actions={
-					<CreateContactDialog
-						onCreated={() => queryClient.invalidateQueries({ queryKey: ["contacts"] })}
-					/>
-				}
+				actions={<CreateContactDialog />}
 			/>
 
 			<div className="flex h-full min-h-0 flex-col">
@@ -79,7 +75,7 @@ function ContactsPage() {
 					)}
 					<ul className="divide-y">
 						{filteredContacts.map((contact) => (
-							<ContactRow
+							<ContactCard
 								key={contact.id}
 								contact={contact}
 								onDelete={() => deleteMutation.mutate({ data: { id: contact.id } })}

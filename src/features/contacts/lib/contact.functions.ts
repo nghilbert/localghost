@@ -1,7 +1,12 @@
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeaders } from "@tanstack/react-start/server";
-import { z } from "zod/v4";
+import {
+	createContactInput,
+	deleteContactInput,
+	searchContactsInput,
+	updateContactInput,
+} from "#/features/contacts/lib/schemas";
 import type { ContactModel } from "#/generated/prisma/models";
 import { prisma } from "#/lib/db.server";
 
@@ -28,14 +33,7 @@ export const getContacts = createServerFn({ method: "GET" }).handler(async () =>
 });
 
 export const createContact = createServerFn({ method: "POST" })
-	.validator(
-		z.object({
-			name: z.string().min(1),
-			emails: z.array(z.string()).default([]),
-			phones: z.array(z.string()).default([]),
-			notes: z.string().optional(),
-		}),
-	)
+	.validator(createContactInput)
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		return prisma.contact.create({
@@ -50,15 +48,7 @@ export const createContact = createServerFn({ method: "POST" })
 	});
 
 export const updateContact = createServerFn({ method: "POST" })
-	.validator(
-		z.object({
-			id: z.uuid(),
-			name: z.string().min(1).optional(),
-			emails: z.array(z.string()).optional(),
-			phones: z.array(z.string()).optional(),
-			notes: z.string().nullish(),
-		}),
-	)
+	.validator(updateContactInput)
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		const { id, ...patch } = data;
@@ -69,7 +59,7 @@ export const updateContact = createServerFn({ method: "POST" })
 	});
 
 export const deleteContact = createServerFn({ method: "POST" })
-	.validator(z.object({ id: z.uuid() }))
+	.validator(deleteContactInput)
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		await prisma.contact.delete({ where: { id: data.id, ownerId: userId } });
@@ -77,7 +67,7 @@ export const deleteContact = createServerFn({ method: "POST" })
 	});
 
 export const searchContacts = createServerFn({ method: "POST" })
-	.validator(z.object({ query: z.string() }))
+	.validator(searchContactsInput)
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		const q = data.query.toLowerCase();
