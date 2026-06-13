@@ -1,8 +1,14 @@
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeaders } from "@tanstack/react-start/server";
-import { z } from "zod/v4";
 import { auth } from "#/features/auth/lib/auth.server";
+import {
+	createEmailAccountInput,
+	deleteEmailAccountInput,
+	getEmailInput,
+	listEmailsInput,
+	sendEmailInput,
+} from "#/features/email/lib/schemas";
 import { decrypt, encrypt } from "#/lib/crypto.server";
 import { prisma } from "#/lib/db.server";
 import { fetchMessage, listMessages } from "#/lib/imap.server";
@@ -40,22 +46,7 @@ export const getEmailAccounts = createServerFn({ method: "GET" }).handler(async 
 });
 
 export const createEmailAccount = createServerFn({ method: "POST" })
-	.validator(
-		z.object({
-			name: z.string().min(1),
-			fromAddress: z.string().default(""),
-			imapHost: z.string().min(1),
-			imapPort: z.number().int().default(993),
-			imapUser: z.string().min(1),
-			imapPassword: z.string().min(1),
-			imapStarttls: z.boolean().default(true),
-			smtpHost: z.string().min(1),
-			smtpPort: z.number().int().default(465),
-			smtpSecurity: z.enum(["ssl", "starttls", "none"]).default("ssl"),
-			smtpUser: z.string().default(""),
-			smtpPassword: z.string().default(""),
-		}),
-	)
+	.validator(createEmailAccountInput)
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		const isFirst = (await prisma.emailAccount.count({ where: { ownerId: userId } })) === 0;
@@ -81,7 +72,7 @@ export const createEmailAccount = createServerFn({ method: "POST" })
 	});
 
 export const deleteEmailAccount = createServerFn({ method: "POST" })
-	.validator(z.object({ id: z.uuid() }))
+	.validator(deleteEmailAccountInput)
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		await prisma.emailAccount.deleteMany({ where: { id: data.id, ownerId: userId } });
@@ -90,13 +81,7 @@ export const deleteEmailAccount = createServerFn({ method: "POST" })
 // ── Message fetching ──────────────────────────────────────────────────────
 
 export const listEmails = createServerFn({ method: "GET" })
-	.validator(
-		z.object({
-			accountId: z.uuid(),
-			folder: z.string().default("INBOX"),
-			limit: z.number().default(50),
-		}),
-	)
+	.validator(listEmailsInput)
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		const account = await prisma.emailAccount.findFirst({
@@ -118,9 +103,7 @@ export const listEmails = createServerFn({ method: "GET" })
 	});
 
 export const getEmail = createServerFn({ method: "GET" })
-	.validator(
-		z.object({ accountId: z.uuid(), uid: z.string(), folder: z.string().default("INBOX") }),
-	)
+	.validator(getEmailInput)
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		const account = await prisma.emailAccount.findFirst({
@@ -142,16 +125,7 @@ export const getEmail = createServerFn({ method: "GET" })
 	});
 
 export const sendEmail = createServerFn({ method: "POST" })
-	.validator(
-		z.object({
-			accountId: z.uuid(),
-			to: z.string().min(1),
-			subject: z.string().min(1),
-			text: z.string().min(1),
-			html: z.string().optional(),
-			replyTo: z.string().optional(),
-		}),
-	)
+	.validator(sendEmailInput)
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		const account = await prisma.emailAccount.findFirst({
