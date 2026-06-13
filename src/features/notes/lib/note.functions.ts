@@ -1,7 +1,7 @@
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeaders } from "@tanstack/react-start/server";
-import { z } from "zod/v4";
+import { createNoteInput, noteIdInput, updateNoteInput } from "#/features/notes/lib/schemas";
 import { prisma } from "#/lib/db.server";
 
 async function getCurrentUserId(): Promise<string> {
@@ -11,12 +11,6 @@ async function getCurrentUserId(): Promise<string> {
 	if (!session) throw new Error("Unauthorized");
 	return session.user.id;
 }
-
-const checklistItemSchema = z.object({
-	id: z.string(),
-	text: z.string(),
-	checked: z.boolean(),
-});
 
 export const notesQueryOptions = () =>
 	queryOptions({
@@ -33,17 +27,7 @@ export const getNotes = createServerFn({ method: "GET" }).handler(async () => {
 });
 
 export const createNote = createServerFn({ method: "POST" })
-	.validator(
-		z.object({
-			title: z.string().default(""),
-			content: z.string().optional(),
-			items: z.array(checklistItemSchema).optional(),
-			noteType: z.enum(["note", "checklist"]).default("note"),
-			color: z.string().optional(),
-			label: z.string().optional(),
-			pinned: z.boolean().default(false),
-		}),
-	)
+	.validator(createNoteInput)
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		return prisma.note.create({
@@ -56,18 +40,7 @@ export const createNote = createServerFn({ method: "POST" })
 	});
 
 export const updateNote = createServerFn({ method: "POST" })
-	.validator(
-		z.object({
-			id: z.uuid(),
-			title: z.string().optional(),
-			content: z.string().optional(),
-			items: z.array(checklistItemSchema).optional(),
-			color: z.string().nullish(),
-			label: z.string().nullish(),
-			pinned: z.boolean().optional(),
-			archived: z.boolean().optional(),
-		}),
-	)
+	.validator(updateNoteInput)
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		const { id, ...patch } = data;
@@ -78,7 +51,7 @@ export const updateNote = createServerFn({ method: "POST" })
 	});
 
 export const deleteNote = createServerFn({ method: "POST" })
-	.validator(z.object({ id: z.uuid() }))
+	.validator(noteIdInput)
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		await prisma.note.delete({ where: { id: data.id, ownerId: userId } });
