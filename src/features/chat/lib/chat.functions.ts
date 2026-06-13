@@ -1,6 +1,5 @@
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
-import { z } from "zod/v4";
 import { getCurrentUserId } from "#/features/auth/lib/session.server";
 import { decrypt, encrypt } from "#/lib/crypto.server";
 import { prisma } from "#/lib/db.server";
@@ -8,8 +7,14 @@ import { listModels, probeEndpoint } from "#/lib/llm.server";
 import {
 	createEndpointSchema,
 	createSessionSchema,
-	updateEndpointSchema,
-	updateSessionSchema,
+	endpointIdInput,
+	forkSessionInput,
+	getEndpointModelsInput,
+	searchMessagesInput,
+	sessionIdInput,
+	testEndpointInput,
+	updateEndpointInput,
+	updateSessionInput,
 } from "./schemas";
 
 // ── Model Endpoints ──────────────────────────────────────────
@@ -44,7 +49,7 @@ export const createEndpoint = createServerFn({ method: "POST" })
 	});
 
 export const updateEndpoint = createServerFn({ method: "POST" })
-	.validator(z.object({ id: z.uuid(), data: updateEndpointSchema }))
+	.validator(updateEndpointInput)
 	.handler(async ({ data: { id, data: patch } }) => {
 		const userId = await getCurrentUserId();
 		const existing = await prisma.modelEndpoint.findFirst({ where: { id, ownerId: userId } });
@@ -64,14 +69,14 @@ export const updateEndpoint = createServerFn({ method: "POST" })
 	});
 
 export const deleteEndpoint = createServerFn({ method: "POST" })
-	.validator(z.object({ id: z.uuid() }))
+	.validator(endpointIdInput)
 	.handler(async ({ data: { id } }) => {
 		const userId = await getCurrentUserId();
 		await prisma.modelEndpoint.deleteMany({ where: { id, ownerId: userId } });
 	});
 
 export const getEndpointModels = createServerFn({ method: "POST" })
-	.validator(z.object({ endpointId: z.uuid() }))
+	.validator(getEndpointModelsInput)
 	.handler(async ({ data: { endpointId } }) => {
 		const userId = await getCurrentUserId();
 		const endpoint = await prisma.modelEndpoint.findFirst({
@@ -83,7 +88,7 @@ export const getEndpointModels = createServerFn({ method: "POST" })
 	});
 
 export const testEndpoint = createServerFn({ method: "POST" })
-	.validator(z.object({ url: z.url().max(2048), apiKey: z.string().max(4096).optional() }))
+	.validator(testEndpointInput)
 	.handler(async ({ data }) => {
 		await getCurrentUserId();
 		return probeEndpoint(data.url, data.apiKey);
@@ -110,7 +115,7 @@ export const getSessions = createServerFn({ method: "GET" }).handler(async () =>
 });
 
 export const getSession = createServerFn({ method: "POST" })
-	.validator(z.object({ id: z.uuid() }))
+	.validator(sessionIdInput)
 	.handler(async ({ data: { id } }) => {
 		const userId = await getCurrentUserId();
 		const session = await prisma.chatSession.findFirst({
@@ -140,7 +145,7 @@ export const createSession = createServerFn({ method: "POST" })
 	});
 
 export const updateSession = createServerFn({ method: "POST" })
-	.validator(z.object({ id: z.uuid(), data: updateSessionSchema }))
+	.validator(updateSessionInput)
 	.handler(async ({ data: { id, data: patch } }) => {
 		const userId = await getCurrentUserId();
 		const existing = await prisma.chatSession.findFirst({ where: { id, ownerId: userId } });
@@ -149,14 +154,14 @@ export const updateSession = createServerFn({ method: "POST" })
 	});
 
 export const deleteSession = createServerFn({ method: "POST" })
-	.validator(z.object({ id: z.uuid() }))
+	.validator(sessionIdInput)
 	.handler(async ({ data: { id } }) => {
 		const userId = await getCurrentUserId();
 		await prisma.chatSession.deleteMany({ where: { id, ownerId: userId } });
 	});
 
 export const searchMessages = createServerFn({ method: "POST" })
-	.validator(z.object({ query: z.string().min(1).max(200) }))
+	.validator(searchMessagesInput)
 	.handler(async ({ data: { query } }) => {
 		const userId = await getCurrentUserId();
 		const messages = await prisma.chatMessage.findMany({
@@ -179,12 +184,7 @@ export const searchMessages = createServerFn({ method: "POST" })
 	});
 
 export const forkSession = createServerFn({ method: "POST" })
-	.validator(
-		z.object({
-			id: z.uuid(),
-			keepCount: z.number().int().min(0).optional(),
-		}),
-	)
+	.validator(forkSessionInput)
 	.handler(async ({ data: { id, keepCount } }) => {
 		const userId = await getCurrentUserId();
 		const source = await prisma.chatSession.findFirst({
