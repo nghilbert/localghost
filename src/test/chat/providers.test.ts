@@ -24,6 +24,14 @@ describe("provider registry", () => {
 			}
 		}
 	});
+
+	it("ollama prefills a local url without requiring a key", () => {
+		const ollama = PROVIDERS.find((p) => p.id === "ollama");
+		expect(ollama?.defaultBaseUrl).toBeNull();
+		expect(ollama?.requiresApiKey).toBe(false);
+		expect(ollama?.prefillBaseUrl).toBe("http://localhost:11434");
+		expect(detectProvider("http://localhost:11434")).toBe("ollama");
+	});
 });
 
 describe("buildEndpointFormSchema", () => {

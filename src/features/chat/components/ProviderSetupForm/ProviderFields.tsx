@@ -43,7 +43,7 @@ export function ProviderFields({ definition, onCreated }: ProviderFieldsProps) {
 	const form = useAppForm({
 		defaultValues: {
 			name: definition.defaultName,
-			url: definition.defaultBaseUrl ?? "",
+			url: definition.defaultBaseUrl ?? definition.prefillBaseUrl ?? "",
 			apiKey: "",
 		},
 		validators: { onDynamic: schema },
@@ -76,7 +76,12 @@ export function ProviderFields({ definition, onCreated }: ProviderFieldsProps) {
 
 	const urlField = (
 		<form.AppField name="url">
-			{(field) => <field.InputField label="Base URL" placeholder="https://my-server:8000/v1" />}
+			{(field) => (
+				<field.InputField
+					label="Base URL"
+					placeholder={definition.prefillBaseUrl ?? "https://my-server:8000/v1"}
+				/>
+			)}
 		</form.AppField>
 	);
 
