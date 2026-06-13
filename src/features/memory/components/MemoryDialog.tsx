@@ -1,9 +1,7 @@
-import { revalidateLogic } from "@tanstack/react-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BrainIcon, PlusIcon, SearchIcon, Trash2Icon } from "lucide-react";
+import { BrainIcon, SearchIcon, Trash2Icon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { z } from "zod/v4";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import {
@@ -14,23 +12,17 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "#/components/ui/dialog";
-import { Field, FieldError, FieldGroup } from "#/components/ui/field";
 import { Input } from "#/components/ui/input";
 import { Item, ItemGroup } from "#/components/ui/item";
 import { ScrollArea } from "#/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger } from "#/components/ui/tooltip";
+import { AddMemoryForm } from "#/features/memory/components/AddMemoryForm";
 import {
-	addMemory,
 	deleteMemory,
 	memoriesQueryOptions,
 	searchMemories,
 } from "#/features/memory/lib/memory.functions";
-import { useAppForm } from "#/hooks/use-app-form";
 import { cn } from "#/lib/utils";
-
-const CATEGORIES = ["fact", "preference", "contact", "project", "instruction"] as const;
-
-const CATEGORY_OPTIONS = CATEGORIES.map((category) => ({ value: category, label: category }));
 
 const CATEGORY_COLORS: Record<string, string> = {
 	fact: "bg-muted text-muted-foreground",
@@ -40,21 +32,10 @@ const CATEGORY_COLORS: Record<string, string> = {
 	instruction: "bg-destructive/10 text-destructive",
 };
 
-const MemorySchema = z.object({
-	text: z.string().trim().min(1, "Memory text is required"),
-	category: z.enum(CATEGORIES),
-});
-
-const MemoryDefaults: z.infer<typeof MemorySchema> = {
-	text: "",
-	category: "fact",
-};
-
-export function MemoryModal() {
+export function MemoryDialog() {
 	const queryClient = useQueryClient();
 	const [open, setOpen] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
-	const [formError, setFormError] = useState<string | null>(null);
 
 	const { data: memories = [] } = useQuery(memoriesQueryOptions());
 
@@ -63,23 +44,6 @@ export function MemoryModal() {
 		queryFn: () => searchMemories({ data: { query: searchQuery, limit: 10 } }),
 		enabled: searchQuery.length > 2,
 		staleTime: 5_000,
-	});
-
-	const form = useAppForm({
-		defaultValues: MemoryDefaults,
-		validators: { onDynamic: MemorySchema },
-		validationLogic: revalidateLogic(),
-		onSubmit: async ({ value, formApi }) => {
-			setFormError(null);
-			try {
-				await addMemory({ data: { text: value.text.trim(), category: value.category } });
-				queryClient.invalidateQueries({ queryKey: ["memories"] });
-				toast.success("Memory saved");
-				formApi.reset();
-			} catch (error) {
-				setFormError(error instanceof Error ? error.message : "Failed to save memory");
-			}
-		},
 	});
 
 	const deleteMutation = useMutation({
@@ -118,45 +82,7 @@ export function MemoryModal() {
 					</DialogDescription>
 				</DialogHeader>
 
-				<form
-					className="border-b pb-4"
-					onSubmit={(event) => {
-						event.preventDefault();
-						form.handleSubmit();
-					}}
-				>
-					<form.AppForm>
-						<FieldGroup className="gap-3">
-							<form.AppField name="text">
-								{(field) => (
-									<field.TextareaField
-										label="New memory"
-										description="Press Ctrl+Enter to save"
-										placeholder="Add a memory…"
-										rows={2}
-										className="resize-none"
-										onKeyDown={(event) => {
-											if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
-												event.preventDefault();
-												form.handleSubmit();
-											}
-										}}
-									/>
-								)}
-							</form.AppField>
-							<form.AppField name="category">
-								{(field) => <field.SelectField label="Category" options={CATEGORY_OPTIONS} />}
-							</form.AppField>
-							<FieldError>{formError}</FieldError>
-							<Field orientation="horizontal">
-								<form.SubmitButton size="sm">
-									<PlusIcon size={13} />
-									Save
-								</form.SubmitButton>
-							</Field>
-						</FieldGroup>
-					</form.AppForm>
-				</form>
+				<AddMemoryForm />
 
 				<div className="relative">
 					<SearchIcon
