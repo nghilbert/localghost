@@ -1,14 +1,13 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeaders } from "@tanstack/react-start/server";
-import { z } from "zod/v4";
 import { auth } from "#/features/auth/lib/auth.server";
-import { prisma } from "#/lib/db.server";
 import {
-	decryptSecret,
-	encryptSecret,
-	validateWebhookUrl,
-	WEBHOOK_EVENTS,
-} from "#/lib/webhook.server";
+	createWebhookInput,
+	updateWebhookInput,
+	webhookIdInput,
+} from "#/features/webhooks/lib/schemas";
+import { prisma } from "#/lib/db.server";
+import { decryptSecret, encryptSecret, validateWebhookUrl } from "#/lib/webhook.server";
 
 async function getCurrentUserId(): Promise<string> {
 	const headers = getRequestHeaders();
@@ -43,14 +42,7 @@ export const getWebhooks = createServerFn({ method: "GET" }).handler(async () =>
 });
 
 export const createWebhook = createServerFn({ method: "POST" })
-	.validator(
-		z.object({
-			name: z.string().min(1),
-			url: z.string().url(),
-			events: z.array(z.enum(WEBHOOK_EVENTS as unknown as [string, ...string[]])).min(1),
-			secret: z.string().optional(),
-		}),
-	)
+	.validator(createWebhookInput)
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		await validateWebhookUrl(data.url);
@@ -66,13 +58,7 @@ export const createWebhook = createServerFn({ method: "POST" })
 	});
 
 export const updateWebhook = createServerFn({ method: "POST" })
-	.validator(
-		z.object({
-			id: z.uuid(),
-			isActive: z.boolean().optional(),
-			name: z.string().min(1).optional(),
-		}),
-	)
+	.validator(updateWebhookInput)
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		const existing = await prisma.webhook.findFirst({ where: { id: data.id, ownerId: userId } });
@@ -84,7 +70,7 @@ export const updateWebhook = createServerFn({ method: "POST" })
 	});
 
 export const deleteWebhook = createServerFn({ method: "POST" })
-	.validator(z.object({ id: z.uuid() }))
+	.validator(webhookIdInput)
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		const existing = await prisma.webhook.findFirst({ where: { id: data.id, ownerId: userId } });
@@ -93,7 +79,7 @@ export const deleteWebhook = createServerFn({ method: "POST" })
 	});
 
 export const testWebhook = createServerFn({ method: "POST" })
-	.validator(z.object({ id: z.uuid() }))
+	.validator(webhookIdInput)
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		const webhook = await prisma.webhook.findFirst({ where: { id: data.id, ownerId: userId } });

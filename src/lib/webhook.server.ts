@@ -1,10 +1,11 @@
 import { createHmac } from "node:crypto";
 import { resolve4, resolve6 } from "node:dns/promises";
+import { WEBHOOK_EVENT_VALUES, type WebhookEvent } from "#/features/webhooks/lib/schemas";
 import { decrypt, encrypt } from "#/lib/crypto.server";
 import { prisma } from "#/lib/db.server";
 
-export const WEBHOOK_EVENTS = ["chat.completed", "session.created", "chat.message"] as const;
-export type WebhookEvent = (typeof WEBHOOK_EVENTS)[number];
+export const WEBHOOK_EVENTS = WEBHOOK_EVENT_VALUES;
+export type { WebhookEvent };
 
 const PRIVATE_PATTERNS = [
 	/^127\./,
