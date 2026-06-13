@@ -1,59 +1,13 @@
 import { revalidateLogic } from "@tanstack/react-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { ChevronDownIcon } from "lucide-react";
 import { toast } from "sonner";
-import { z } from "zod/v4";
 import { ConnectionTestAlert } from "#/components/ConnectionTestAlert";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "#/components/ui/card";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "#/components/ui/collapsible";
 import { Field, FieldGroup } from "#/components/ui/field";
 import { registerRemoteOllama, testRemoteOllama } from "#/features/cookbook/lib/cookbook.functions";
-import { buildOllamaUrlFromHost, HOSTNAME_OR_IP_REGEX } from "#/features/cookbook/lib/remote-host";
+import { OllamaUrlSchema } from "#/features/cookbook/lib/ollama-url";
 import { useAppForm } from "#/hooks/use-app-form";
-
-/**
- * Host + port are the common path; the advanced "Full URL" field handles TLS,
- * reverse proxies, and subpaths that host+port can't express. A non-empty URL
- * overrides host+port.
- */
-const RemoteFormSchema = z
-	.object({
-		host: z.string().trim(),
-		port: z.string().trim(),
-		url: z.string().trim(),
-	})
-	.superRefine((value, ctx) => {
-		if (value.url) {
-			if (!z.url().safeParse(value.url).success) {
-				ctx.addIssue({
-					code: "custom",
-					path: ["url"],
-					message: "Enter a valid URL, e.g. https://ollama.example.com",
-				});
-			}
-			return;
-		}
-		if (!HOSTNAME_OR_IP_REGEX.test(value.host)) {
-			ctx.addIssue({
-				code: "custom",
-				path: ["host"],
-				message: "Enter a hostname or IP address — no http:// or port",
-			});
-		}
-		const port = Number(value.port);
-		if (!/^\d+$/.test(value.port) || port < 1 || port > 65535) {
-			ctx.addIssue({ code: "custom", path: ["port"], message: "Port must be 1–65535" });
-		}
-	});
-
-type RemoteFormValues = z.infer<typeof RemoteFormSchema>;
-
-function resolveOllamaUrl(values: RemoteFormValues): string {
-	const url = values.url.trim();
-	if (url) return url;
-	return buildOllamaUrlFromHost(values.host.trim(), Number(values.port));
-}
 
 export function RemoteOllamaForm({ onBack }: { onBack: () => void }) {
 	const queryClient = useQueryClient();
@@ -73,28 +27,28 @@ export function RemoteOllamaForm({ onBack }: { onBack: () => void }) {
 	});
 
 	const form = useAppForm({
-		defaultValues: { host: "", port: "11434", url: "" },
-		validators: { onDynamic: RemoteFormSchema },
+		defaultValues: { url: "" },
+		validators: { onDynamic: OllamaUrlSchema },
 		validationLogic: revalidateLogic(),
-		onSubmit: ({ value }) => connectMutation.mutateAsync(resolveOllamaUrl(value)),
+		onSubmit: ({ value }) => connectMutation.mutateAsync(value.url),
 	});
 
 	function handleTest() {
-		const parsed = RemoteFormSchema.safeParse(form.state.values);
+		const parsed = OllamaUrlSchema.safeParse(form.state.values);
 		if (!parsed.success) {
-			toast.error("Enter a valid host or URL first");
+			toast.error("Enter a valid URL first");
 			return;
 		}
-		testMutation.mutate(resolveOllamaUrl(parsed.data));
+		testMutation.mutate(parsed.data.url);
 	}
 
 	return (
 		<Card>
 			<CardHeader>
-				<CardTitle>Connect to Ollama on another machine</CardTitle>
+				<CardTitle>Connect to Ollama at a URL</CardTitle>
 				<CardDescription>
-					Enter the address of the machine running Ollama — for example a homelab server. Make sure
-					Ollama listens on the network there (OLLAMA_HOST=0.0.0.0).
+					Point at an Ollama instance by URL — a homelab server, another machine, or a custom port.
+					Make sure Ollama listens on the network there (OLLAMA_HOST=0.0.0.0).
 				</CardDescription>
 			</CardHeader>
 			<CardContent>
@@ -106,38 +60,15 @@ export function RemoteOllamaForm({ onBack }: { onBack: () => void }) {
 				>
 					<form.AppForm>
 						<FieldGroup>
-							<form.AppField name="host">
+							<form.AppField name="url">
 								{(field) => (
 									<field.InputField
-										label="Host"
-										placeholder="192.168.1.50"
-										description="Hostname or IP address — no http:// or port."
+										label="Ollama URL"
+										placeholder="http://192.168.1.50:11434"
+										description="Full URL including http:// or https:// and the port."
 									/>
 								)}
 							</form.AppField>
-							<form.AppField name="port">
-								{(field) => <field.InputField label="Port" inputMode="numeric" />}
-							</form.AppField>
-
-							<Collapsible>
-								<CollapsibleTrigger asChild>
-									<Button type="button" variant="ghost" size="sm" className="text-muted-foreground">
-										<ChevronDownIcon />
-										Advanced
-									</Button>
-								</CollapsibleTrigger>
-								<CollapsibleContent className="pt-2">
-									<form.AppField name="url">
-										{(field) => (
-											<field.InputField
-												label="Full URL"
-												placeholder="https://ollama.example.com"
-												description="For TLS, reverse proxies, or subpaths. Overrides host and port."
-											/>
-										)}
-									</form.AppField>
-								</CollapsibleContent>
-							</Collapsible>
 
 							{testMutation.data && (
 								<ConnectionTestAlert

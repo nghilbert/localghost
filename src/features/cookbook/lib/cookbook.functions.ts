@@ -2,7 +2,7 @@ import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod/v4";
 import { getCurrentUserId } from "#/features/auth/lib/session.server";
-import { OllamaUrlSchema } from "#/features/cookbook/lib/remote-host";
+import { OllamaUrlSchema } from "#/features/cookbook/lib/ollama-url";
 import type { OllamaStatus } from "#/features/cookbook/lib/types";
 import { getHardwareInfo } from "#/lib/hardware.server";
 import {
