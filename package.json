@@ -6,8 +6,8 @@
 		"#/*": "./src/*"
 	},
 	"scripts": {
+		"predev": "prisma migrate deploy",
 		"dev": "vite dev --port 3000",
-		"dev:compose": "docker compose -f compose.yaml -f compose.dev.yaml",
 		"build": "tsc --noEmit && vite build",
 		"preview": "vite preview",
 		"format": "biome format",

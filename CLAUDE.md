@@ -19,7 +19,12 @@ npm run prisma -- migrate dev --name <name>
 npm run prisma -- generate
 ```
 
-Start Postgres: `docker compose up db -d`
+### Dev loops
+
+Two-loop model — develop natively, validate against the production image:
+
+- **Inner loop** (edit→save→see): `docker compose up db -d` then `npm run dev` on the host. Fast HMR. Run Ollama natively at `localhost:11434` and add it as an endpoint in-app.
+- **Parity check** (pre-push): `docker compose up --build` — builds the production Dockerfile and runs the real bundled server (`.output/server/index.mjs`) against Dockerized Postgres, with `DATABASE_URL` pointed at `db:5432`. `COMPOSE_PROFILES` (cpu/nvidia/amd) selects the Ollama variant for the full stack.
 
 ## Environment
 
