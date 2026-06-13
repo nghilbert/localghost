@@ -3,17 +3,21 @@ node_modules/
 
 # Build outputs
 dist/
+dist-ssr
 .output/
 .nitro/
 .tanstack/
 .wrangler/
 .cache/
 /src/generated/prisma
+.vinxi
+__unconfig*
 
 # Environment
 .env
 .env.local
-.env.*.local
+*.local
+todos.json
 
 # Logs
 *.log
