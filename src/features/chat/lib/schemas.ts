@@ -4,7 +4,7 @@ const uuid = z.uuid();
 
 export const createEndpointSchema = z.object({
 	name: z.string().min(1, "Name is required"),
-	url: z.string().url("Must be a valid URL"),
+	url: z.url("Must be a valid URL"),
 	apiKey: z.string().optional(),
 	provider: z.enum(["openai", "anthropic", "ollama", "openrouter", "groq"]).default("openai"),
 });
@@ -32,6 +32,23 @@ export const updateSessionSchema = z.object({
 export const chatMessageSchema = z.object({
 	sessionId: uuid,
 	message: z.string().min(1),
+});
+
+// ── Server-fn inputs ─────────────────────────────────────────────────────────
+
+export const endpointIdInput = z.object({ id: uuid });
+export const sessionIdInput = z.object({ id: uuid });
+export const getEndpointModelsInput = z.object({ endpointId: uuid });
+export const testEndpointInput = z.object({
+	url: z.url().max(2048),
+	apiKey: z.string().max(4096).optional(),
+});
+export const updateEndpointInput = z.object({ id: uuid, data: updateEndpointSchema });
+export const updateSessionInput = z.object({ id: uuid, data: updateSessionSchema });
+export const searchMessagesInput = z.object({ query: z.string().min(1).max(200) });
+export const forkSessionInput = z.object({
+	id: uuid,
+	keepCount: z.number().int().min(0).optional(),
 });
 
 // ── Presets ─────────────────────────────────────────────────────────────────
