@@ -6,9 +6,9 @@ import { toast } from "sonner";
 import { PageHeader } from "#/components/PageHeader";
 import { Button } from "#/components/ui/button";
 import { CalendarGrid } from "#/features/calendar/components/CalendarGrid";
+import { CreateCalendarDialog } from "#/features/calendar/components/CreateCalendarDialog";
+import { CreateEventDialog } from "#/features/calendar/components/CreateEventDialog";
 import { EventDetailDialog } from "#/features/calendar/components/EventDetailDialog";
-import { NewCalendarDialog } from "#/features/calendar/components/NewCalendarDialog";
-import { NewEventDialog } from "#/features/calendar/components/NewEventDialog";
 import {
 	calendarsQueryOptions,
 	deleteEvent,
@@ -102,22 +102,13 @@ function CalendarPage() {
 						>
 							Today
 						</Button>
-						<NewEventDialog
+						<CreateEventDialog
 							open={isNewEventOpen}
 							onOpenChange={setIsNewEventOpen}
 							calendars={calendars}
 							defaultDate={selectedDate ?? today}
-							onCreated={() => {
-								queryClient.invalidateQueries({ queryKey: ["calendar-events"] });
-								toast.success("Event created");
-							}}
 						/>
-						<NewCalendarDialog
-							onCreated={() => {
-								queryClient.invalidateQueries({ queryKey: ["calendars"] });
-								toast.success("Calendar created");
-							}}
-						/>
+						<CreateCalendarDialog />
 					</div>
 				}
 			/>

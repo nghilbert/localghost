@@ -1,8 +1,16 @@
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeaders } from "@tanstack/react-start/server";
-import { z } from "zod/v4";
 import { auth } from "#/features/auth/lib/auth.server";
+import {
+	createCalendarInput,
+	createEventInput,
+	deleteCalendarInput,
+	deleteEventInput,
+	getEventsInput,
+	syncCalendarInput,
+	updateEventInput,
+} from "#/features/calendar/lib/schemas";
 import { syncCalDav } from "#/lib/caldav.server";
 import { encrypt } from "#/lib/crypto.server";
 import { prisma } from "#/lib/db.server";
@@ -26,16 +34,7 @@ export const getCalendars = createServerFn({ method: "GET" }).handler(async () =
 });
 
 export const createCalendar = createServerFn({ method: "POST" })
-	.validator(
-		z.object({
-			name: z.string().min(1),
-			color: z.string().default("#5b8abf"),
-			source: z.enum(["local", "caldav"]).default("local"),
-			caldavUrl: z.string().optional(),
-			caldavUsername: z.string().optional(),
-			caldavPassword: z.string().optional(),
-		}),
-	)
+	.validator(createCalendarInput)
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		return prisma.calendarCal.create({
@@ -52,7 +51,7 @@ export const createCalendar = createServerFn({ method: "POST" })
 	});
 
 export const deleteCalendar = createServerFn({ method: "POST" })
-	.validator(z.object({ id: z.uuid() }))
+	.validator(deleteCalendarInput)
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		await prisma.calendarCal.deleteMany({ where: { id: data.id, ownerId: userId } });
@@ -61,12 +60,7 @@ export const deleteCalendar = createServerFn({ method: "POST" })
 // ── Event CRUD ────────────────────────────────────────────────────────────
 
 export const getEvents = createServerFn({ method: "GET" })
-	.validator(
-		z.object({
-			start: z.string(),
-			end: z.string(),
-		}),
-	)
+	.validator(getEventsInput)
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		return prisma.calendarEvent.findMany({
@@ -81,19 +75,7 @@ export const getEvents = createServerFn({ method: "GET" })
 	});
 
 export const createEvent = createServerFn({ method: "POST" })
-	.validator(
-		z.object({
-			calendarId: z.uuid(),
-			summary: z.string().min(1),
-			description: z.string().default(""),
-			location: z.string().default(""),
-			dtstart: z.string(),
-			dtend: z.string(),
-			allDay: z.boolean().default(false),
-			rrule: z.string().optional(),
-			color: z.string().optional(),
-		}),
-	)
+	.validator(createEventInput)
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		const cal = await prisma.calendarCal.findFirst({
@@ -118,18 +100,7 @@ export const createEvent = createServerFn({ method: "POST" })
 	});
 
 export const updateEvent = createServerFn({ method: "POST" })
-	.validator(
-		z.object({
-			id: z.uuid(),
-			summary: z.string().min(1).optional(),
-			description: z.string().optional(),
-			location: z.string().optional(),
-			dtstart: z.string().optional(),
-			dtend: z.string().optional(),
-			allDay: z.boolean().optional(),
-			color: z.string().optional(),
-		}),
-	)
+	.validator(updateEventInput)
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		const event = await prisma.calendarEvent.findFirst({ where: { id: data.id, ownerId: userId } });
@@ -147,7 +118,7 @@ export const updateEvent = createServerFn({ method: "POST" })
 	});
 
 export const deleteEvent = createServerFn({ method: "POST" })
-	.validator(z.object({ id: z.uuid() }))
+	.validator(deleteEventInput)
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		await prisma.calendarEvent.deleteMany({ where: { id: data.id, ownerId: userId } });
@@ -156,7 +127,7 @@ export const deleteEvent = createServerFn({ method: "POST" })
 // ── CalDAV sync ───────────────────────────────────────────────────────────
 
 export const syncCalendar = createServerFn({ method: "POST" })
-	.validator(z.object({ calendarId: z.uuid() }))
+	.validator(syncCalendarInput)
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		const cal = await prisma.calendarCal.findFirst({
