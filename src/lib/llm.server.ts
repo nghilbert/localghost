@@ -7,21 +7,13 @@ import { openaiCompatibleText } from "@tanstack/ai-openai/compatible";
 export type LLMProvider = "anthropic" | "ollama" | "openai" | "openrouter" | "groq";
 
 export type LLMMessage = {
-	role: "system" | "user" | "assistant" | "tool";
+	role: "system" | "user" | "assistant";
 	content: string | LLMContentBlock[];
-	tool_call_id?: string;
-	tool_calls?: LLMToolCall[];
 };
 
 export type LLMContentBlock =
 	| { type: "text"; text: string }
 	| { type: "image_url"; image_url: { url: string } };
-
-export type LLMToolCall = {
-	id: string;
-	type: "function";
-	function: { name: string; arguments: string };
-};
 
 export type LLMTool = {
 	type: "function";
@@ -35,7 +27,6 @@ export type LLMTool = {
 export type SSEChunk =
 	| { type: "delta"; delta: string }
 	| { type: "thinking"; delta: string }
-	| { type: "tool_calls"; calls: LLMToolCall[] }
 	| { type: "usage"; input_tokens: number; output_tokens: number }
 	| { type: "done" }
 	| { type: "error"; error: string };
@@ -114,8 +105,6 @@ function toModelMessages(messages: LLMMessage[]): {
 		modelMessages.push({
 			role: message.role,
 			content: toModelContent(message.content),
-			...(message.tool_calls ? { toolCalls: message.tool_calls } : {}),
-			...(message.tool_call_id ? { toolCallId: message.tool_call_id } : {}),
 		});
 	}
 	return { systemPrompts, modelMessages };
