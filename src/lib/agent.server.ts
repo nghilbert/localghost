@@ -1,4 +1,4 @@
-import { type LLMMessage, type LLMTool, type SSEChunk, streamLLM } from "#/lib/llm.server";
+import { type AgentSSEChunk, type LLMMessage, type LLMTool, streamAgent } from "#/lib/llm.server";
 import { callMcpTool, type McpToolDef } from "#/lib/mcp.server";
 import { manageCalendar } from "#/lib/tools/manage_calendar";
 import { manageContacts } from "#/lib/tools/manage_contacts";
@@ -317,14 +317,16 @@ export const AGENT_TOOLS: LLMTool[] = [
 	},
 ];
 
-export type AgentChunk = SSEChunk | { type: "tool_result"; tool: string; result: string };
-
-const MAX_ROUNDS = 10;
+export type AgentChunk = AgentSSEChunk;
 
 /**
- * Multi-round agent loop. Streams SSE chunks for each round.
- * Runs up to MAX_ROUNDS of: LLM call → execute tool calls → inject results → repeat.
- * Yields AgentChunk events (same as SSEChunk plus tool_result events).
+ * Runs the multi-round agent. Built-in {@link AGENT_TOOLS} and any MCP server
+ * tools are handed to `streamAgent`, which executes them via {@link executeTool}
+ * and loops until the model finishes; this generator forwards the resulting
+ * {@link AgentChunk} events (text/thinking deltas, tool results, usage, done).
+ *
+ * @param opts - Endpoint, model, conversation, owner, and optional MCP tools.
+ * @returns An async generator of {@link AgentChunk} events.
  */
 export async function* runAgent(opts: {
 	url: string;
@@ -336,8 +338,7 @@ export async function* runAgent(opts: {
 	/** Extra tools from connected MCP servers */
 	mcpTools?: McpToolDef[];
 }): AsyncGenerator<AgentChunk> {
-	const { url, apiKey, model, systemPrompt, ownerId, mcpTools = [] } = opts;
-	const messages: LLMMessage[] = [...opts.messages];
+	const { url, apiKey, model, messages, systemPrompt, ownerId, mcpTools = [] } = opts;
 
 	const mcpToolSchemas: LLMTool[] = mcpTools.map((t) => ({
 		type: "function",
@@ -349,81 +350,35 @@ export async function* runAgent(opts: {
 	}));
 	const allTools = [...AGENT_TOOLS, ...mcpToolSchemas];
 
-	for (let round = 0; round < MAX_ROUNDS; round++) {
-		let assistantText = "";
-		const pendingToolCalls: Array<{ id: string; name: string; rawArgs: string }> = [];
-
-		const stream = await streamLLM({
-			url,
-			apiKey,
-			model,
-			messages,
-			tools: allTools,
-			systemPrompt,
-		});
-		const reader = stream.getReader();
-
-		while (true) {
-			const { done, value } = await reader.read();
-			if (done) break;
-
-			yield value;
-
-			if (value.type === "delta") {
-				assistantText += value.delta;
-			} else if (value.type === "tool_calls") {
-				for (const call of value.calls) {
-					pendingToolCalls.push({
-						id: call.id,
-						name: call.function.name,
-						rawArgs: call.function.arguments,
-					});
-				}
-			}
-		}
-
-		// No tool calls → agent is done
-		if (pendingToolCalls.length === 0) {
-			return;
-		}
-
-		// Push the assistant turn (with tool_calls) into history
-		messages.push({
-			role: "assistant",
-			content: assistantText,
-			tool_calls: pendingToolCalls.map((c) => ({
-				id: c.id,
-				type: "function",
-				function: { name: c.name, arguments: c.rawArgs },
-			})),
-		});
-
-		// Execute each tool call and push results
-		for (const call of pendingToolCalls) {
-			const result = await executeTool(call.name, call.rawArgs, ownerId, mcpTools);
-
-			yield { type: "tool_result", tool: call.name, result };
-
-			messages.push({
-				role: "tool",
-				content: result,
-				tool_call_id: call.id,
-			});
-		}
-	}
-
-	// Yield a final error if we hit the round limit
-	yield { type: "error", error: `Agent exceeded ${MAX_ROUNDS} rounds without finishing.` };
+	yield* streamAgent({
+		url,
+		apiKey,
+		model,
+		messages,
+		systemPrompt,
+		tools: allTools,
+		executeTool: (name, args) => executeTool(name, args, ownerId, mcpTools),
+	});
 }
 
+/**
+ * Dispatches a tool call to its implementation, normalizing the model-supplied
+ * arguments and returning a string result (or a description of any error).
+ *
+ * @param name - The tool name the model invoked.
+ * @param rawArgs - The tool input, either a parsed object or a JSON string.
+ * @param ownerId - The acting user, threaded to every data-scoped tool.
+ * @param mcpTools - Connected MCP tools to fall back to for namespaced names.
+ * @returns The tool's textual result.
+ */
 async function executeTool(
 	name: string,
-	rawArgs: string,
+	rawArgs: unknown,
 	ownerId: string,
 	mcpTools: McpToolDef[] = [],
 ): Promise<string> {
 	try {
-		const args = JSON.parse(rawArgs || "{}") as Record<string, unknown>;
+		const args = normalizeToolArgs(rawArgs);
 
 		switch (name) {
 			case "web_search":
@@ -456,4 +411,17 @@ async function executeTool(
 	} catch (err) {
 		return `Tool error: ${err instanceof Error ? err.message : "Unknown error"}`;
 	}
+}
+
+/** Coerces model-supplied tool input into a plain object, accepting parsed objects or JSON strings. */
+function normalizeToolArgs(raw: unknown): Record<string, unknown> {
+	if (typeof raw === "string") {
+		try {
+			const parsed: unknown = JSON.parse(raw || "{}");
+			return parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : {};
+		} catch {
+			return {};
+		}
+	}
+	return raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
 }
