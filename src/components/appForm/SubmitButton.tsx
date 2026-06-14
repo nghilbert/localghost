@@ -1,20 +1,7 @@
-import { CircleAlertIcon } from "lucide-react";
-import type { ComponentProps, ReactNode } from "react";
-import { Alert, AlertDescription } from "#/components/ui/alert";
+import type { ComponentProps } from "react";
 import { Button } from "#/components/ui/button";
 import { Spinner } from "#/components/ui/spinner";
-import { useFormContext } from "./context";
-
-export function FormError({ children }: { children?: ReactNode }) {
-	if (!children) return null;
-
-	return (
-		<Alert variant="destructive">
-			<CircleAlertIcon />
-			<AlertDescription>{children}</AlertDescription>
-		</Alert>
-	);
-}
+import { useFormContext } from "#/hooks/app-form-context";
 
 export function SubmitButton({ children, ...props }: ComponentProps<typeof Button>) {
 	const { Subscribe } = useFormContext();

@@ -1,6 +1,12 @@
 import type { ComponentProps, ElementType } from "react";
 
-export type BaseFieldProps = { label: string; description?: string };
+export type FieldOrientation = "vertical" | "horizontal" | "responsive";
+
+export type BaseFieldProps = {
+	label: string;
+	description?: string;
+	orientation?: FieldOrientation;
+};
 export type FieldOption = { label: string; value: string };
 
 type FormManagedPropKeys =
