@@ -12,6 +12,12 @@ function getKey(): Buffer {
 	return buf;
 }
 
+/**
+ * Encrypts plaintext with AES-256-GCM under the 32-byte `ENCRYPTION_KEY`.
+ *
+ * @param plaintext - The UTF-8 string to encrypt.
+ * @returns The encrypted value as `iv:tag:ciphertext`, each segment hex-encoded.
+ */
 export function encrypt(plaintext: string): string {
 	const iv = randomBytes(IV_LENGTH);
 	const cipher = createCipheriv(ALGORITHM, getKey(), iv);
@@ -21,6 +27,13 @@ export function encrypt(plaintext: string): string {
 	return `${iv.toString("hex")}:${tag.toString("hex")}:${encrypted.toString("hex")}`;
 }
 
+/**
+ * Decrypts a value produced by {@link encrypt}, verifying the GCM auth tag.
+ *
+ * @param ciphertext - An `iv:tag:ciphertext` hex string.
+ * @returns The decrypted UTF-8 plaintext.
+ * @throws If the format is malformed or the auth tag fails verification.
+ */
 export function decrypt(ciphertext: string): string {
 	const [ivHex, tagHex, dataHex] = ciphertext.split(":");
 	if (!ivHex || !tagHex || !dataHex) throw new Error("Invalid ciphertext format");

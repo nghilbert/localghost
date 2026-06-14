@@ -20,7 +20,12 @@ type CalDavConfig = {
 };
 
 /**
- * Pulls events from a CalDAV server for a date range (default: 90 days back, 365 days forward).
+ * Pulls events from every calendar on a CalDAV server within a date range.
+ *
+ * @param config - CalDAV server URL and encrypted credentials.
+ * @param start - Range start (default 90 days ago).
+ * @param end - Range end (default 365 days ahead).
+ * @returns Flattened events across all calendars; malformed objects are skipped.
  */
 export async function syncCalDav(
 	config: CalDavConfig,
@@ -60,6 +65,7 @@ export async function syncCalDav(
 	return events;
 }
 
+/** Parses an iCalendar document into events, skipping any individual malformed VEVENT. */
 function parseICS(icsText: string): CalDavEvent[] {
 	const jcal = ICAL.parse(icsText);
 	const comp = new ICAL.Component(jcal);

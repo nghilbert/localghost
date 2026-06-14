@@ -65,6 +65,7 @@ What is the system/task state right now? What was the last thing discussed?
 
 Keep the summary under 800 tokens. Be dense — every token should carry information.`;
 
+/** Resolves a model id to its context-window size in tokens, defaulting to {@link DEFAULT_CONTEXT}. */
 function getContextLength(model: string): number {
 	const lower = model.toLowerCase();
 	for (const [key, ctx] of Object.entries(CONTEXT_BY_MODEL)) {
@@ -73,6 +74,7 @@ function getContextLength(model: string): number {
 	return DEFAULT_CONTEXT;
 }
 
+/** Roughly estimates a message list's token count (~0.3 tokens/char plus per-message overhead). */
 function estimateTokens(messages: LLMMessage[]): number {
 	let total = 0;
 	for (const msg of messages) {
@@ -89,6 +91,7 @@ function estimateTokens(messages: LLMMessage[]): number {
 	return total;
 }
 
+/** Flattens message content to plain text, joining text blocks and dropping non-text ones. */
 function contentAsText(content: LLMMessage["content"]): string {
 	if (typeof content === "string") return content;
 	if (Array.isArray(content)) {
@@ -100,6 +103,18 @@ function contentAsText(content: LLMMessage["content"]): string {
 	return "";
 }
 
+/**
+ * Summarizes the older half of a conversation once it crosses
+ * {@link COMPACT_THRESHOLD} of the model's context window, preserving system
+ * messages and the recent half. On summarization failure it falls back to the
+ * trimmed recent history, so the caller always receives a usable message list.
+ *
+ * @param messages - The full conversation, including system messages.
+ * @param model - The model id, used to look up its context-window size.
+ * @param url - Endpoint URL used to generate the summary.
+ * @param apiKey - Optional bearer key for the summary request.
+ * @returns The (possibly compacted) messages and whether compaction occurred.
+ */
 export async function maybeCompact(
 	messages: LLMMessage[],
 	model: string,

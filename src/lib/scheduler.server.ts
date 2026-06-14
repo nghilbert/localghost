@@ -63,6 +63,12 @@ export async function executeTaskById(id: string): Promise<void> {
 	await executeTask(task);
 }
 
+/**
+ * Runs a single scheduled task: records a TaskRun, performs its work (for `llm`
+ * tasks, streams a completion from the owner's most recent endpoint and optionally
+ * saves the output to the linked chat session), then advances the task's next run.
+ * Failures are recorded on the TaskRun rather than thrown.
+ */
 async function executeTask(task: {
 	id: string;
 	name: string;

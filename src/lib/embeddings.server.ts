@@ -2,9 +2,13 @@ import { prisma } from "#/lib/db.server";
 import { decrypt } from "./crypto.server";
 
 /**
- * Fetch a text embedding from the user's first configured endpoint that
- * supports /v1/embeddings. Falls back to null when no endpoint is available
- * so callers can degrade gracefully (skip vector search, still save memory).
+ * Fetches a text embedding from the user's first endpoint that supports
+ * `/v1/embeddings`, trying each endpoint in creation order.
+ *
+ * @param text - The text to embed.
+ * @param ownerId - The user whose configured endpoints are tried.
+ * @returns The embedding vector, or `null` if no endpoint succeeds so callers can
+ *   degrade gracefully (skip vector search, still save the record).
  */
 export async function embed(text: string, ownerId: string): Promise<number[] | null> {
 	const endpoints = await prisma.modelEndpoint.findMany({
@@ -47,8 +51,11 @@ export async function embed(text: string, ownerId: string): Promise<number[] | n
 }
 
 /**
- * Format a number[] as a pgvector literal string, e.g. "[0.1,0.2,...]".
- * Used in raw SQL queries since Prisma doesn't have native vector support.
+ * Formats a vector as a pgvector literal (e.g. `[0.1,0.2,...]`) for use in raw SQL,
+ * since Prisma has no native vector type.
+ *
+ * @param embedding - The embedding vector.
+ * @returns The pgvector literal string.
  */
 export function toVectorLiteral(embedding: number[]): string {
 	return `[${embedding.join(",")}]`;
