@@ -22,6 +22,15 @@ const BLOCKED_HOSTNAMES = new Set(["localhost", "0.0.0.0", "metadata.google.inte
 
 const BLOCKED_SUFFIXES = [".local", ".internal", ".lan", ".intranet", ".localhost"];
 
+/**
+ * Determines whether a URL points at a private, loopback, link-local, or
+ * cloud-metadata address — the SSRF guard for outbound webhook delivery. Checks
+ * the literal host, blocked hostnames/suffixes, and every resolved A/AAAA record,
+ * failing closed (treating the URL as private) on any parse or DNS error.
+ *
+ * @param rawUrl - The candidate webhook URL.
+ * @returns `true` if the URL must not be contacted.
+ */
 async function isPrivateUrl(rawUrl: string): Promise<boolean> {
 	try {
 		const parsed = new URL(rawUrl);
@@ -48,6 +57,14 @@ async function isPrivateUrl(rawUrl: string): Promise<boolean> {
 	}
 }
 
+/**
+ * Asserts that a webhook URL is safe to call: http(s), within the length limit,
+ * and not resolving to a private/internal address.
+ *
+ * @param url - The user-supplied webhook URL.
+ * @throws If the URL is too long, uses a disallowed protocol, lacks a hostname,
+ *   or points at a private/internal address.
+ */
 export async function validateWebhookUrl(url: string): Promise<void> {
 	const trimmed = url.trim();
 	if (trimmed.length > 2048) throw new Error("URL too long (max 2048 characters)");
@@ -58,14 +75,25 @@ export async function validateWebhookUrl(url: string): Promise<void> {
 		throw new Error("URL must not point to private/internal addresses");
 }
 
+/** Encrypts a webhook signing secret for storage at rest. */
 export function encryptSecret(secret: string): string {
 	return encrypt(secret);
 }
 
+/** Decrypts a webhook signing secret stored by {@link encryptSecret}. */
 export function decryptSecret(enc: string): string {
 	return decrypt(enc);
 }
 
+/**
+ * Delivers a webhook event to every active endpoint owned by a user that is
+ * subscribed to it. Deliveries run concurrently and independently, so one failing
+ * endpoint never blocks the others.
+ *
+ * @param event - The event being fired.
+ * @param payload - Event-specific data, sent as the `data` field of the body.
+ * @param ownerId - The user whose subscribed webhooks should receive the event.
+ */
 export async function fireWebhook(
 	event: WebhookEvent,
 	payload: Record<string, unknown>,
@@ -86,6 +114,11 @@ export async function fireWebhook(
 	await Promise.allSettled(matching.map((w) => deliverWebhook(w, event, payload)));
 }
 
+/**
+ * Posts a single webhook delivery and records its outcome. Re-validates the URL at
+ * send time (SSRF guard), signs the body with HMAC-SHA256 when the endpoint has a
+ * secret, and persists the response status or a redacted error. Never throws.
+ */
 async function deliverWebhook(
 	webhook: { id: string; url: string; secretEncrypted: string | null },
 	event: string,

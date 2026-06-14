@@ -18,6 +18,13 @@ export type SendMailOptions = {
 	replyTo?: string;
 };
 
+/**
+ * Sends an email through a user's SMTP account, decrypting the stored password and
+ * selecting SSL or STARTTLS from the account's security setting.
+ *
+ * @param config - The SMTP account: host, port, security, credentials, and from address.
+ * @param opts - The message to send: recipient, subject, body, and optional reply-to.
+ */
 export async function sendMail(config: SmtpConfig, opts: SendMailOptions): Promise<void> {
 	const password = decrypt(config.passwordEncrypted);
 

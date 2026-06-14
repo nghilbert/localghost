@@ -24,6 +24,7 @@ type AccountConfig = {
 	starttls: boolean;
 };
 
+/** Builds an ImapFlow client for an account, decrypting its stored password. */
 function makeClient(account: AccountConfig): ImapFlow {
 	const password = decrypt(account.passwordEncrypted);
 	return new ImapFlow({
@@ -35,6 +36,14 @@ function makeClient(account: AccountConfig): ImapFlow {
 	});
 }
 
+/**
+ * Lists the most recent messages in a folder, newest first, without their bodies.
+ *
+ * @param account - The IMAP account to connect to.
+ * @param folder - Mailbox to read (default `"INBOX"`).
+ * @param limit - Maximum number of messages to return (default 50).
+ * @returns Message envelopes (subject, from, date, flags, size).
+ */
 export async function listMessages(
 	account: AccountConfig,
 	folder = "INBOX",
@@ -80,6 +89,14 @@ export async function listMessages(
 	}
 }
 
+/**
+ * Fetches a single message by UID with its body, marking it as seen.
+ *
+ * @param account - The IMAP account to connect to.
+ * @param uid - The message UID.
+ * @param folder - Mailbox containing the message (default `"INBOX"`).
+ * @returns The full message (text and html), or `null` if it no longer exists.
+ */
 export async function fetchMessage(
 	account: AccountConfig,
 	uid: string,
@@ -143,6 +160,7 @@ function extractPlainText(raw: string): string {
 	return raw.slice(0, 2000);
 }
 
+/** Extracts the first text/html MIME part from a raw message, or `null` if none. */
 function extractHtml(raw: string): string | null {
 	const match = raw.match(/Content-Type: text\/html[\s\S]*?\r?\n\r?\n([\s\S]*?)(?:\r?\n--)/i);
 	return match?.[1]?.trim() ?? null;

@@ -2,6 +2,7 @@ import { execSync } from "node:child_process";
 import os from "node:os";
 import type { GpuInfo, HardwareInfo } from "#/features/cookbook/lib/types";
 
+/** Queries `nvidia-smi` for installed NVIDIA GPUs, or `null` if the tool is absent or returns nothing. */
 function detectNvidiaGpus(): GpuInfo[] | null {
 	try {
 		const out = execSync(
@@ -25,6 +26,7 @@ function detectNvidiaGpus(): GpuInfo[] | null {
 	}
 }
 
+/** Queries `rocm-smi` for installed AMD GPUs, or `null` if the tool is absent or returns nothing. */
 function detectAmdGpus(): GpuInfo[] | null {
 	try {
 		const out = execSync("rocm-smi --showmeminfo vram --json", {
@@ -53,6 +55,11 @@ function detectAmdGpus(): GpuInfo[] | null {
 	}
 }
 
+/**
+ * Reports host CPU and RAM totals along with any detected GPUs, preferring NVIDIA over AMD.
+ *
+ * @returns CPU model and count, total/free RAM in GB, and detected GPUs (or `null` when none).
+ */
 export function getHardwareInfo(): HardwareInfo {
 	const cpus = os.cpus();
 	return {
