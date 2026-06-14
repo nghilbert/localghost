@@ -1,6 +1,5 @@
 import { useRef } from "react";
 import { Button } from "#/components/ui/button";
-import { isFieldInvalid } from "#/hooks/app-form-context";
 import { cn } from "#/lib/utils";
 import { useFieldShell } from "../../hooks/use-field-shell";
 import type { ComponentFieldProps } from "./types";
@@ -11,7 +10,7 @@ export function ColorField({
 	orientation,
 	...props
 }: Omit<ComponentFieldProps<"input">, "type">) {
-	const { field, FieldShell } = useFieldShell<string>();
+	const { field, isFieldValid, FieldShell } = useFieldShell<string>();
 	const colorInputRef = useRef<HTMLInputElement>(null);
 
 	return (
@@ -22,7 +21,7 @@ export function ColorField({
 				className="h-8 w-8 rounded-full border-2 p-0"
 				style={{ backgroundColor: field.state.value }}
 				onClick={() => colorInputRef.current?.click()}
-				aria-invalid={isFieldInvalid(field)}
+				aria-invalid={!isFieldValid}
 				aria-label={`Pick ${label.toLowerCase()}`}
 			/>
 			<input

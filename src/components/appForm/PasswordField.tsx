@@ -7,7 +7,6 @@ import {
 	InputGroupInput,
 } from "#/components/ui/input-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "#/components/ui/tooltip";
-import { isFieldInvalid } from "#/hooks/app-form-context";
 import { useFieldShell } from "../../hooks/use-field-shell";
 import type { ComponentFieldProps } from "./types";
 
@@ -17,7 +16,7 @@ export function PasswordField({
 	orientation,
 	...props
 }: Omit<ComponentFieldProps<typeof InputGroupInput>, "type">) {
-	const { field, FieldShell } = useFieldShell<string>();
+	const { field, isFieldValid, FieldShell } = useFieldShell<string>();
 	const [show, setShow] = useState(false);
 
 	return (
@@ -28,7 +27,7 @@ export function PasswordField({
 					value={field.state.value}
 					onBlur={field.handleBlur}
 					onChange={(event) => field.handleChange(event.target.value)}
-					aria-invalid={isFieldInvalid(field)}
+					aria-invalid={!isFieldValid}
 					{...props}
 					type={show ? "text" : "password"}
 				/>

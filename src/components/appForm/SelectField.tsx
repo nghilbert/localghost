@@ -5,7 +5,6 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "#/components/ui/select";
-import { isFieldInvalid } from "#/hooks/app-form-context";
 import { useFieldShell } from "../../hooks/use-field-shell";
 import type { ComponentFieldProps, FieldOption } from "./types";
 
@@ -22,7 +21,7 @@ export function SelectField({
 	placeholder,
 	...props
 }: SelectFieldProps) {
-	const { field, FieldShell } = useFieldShell<string>();
+	const { field, isFieldValid, FieldShell } = useFieldShell<string>();
 
 	return (
 		<FieldShell label={label} description={description} orientation={orientation}>
@@ -31,11 +30,7 @@ export function SelectField({
 				onValueChange={(value) => field.handleChange(value)}
 				{...props}
 			>
-				<SelectTrigger
-					id={field.name}
-					aria-invalid={isFieldInvalid(field)}
-					onBlur={field.handleBlur}
-				>
+				<SelectTrigger id={field.name} aria-invalid={!isFieldValid} onBlur={field.handleBlur}>
 					<SelectValue placeholder={placeholder} />
 				</SelectTrigger>
 				<SelectContent>
