@@ -8,7 +8,6 @@ import {
 	Scripts,
 } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { Toaster } from "sonner";
 import { Button } from "#/components/ui/button";
 import {
 	Empty,
@@ -17,6 +16,7 @@ import {
 	EmptyHeader,
 	EmptyTitle,
 } from "#/components/ui/empty";
+import { Toaster } from "#/components/ui/sonner";
 import { TooltipProvider } from "#/components/ui/tooltip";
 import { getAuthSession } from "#/features/auth/lib/auth.functions";
 import { ThemeProvider } from "#/features/theme/ThemeProvider";
