@@ -1,3 +1,9 @@
+import type { ContentPart, ModelMessage, ServerTool, StreamChunk } from "@tanstack/ai";
+import { chat, createModel, extendAdapter, maxIterations, toolDefinition } from "@tanstack/ai";
+import { createAnthropicChat } from "@tanstack/ai-anthropic";
+import { createOllamaChat } from "@tanstack/ai-ollama";
+import { openaiCompatibleText } from "@tanstack/ai-openai/compatible";
+
 export type LLMProvider = "anthropic" | "ollama" | "openai" | "openrouter" | "groq";
 
 export type LLMMessage = {
@@ -34,17 +40,30 @@ export type SSEChunk =
 	| { type: "done" }
 	| { type: "error"; error: string };
 
+/** A streamed agent event: every {@link SSEChunk} plus tool-execution results. */
+export type AgentSSEChunk = SSEChunk | { type: "tool_result"; tool: string; result: string };
+
 export type StreamLLMOptions = {
 	url: string;
 	apiKey?: string;
 	model: string;
 	messages: LLMMessage[];
-	tools?: LLMTool[];
 	systemPrompt?: string;
 	temperature?: number;
 	maxTokens?: number;
 };
 
+const OPENROUTER_REFERER = "https://pretty-odysseus.app";
+const DEFAULT_MAX_TOKENS = 4096;
+const MAX_AGENT_ROUNDS = 10;
+
+/**
+ * Auto-detects the provider family from a bring-your-own endpoint URL so the
+ * right `@tanstack/ai` adapter and request shape are selected.
+ *
+ * @param url - The endpoint base URL configured on a `ModelEndpoint`.
+ * @returns The detected provider family.
+ */
 export function detectProvider(url: string): LLMProvider {
 	const u = url.toLowerCase();
 	if (u.includes("anthropic.com")) return "anthropic";
@@ -54,345 +73,248 @@ export function detectProvider(url: string): LLMProvider {
 	return "openai";
 }
 
-function buildHeaders(provider: LLMProvider, apiKey?: string): Record<string, string> {
-	const base: Record<string, string> = { "Content-Type": "application/json" };
-	if (provider === "anthropic") {
-		if (apiKey) base["x-api-key"] = apiKey;
-		base["anthropic-version"] = "2023-06-01";
-		base["anthropic-beta"] = "interleaved-thinking-2025-05-14";
-	} else {
-		if (apiKey) base.Authorization = `Bearer ${apiKey}`;
-		if (provider === "openrouter") {
-			base["HTTP-Referer"] = "https://pretty-odysseus.app";
+/** Strips a trailing slash and a redundant `/v1` so the Anthropic SDK can append its own path. */
+function anthropicBaseUrl(url: string): string {
+	return url.replace(/\/+$/, "").replace(/\/v1$/, "");
+}
+
+/** Normalizes an OpenAI-compatible base URL to end at `/v1` (the SDK appends `/chat/completions`). */
+function openaiBaseUrl(url: string): string {
+	const base = url.replace(/\/+$/, "").replace(/\/chat\/completions$/, "");
+	return base.endsWith("/v1") ? base : `${base}/v1`;
+}
+
+/** Reduces an Ollama URL to its host root (the SDK appends `/api/chat`). */
+function ollamaHost(url: string): string {
+	return url.replace(/\/+$/, "").replace(/\/api$/, "");
+}
+
+/** Converts our message content into `@tanstack/ai` model-message content. */
+function toModelContent(content: string | LLMContentBlock[]): string | ContentPart[] {
+	if (typeof content === "string") return content;
+	return content.map((block) =>
+		block.type === "text"
+			? { type: "text", content: block.text }
+			: { type: "image", source: { type: "url", value: block.image_url.url } },
+	);
+}
+
+/** Splits messages into system prompts and `@tanstack/ai` model messages. */
+function toModelMessages(messages: LLMMessage[]): {
+	systemPrompts: string[];
+	modelMessages: ModelMessage[];
+} {
+	const systemPrompts: string[] = [];
+	const modelMessages: ModelMessage[] = [];
+	for (const message of messages) {
+		if (message.role === "system") {
+			if (typeof message.content === "string") systemPrompts.push(message.content);
+			continue;
 		}
+		modelMessages.push({
+			role: message.role,
+			content: toModelContent(message.content),
+			...(message.tool_calls ? { toolCalls: message.tool_calls } : {}),
+			...(message.tool_call_id ? { toolCallId: message.tool_call_id } : {}),
+		});
 	}
-	return base;
+	return { systemPrompts, modelMessages };
 }
 
-function normalizeUrl(url: string, provider: LLMProvider): string {
-	const base = url.replace(/\/$/, "");
-	if (provider === "anthropic") {
-		return base.endsWith("/messages") ? base : `${base}/v1/messages`;
-	}
-	if (provider === "ollama") {
-		return base.endsWith("/chat") ? base : `${base}/api/chat`;
-	}
-	return base.endsWith("/completions") ? base : `${base}/v1/chat/completions`;
+/** Prepends the system prompt (replacing any inline system messages) when one is supplied. */
+function withSystemPrompt(opts: StreamLLMOptions): LLMMessage[] {
+	if (!opts.systemPrompt) return opts.messages;
+	return [
+		{ role: "system", content: opts.systemPrompt },
+		...opts.messages.filter((m) => m.role !== "system"),
+	];
 }
 
-function buildAnthropicBody(
-	model: string,
+/** Clamps a temperature into Anthropic's accepted `[0, 1]` range. */
+function clampUnit(value: number): number {
+	return Math.min(Math.max(value, 0), 1);
+}
+
+/**
+ * Drives a `chat()` run against the detected provider, applying per-provider
+ * adapter construction, base-URL normalization, header quirks, and the
+ * provider-specific `modelOptions` shape. Returns the raw `@tanstack/ai`
+ * (AG-UI) event stream — `chat()` auto-executes any server tools and loops up
+ * to `maxIterations`.
+ */
+function chatEvents(
+	opts: StreamLLMOptions,
 	messages: LLMMessage[],
-	tools?: LLMTool[],
-	temperature = 0.7,
-	maxTokens = 4096,
-) {
-	// Anthropic: separate system messages
-	const systemMsgs = messages.filter((m) => m.role === "system");
-	const nonSystem = messages.filter((m) => m.role !== "system");
-	const system =
-		systemMsgs.map((m) => (typeof m.content === "string" ? m.content : "")).join("\n\n") ||
-		undefined;
-
-	const body: Record<string, unknown> = {
-		model,
-		max_tokens: maxTokens,
-		temperature: Math.min(Math.max(temperature, 0), 1),
-		stream: true,
-		messages: nonSystem.map((m) => ({
-			role: m.role === "tool" ? "user" : m.role,
-			content: typeof m.content === "string" ? m.content : m.content,
-		})),
-	};
-	if (system) body.system = system;
-	if (tools?.length) {
-		body.tools = tools.map((t) => ({
-			name: t.function.name,
-			description: t.function.description,
-			input_schema: t.function.parameters,
-		}));
-	}
-	return body;
-}
-
-function buildOpenAIBody(
-	model: string,
-	messages: LLMMessage[],
-	tools?: LLMTool[],
-	temperature = 0.7,
-	maxTokens = 4096,
-) {
-	const isReasoning = /^(o1|o3|o4)/.test(model);
-	const body: Record<string, unknown> = {
-		model,
-		stream: true,
-		messages: messages.map((m) => {
-			if (m.role === "tool") {
-				return { role: "tool", content: m.content, tool_call_id: m.tool_call_id };
-			}
-			if (m.tool_calls?.length) {
-				return { role: m.role, content: m.content, tool_calls: m.tool_calls };
-			}
-			return { role: m.role, content: m.content };
-		}),
-	};
-	if (isReasoning) {
-		body.max_completion_tokens = maxTokens;
-	} else {
-		body.temperature = temperature;
-		body.max_tokens = maxTokens;
-	}
-	if (tools?.length) body.tools = tools;
-	return body;
-}
-
-function buildOllamaBody(
-	model: string,
-	messages: LLMMessage[],
-	tools?: LLMTool[],
-	temperature = 0.7,
-	maxTokens = 4096,
-) {
-	const body: Record<string, unknown> = {
-		model,
-		stream: true,
-		options: { temperature, num_predict: maxTokens },
-		messages: messages.map((m) => ({
-			role: m.role === "tool" ? "user" : m.role,
-			content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
-		})),
-	};
-	if (tools?.length) body.tools = tools;
-	return body;
-}
-
-async function* parseAnthropicStream(
-	reader: ReadableStreamDefaultReader<Uint8Array>,
-): AsyncGenerator<SSEChunk> {
-	const decoder = new TextDecoder();
-	let buffer = "";
-	const pendingToolCalls: LLMToolCall[] = [];
-	let currentToolIndex = -1;
-
-	while (true) {
-		const { done, value } = await reader.read();
-		if (done) break;
-		buffer += decoder.decode(value, { stream: true });
-		const lines = buffer.split("\n");
-		buffer = lines.pop() ?? "";
-
-		for (const line of lines) {
-			if (!line.startsWith("data: ")) continue;
-			const data = line.slice(6).trim();
-			if (!data || data === "[DONE]") continue;
-			try {
-				const evt = JSON.parse(data);
-				if (evt.type === "content_block_delta") {
-					const delta = evt.delta;
-					if (delta.type === "text_delta") {
-						yield { type: "delta", delta: delta.text };
-					} else if (delta.type === "thinking_delta") {
-						yield { type: "thinking", delta: delta.thinking };
-					} else if (delta.type === "input_json_delta" && currentToolIndex >= 0) {
-						const pending = pendingToolCalls[currentToolIndex];
-						if (pending) pending.function.arguments += delta.partial_json;
-					}
-				} else if (evt.type === "content_block_start") {
-					if (evt.content_block?.type === "tool_use") {
-						currentToolIndex++;
-						pendingToolCalls[currentToolIndex] = {
-							id: evt.content_block.id,
-							type: "function",
-							function: { name: evt.content_block.name, arguments: "" },
-						};
-					}
-				} else if (evt.type === "message_delta" && evt.usage) {
-					yield {
-						type: "usage",
-						input_tokens: evt.usage.input_tokens ?? 0,
-						output_tokens: evt.usage.output_tokens ?? 0,
-					};
-				} else if (evt.type === "message_stop") {
-					if (pendingToolCalls.length > 0) {
-						yield { type: "tool_calls", calls: pendingToolCalls };
-					}
-					yield { type: "done" };
-				}
-			} catch {
-				// ignore malformed chunks
-			}
-		}
-	}
-}
-
-async function* parseOpenAIStream(
-	reader: ReadableStreamDefaultReader<Uint8Array>,
-): AsyncGenerator<SSEChunk> {
-	const decoder = new TextDecoder();
-	let buffer = "";
-	const pendingToolCalls: LLMToolCall[] = [];
-
-	while (true) {
-		const { done, value } = await reader.read();
-		if (done) break;
-		buffer += decoder.decode(value, { stream: true });
-		const lines = buffer.split("\n");
-		buffer = lines.pop() ?? "";
-
-		for (const line of lines) {
-			if (!line.startsWith("data: ")) continue;
-			const data = line.slice(6).trim();
-			if (data === "[DONE]") {
-				if (pendingToolCalls.length > 0) {
-					yield { type: "tool_calls", calls: pendingToolCalls };
-				}
-				yield { type: "done" };
-				continue;
-			}
-			try {
-				const evt = JSON.parse(data);
-				const choice = evt.choices?.[0];
-				if (!choice) continue;
-				const delta = choice.delta;
-				if (delta?.content) {
-					yield { type: "delta", delta: delta.content };
-				}
-				if (delta?.tool_calls) {
-					for (const tc of delta.tool_calls) {
-						const idx: number = tc.index ?? 0;
-						if (!pendingToolCalls[idx]) {
-							pendingToolCalls[idx] = {
-								id: tc.id ?? `call_${idx}`,
-								type: "function",
-								function: { name: tc.function?.name ?? "", arguments: "" },
-							};
-						}
-						if (tc.function?.name) pendingToolCalls[idx].function.name = tc.function.name;
-						if (tc.function?.arguments)
-							pendingToolCalls[idx].function.arguments += tc.function.arguments;
-					}
-				}
-				if (evt.usage) {
-					yield {
-						type: "usage",
-						input_tokens: evt.usage.prompt_tokens ?? 0,
-						output_tokens: evt.usage.completion_tokens ?? 0,
-					};
-				}
-			} catch {
-				// ignore malformed chunks
-			}
-		}
-	}
-}
-
-async function* parseOllamaStream(
-	reader: ReadableStreamDefaultReader<Uint8Array>,
-): AsyncGenerator<SSEChunk> {
-	const decoder = new TextDecoder();
-	let buffer = "";
-
-	while (true) {
-		const { done, value } = await reader.read();
-		if (done) break;
-		buffer += decoder.decode(value, { stream: true });
-		const lines = buffer.split("\n");
-		buffer = lines.pop() ?? "";
-
-		for (const line of lines) {
-			const trimmed = line.trim();
-			if (!trimmed) continue;
-			try {
-				const evt = JSON.parse(trimmed);
-				if (evt.message?.content) {
-					yield { type: "delta", delta: evt.message.content };
-				}
-				if (evt.done) {
-					if (evt.message?.tool_calls?.length) {
-						yield {
-							type: "tool_calls",
-							calls: evt.message.tool_calls.map(
-								(tc: { function: { name: string; arguments: unknown } }, i: number) => ({
-									id: `call_${i}`,
-									type: "function",
-									function: {
-										name: tc.function.name,
-										arguments:
-											typeof tc.function.arguments === "string"
-												? tc.function.arguments
-												: JSON.stringify(tc.function.arguments),
-									},
-								}),
-							),
-						};
-					}
-					yield { type: "done" };
-				}
-			} catch {
-				// ignore malformed chunks
-			}
-		}
-	}
-}
-
-export async function streamLLM(opts: StreamLLMOptions): Promise<ReadableStream<SSEChunk>> {
+	tools: ServerTool[] | undefined,
+): AsyncIterable<StreamChunk> {
 	const provider = detectProvider(opts.url);
-	const url = normalizeUrl(opts.url, provider);
-	const headers = buildHeaders(provider, opts.apiKey);
+	const { systemPrompts, modelMessages } = toModelMessages(messages);
+	const temperature = opts.temperature ?? 0.7;
+	const maxTokens = opts.maxTokens ?? DEFAULT_MAX_TOKENS;
+	const shared = {
+		messages: modelMessages,
+		systemPrompts,
+		stream: true as const,
+		...(tools ? { tools, agentLoopStrategy: maxIterations(MAX_AGENT_ROUNDS) } : {}),
+	};
 
-	// Prepend system prompt if provided and not already the first message
-	const messages = opts.systemPrompt
-		? [
-				{ role: "system" as const, content: opts.systemPrompt },
-				...opts.messages.filter((m) => m.role !== "system"),
-			]
-		: opts.messages;
-
-	let body: Record<string, unknown>;
 	if (provider === "anthropic") {
-		body = buildAnthropicBody(opts.model, messages, opts.tools, opts.temperature, opts.maxTokens);
-	} else if (provider === "ollama") {
-		body = buildOllamaBody(opts.model, messages, opts.tools, opts.temperature, opts.maxTokens);
-	} else {
-		body = buildOpenAIBody(opts.model, messages, opts.tools, opts.temperature, opts.maxTokens);
+		// `createAnthropicChat` type-constrains the model to a fixed list; widen it with a
+		// runtime model definition so any bring-your-own Claude model name is accepted.
+		const factory = extendAdapter(createAnthropicChat, [
+			createModel(opts.model, ["text", "image", "document"]),
+		]);
+		const adapter = factory(opts.model, opts.apiKey ?? "", {
+			baseURL: anthropicBaseUrl(opts.url),
+		});
+		return chat({
+			adapter,
+			...shared,
+			modelOptions: { temperature: clampUnit(temperature), max_tokens: maxTokens },
+		});
 	}
 
-	const response = await fetch(url, {
-		method: "POST",
-		headers,
-		body: JSON.stringify(body),
+	if (provider === "ollama") {
+		const adapter = createOllamaChat(opts.model, ollamaHost(opts.url));
+		return chat({
+			adapter,
+			...shared,
+			modelOptions: { model: opts.model, options: { temperature, num_predict: maxTokens } },
+		});
+	}
+
+	const adapter = openaiCompatibleText(opts.model, {
+		baseURL: openaiBaseUrl(opts.url),
+		apiKey: opts.apiKey ?? "",
+		api: "chat-completions",
+		...(provider === "openrouter"
+			? { defaultHeaders: { "HTTP-Referer": OPENROUTER_REFERER } }
+			: {}),
 	});
+	return chat({
+		adapter,
+		...shared,
+		modelOptions: { temperature, max_tokens: maxTokens },
+	});
+}
 
-	if (!response.ok || !response.body) {
-		const text = await response.text().catch(() => "");
-		throw new Error(`LLM request failed: ${response.status} ${text}`);
-	}
-
-	const reader = response.body.getReader();
-	let gen: AsyncGenerator<SSEChunk>;
-	if (provider === "anthropic") {
-		gen = parseAnthropicStream(reader);
-	} else if (provider === "ollama") {
-		gen = parseOllamaStream(reader);
-	} else {
-		gen = parseOpenAIStream(reader);
-	}
+/**
+ * Streams a completion from a bring-your-own endpoint, normalizing every
+ * provider onto our unified {@link SSEChunk} protocol (text deltas, thinking
+ * deltas, token usage, done, error).
+ *
+ * @param opts - Endpoint, model, messages, system prompt, and sampling controls.
+ * @returns A readable stream of {@link SSEChunk} events.
+ */
+export async function streamLLM(opts: StreamLLMOptions): Promise<ReadableStream<SSEChunk>> {
+	const source = chatEvents(opts, withSystemPrompt(opts), undefined);
 
 	return new ReadableStream<SSEChunk>({
-		async pull(controller) {
-			const { done, value } = await gen.next();
-			if (done) {
+		async start(controller) {
+			try {
+				for await (const chunk of source) {
+					switch (chunk.type) {
+						case "TEXT_MESSAGE_CONTENT":
+							controller.enqueue({ type: "delta", delta: chunk.delta });
+							break;
+						case "REASONING_MESSAGE_CONTENT":
+							controller.enqueue({ type: "thinking", delta: chunk.delta });
+							break;
+						case "RUN_FINISHED":
+							if (chunk.usage) {
+								controller.enqueue({
+									type: "usage",
+									input_tokens: chunk.usage.promptTokens ?? 0,
+									output_tokens: chunk.usage.completionTokens ?? 0,
+								});
+							}
+							break;
+						case "RUN_ERROR":
+							controller.enqueue({ type: "error", error: chunk.message ?? "LLM run error" });
+							break;
+					}
+				}
+				controller.enqueue({ type: "done" });
+			} catch (err) {
+				controller.enqueue({
+					type: "error",
+					error: err instanceof Error ? err.message : "LLM request failed",
+				});
+			} finally {
 				controller.close();
-			} else {
-				controller.enqueue(value);
 			}
-		},
-		cancel() {
-			reader.cancel();
 		},
 	});
 }
 
+/**
+ * Runs an agentic completion: `chat()` executes the supplied tools via
+ * `executeTool` and loops until the model stops or {@link MAX_AGENT_ROUNDS} is
+ * reached, while this generator surfaces text/thinking deltas, tool results,
+ * token usage, and completion as {@link AgentSSEChunk} events.
+ *
+ * @param opts - Stream options plus the tool catalog and an executor callback.
+ * @returns An async generator of {@link AgentSSEChunk} events.
+ */
+export async function* streamAgent(
+	opts: StreamLLMOptions & {
+		tools: LLMTool[];
+		executeTool: (name: string, args: unknown) => Promise<string>;
+	},
+): AsyncGenerator<AgentSSEChunk> {
+	const tools = opts.tools.map((tool) =>
+		toolDefinition({
+			name: tool.function.name,
+			description: tool.function.description,
+			inputSchema: tool.function.parameters,
+		}).server((args) => opts.executeTool(tool.function.name, args)),
+	);
+
+	const source = chatEvents(opts, withSystemPrompt(opts), tools);
+	const toolNames = new Map<string, string>();
+
+	for await (const chunk of source) {
+		switch (chunk.type) {
+			case "TEXT_MESSAGE_CONTENT":
+				yield { type: "delta", delta: chunk.delta };
+				break;
+			case "REASONING_MESSAGE_CONTENT":
+				yield { type: "thinking", delta: chunk.delta };
+				break;
+			case "TOOL_CALL_START":
+				toolNames.set(chunk.toolCallId, chunk.toolCallName);
+				break;
+			case "TOOL_CALL_RESULT":
+				yield {
+					type: "tool_result",
+					tool: toolNames.get(chunk.toolCallId) ?? "tool",
+					result: typeof chunk.content === "string" ? chunk.content : JSON.stringify(chunk.content),
+				};
+				break;
+			case "RUN_FINISHED":
+				if (chunk.usage) {
+					yield {
+						type: "usage",
+						input_tokens: chunk.usage.promptTokens ?? 0,
+						output_tokens: chunk.usage.completionTokens ?? 0,
+					};
+				}
+				break;
+			case "RUN_ERROR":
+				yield { type: "error", error: chunk.message ?? "LLM run error" };
+				break;
+		}
+	}
+	yield { type: "done" };
+}
+
+/**
+ * Non-streaming convenience wrapper: drains {@link streamLLM} and returns the
+ * concatenated assistant text.
+ *
+ * @param opts - Same options as {@link streamLLM}.
+ * @returns The full assistant response text.
+ */
 export async function callLLM(opts: StreamLLMOptions): Promise<string> {
 	const stream = await streamLLM(opts);
 	const reader = stream.getReader();
@@ -412,9 +334,24 @@ export type EndpointProbeResult = {
 	error?: string;
 };
 
+function modelsHeaders(provider: LLMProvider, apiKey?: string): Record<string, string> {
+	const headers: Record<string, string> = { "Content-Type": "application/json" };
+	if (provider === "anthropic") {
+		if (apiKey) headers["x-api-key"] = apiKey;
+		headers["anthropic-version"] = "2023-06-01";
+	} else if (apiKey) {
+		headers.Authorization = `Bearer ${apiKey}`;
+	}
+	return headers;
+}
+
 /**
  * Probes a provider's model-list endpoint with real auth so failures are
- * distinguishable — unlike listModels, which collapses errors into [].
+ * distinguishable — unlike {@link listModels}, which collapses errors into `[]`.
+ *
+ * @param url - The endpoint base URL.
+ * @param apiKey - Optional API key for authenticated providers.
+ * @returns Whether the endpoint responded, its status, and a model count when available.
  */
 export async function probeEndpoint(url: string, apiKey?: string): Promise<EndpointProbeResult> {
 	const provider = detectProvider(url);
@@ -422,7 +359,7 @@ export async function probeEndpoint(url: string, apiKey?: string): Promise<Endpo
 	const modelsUrl = provider === "ollama" ? `${base}/api/tags` : `${base}/v1/models`;
 	try {
 		const res = await fetch(modelsUrl, {
-			headers: buildHeaders(provider, apiKey),
+			headers: modelsHeaders(provider, apiKey),
 			signal: AbortSignal.timeout(8000),
 		});
 		if (!res.ok) {
@@ -436,28 +373,24 @@ export async function probeEndpoint(url: string, apiKey?: string): Promise<Endpo
 	}
 }
 
+/**
+ * Lists the model ids advertised by an endpoint, collapsing any error to `[]`.
+ *
+ * @param url - The endpoint base URL.
+ * @param apiKey - Optional API key for authenticated providers.
+ * @returns The available model ids, or `[]` on any failure.
+ */
 export async function listModels(url: string, apiKey?: string): Promise<string[]> {
 	const provider = detectProvider(url);
 	const base = url.replace(/\/$/, "");
 	try {
-		if (provider === "anthropic") {
-			const res = await fetch(`${base}/v1/models`, {
-				headers: buildHeaders(provider, apiKey),
-			});
-			if (!res.ok) return [];
-			const data = (await res.json()) as { data?: { id: string }[] };
-			return (data.data ?? []).map((m) => m.id);
-		}
 		if (provider === "ollama") {
-			const res = await fetch(`${base}/api/tags`, { headers: buildHeaders(provider, apiKey) });
+			const res = await fetch(`${base}/api/tags`, { headers: modelsHeaders(provider, apiKey) });
 			if (!res.ok) return [];
 			const data = (await res.json()) as { models?: { name: string }[] };
 			return (data.models ?? []).map((m) => m.name);
 		}
-		// OpenAI-compatible
-		const res = await fetch(`${base}/v1/models`, {
-			headers: buildHeaders(provider, apiKey),
-		});
+		const res = await fetch(`${base}/v1/models`, { headers: modelsHeaders(provider, apiKey) });
 		if (!res.ok) return [];
 		const data = (await res.json()) as { data?: { id: string }[] };
 		return (data.data ?? []).map((m) => m.id);
