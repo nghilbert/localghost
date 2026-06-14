@@ -9,23 +9,19 @@ import {
 	InputGroupButton,
 	InputGroupInput,
 } from "#/components/ui/input-group";
-import { useFieldContext } from "#/hooks/app-form-context";
-import { FieldShell } from "./FieldShell";
-import type { BaseFieldProps } from "./types";
+import { useFieldShell } from "../../hooks/use-field-shell";
+import type { ComponentFieldProps } from "./types";
 
-type ChecklistFieldItem = {
-	id: string;
-	text: string;
-	checked: boolean;
-};
+type ChecklistFieldItem = { id: string; text: string; checked: boolean };
 
 export function ChecklistField({
 	label,
 	description,
 	orientation,
 	placeholder,
-}: BaseFieldProps & { placeholder?: string }) {
-	const field = useFieldContext<ChecklistFieldItem[]>();
+	...props
+}: { placeholder?: string } & ComponentFieldProps<typeof FieldGroup>) {
+	const { field, FieldShell } = useFieldShell<ChecklistFieldItem[]>();
 	const [newItemText, setNewItemText] = useState("");
 
 	const addItem = () => {
@@ -37,7 +33,7 @@ export function ChecklistField({
 
 	return (
 		<FieldShell label={label} description={description} orientation={orientation}>
-			<FieldGroup>
+			<FieldGroup {...props}>
 				{field.state.value.map((item) => (
 					<Field key={item.id} orientation="horizontal">
 						<Checkbox

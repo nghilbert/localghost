@@ -1,6 +1,6 @@
 import { ToggleGroup, ToggleGroupItem } from "#/components/ui/toggle-group";
-import { isFieldInvalid, useFieldContext } from "#/hooks/app-form-context";
-import { FieldShell } from "./FieldShell";
+import { isFieldInvalid } from "#/hooks/app-form-context";
+import { useFieldShell } from "../../hooks/use-field-shell";
 import type { ComponentFieldProps, FieldOption } from "./types";
 
 export type ToggleGroupFieldProps = Omit<ComponentFieldProps<typeof ToggleGroup>, "type"> & {
@@ -14,7 +14,7 @@ export function ToggleGroupField({
 	options,
 	...props
 }: ToggleGroupFieldProps) {
-	const field = useFieldContext<string>();
+	const { field, FieldShell } = useFieldShell<string>();
 
 	return (
 		<FieldShell label={label} description={description} orientation={orientation}>

@@ -1,6 +1,6 @@
 import { Textarea } from "#/components/ui/textarea";
-import { isFieldInvalid, useFieldContext } from "#/hooks/app-form-context";
-import { FieldShell } from "./FieldShell";
+import { isFieldInvalid } from "#/hooks/app-form-context";
+import { useFieldShell } from "../../hooks/use-field-shell";
 import type { ComponentFieldProps } from "./types";
 
 export function TextareaField({
@@ -9,7 +9,7 @@ export function TextareaField({
 	orientation,
 	...props
 }: ComponentFieldProps<typeof Textarea>) {
-	const field = useFieldContext<string>();
+	const { field, FieldShell } = useFieldShell<string>();
 
 	return (
 		<FieldShell label={label} description={description} orientation={orientation}>

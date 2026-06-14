@@ -1,11 +1,10 @@
 import type { ComponentProps, ElementType } from "react";
-
-export type FieldOrientation = "vertical" | "horizontal" | "responsive";
+import type { Field } from "#/components/ui/field";
 
 export type BaseFieldProps = {
 	label: string;
 	description?: string;
-	orientation?: FieldOrientation;
+	orientation?: ComponentProps<typeof Field>["orientation"];
 };
 export type FieldOption = { label: string; value: string };
 
@@ -18,6 +17,6 @@ type FormManagedPropKeys =
 	| "checked"
 	| "onCheckedChange"
 	| "defaultValue";
-
 type OmitManagedProps<T extends ElementType> = Omit<ComponentProps<T>, FormManagedPropKeys>;
+
 export type ComponentFieldProps<T extends ElementType> = BaseFieldProps & OmitManagedProps<T>;
