@@ -32,6 +32,15 @@ describe("provider registry", () => {
 		expect(ollama?.prefillBaseUrl).toBe("http://localhost:11434");
 		expect(detectProvider("http://localhost:11434")).toBe("ollama");
 	});
+
+	it("lists ollama first as the default provider", () => {
+		expect(PROVIDERS[0]?.id).toBe("ollama");
+	});
+
+	it("routes gemini through detectProvider and maps to its own db provider", () => {
+		expect(detectProvider("https://generativelanguage.googleapis.com")).toBe("gemini");
+		expect(dbProviderFor("gemini")).toBe("gemini");
+	});
 });
 
 describe("buildEndpointFormSchema", () => {

@@ -1,27 +1,20 @@
 import type { ContentPart, ModelMessage, ServerTool, StreamChunk } from "@tanstack/ai";
 import { chat, createModel, extendAdapter, maxIterations, toolDefinition } from "@tanstack/ai";
 import { createAnthropicChat } from "@tanstack/ai-anthropic";
+import { createGeminiChat } from "@tanstack/ai-gemini";
 import { createOllamaChat } from "@tanstack/ai-ollama";
 import { openaiCompatibleText } from "@tanstack/ai-openai/compatible";
 
-export type LLMProvider = "anthropic" | "ollama" | "openai" | "openrouter" | "groq";
+export type LLMProvider = "anthropic" | "ollama" | "openai" | "openrouter" | "groq" | "gemini";
 
 export type LLMMessage = {
-	role: "system" | "user" | "assistant" | "tool";
+	role: "system" | "user" | "assistant";
 	content: string | LLMContentBlock[];
-	tool_call_id?: string;
-	tool_calls?: LLMToolCall[];
 };
 
 export type LLMContentBlock =
 	| { type: "text"; text: string }
 	| { type: "image_url"; image_url: { url: string } };
-
-export type LLMToolCall = {
-	id: string;
-	type: "function";
-	function: { name: string; arguments: string };
-};
 
 export type LLMTool = {
 	type: "function";
@@ -35,7 +28,6 @@ export type LLMTool = {
 export type SSEChunk =
 	| { type: "delta"; delta: string }
 	| { type: "thinking"; delta: string }
-	| { type: "tool_calls"; calls: LLMToolCall[] }
 	| { type: "usage"; input_tokens: number; output_tokens: number }
 	| { type: "done" }
 	| { type: "error"; error: string };
@@ -67,6 +59,7 @@ const MAX_AGENT_ROUNDS = 10;
 export function detectProvider(url: string): LLMProvider {
 	const u = url.toLowerCase();
 	if (u.includes("anthropic.com")) return "anthropic";
+	if (u.includes("generativelanguage.googleapis.com")) return "gemini";
 	if (u.includes(":11434") || u.includes("ollama.com")) return "ollama";
 	if (u.includes("openrouter.ai")) return "openrouter";
 	if (u.includes("groq.com")) return "groq";
@@ -87,6 +80,11 @@ function openaiBaseUrl(url: string): string {
 /** Reduces an Ollama URL to its host root (the SDK appends `/api/chat`). */
 function ollamaHost(url: string): string {
 	return url.replace(/\/+$/, "").replace(/\/api$/, "");
+}
+
+/** Strips a trailing slash so the Gemini SDK can append its own versioned path. */
+function geminiBaseUrl(url: string): string {
+	return url.replace(/\/+$/, "");
 }
 
 /** Converts our message content into `@tanstack/ai` model-message content. */
@@ -114,8 +112,6 @@ function toModelMessages(messages: LLMMessage[]): {
 		modelMessages.push({
 			role: message.role,
 			content: toModelContent(message.content),
-			...(message.tool_calls ? { toolCalls: message.tool_calls } : {}),
-			...(message.tool_call_id ? { toolCallId: message.tool_call_id } : {}),
 		});
 	}
 	return { systemPrompts, modelMessages };
@@ -180,6 +176,22 @@ function chatEvents(
 			adapter,
 			...shared,
 			modelOptions: { model: opts.model, options: { temperature, num_predict: maxTokens } },
+		});
+	}
+
+	if (provider === "gemini") {
+		// `createGeminiChat` type-constrains the model to a fixed list; widen it with a
+		// runtime model definition so any bring-your-own Gemini model name is accepted.
+		const factory = extendAdapter(createGeminiChat, [
+			createModel(opts.model, ["text", "image", "document"]),
+		]);
+		const adapter = factory(opts.model, opts.apiKey ?? "", {
+			httpOptions: { baseUrl: geminiBaseUrl(opts.url) },
+		});
+		return chat({
+			adapter,
+			...shared,
+			modelOptions: { temperature, maxOutputTokens: maxTokens },
 		});
 	}
 
@@ -339,7 +351,8 @@ function modelsHeaders(provider: LLMProvider, apiKey?: string): Record<string, s
 	if (provider === "anthropic") {
 		if (apiKey) headers["x-api-key"] = apiKey;
 		headers["anthropic-version"] = "2023-06-01";
-	} else if (apiKey) {
+	} else if (provider !== "gemini" && apiKey) {
+		// Gemini authenticates via a `?key=` query parameter, not an Authorization header.
 		headers.Authorization = `Bearer ${apiKey}`;
 	}
 	return headers;
@@ -356,7 +369,12 @@ function modelsHeaders(provider: LLMProvider, apiKey?: string): Record<string, s
 export async function probeEndpoint(url: string, apiKey?: string): Promise<EndpointProbeResult> {
 	const provider = detectProvider(url);
 	const base = url.replace(/\/$/, "");
-	const modelsUrl = provider === "ollama" ? `${base}/api/tags` : `${base}/v1/models`;
+	const modelsUrl =
+		provider === "ollama"
+			? `${base}/api/tags`
+			: provider === "gemini"
+				? `${base}/v1beta/models?key=${apiKey ?? ""}`
+				: `${base}/v1/models`;
 	try {
 		const res = await fetch(modelsUrl, {
 			headers: modelsHeaders(provider, apiKey),
@@ -389,6 +407,14 @@ export async function listModels(url: string, apiKey?: string): Promise<string[]
 			if (!res.ok) return [];
 			const data = (await res.json()) as { models?: { name: string }[] };
 			return (data.models ?? []).map((m) => m.name);
+		}
+		if (provider === "gemini") {
+			const res = await fetch(`${base}/v1beta/models?key=${apiKey ?? ""}`, {
+				headers: modelsHeaders(provider, apiKey),
+			});
+			if (!res.ok) return [];
+			const data = (await res.json()) as { models?: { name: string }[] };
+			return (data.models ?? []).map((m) => m.name.replace(/^models\//, ""));
 		}
 		const res = await fetch(`${base}/v1/models`, { headers: modelsHeaders(provider, apiKey) });
 		if (!res.ok) return [];

@@ -6,7 +6,9 @@ export const createEndpointSchema = z.object({
 	name: z.string().min(1, "Name is required"),
 	url: z.url("Must be a valid URL"),
 	apiKey: z.string().optional(),
-	provider: z.enum(["openai", "anthropic", "ollama", "openrouter", "groq"]).default("openai"),
+	provider: z
+		.enum(["openai", "anthropic", "ollama", "openrouter", "groq", "gemini"])
+		.default("openai"),
 });
 
 export const updateEndpointSchema = createEndpointSchema.partial();
