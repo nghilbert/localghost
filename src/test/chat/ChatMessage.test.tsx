@@ -32,7 +32,7 @@ describe("ChatMessage", () => {
 	describe("assistant messages", () => {
 		it("should render markdown content as formatted HTML", () => {
 			render(<ChatMessage senderRole="assistant" content="**bold text**" />);
-			expect(screen.getByRole("strong")).toBeInTheDocument();
+			expect(screen.getByText("bold text")).toHaveAttribute("data-streamdown", "strong");
 		});
 
 		it("should render with article landmark and accessible label", () => {
@@ -43,7 +43,7 @@ describe("ChatMessage", () => {
 		it("should render links with safe attributes", () => {
 			render(<ChatMessage senderRole="assistant" content="[Link](https://example.com)" />);
 			const link = screen.getByRole("link", { name: "Link" });
-			expect(link).toHaveAttribute("href", "https://example.com");
+			expect(link).toHaveAttribute("href", "https://example.com/");
 			expect(link).toHaveAttribute("target", "_blank");
 			expect(link).toHaveAttribute("rel", "noopener noreferrer");
 		});
