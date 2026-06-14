@@ -1,8 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
 import { EyeIcon, EyeOffIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
-import { PageHeader } from "#/components/PageHeader";
 import { Button } from "#/components/ui/button";
 import { Textarea } from "#/components/ui/textarea";
 import { endpointsQueryOptions } from "#/features/chat/lib/chat.functions";
@@ -11,11 +9,7 @@ import { SlotPicker } from "#/features/compare/components/SlotPicker";
 import { useCompareStream } from "#/features/compare/hooks/use-compare-stream";
 import { nextSlotId, type Slot } from "#/features/compare/lib/types";
 
-export const Route = createFileRoute("/_authenticated/compare")({
-	component: ComparePage,
-});
-
-function ComparePage() {
+export function CompareTab() {
 	const { data: endpoints = [] } = useQuery(endpointsQueryOptions());
 	const firstEndpointId = endpoints[0]?.id ?? "";
 
@@ -43,24 +37,7 @@ function ComparePage() {
 	};
 
 	return (
-		<div className="flex h-full flex-col overflow-hidden">
-			<PageHeader
-				title="Model Compare"
-				description="Run the same prompt across multiple models side by side."
-				actions={
-					<Button
-						variant="outline"
-						size="sm"
-						className="gap-1.5"
-						onClick={() => setIsBlind((b) => !b)}
-						disabled={!hasResults}
-					>
-						{isBlind ? <EyeIcon size={13} /> : <EyeOffIcon size={13} />}
-						{isBlind ? "Reveal" : "Blind"}
-					</Button>
-				}
-			/>
-
+		<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
 			<div className="shrink-0 space-y-3 border-b px-4 py-3">
 				<div className="flex flex-wrap items-end gap-2">
 					{slots.map((slot, idx) => (
@@ -79,6 +56,16 @@ function ComparePage() {
 							Add
 						</Button>
 					)}
+					<Button
+						variant="outline"
+						size="sm"
+						className="ml-auto shrink-0 gap-1.5"
+						onClick={() => setIsBlind((b) => !b)}
+						disabled={!hasResults}
+					>
+						{isBlind ? <EyeIcon size={13} /> : <EyeOffIcon size={13} />}
+						{isBlind ? "Reveal" : "Blind"}
+					</Button>
 				</div>
 				<div className="flex gap-2">
 					<Textarea
