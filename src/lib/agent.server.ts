@@ -1,8 +1,5 @@
 import { type AgentSSEChunk, type LLMMessage, type LLMTool, streamAgent } from "#/lib/llm.server";
 import { callMcpTool, type McpToolDef } from "#/lib/mcp.server";
-import { manageCalendar } from "#/lib/tools/manage_calendar";
-import { manageContacts } from "#/lib/tools/manage_contacts";
-import { manageDocuments } from "#/lib/tools/manage_documents";
 import { manageMemory } from "#/lib/tools/manage_memory";
 import { manageNotes } from "#/lib/tools/manage_notes";
 import { manageSkills } from "#/lib/tools/manage_skills";
@@ -108,74 +105,6 @@ export const AGENT_TOOLS: LLMTool[] = [
 	{
 		type: "function",
 		function: {
-			name: "manage_contacts",
-			description:
-				"Create, list, update, delete, or resolve contacts. " +
-				"Use resolve to look up a contact's email or phone by name. " +
-				"Use list to see all contacts. Use add to save a new contact.",
-			parameters: {
-				type: "object",
-				properties: {
-					action: {
-						type: "string",
-						enum: ["list", "add", "update", "delete", "resolve"],
-						description: "The action to perform",
-					},
-					id: { type: "string", description: "Contact id or 8-char prefix (for update/delete)" },
-					name: { type: "string", description: "Contact name (for add/update/resolve)" },
-					email: { type: "string", description: "Email address (for add/update)" },
-					phone: { type: "string", description: "Phone number (for add/update)" },
-					notes: { type: "string", description: "Free-form notes about the contact" },
-					query: { type: "string", description: "Name search query (for resolve)" },
-					limit: { type: "number", description: "Max results for list (default 20)" },
-				},
-				required: ["action"],
-			},
-		},
-	},
-	{
-		type: "function",
-		function: {
-			name: "manage_calendar",
-			description:
-				"Manage calendar events: list_events in a date range, create_event, update_event, delete_event, or list_calendars. " +
-				"Pass ISO 8601 datetimes for dtstart/dtend. For all-day events set all_day=true and pass YYYY-MM-DD.",
-			parameters: {
-				type: "object",
-				properties: {
-					action: {
-						type: "string",
-						enum: ["list_events", "create_event", "update_event", "delete_event", "list_calendars"],
-						description: "Action to perform",
-					},
-					summary: { type: "string", description: "Event title (for create/update)" },
-					dtstart: {
-						type: "string",
-						description: "Start ISO datetime or YYYY-MM-DD for all-day",
-					},
-					dtend: {
-						type: "string",
-						description: "End ISO datetime; defaults to +1h (or +1 day if all_day)",
-					},
-					all_day: { type: "boolean", description: "Whether this is an all-day event" },
-					description: { type: "string", description: "Event description/notes" },
-					location: { type: "string", description: "Event location" },
-					uid: { type: "string", description: "Event id or uid (for update/delete)" },
-					calendar: {
-						type: "string",
-						description: "Calendar name filter (for list_events/create_event)",
-					},
-					start: { type: "string", description: "list_events range start (ISO); defaults to now" },
-					end: { type: "string", description: "list_events range end (ISO); defaults to +14 days" },
-					rrule: { type: "string", description: "Recurrence rule in iCalendar RRULE format" },
-				},
-				required: ["action"],
-			},
-		},
-	},
-	{
-		type: "function",
-		function: {
 			name: "manage_tasks",
 			description:
 				"Manage scheduled LLM tasks: list, create, update, delete, pause, resume, or run_now. " +
@@ -211,53 +140,6 @@ export const AGENT_TOOLS: LLMTool[] = [
 						description: "Cron expression when schedule=cron",
 					},
 					session_id: { type: "string", description: "Chat session ID to deliver output to" },
-					limit: { type: "number", description: "Max results for list (default 20)" },
-				},
-				required: ["action"],
-			},
-		},
-	},
-	{
-		type: "function",
-		function: {
-			name: "manage_documents",
-			description:
-				"Create, list, read, edit, or fully update documents in the document library. " +
-				"Use create for new documents, edit for targeted find/replace, update for full rewrites. " +
-				"Documents support markdown, code, and plain text.",
-			parameters: {
-				type: "object",
-				properties: {
-					action: {
-						type: "string",
-						enum: ["list", "read", "create", "edit", "update"],
-						description: "Action to perform",
-					},
-					id: {
-						type: "string",
-						description: "Document id or 8-char prefix (for read/edit/update)",
-					},
-					title: { type: "string", description: "Document title (for create/update)" },
-					language: {
-						type: "string",
-						description: "Language/format (e.g. markdown, python, javascript) for create/update",
-					},
-					content: {
-						type: "string",
-						description: "Document content — required for create; full replacement for update",
-					},
-					edits: {
-						type: "array",
-						items: {
-							type: "object",
-							properties: {
-								find: { type: "string", description: "Exact text to find" },
-								replace: { type: "string", description: "Replacement text" },
-							},
-							required: ["find", "replace"],
-						},
-						description: "Find/replace edits for action=edit (first match per entry)",
-					},
 					limit: { type: "number", description: "Max results for list (default 20)" },
 				},
 				required: ["action"],
@@ -387,14 +269,8 @@ async function executeTool(
 				return manageMemory(args as Parameters<typeof manageMemory>[0], ownerId);
 			case "manage_notes":
 				return manageNotes(args as Parameters<typeof manageNotes>[0], ownerId);
-			case "manage_contacts":
-				return manageContacts(args as Parameters<typeof manageContacts>[0], ownerId);
-			case "manage_calendar":
-				return manageCalendar(args as Parameters<typeof manageCalendar>[0], ownerId);
 			case "manage_tasks":
 				return manageTasks(args as Parameters<typeof manageTasks>[0], ownerId);
-			case "manage_documents":
-				return manageDocuments(args as Parameters<typeof manageDocuments>[0], ownerId);
 			case "search_chats":
 				return searchChats((args.query as string) ?? "", ownerId, (args.limit as number) ?? 10);
 			case "manage_skills":

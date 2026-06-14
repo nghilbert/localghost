@@ -1,6 +1,3 @@
--- Enable pgvector extension
-CREATE EXTENSION IF NOT EXISTS vector;
-
 -- CreateTable
 CREATE TABLE "account" (
     "id" UUID NOT NULL,
@@ -33,42 +30,6 @@ CREATE TABLE "api_token" (
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "api_token_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "calendar_cal" (
-    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
-    "name" TEXT NOT NULL,
-    "color" TEXT NOT NULL DEFAULT '#5b8abf',
-    "source" TEXT NOT NULL DEFAULT 'local',
-    "caldav_url" TEXT,
-    "caldav_username_encrypted" TEXT,
-    "caldav_password_encrypted" TEXT,
-    "owner_id" UUID NOT NULL,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "calendar_cal_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "calendar_event" (
-    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
-    "calendar_id" UUID NOT NULL,
-    "uid" TEXT,
-    "summary" TEXT NOT NULL DEFAULT '',
-    "description" TEXT NOT NULL DEFAULT '',
-    "location" TEXT NOT NULL DEFAULT '',
-    "dtstart" TIMESTAMP(3) NOT NULL,
-    "dtend" TIMESTAMP(3) NOT NULL,
-    "all_day" BOOLEAN NOT NULL DEFAULT false,
-    "rrule" TEXT,
-    "color" TEXT,
-    "owner_id" UUID NOT NULL,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "calendar_event_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -109,7 +70,6 @@ CREATE TABLE "chat_session" (
     "mode" TEXT NOT NULL DEFAULT 'chat',
     "system_prompt" TEXT,
     "temperature" DOUBLE PRECISION,
-    "rag_enabled" BOOLEAN NOT NULL DEFAULT false,
     "archived" BOOLEAN NOT NULL DEFAULT false,
     "message_count" INTEGER NOT NULL DEFAULT 0,
     "last_accessed_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -117,91 +77,6 @@ CREATE TABLE "chat_session" (
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "chat_session_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "contact" (
-    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
-    "name" TEXT NOT NULL,
-    "emails" JSONB NOT NULL DEFAULT '[]',
-    "phones" JSONB NOT NULL DEFAULT '[]',
-    "notes" TEXT,
-    "uid" TEXT,
-    "source" TEXT NOT NULL DEFAULT 'local',
-    "owner_id" UUID NOT NULL,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "contact_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "document" (
-    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
-    "title" TEXT NOT NULL DEFAULT 'Untitled',
-    "language" TEXT NOT NULL DEFAULT 'markdown',
-    "content" TEXT NOT NULL DEFAULT '',
-    "version_count" INTEGER NOT NULL DEFAULT 1,
-    "archived" BOOLEAN NOT NULL DEFAULT false,
-    "owner_id" UUID NOT NULL,
-    "session_id" UUID,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "document_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "document_version" (
-    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
-    "document_id" UUID NOT NULL,
-    "version_number" INTEGER NOT NULL,
-    "content" TEXT NOT NULL,
-    "summary" TEXT,
-    "source" TEXT NOT NULL DEFAULT 'user',
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT "document_version_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "email_account" (
-    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
-    "name" TEXT NOT NULL,
-    "from_address" TEXT NOT NULL DEFAULT '',
-    "is_default" BOOLEAN NOT NULL DEFAULT false,
-    "enabled" BOOLEAN NOT NULL DEFAULT true,
-    "imap_host" TEXT NOT NULL DEFAULT '',
-    "imap_port" INTEGER NOT NULL DEFAULT 993,
-    "imap_user" TEXT NOT NULL DEFAULT '',
-    "imap_password_encrypted" TEXT NOT NULL DEFAULT '',
-    "imap_starttls" BOOLEAN NOT NULL DEFAULT true,
-    "smtp_host" TEXT NOT NULL DEFAULT '',
-    "smtp_port" INTEGER NOT NULL DEFAULT 465,
-    "smtp_security" TEXT NOT NULL DEFAULT 'ssl',
-    "smtp_user" TEXT NOT NULL DEFAULT '',
-    "smtp_password_encrypted" TEXT NOT NULL DEFAULT '',
-    "owner_id" UUID NOT NULL,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "email_account_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "email_summary" (
-    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
-    "account_id" TEXT NOT NULL,
-    "message_id" TEXT NOT NULL,
-    "folder" TEXT NOT NULL DEFAULT 'INBOX',
-    "subject" TEXT NOT NULL DEFAULT '',
-    "from_addr" TEXT NOT NULL DEFAULT '',
-    "summary" TEXT NOT NULL,
-    "date" TIMESTAMP(3) NOT NULL,
-    "owner_id" UUID NOT NULL,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT "email_summary_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -383,18 +258,6 @@ CREATE INDEX "api_token_owner_id_idx" ON "api_token"("owner_id");
 CREATE INDEX "api_token_token_hash_idx" ON "api_token"("token_hash");
 
 -- CreateIndex
-CREATE INDEX "calendar_cal_owner_id_idx" ON "calendar_cal"("owner_id");
-
--- CreateIndex
-CREATE INDEX "calendar_event_owner_id_idx" ON "calendar_event"("owner_id");
-
--- CreateIndex
-CREATE INDEX "calendar_event_calendar_id_idx" ON "calendar_event"("calendar_id");
-
--- CreateIndex
-CREATE INDEX "calendar_event_dtstart_idx" ON "calendar_event"("dtstart");
-
--- CreateIndex
 CREATE INDEX "chat_message_session_id_idx" ON "chat_message"("session_id");
 
 -- CreateIndex
@@ -408,24 +271,6 @@ CREATE INDEX "chat_session_owner_id_idx" ON "chat_session"("owner_id");
 
 -- CreateIndex
 CREATE INDEX "chat_session_owner_id_archived_idx" ON "chat_session"("owner_id", "archived");
-
--- CreateIndex
-CREATE INDEX "contact_owner_id_idx" ON "contact"("owner_id");
-
--- CreateIndex
-CREATE INDEX "document_owner_id_idx" ON "document"("owner_id");
-
--- CreateIndex
-CREATE INDEX "document_version_document_id_idx" ON "document_version"("document_id");
-
--- CreateIndex
-CREATE INDEX "email_account_owner_id_idx" ON "email_account"("owner_id");
-
--- CreateIndex
-CREATE INDEX "email_summary_owner_id_idx" ON "email_summary"("owner_id");
-
--- CreateIndex
-CREATE UNIQUE INDEX "email_summary_account_id_message_id_key" ON "email_summary"("account_id", "message_id");
 
 -- CreateIndex
 CREATE INDEX "mcp_server_owner_id_idx" ON "mcp_server"("owner_id");
@@ -473,15 +318,6 @@ ALTER TABLE "account" ADD CONSTRAINT "account_user_id_fkey" FOREIGN KEY ("user_i
 ALTER TABLE "api_token" ADD CONSTRAINT "api_token_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "calendar_cal" ADD CONSTRAINT "calendar_cal_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "calendar_event" ADD CONSTRAINT "calendar_event_calendar_id_fkey" FOREIGN KEY ("calendar_id") REFERENCES "calendar_cal"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "calendar_event" ADD CONSTRAINT "calendar_event_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE "chat_message" ADD CONSTRAINT "chat_message_session_id_fkey" FOREIGN KEY ("session_id") REFERENCES "chat_session"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -492,21 +328,6 @@ ALTER TABLE "chat_session" ADD CONSTRAINT "chat_session_endpoint_id_fkey" FOREIG
 
 -- AddForeignKey
 ALTER TABLE "chat_session" ADD CONSTRAINT "chat_session_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "contact" ADD CONSTRAINT "contact_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "document" ADD CONSTRAINT "document_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "document_version" ADD CONSTRAINT "document_version_document_id_fkey" FOREIGN KEY ("document_id") REFERENCES "document"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "email_account" ADD CONSTRAINT "email_account_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "email_summary" ADD CONSTRAINT "email_summary_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "mcp_server" ADD CONSTRAINT "mcp_server_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -534,11 +355,3 @@ ALTER TABLE "skill" ADD CONSTRAINT "skill_owner_id_fkey" FOREIGN KEY ("owner_id"
 
 -- AddForeignKey
 ALTER TABLE "webhook" ADD CONSTRAINT "webhook_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- Vector embedding columns (managed outside Prisma schema)
-ALTER TABLE "memory" ADD COLUMN "embedding" vector(1536);
-ALTER TABLE "document" ADD COLUMN "embedding" vector(1536);
-
--- IVFFlat cosine indexes for vector similarity search
-CREATE INDEX "memory_embedding_idx" ON "memory" USING ivfflat ("embedding" vector_cosine_ops) WITH (lists = 100);
-CREATE INDEX "document_embedding_idx" ON "document" USING ivfflat ("embedding" vector_cosine_ops) WITH (lists = 100);

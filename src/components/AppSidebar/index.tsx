@@ -1,18 +1,11 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
 	BookOpenIcon,
-	BookSearchIcon,
-	CalendarIcon,
 	CheckSquareIcon,
 	ChefHatIcon,
-	FileTextIcon,
-	GalleryHorizontalIcon,
-	MailIcon,
-	ScaleIcon,
 	SettingsIcon,
 	ShieldIcon,
 	StickyNotesIcon,
-	UsersIcon,
 } from "lucide-react";
 import {
 	Sidebar,
@@ -34,15 +27,8 @@ import { AuthMenu } from "./AuthMenu";
 
 const NAV_ITEMS = [
 	{ to: "/notes", label: "Notes", icon: StickyNotesIcon },
-	{ to: "/documents", label: "Documents", icon: FileTextIcon },
-	{ to: "/research", label: "Research", icon: BookSearchIcon },
 	{ to: "/skills", label: "Skills", icon: BookOpenIcon },
-	{ to: "/contacts", label: "Contacts", icon: UsersIcon },
-	{ to: "/email", label: "Email", icon: MailIcon },
-	{ to: "/calendar", label: "Calendar", icon: CalendarIcon },
 	{ to: "/tasks", label: "Tasks", icon: CheckSquareIcon },
-	{ to: "/compare", label: "Compare", icon: ScaleIcon },
-	{ to: "/gallery", label: "Gallery", icon: GalleryHorizontalIcon },
 	{ to: "/cookbook", label: "Cookbook", icon: ChefHatIcon },
 ] as const;
 

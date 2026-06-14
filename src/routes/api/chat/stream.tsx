@@ -5,33 +5,11 @@ import { runAgent } from "#/lib/agent.server";
 import { maybeCompact } from "#/lib/compactor.server";
 import { decrypt } from "#/lib/crypto.server";
 import { prisma } from "#/lib/db.server";
-import { embed, toVectorLiteral } from "#/lib/embeddings.server";
 import { callLLM, type LLMMessage, streamLLM } from "#/lib/llm.server";
 import { listAllMcpTools } from "#/lib/mcp.server";
 import { fireWebhook } from "#/lib/webhook.server";
 
 const MAX_HISTORY_MESSAGES = 40;
-
-async function ragContext(message: string, userId: string): Promise<string | null> {
-	try {
-		const embedding = await embed(message, userId);
-		if (!embedding) return null;
-		const literal = toVectorLiteral(embedding);
-		const rows = await prisma.$queryRawUnsafe<{ title: string; content: string; score: number }[]>(
-			`SELECT title, content, 1 - (embedding <=> $1::vector) AS score
-			 FROM document
-			 WHERE owner_id = $2 AND archived = false AND embedding IS NOT NULL
-			 ORDER BY score DESC LIMIT 3`,
-			literal,
-			userId,
-		);
-		const relevant = rows.filter((r) => r.score > 0.5);
-		if (!relevant.length) return null;
-		return relevant.map((r) => `### ${r.title}\n${r.content.slice(0, 1500)}`).join("\n\n---\n\n");
-	} catch {
-		return null;
-	}
-}
 
 function trimHistory(messages: LLMMessage[]): LLMMessage[] {
 	if (messages.length <= MAX_HISTORY_MESSAGES) return messages;
@@ -80,17 +58,8 @@ export const Route = createFileRoute("/api/chat/stream")({
 				const isAgent = chatSession.mode === "agent";
 				const temperature = chatSession.temperature ?? undefined;
 
-				// Build effective system prompt, injecting RAG context and skills if available
+				// Build effective system prompt, injecting skills if available
 				let effectiveSystemPrompt = chatSession.systemPrompt ?? undefined;
-				if (chatSession.ragEnabled) {
-					const ctx = await ragContext(body.message, userId);
-					if (ctx) {
-						const ragBlock = `Relevant document context:\n\n${ctx}`;
-						effectiveSystemPrompt = effectiveSystemPrompt
-							? `${effectiveSystemPrompt}\n\n${ragBlock}`
-							: ragBlock;
-					}
-				}
 
 				// Inject user skills into system prompt
 				const userSkills = await prisma.skill.findMany({

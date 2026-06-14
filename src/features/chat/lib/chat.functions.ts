@@ -205,7 +205,6 @@ export const forkSession = createServerFn({ method: "POST" })
 				model: source.model,
 				mode: source.mode,
 				systemPrompt: source.systemPrompt,
-				ragEnabled: source.ragEnabled,
 				messageCount: msgs.length,
 				ownerId: userId,
 			},

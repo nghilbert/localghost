@@ -5,10 +5,7 @@ const EXPECTED_TOOLS = [
 	"web_search",
 	"manage_memory",
 	"manage_notes",
-	"manage_contacts",
-	"manage_calendar",
 	"manage_tasks",
-	"manage_documents",
 	"search_chats",
 	"manage_skills",
 ];
@@ -21,8 +18,8 @@ describe("AGENT_TOOLS", () => {
 		}
 	});
 
-	it("has exactly 9 built-in tools", () => {
-		expect(AGENT_TOOLS).toHaveLength(9);
+	it("has exactly 6 built-in tools", () => {
+		expect(AGENT_TOOLS).toHaveLength(6);
 	});
 
 	it("every tool has type 'function'", () => {

@@ -9,7 +9,6 @@ model ChatSession {
     mode           String         @default("chat")
     systemPrompt   String?        @map("system_prompt")
     temperature    Float?
-    ragEnabled     Boolean        @default(false) @map("rag_enabled")
     archived       Boolean        @default(false)
     messageCount   Int            @default(0) @map("message_count")
     lastAccessedAt DateTime       @default(now()) @map("last_accessed_at")

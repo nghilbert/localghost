@@ -36,9 +36,7 @@ function AdminPage() {
 								["Chat sessions", stats.sessions],
 								["Messages", stats.messages],
 								["Memories", stats.memories],
-								["Documents", stats.documents],
 								["Notes", stats.notes],
-								["Contacts", stats.contacts],
 								["Active webhooks", stats.webhooks],
 							] as [string, number][]
 						).map(([label, val]) => (
@@ -71,7 +69,6 @@ function AdminPage() {
 										<div className="flex shrink-0 gap-4 text-xs text-muted-foreground">
 											<span>{u._count.chatSessions} sessions</span>
 											<span>{u._count.memories} memories</span>
-											<span>{u._count.documents} docs</span>
 										</div>
 										<div className="shrink-0 text-xs text-muted-foreground">
 											{new Date(u.createdAt).toLocaleDateString()}

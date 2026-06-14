@@ -10,30 +10,21 @@ export const Route = createFileRoute("/api/backup/export")({
 				if (!session) return new Response("Unauthorized", { status: 401 });
 				const userId = session.user.id;
 
-				const [memories, notes, contacts, skills, presets, chatSessions, documents] =
-					await Promise.all([
-						prisma.memory.findMany({ where: { ownerId: userId }, orderBy: { createdAt: "asc" } }),
-						prisma.note.findMany({ where: { ownerId: userId }, orderBy: { createdAt: "asc" } }),
-						prisma.contact.findMany({
-							where: { ownerId: userId },
-							orderBy: { createdAt: "asc" },
-						}),
-						prisma.skill.findMany({ where: { ownerId: userId }, orderBy: { name: "asc" } }),
-						prisma.chatPreset.findMany({
-							where: { ownerId: userId },
-							orderBy: { name: "asc" },
-						}),
-						prisma.chatSession.findMany({
-							where: { ownerId: userId, archived: false },
-							include: { messages: { orderBy: { createdAt: "asc" }, take: 200 } },
-							orderBy: { createdAt: "desc" },
-							take: 50,
-						}),
-						prisma.document.findMany({
-							where: { ownerId: userId, archived: false },
-							orderBy: { createdAt: "asc" },
-						}),
-					]);
+				const [memories, notes, skills, presets, chatSessions] = await Promise.all([
+					prisma.memory.findMany({ where: { ownerId: userId }, orderBy: { createdAt: "asc" } }),
+					prisma.note.findMany({ where: { ownerId: userId }, orderBy: { createdAt: "asc" } }),
+					prisma.skill.findMany({ where: { ownerId: userId }, orderBy: { name: "asc" } }),
+					prisma.chatPreset.findMany({
+						where: { ownerId: userId },
+						orderBy: { name: "asc" },
+					}),
+					prisma.chatSession.findMany({
+						where: { ownerId: userId, archived: false },
+						include: { messages: { orderBy: { createdAt: "asc" }, take: 200 } },
+						orderBy: { createdAt: "desc" },
+						take: 50,
+					}),
+				]);
 
 				const payload = {
 					version: 1,
@@ -52,12 +43,6 @@ export const Route = createFileRoute("/api/backup/export")({
 						color: n.color,
 						label: n.label,
 						pinned: n.pinned,
-					})),
-					contacts: contacts.map((c) => ({
-						name: c.name,
-						emails: c.emails,
-						phones: c.phones,
-						notes: c.notes,
 					})),
 					skills: skills.map((s) => ({
 						name: s.name,
@@ -78,11 +63,6 @@ export const Route = createFileRoute("/api/backup/export")({
 						mode: s.mode,
 						systemPrompt: s.systemPrompt,
 						messages: s.messages.map((m) => ({ role: m.role, content: m.content })),
-					})),
-					documents: documents.map((d) => ({
-						title: d.title,
-						language: d.language,
-						content: d.content,
 					})),
 				};
 

@@ -14,12 +14,6 @@ type ImportPayload = {
 		label?: string | null;
 		pinned?: boolean;
 	}>;
-	contacts?: Array<{
-		name: string;
-		emails?: unknown;
-		phones?: unknown;
-		notes?: string | null;
-	}>;
 	skills?: Array<{ name: string; description?: string; content: string }>;
 	presets?: Array<{
 		name: string;
@@ -29,7 +23,6 @@ type ImportPayload = {
 		temperature?: number | null;
 		mode?: string | null;
 	}>;
-	documents?: Array<{ title: string; language?: string; content: string }>;
 	// chatSessions intentionally skipped on import — too complex to deduplicate
 };
 
@@ -55,10 +48,8 @@ export const Route = createFileRoute("/api/backup/import")({
 				const results = {
 					memories: 0,
 					notes: 0,
-					contacts: 0,
 					skills: 0,
 					presets: 0,
-					documents: 0,
 				};
 
 				if (Array.isArray(payload.memories)) {
@@ -95,22 +86,6 @@ export const Route = createFileRoute("/api/backup/import")({
 					}
 				}
 
-				if (Array.isArray(payload.contacts)) {
-					for (const c of payload.contacts) {
-						if (!c?.name) continue;
-						await prisma.contact.create({
-							data: {
-								name: c.name,
-								emails: Array.isArray(c.emails) ? c.emails : [],
-								phones: Array.isArray(c.phones) ? c.phones : [],
-								notes: typeof c.notes === "string" ? c.notes : null,
-								ownerId: userId,
-							},
-						});
-						results.contacts++;
-					}
-				}
-
 				if (Array.isArray(payload.skills)) {
 					for (const s of payload.skills) {
 						if (!s?.name || !s?.content) continue;
@@ -141,21 +116,6 @@ export const Route = createFileRoute("/api/backup/import")({
 							},
 						});
 						results.presets++;
-					}
-				}
-
-				if (Array.isArray(payload.documents)) {
-					for (const d of payload.documents) {
-						if (!d?.title || !d?.content) continue;
-						await prisma.document.create({
-							data: {
-								title: d.title,
-								language: d.language ?? "markdown",
-								content: d.content,
-								ownerId: userId,
-							},
-						});
-						results.documents++;
 					}
 				}
 

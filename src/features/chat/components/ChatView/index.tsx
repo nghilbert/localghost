@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { ChevronDownIcon, DatabaseIcon, SlidersHorizontalIcon, Volume2Icon } from "lucide-react";
+import { ChevronDownIcon, SlidersHorizontalIcon, Volume2Icon } from "lucide-react";
 import { useState } from "react";
 import { Button } from "#/components/ui/button";
 import { Empty, EmptyDescription, EmptyHeader } from "#/components/ui/empty";
@@ -33,7 +33,6 @@ type Session = {
 	mode: string;
 	systemPrompt?: string | null;
 	temperature?: number | null;
-	ragEnabled?: boolean;
 	endpointId?: string | null;
 	endpoint?: { id: string; name: string; url: string; provider: string } | null;
 	messages: Message[];
@@ -51,17 +50,13 @@ export function ChatView({ session }: ChatViewProps) {
 
 	const [mode, setMode] = useState<"chat" | "agent">(session.mode === "agent" ? "agent" : "chat");
 	const [showSettings, setShowSettings] = useState(false);
-	const [ragEnabled, setRagEnabled] = useState(session.ragEnabled ?? false);
 	const [autoSpeak, setAutoSpeak] = useState(
 		() => typeof localStorage !== "undefined" && localStorage.getItem("ody-auto-speak") === "1",
 	);
 
 	const sessionSettingsMutation = useMutation({
-		mutationFn: (patch: {
-			systemPrompt?: string | null;
-			temperature?: number;
-			ragEnabled?: boolean;
-		}) => updateSession({ data: { id: session.id, data: patch } }),
+		mutationFn: (patch: { systemPrompt?: string | null; temperature?: number }) =>
+			updateSession({ data: { id: session.id, data: patch } }),
 	});
 
 	const modeMutation = useMutation({
@@ -72,12 +67,6 @@ export function ChatView({ session }: ChatViewProps) {
 	function handleModeChange(newMode: "chat" | "agent") {
 		setMode(newMode);
 		modeMutation.mutate(newMode);
-	}
-
-	function handleRagToggle() {
-		const next = !ragEnabled;
-		setRagEnabled(next);
-		sessionSettingsMutation.mutate({ ragEnabled: next });
 	}
 
 	function handleAutoSpeakToggle() {
@@ -92,13 +81,6 @@ export function ChatView({ session }: ChatViewProps) {
 				<div className="flex items-center justify-between px-4 py-2">
 					<h1 className="truncate text-sm font-medium text-foreground">{session.name}</h1>
 					<div className="flex items-center gap-1.5">
-						<ChatHeaderToggle
-							icon={<DatabaseIcon size={13} />}
-							isActive={ragEnabled}
-							activeLabel="RAG enabled — click to disable"
-							inactiveLabel="Enable document RAG"
-							onToggle={handleRagToggle}
-						/>
 						<ChatHeaderToggle
 							icon={<Volume2Icon size={13} />}
 							isActive={autoSpeak}
