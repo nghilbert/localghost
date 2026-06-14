@@ -1,8 +1,15 @@
 import { z } from "zod/v4";
 
-export type ProviderId = "anthropic" | "openai" | "openrouter" | "groq" | "ollama" | "custom";
+export type ProviderId =
+	| "anthropic"
+	| "openai"
+	| "gemini"
+	| "openrouter"
+	| "groq"
+	| "ollama"
+	| "custom";
 
-export type DbProvider = "openai" | "anthropic" | "ollama" | "openrouter" | "groq";
+export type DbProvider = "openai" | "anthropic" | "ollama" | "openrouter" | "groq" | "gemini";
 
 export type ProviderDefinition = {
 	id: ProviderId;
@@ -29,6 +36,15 @@ export type ProviderDefinition = {
  */
 export const PROVIDERS: ProviderDefinition[] = [
 	{
+		id: "ollama",
+		label: "Ollama (local)",
+		defaultName: "Ollama (local)",
+		defaultBaseUrl: null,
+		prefillBaseUrl: "http://localhost:11434",
+		requiresApiKey: false,
+		description: "Run models on your own hardware — no API key needed.",
+	},
+	{
 		id: "anthropic",
 		label: "Anthropic",
 		defaultName: "Anthropic",
@@ -49,6 +65,16 @@ export const PROVIDERS: ProviderDefinition[] = [
 		description: "GPT models from OpenAI.",
 	},
 	{
+		id: "gemini",
+		label: "Google Gemini",
+		defaultName: "Google Gemini",
+		defaultBaseUrl: "https://generativelanguage.googleapis.com",
+		requiresApiKey: true,
+		keyPlaceholder: "AIza…",
+		keyConsoleUrl: "https://aistudio.google.com/apikey",
+		description: "Gemini models from Google — fast, multimodal, long context.",
+	},
+	{
 		id: "openrouter",
 		label: "OpenRouter",
 		defaultName: "OpenRouter",
@@ -67,15 +93,6 @@ export const PROVIDERS: ProviderDefinition[] = [
 		keyPlaceholder: "gsk_…",
 		keyConsoleUrl: "https://console.groq.com/keys",
 		description: "Very fast inference for open models.",
-	},
-	{
-		id: "ollama",
-		label: "Ollama (local)",
-		defaultName: "Ollama (local)",
-		defaultBaseUrl: null,
-		prefillBaseUrl: "http://localhost:11434",
-		requiresApiKey: false,
-		description: "Run models on your own hardware — no API key needed.",
 	},
 	{
 		id: "custom",
