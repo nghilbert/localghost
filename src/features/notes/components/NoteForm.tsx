@@ -93,7 +93,7 @@ export function NoteForm({ initial, isPending, onSave, onCancel }: NoteFormProps
 											</form.AppField>
 										) : (
 											<form.AppField name="items">
-												{(field) => <field.ChecklistField label="Items" />}
+												{(field) => <field.ChecklistField label="Items" orientation="vertical" />}
 											</form.AppField>
 										)
 									}
