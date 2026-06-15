@@ -1,6 +1,7 @@
 import { DownloadIcon, UploadIcon } from "lucide-react";
 import { useRef, useState } from "react";
 import { Button } from "#/components/ui/button";
+import { downloadUrl } from "#/lib/download";
 
 export function DataTab() {
 	const [isImporting, setIsImporting] = useState(false);
@@ -8,10 +9,7 @@ export function DataTab() {
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
 	function handleExport() {
-		const a = document.createElement("a");
-		a.href = "/api/backup/export";
-		a.download = "";
-		a.click();
+		downloadUrl("/api/backup/export");
 	}
 
 	async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {

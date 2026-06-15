@@ -7,6 +7,7 @@ import {
 	DropdownMenuTrigger,
 } from "#/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "#/components/ui/tooltip";
+import { downloadBlob } from "#/lib/download";
 
 type ExportableMessage = { id: string; role: string; content: string };
 
@@ -35,15 +36,7 @@ export function ExportMenu({ session, messages }: ExportMenuProps) {
 				2,
 			);
 		}
-		const blob = new Blob([content], {
-			type: format === "md" ? "text/markdown" : "application/json",
-		});
-		const url = URL.createObjectURL(blob);
-		const a = document.createElement("a");
-		a.href = url;
-		a.download = filename;
-		a.click();
-		URL.revokeObjectURL(url);
+		downloadBlob(filename, content, format === "md" ? "text/markdown" : "application/json");
 	}
 
 	return (

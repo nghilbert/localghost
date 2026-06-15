@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { LLMMessage } from "#/lib/llm.server";
+import { makeLLMMessage } from "#/test/factories";
 
 vi.mock("#/lib/llm.server", () => ({
 	callLLM: vi.fn().mockResolvedValue("Summary text"),
@@ -9,7 +10,7 @@ vi.mock("#/lib/llm.server", () => ({
 // Import after mock is set up
 const { maybeCompact } = await import("#/lib/compactor.server");
 
-const msg = (role: LLMMessage["role"], content: string): LLMMessage => ({ role, content });
+const msg = (role: LLMMessage["role"], content: string) => makeLLMMessage({ role, content });
 
 describe("maybeCompact", () => {
 	it("does not compact when token estimate is below 85% threshold", async () => {

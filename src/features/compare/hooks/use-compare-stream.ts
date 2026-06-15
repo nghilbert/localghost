@@ -1,10 +1,23 @@
+import { EventType } from "@tanstack/ai/client";
+import { fetchServerSentEvents } from "@tanstack/ai-client";
 import { useRef, useState } from "react";
 import type { Slot, SlotState } from "#/features/compare/lib/types";
+
+// The endpoint is static, so the SSE connection adapter is created once and reused
+// across every slot/run.
+const connection = fetchServerSentEvents("/api/compare/stream");
 
 export function useCompareStream() {
 	const [results, setResults] = useState<Record<number, SlotState>>({});
 	const [isStreaming, setIsStreaming] = useState(false);
 	const abortRefs = useRef<Record<number, AbortController>>({});
+
+	function patch(slotId: number, change: (cur: SlotState) => SlotState) {
+		setResults((prev) => {
+			const cur = prev[slotId] ?? { text: "", done: false, error: null };
+			return { ...prev, [slotId]: change(cur) };
+		});
+	}
 
 	async function run(slots: Slot[], prompt: string) {
 		if (!prompt.trim() || isStreaming) return;
@@ -21,66 +34,23 @@ export function useCompareStream() {
 			abortRefs.current[slot.id] = ctrl;
 
 			try {
-				const res = await fetch("/api/compare/stream", {
-					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({ prompt, endpointId: slot.endpointId, model: slot.model }),
-					signal: ctrl.signal,
-				});
-				if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
-
-				const reader = res.body.getReader();
-				const dec = new TextDecoder();
-				let buf = "";
-
-				while (true) {
-					const { done, value } = await reader.read();
-					if (done) break;
-					buf += dec.decode(value, { stream: true });
-					const lines = buf.split("\n");
-					buf = lines.pop() ?? "";
-					for (const line of lines) {
-						if (!line.startsWith("data: ")) continue;
-						try {
-							const chunk = JSON.parse(line.slice(6));
-							if (chunk.type === "delta") {
-								setResults((prev) => {
-									const cur = prev[slot.id] ?? { text: "", done: false, error: null };
-									return {
-										...prev,
-										[slot.id]: { ...cur, text: cur.text + (chunk.delta as string) },
-									};
-								});
-							} else if (chunk.type === "error") {
-								setResults((prev) => {
-									const cur = prev[slot.id] ?? { text: "", done: false, error: null };
-									return {
-										...prev,
-										[slot.id]: { ...cur, error: chunk.error as string, done: true },
-									};
-								});
-							} else if (chunk.type === "done") {
-								setResults((prev) => {
-									const cur = prev[slot.id] ?? { text: "", done: false, error: null };
-									return { ...prev, [slot.id]: { ...cur, done: true } };
-								});
-							}
-						} catch {
-							// skip malformed line
-						}
+				const stream = connection.connect(
+					[{ id: `compare-${slot.id}`, role: "user", parts: [{ type: "text", content: prompt }] }],
+					{ endpointId: slot.endpointId, model: slot.model },
+					ctrl.signal,
+				);
+				for await (const chunk of stream) {
+					if (chunk.type === EventType.TEXT_MESSAGE_CONTENT) {
+						patch(slot.id, (cur) => ({ ...cur, text: cur.text + chunk.delta }));
+					} else if (chunk.type === EventType.RUN_ERROR) {
+						patch(slot.id, (cur) => ({ ...cur, error: chunk.message, done: true }));
 					}
 				}
 			} catch (err) {
 				if ((err as Error).name === "AbortError") return;
-				setResults((prev) => {
-					const cur = prev[slot.id] ?? { text: "", done: false, error: null };
-					return { ...prev, [slot.id]: { ...cur, error: (err as Error).message, done: true } };
-				});
+				patch(slot.id, (cur) => ({ ...cur, error: (err as Error).message, done: true }));
 			} finally {
-				setResults((prev) => {
-					const cur = prev[slot.id] ?? { text: "", done: false, error: null };
-					return { ...prev, [slot.id]: { ...cur, done: true } };
-				});
+				patch(slot.id, (cur) => ({ ...cur, done: true }));
 			}
 		});
 
