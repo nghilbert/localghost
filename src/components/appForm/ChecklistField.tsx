@@ -9,7 +9,8 @@ import {
 	InputGroupButton,
 	InputGroupInput,
 } from "#/components/ui/input-group";
-import { useFieldShell } from "../../hooks/use-field-shell";
+import { useAppField } from "#/hooks/use-app-field";
+import { FieldShell } from "./FieldShell";
 import type { ComponentFieldProps } from "./types";
 
 type ChecklistFieldItem = { id: string; text: string; checked: boolean };
@@ -21,7 +22,7 @@ export function ChecklistField({
 	placeholder,
 	...props
 }: { placeholder?: string } & ComponentFieldProps<typeof FieldGroup>) {
-	const { field, FieldShell } = useFieldShell<ChecklistFieldItem[]>();
+	const { field } = useAppField<ChecklistFieldItem[]>();
 	const [newItemText, setNewItemText] = useState("");
 
 	const addItem = () => {

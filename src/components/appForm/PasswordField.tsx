@@ -7,7 +7,8 @@ import {
 	InputGroupInput,
 } from "#/components/ui/input-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "#/components/ui/tooltip";
-import { useFieldShell } from "../../hooks/use-field-shell";
+import { useAppField } from "#/hooks/use-app-field";
+import { FieldShell } from "./FieldShell";
 import type { ComponentFieldProps } from "./types";
 
 export function PasswordField({
@@ -16,7 +17,7 @@ export function PasswordField({
 	orientation,
 	...props
 }: Omit<ComponentFieldProps<typeof InputGroupInput>, "type">) {
-	const { field, isFieldValid, FieldShell } = useFieldShell<string>();
+	const { field, isFieldValid } = useAppField<string>();
 	const [show, setShow] = useState(false);
 
 	return (

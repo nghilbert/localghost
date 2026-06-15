@@ -1,7 +1,8 @@
 import { useRef } from "react";
 import { Button } from "#/components/ui/button";
+import { useAppField } from "#/hooks/use-app-field";
 import { cn } from "#/lib/utils";
-import { useFieldShell } from "../../hooks/use-field-shell";
+import { FieldShell } from "./FieldShell";
 import type { ComponentFieldProps } from "./types";
 
 export function ColorField({
@@ -10,7 +11,7 @@ export function ColorField({
 	orientation,
 	...props
 }: Omit<ComponentFieldProps<"input">, "type">) {
-	const { field, isFieldValid, FieldShell } = useFieldShell<string>();
+	const { field, isFieldValid } = useAppField<string>();
 	const colorInputRef = useRef<HTMLInputElement>(null);
 
 	return (

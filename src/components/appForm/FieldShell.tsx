@@ -24,8 +24,13 @@ type FieldShellProps = PropsWithChildren<{
  * @param orientation - Layout orientation forwarded to the underlying `Field`.
  * @param children - The control to wrap (input, select, switch, …).
  */
-function FieldShell({ label, description, orientation = "responsive", children }: FieldShellProps) {
-	const field = useFieldContext<unknown>();
+export function FieldShell({
+	label,
+	description,
+	orientation = "responsive",
+	children,
+}: FieldShellProps) {
+	const field = useFieldContext();
 	const isFieldValid = !field.state.meta.isTouched ? true : field.state.meta.isValid;
 
 	return (
@@ -38,12 +43,4 @@ function FieldShell({ label, description, orientation = "responsive", children }
 			<FieldError errors={field.state.meta.errorMap.onDynamic} />
 		</Field>
 	);
-}
-
-export function useFieldShell<TValue>() {
-	const field = useFieldContext<TValue>();
-	// Fields that haven't been touched yet are valid. Otherwise use the field's isValid state
-	const isFieldValid = !field.state.meta.isTouched ? true : field.state.meta.isValid;
-
-	return { field, isFieldValid, FieldShell };
 }

@@ -44,7 +44,7 @@ Copy `.env.example` to `.env`. Required: `DATABASE_URL`, `BETTER_AUTH_SECRET`, `
 
 ## Forms
 
-`src/hooks/use-app-form.ts` exports `useAppForm` (TanStack Form). Field components live in `src/components/appForm/` — `InputField`, `PasswordField`, `SelectField`, `TextareaField`, `ToggleGroupField`, `MultiToggleField`, `ColorField`, `SwitchField`, `SwatchField`, `ChecklistField` — and share `useFieldShell` (`src/hooks/use-field-shell.tsx`) for label + optional `description` + validation error. Context is in `src/hooks/app-form-context.ts`.
+`src/hooks/use-app-form.ts` exports `useAppForm` (TanStack Form). Field components live in `src/components/appForm/` — `InputField`, `PasswordField`, `SelectField`, `TextareaField`, `ToggleGroupField`, `MultiToggleField`, `ColorField`, `SwitchField`, `SwatchField`, `ChecklistField` — and share `useAppField` (`src/hooks/use-field-shell.tsx`) for label + optional `description` + validation error. Context is in `src/hooks/app-form-context.ts`.
 
 - **All submit forms must use `useAppForm`** — never hand-wire `useState`-per-field + `Input`. (Live draft editors like `SkillEditor`/`DocumentEditor` that patch state on change are not submit forms.)
 - Validate with a Zod v4 schema via `validators: { onDynamic: Schema }` + `validationLogic: revalidateLogic()`; field errors render automatically through `FieldError` (`errorMap.onDynamic`).

@@ -1,6 +1,7 @@
 import { ToggleGroup, ToggleGroupItem } from "#/components/ui/toggle-group";
+import { useAppField } from "#/hooks/use-app-field";
 import { cn } from "#/lib/utils";
-import { useFieldShell } from "../../hooks/use-field-shell";
+import { FieldShell } from "./FieldShell";
 import type { ComponentFieldProps, FieldOption } from "./types";
 
 type SwatchFieldProps = Omit<ComponentFieldProps<typeof ToggleGroup>, "type"> & {
@@ -14,7 +15,7 @@ export function SwatchField({
 	options,
 	...props
 }: SwatchFieldProps) {
-	const { field, FieldShell } = useFieldShell<string>();
+	const { field } = useAppField<string>();
 
 	return (
 		<FieldShell label={label} description={description} orientation={orientation}>

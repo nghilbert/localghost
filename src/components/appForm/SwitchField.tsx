@@ -1,5 +1,6 @@
 import { Switch } from "#/components/ui/switch";
-import { useFieldShell } from "../../hooks/use-field-shell";
+import { useAppField } from "#/hooks/use-app-field";
+import { FieldShell } from "./FieldShell";
 import type { ComponentFieldProps } from "./types";
 
 export function SwitchField({
@@ -8,7 +9,7 @@ export function SwitchField({
 	orientation,
 	...props
 }: ComponentFieldProps<typeof Switch>) {
-	const { field, isFieldValid, FieldShell } = useFieldShell<boolean>();
+	const { field, isFieldValid } = useAppField<boolean>();
 
 	return (
 		<FieldShell label={label} description={description} orientation={orientation}>

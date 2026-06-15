@@ -5,7 +5,8 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "#/components/ui/select";
-import { useFieldShell } from "../../hooks/use-field-shell";
+import { useAppField } from "#/hooks/use-app-field";
+import { FieldShell } from "./FieldShell";
 import type { ComponentFieldProps, FieldOption } from "./types";
 
 type SelectFieldProps = ComponentFieldProps<typeof Select> & {
@@ -21,7 +22,7 @@ export function SelectField({
 	placeholder,
 	...props
 }: SelectFieldProps) {
-	const { field, isFieldValid, FieldShell } = useFieldShell<string>();
+	const { field, isFieldValid } = useAppField<string>();
 
 	return (
 		<FieldShell label={label} description={description} orientation={orientation}>

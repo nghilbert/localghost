@@ -1,5 +1,6 @@
 import { Input } from "#/components/ui/input";
-import { useFieldShell } from "../../hooks/use-field-shell";
+import { useAppField } from "#/hooks/use-app-field";
+import { FieldShell } from "./FieldShell";
 import type { ComponentFieldProps } from "./types";
 
 export function InputField({
@@ -8,7 +9,7 @@ export function InputField({
 	orientation,
 	...props
 }: ComponentFieldProps<typeof Input>) {
-	const { field, isFieldValid, FieldShell } = useFieldShell<string>();
+	const { field, isFieldValid } = useAppField<string>();
 
 	return (
 		<FieldShell label={label} description={description} orientation={orientation}>
