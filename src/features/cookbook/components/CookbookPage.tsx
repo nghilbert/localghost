@@ -1,5 +1,5 @@
 import { getRouteApi } from "@tanstack/react-router";
-import { ChefHatIcon, ScaleIcon } from "lucide-react";
+import { Rows3Icon, ScaleIcon } from "lucide-react";
 import { PageHeader } from "#/components/PageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "#/components/ui/tabs";
 import { BrowseTab } from "#/features/cookbook/components/BrowseTab";
@@ -18,7 +18,7 @@ export function CookbookPage() {
 				actions={
 					<TabsList variant="line">
 						<TabsTrigger value="browse" className="gap-1.5">
-							<ChefHatIcon size={13} />
+							<Rows3Icon size={13} />
 							Browse
 						</TabsTrigger>
 						<TabsTrigger value="compare" className="gap-1.5">
