@@ -1,6 +1,7 @@
 import { createFormHook } from "@tanstack/react-form";
 import { ChecklistField } from "#/components/appForm/ChecklistField";
 import { ColorField } from "#/components/appForm/ColorField";
+import { DateField } from "#/components/appForm/DateField";
 import { FormError } from "#/components/appForm/FormError";
 import { InputField } from "#/components/appForm/InputField";
 import { MultiToggleField } from "#/components/appForm/MultiToggleField";
@@ -24,6 +25,7 @@ export const { useAppForm, withForm } = createFormHook({
 		ToggleGroupField,
 		MultiToggleField,
 		ColorField,
+		DateField,
 		SwitchField,
 		SwatchField,
 		ChecklistField,

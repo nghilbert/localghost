@@ -15,7 +15,6 @@ model User {
     scheduledTasks ScheduledTask[]
     notes          Note[]
     webhooks       Webhook[]
-    apiTokens      ApiToken[]
     chatPresets    ChatPreset[]
     mcpServers     McpServer[]
 

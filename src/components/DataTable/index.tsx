@@ -1,5 +1,6 @@
 import {
 	type ColumnDef,
+	type FilterFnOption,
 	flexRender,
 	getCoreRowModel,
 	getFilteredRowModel,
@@ -25,6 +26,8 @@ type DataTableProps<TData> = {
 	initialSorting?: SortingState;
 	/** Controlled global filter value; manage the input in your toolbar. */
 	globalFilter?: string;
+	/** Global filter matcher; defaults to a case-insensitive substring match. */
+	globalFilterFn?: FilterFnOption<TData>;
 	getRowClassName?: (row: TData) => string | undefined;
 	/** Rendered above the table; receives the table instance for counts, filters, etc. */
 	toolbar?: (table: TanstackTable<TData>) => React.ReactNode;
@@ -36,6 +39,7 @@ export function DataTable<TData>({
 	emptyMessage = "No results.",
 	initialSorting = [],
 	globalFilter,
+	globalFilterFn = "includesString",
 	getRowClassName,
 	toolbar,
 }: DataTableProps<TData>) {
@@ -49,7 +53,7 @@ export function DataTable<TData>({
 		getCoreRowModel: getCoreRowModel(),
 		getSortedRowModel: getSortedRowModel(),
 		getFilteredRowModel: getFilteredRowModel(),
-		globalFilterFn: "includesString",
+		globalFilterFn,
 	});
 
 	return (

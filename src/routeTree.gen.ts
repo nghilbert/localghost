@@ -21,7 +21,6 @@ import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authentic
 import { Route as AuthenticatedNotesRouteImport } from './routes/_authenticated/notes'
 import { Route as AuthenticatedCookbookRouteImport } from './routes/_authenticated/cookbook'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
-import { Route as ApiSttTranscribeRouteImport } from './routes/api/stt/transcribe'
 import { Route as ApiCookbookPullRouteImport } from './routes/api/cookbook/pull'
 import { Route as ApiCompareStreamRouteImport } from './routes/api/compare/stream'
 import { Route as ApiChatStreamRouteImport } from './routes/api/chat/stream'
@@ -88,11 +87,6 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const ApiSttTranscribeRoute = ApiSttTranscribeRouteImport.update({
-  id: '/api/stt/transcribe',
-  path: '/api/stt/transcribe',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiCookbookPullRoute = ApiCookbookPullRouteImport.update({
   id: '/api/cookbook/pull',
   path: '/api/cookbook/pull',
@@ -148,7 +142,6 @@ export interface FileRoutesByFullPath {
   '/api/chat/stream': typeof ApiChatStreamRoute
   '/api/compare/stream': typeof ApiCompareStreamRoute
   '/api/cookbook/pull': typeof ApiCookbookPullRoute
-  '/api/stt/transcribe': typeof ApiSttTranscribeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof AuthenticatedIndexRoute
@@ -168,7 +161,6 @@ export interface FileRoutesByTo {
   '/api/chat/stream': typeof ApiChatStreamRoute
   '/api/compare/stream': typeof ApiCompareStreamRoute
   '/api/cookbook/pull': typeof ApiCookbookPullRoute
-  '/api/stt/transcribe': typeof ApiSttTranscribeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -191,7 +183,6 @@ export interface FileRoutesById {
   '/api/chat/stream': typeof ApiChatStreamRoute
   '/api/compare/stream': typeof ApiCompareStreamRoute
   '/api/cookbook/pull': typeof ApiCookbookPullRoute
-  '/api/stt/transcribe': typeof ApiSttTranscribeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -213,7 +204,6 @@ export interface FileRouteTypes {
     | '/api/chat/stream'
     | '/api/compare/stream'
     | '/api/cookbook/pull'
-    | '/api/stt/transcribe'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -233,7 +223,6 @@ export interface FileRouteTypes {
     | '/api/chat/stream'
     | '/api/compare/stream'
     | '/api/cookbook/pull'
-    | '/api/stt/transcribe'
   id:
     | '__root__'
     | '/_authenticated'
@@ -255,7 +244,6 @@ export interface FileRouteTypes {
     | '/api/chat/stream'
     | '/api/compare/stream'
     | '/api/cookbook/pull'
-    | '/api/stt/transcribe'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -267,7 +255,6 @@ export interface RootRouteChildren {
   ApiChatStreamRoute: typeof ApiChatStreamRoute
   ApiCompareStreamRoute: typeof ApiCompareStreamRoute
   ApiCookbookPullRoute: typeof ApiCookbookPullRoute
-  ApiSttTranscribeRoute: typeof ApiSttTranscribeRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -355,13 +342,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin'
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRoute
-    }
-    '/api/stt/transcribe': {
-      id: '/api/stt/transcribe'
-      path: '/api/stt/transcribe'
-      fullPath: '/api/stt/transcribe'
-      preLoaderRoute: typeof ApiSttTranscribeRouteImport
-      parentRoute: typeof rootRouteImport
     }
     '/api/cookbook/pull': {
       id: '/api/cookbook/pull'
@@ -465,7 +445,6 @@ const rootRouteChildren: RootRouteChildren = {
   ApiChatStreamRoute: ApiChatStreamRoute,
   ApiCompareStreamRoute: ApiCompareStreamRoute,
   ApiCookbookPullRoute: ApiCookbookPullRoute,
-  ApiSttTranscribeRoute: ApiSttTranscribeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
