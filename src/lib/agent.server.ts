@@ -1,4 +1,5 @@
-import { type AgentSSEChunk, type LLMMessage, type LLMTool, streamAgent } from "#/lib/llm.server";
+import type { StreamChunk } from "@tanstack/ai";
+import { type LLMMessage, type LLMTool, streamAgentEvents } from "#/lib/llm.server";
 import { callMcpTool, type McpToolDef } from "#/lib/mcp.server";
 import { manageMemory } from "#/lib/tools/manage_memory";
 import { manageNotes } from "#/lib/tools/manage_notes";
@@ -199,18 +200,17 @@ export const AGENT_TOOLS: LLMTool[] = [
 	},
 ];
 
-export type AgentChunk = AgentSSEChunk;
-
 /**
- * Runs the multi-round agent. Built-in {@link AGENT_TOOLS} and any MCP server
- * tools are handed to `streamAgent`, which executes them via {@link executeTool}
- * and loops until the model finishes; this generator forwards the resulting
- * {@link AgentChunk} events (text/thinking deltas, tool results, usage, done).
+ * Runs the multi-round agent as the raw `@tanstack/ai` (AG-UI) event stream.
+ * Built-in {@link AGENT_TOOLS} and any MCP server tools are handed to
+ * `streamAgentEvents`, which executes them via {@link executeTool} and loops
+ * until the model finishes; the resulting event stream (text/thinking deltas,
+ * tool-call lifecycle, run lifecycle) passes through for the client to render.
  *
  * @param opts - Endpoint, model, conversation, owner, and optional MCP tools.
- * @returns An async generator of {@link AgentChunk} events.
+ * @returns The `@tanstack/ai` event stream for this agent run.
  */
-export async function* runAgent(opts: {
+export function runAgentEvents(opts: {
 	url: string;
 	apiKey?: string;
 	model: string;
@@ -219,7 +219,7 @@ export async function* runAgent(opts: {
 	ownerId: string;
 	/** Extra tools from connected MCP servers */
 	mcpTools?: McpToolDef[];
-}): AsyncGenerator<AgentChunk> {
+}): AsyncIterable<StreamChunk> {
 	const { url, apiKey, model, messages, systemPrompt, ownerId, mcpTools = [] } = opts;
 
 	const mcpToolSchemas: LLMTool[] = mcpTools.map((t) => ({
@@ -232,7 +232,7 @@ export async function* runAgent(opts: {
 	}));
 	const allTools = [...AGENT_TOOLS, ...mcpToolSchemas];
 
-	yield* streamAgent({
+	return streamAgentEvents({
 		url,
 		apiKey,
 		model,
