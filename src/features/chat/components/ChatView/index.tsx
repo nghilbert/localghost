@@ -15,6 +15,7 @@ import { ModelPicker } from "#/features/chat/components/ModelPicker";
 import { useChatStream } from "#/features/chat/hooks/use-chat-stream";
 import { updateSession } from "#/features/chat/lib/chat.functions";
 import { MemoryDialog } from "#/features/memory/components/MemoryDialog";
+import { useLocalStorage } from "#/hooks/use-local-storage";
 import { cn } from "#/lib/utils";
 
 type ToolCallRecord = { id: string; tool: string; result: string };
@@ -50,9 +51,7 @@ export function ChatView({ session }: ChatViewProps) {
 
 	const [mode, setMode] = useState<"chat" | "agent">(session.mode === "agent" ? "agent" : "chat");
 	const [showSettings, setShowSettings] = useState(false);
-	const [autoSpeak, setAutoSpeak] = useState(
-		() => typeof localStorage !== "undefined" && localStorage.getItem("ody-auto-speak") === "1",
-	);
+	const [autoSpeak, setAutoSpeak] = useLocalStorage("ody-auto-speak", false);
 
 	const sessionSettingsMutation = useMutation({
 		mutationFn: (patch: { systemPrompt?: string | null; temperature?: number }) =>
@@ -70,9 +69,7 @@ export function ChatView({ session }: ChatViewProps) {
 	}
 
 	function handleAutoSpeakToggle() {
-		const next = !autoSpeak;
-		setAutoSpeak(next);
-		localStorage.setItem("ody-auto-speak", next ? "1" : "0");
+		setAutoSpeak((prev) => !prev);
 	}
 
 	return (

@@ -1,6 +1,24 @@
+import { type StreamChunk, toServerSentEventsResponse } from "@tanstack/ai";
+import { EventType } from "@tanstack/ai/client";
 import { createFileRoute } from "@tanstack/react-router";
+import { z } from "zod/v4";
 import { auth } from "#/features/auth/lib/auth.server";
 import { getOllamaUrl } from "#/lib/ollama.server";
+
+const pullRequestSchema = z.object({
+	forwardedProps: z.object({
+		model: z.string().min(1),
+		ollamaUrl: z.string().optional(),
+	}),
+});
+
+/** Download progress for a single Ollama pull step, surfaced as an AG-UI CUSTOM event. */
+type PullProgressValue = {
+	status?: string;
+	digest?: string;
+	total?: number;
+	completed?: number;
+};
 
 export const Route = createFileRoute("/api/cookbook/pull")({
 	server: {
@@ -9,16 +27,18 @@ export const Route = createFileRoute("/api/cookbook/pull")({
 				const session = await auth.api.getSession({ headers: request.headers });
 				if (!session) return new Response("Unauthorized", { status: 401 });
 
-				const body = (await request.json()) as { model?: string; ollamaUrl?: string };
-				if (!body.model?.trim()) return new Response("model is required", { status: 400 });
+				const parsed = pullRequestSchema.safeParse(await request.json());
+				if (!parsed.success) return new Response("model is required", { status: 400 });
 
+				const { model } = parsed.data.forwardedProps;
 				const ollamaUrl =
-					body.ollamaUrl?.replace(/\/+$/, "") ?? (await getOllamaUrl(session.user.id));
+					parsed.data.forwardedProps.ollamaUrl?.replace(/\/+$/, "") ??
+					(await getOllamaUrl(session.user.id));
 
 				const ollamaRes = await fetch(`${ollamaUrl}/api/pull`, {
 					method: "POST",
 					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({ name: body.model, stream: true }),
+					body: JSON.stringify({ name: model, stream: true }),
 				}).catch((err: Error) => {
 					throw new Error(`Cannot reach Ollama at ${ollamaUrl}: ${err.message}`);
 				});
@@ -29,68 +49,52 @@ export const Route = createFileRoute("/api/cookbook/pull")({
 					});
 				}
 
-				const enc = new TextEncoder();
-				const ollamaReader = ollamaRes.body.getReader();
+				const ollamaBody = ollamaRes.body;
+				const threadId = crypto.randomUUID();
+				const runId = crypto.randomUUID();
 
-				const readable = new ReadableStream({
-					async start(controller) {
-						const send = (data: Record<string, unknown>) =>
-							controller.enqueue(enc.encode(`data: ${JSON.stringify(data)}\n\n`));
+				// Proxy Ollama's NDJSON pull stream as AG-UI events: each progress line becomes a
+				// CUSTOM "progress" event; completion ends the run, errors surface as RUN_ERROR.
+				async function* events(): AsyncGenerator<StreamChunk> {
+					const reader = ollamaBody.getReader();
+					const dec = new TextDecoder();
+					let buf = "";
 
-						const dec = new TextDecoder();
-						let buf = "";
-
-						try {
-							while (true) {
-								const { done, value } = await ollamaReader.read();
-								if (done) break;
-								buf += dec.decode(value, { stream: true });
-								const lines = buf.split("\n");
-								buf = lines.pop() ?? "";
-								for (const line of lines) {
-									if (!line.trim()) continue;
-									try {
-										const chunk = JSON.parse(line) as {
-											status?: string;
-											digest?: string;
-											total?: number;
-											completed?: number;
-											error?: string;
-										};
-										if (chunk.error) {
-											send({ type: "error", error: chunk.error });
-										} else if (chunk.status === "success") {
-											send({ type: "done" });
-										} else {
-											send({
-												type: "progress",
-												status: chunk.status,
-												digest: chunk.digest,
-												total: chunk.total,
-												completed: chunk.completed,
-											});
-										}
-									} catch {
-										// skip malformed NDJSON lines
-									}
-								}
+					while (true) {
+						const { done, value } = await reader.read();
+						if (done) break;
+						buf += dec.decode(value, { stream: true });
+						const lines = buf.split("\n");
+						buf = lines.pop() ?? "";
+						for (const line of lines) {
+							if (!line.trim()) continue;
+							let chunk: PullProgressValue & { error?: string };
+							try {
+								chunk = JSON.parse(line);
+							} catch {
+								continue; // skip malformed NDJSON lines
 							}
-						} catch (err) {
-							send({ type: "error", error: (err as Error).message });
-						} finally {
-							controller.close();
+							if (chunk.error) {
+								yield { type: EventType.RUN_ERROR, message: chunk.error };
+								return;
+							}
+							if (chunk.status === "success") {
+								yield { type: EventType.RUN_FINISHED, threadId, runId };
+								return;
+							}
+							const value: PullProgressValue = {
+								status: chunk.status,
+								digest: chunk.digest,
+								total: chunk.total,
+								completed: chunk.completed,
+							};
+							yield { type: EventType.CUSTOM, name: "progress", value };
 						}
-					},
-				});
+					}
+					yield { type: EventType.RUN_FINISHED, threadId, runId };
+				}
 
-				return new Response(readable, {
-					headers: {
-						"Content-Type": "text/event-stream",
-						"Cache-Control": "no-cache",
-						Connection: "keep-alive",
-						"X-Accel-Buffering": "no",
-					},
-				});
+				return toServerSentEventsResponse(events());
 			},
 		},
 	},

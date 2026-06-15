@@ -1,39 +1,19 @@
 import { describe, expect, it } from "vitest";
 import { pickRecommendedModels } from "#/features/cookbook/lib/recommendations";
-import type { HardwareInfo, OllamaInstalledModel } from "#/features/cookbook/lib/types";
+import { makeGpu, makeHardware, makeInstalledModel } from "#/test/factories";
 
-const bigGpuBox: HardwareInfo = {
+const bigGpuBox = makeHardware({
 	totalRamGb: 64,
 	freeRamGb: 48,
-	cpuModel: "Test CPU",
-	cpuCount: 16,
-	gpus: [{ name: "RTX 4090", vendor: "nvidia", totalVramMb: 24576, freeVramMb: 23000 }],
-};
+	gpus: [makeGpu({ totalVramMb: 24576, freeVramMb: 23000 })],
+});
 
-const cpuOnlyBox: HardwareInfo = {
-	totalRamGb: 16,
-	freeRamGb: 10,
-	cpuModel: "Test CPU",
-	cpuCount: 8,
-	gpus: null,
-};
+const cpuOnlyBox = makeHardware({ totalRamGb: 16, freeRamGb: 10, cpuCount: 8 });
 
-const tinyBox: HardwareInfo = {
-	totalRamGb: 2,
-	freeRamGb: 1,
-	cpuModel: "Test CPU",
-	cpuCount: 2,
-	gpus: null,
-};
+const tinyBox = makeHardware({ totalRamGb: 2, freeRamGb: 1, cpuCount: 2 });
 
-function installed(...names: string[]): OllamaInstalledModel[] {
-	return names.map((name) => ({
-		name,
-		sizeBytes: 0,
-		family: "",
-		parameterSize: "",
-		quantizationLevel: "",
-	}));
+function installed(...names: string[]) {
+	return names.map((name) => makeInstalledModel({ name }));
 }
 
 describe("pickRecommendedModels", () => {

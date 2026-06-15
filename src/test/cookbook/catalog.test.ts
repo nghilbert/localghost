@@ -1,35 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { computeFit } from "#/features/cookbook/lib/catalog";
-import type { CatalogModel, GpuInfo, HardwareInfo } from "#/features/cookbook/lib/types";
+import { makeHardware as hw, makeGpu, makeCatalogModel as model } from "#/test/factories";
 
-const model = (overrides: Partial<CatalogModel> = {}): CatalogModel => ({
-	id: "test-model",
-	name: "Test",
-	family: "Test",
-	paramB: 7,
-	vramGb: 4,
-	ramGb: 8,
-	contextK: 128,
-	tags: ["chat"],
-	description: "",
-	...overrides,
-});
-
-const hw = (overrides: Partial<HardwareInfo> = {}): HardwareInfo => ({
-	totalRamGb: 32,
-	freeRamGb: 16,
-	cpuModel: "Intel Core i9",
-	cpuCount: 16,
-	gpus: null,
-	...overrides,
-});
-
-const gpu = (totalVramMb: number): GpuInfo => ({
-	name: "GPU",
-	vendor: "nvidia",
-	totalVramMb,
-	freeVramMb: 0,
-});
+const gpu = (totalVramMb: number) => makeGpu({ totalVramMb });
 
 describe("computeFit", () => {
 	describe("GPU path", () => {
