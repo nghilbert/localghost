@@ -19,9 +19,10 @@ npm run prisma -- migrate dev --name <name>
 npm run prisma -- generate
 ```
 
-**Dev loops** — develop natively, validate against the production image:
-- **Inner loop:** `docker compose up db -d` then `npm run dev`. Fast HMR. Run Ollama natively at `localhost:11434` and add it as an in-app endpoint.
-- **Parity check (pre-push):** `docker compose up --build` — builds the production Dockerfile and runs the bundled server (`.output/server/index.mjs`) against Dockerized Postgres. `COMPOSE_PROFILES` (cpu/nvidia/amd) selects the Ollama variant.
+**Dev loops** — develop natively, validate against the production image. `COMPOSE_PROFILES` selects an Ollama hardware variant (`cpu`/`nvidia`/`amd`) plus a run mode (`prod` = built image, `dev` = Vite with HMR); the `web` and `web-dev` services are mutually exclusive on port 3000, so exactly one mode is active.
+- **Inner loop:** `docker compose up db -d` then `npm run dev`. Fastest HMR. Run Ollama natively at `localhost:11434` and add it as an in-app endpoint.
+- **Dockerized dev:** `COMPOSE_PROFILES=cpu,dev docker compose up --build` — runs the `dev` Dockerfile stage as `web-dev`, serving Vite with HMR over a bind mount. Author migrations via `docker compose exec web-dev npm run prisma -- migrate dev --name <name>`.
+- **Parity check (pre-push):** `docker compose up --build` — with the default `COMPOSE_PROFILES=cpu,prod`, builds the production Dockerfile and runs the bundled server (`.output/server/index.mjs`) against Dockerized Postgres.
 
 ## Environment
 

@@ -1,5 +1,7 @@
 import "#/lib/globals.css";
+import { TanStackDevtools } from "@tanstack/react-devtools";
 import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ReactQueryDevtoolsPanel } from "@tanstack/react-query-devtools";
 import {
 	createRootRouteWithContext,
 	HeadContent,
@@ -7,8 +9,8 @@ import {
 	Outlet,
 	Scripts,
 } from "@tanstack/react-router";
+import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { useEffect } from "react";
-import { Devtools } from "#/components/Devtools";
 import { Button } from "#/components/ui/button";
 import {
 	Empty,
@@ -62,7 +64,12 @@ function RootDocument() {
 						<TooltipProvider>
 							<Outlet />
 							<Toaster richColors position="bottom-right" />
-							<Devtools />
+							<TanStackDevtools
+								plugins={[
+									{ name: "TanStack Query", render: <ReactQueryDevtoolsPanel /> },
+									{ name: "TanStack Router", render: <TanStackRouterDevtoolsPanel /> },
+								]}
+							/>
 						</TooltipProvider>
 					</ThemeProvider>
 				</QueryClientProvider>

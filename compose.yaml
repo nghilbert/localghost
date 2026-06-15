@@ -1,3 +1,19 @@
+# Shared config for the prod (web) and dev (web-dev) app services. They are
+# mutually exclusive on port 3000; COMPOSE_PROFILES picks one.
+x-app: &app
+  ports:
+    - "3000:3000"
+  environment: &app-env
+    DATABASE_URL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}"
+    BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
+    BETTER_AUTH_URL: ${BETTER_AUTH_URL}
+    ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
+  depends_on:
+    db:
+      condition: service_healthy
+
 services:
   db:
     image: pgvector/pgvector:pg16
@@ -15,23 +31,26 @@ services:
       timeout: 5s
       retries: 5
 
+  # Production: the built image. COMPOSE_PROFILES selects prod or dev (web-dev).
   web:
+    <<: *app
     build: .
+    profiles: [prod]
+
+  # Development: serves Vite with HMR over a bind mount instead of the built
+  # bundle. Mutually exclusive with web (both bind 3000); pick one via profile.
+  web-dev:
+    <<: *app
+    build:
+      context: .
+      target: dev
+    profiles: [dev]
     volumes:
-      # Gallery uploads are written to public/uploads at runtime.
-      - uploads:/app/public/uploads
-    ports:
-      - "3000:3000"
+      - .:/app             # live source for HMR
+      - /app/node_modules  # anonymous volume: keep the image's deps, don't shadow with host's
     environment:
-      DATABASE_URL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}"
-      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
-      BETTER_AUTH_URL: ${BETTER_AUTH_URL}
-      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    depends_on:
-      db:
-        condition: service_healthy
+      <<: *app-env
+      CHOKIDAR_USEPOLLING: "true"  # reliable file watching over the bind mount
 
   # One Ollama service per hardware variant; COMPOSE_PROFILES in .env picks one
   # (cpu, nvidia, or amd). All share the container name so the app reaches the
@@ -66,5 +85,4 @@ services:
 
 volumes:
   db_data:
-  uploads:
   ollama:
