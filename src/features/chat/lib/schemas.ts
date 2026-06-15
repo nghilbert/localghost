@@ -30,9 +30,24 @@ export const updateSessionSchema = z.object({
 	archived: z.boolean().optional(),
 });
 
-export const chatMessageSchema = z.object({
-	sessionId: uuid,
-	message: z.string().min(1),
+/**
+ * The subset of the AG-UI `RunAgentInput` body that `@tanstack/ai-client`'s SSE
+ * adapter POSTs to the chat stream route. Only the fields the server reads are
+ * validated: the message history (to extract the latest user turn) and the
+ * `forwardedProps.sessionId` the client forwards. Unknown content-part keys are
+ * stripped by Zod.
+ */
+export const chatStreamRequestSchema = z.object({
+	messages: z.array(
+		z.object({
+			role: z.string(),
+			content: z.union([
+				z.string(),
+				z.array(z.object({ type: z.string(), content: z.string().optional() })),
+			]),
+		}),
+	),
+	forwardedProps: z.object({ sessionId: uuid }),
 });
 
 // ── Server-fn inputs ─────────────────────────────────────────────────────────

@@ -1,11 +1,14 @@
 import "#/lib/startup.server";
+import { type StreamChunk, toServerSentEventsResponse } from "@tanstack/ai";
+import { EventType } from "@tanstack/ai/client";
 import { createFileRoute } from "@tanstack/react-router";
 import { auth } from "#/features/auth/lib/auth.server";
-import { runAgent } from "#/lib/agent.server";
+import { chatStreamRequestSchema } from "#/features/chat/lib/schemas";
+import { runAgentEvents } from "#/lib/agent.server";
 import { maybeCompact } from "#/lib/compactor.server";
 import { decrypt } from "#/lib/crypto.server";
 import { prisma } from "#/lib/db.server";
-import { callLLM, type LLMMessage, streamLLM } from "#/lib/llm.server";
+import { callLLM, type LLMMessage, streamLLMEvents } from "#/lib/llm.server";
 import { listAllMcpTools } from "#/lib/mcp.server";
 import { fireWebhook } from "#/lib/webhook.server";
 
@@ -20,6 +23,15 @@ function trimHistory(messages: LLMMessage[]): LLMMessage[] {
 	return [...system, ...trimmed];
 }
 
+/** Flattens an AG-UI wire message's content (string or content parts) to plain text. */
+function wireContentToText(content: string | Array<{ type: string; content?: string }>): string {
+	if (typeof content === "string") return content;
+	return content
+		.filter((part) => part.type === "text" && typeof part.content === "string")
+		.map((part) => part.content ?? "")
+		.join("");
+}
+
 export const Route = createFileRoute("/api/chat/stream")({
 	server: {
 		handlers: {
@@ -29,13 +41,16 @@ export const Route = createFileRoute("/api/chat/stream")({
 				if (!session) return new Response("Unauthorized", { status: 401 });
 				const userId = session.user.id;
 
-				const body = (await request.json()) as { sessionId: string; message: string };
-				if (!body.sessionId || !body.message?.trim()) {
-					return new Response("Bad request", { status: 400 });
-				}
+				const parsed = chatStreamRequestSchema.safeParse(await request.json());
+				if (!parsed.success) return new Response("Bad request", { status: 400 });
+
+				const sessionId = parsed.data.forwardedProps.sessionId;
+				const lastUser = [...parsed.data.messages].reverse().find((m) => m.role === "user");
+				const message = lastUser ? wireContentToText(lastUser.content).trim() : "";
+				if (!message) return new Response("Bad request", { status: 400 });
 
 				const chatSession = await prisma.chatSession.findFirst({
-					where: { id: body.sessionId, ownerId: userId },
+					where: { id: sessionId, ownerId: userId },
 					include: { endpoint: true, messages: { orderBy: { createdAt: "asc" } } },
 				});
 				if (!chatSession) return new Response("Session not found", { status: 404 });
@@ -44,14 +59,14 @@ export const Route = createFileRoute("/api/chat/stream")({
 				}
 
 				await prisma.chatMessage.create({
-					data: { sessionId: chatSession.id, role: "user", content: body.message },
+					data: { sessionId: chatSession.id, role: "user", content: message },
 				});
 
 				const history: LLMMessage[] = chatSession.messages.map((m) => ({
 					role: m.role as LLMMessage["role"],
 					content: m.content,
 				}));
-				history.push({ role: "user", content: body.message });
+				history.push({ role: "user", content: message });
 
 				const endpoint = chatSession.endpoint;
 				const apiKey = endpoint.apiKeyEncrypted ? decrypt(endpoint.apiKeyEncrypted) : undefined;
@@ -97,146 +112,119 @@ export const Route = createFileRoute("/api/chat/stream")({
 					: [];
 
 				let assistantText = "";
-				const encoder = new TextEncoder();
+				let finalized = false;
 
-				const readable = new ReadableStream({
-					async start(controller) {
-						const send = (data: Record<string, unknown>) =>
-							controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
+				/**
+				 * Persists the assistant turn and runs the once-per-run side effects
+				 * (auto-name, counters, webhook). Invoked when `RUN_FINISHED` arrives —
+				 * before that event is forwarded, so the client's onFinish refetch sees
+				 * the persisted name — and again from `finally` to cover early aborts.
+				 */
+				const finalize = async () => {
+					if (finalized) return;
+					finalized = true;
 
+					if (!assistantText) {
+						await prisma.chatSession.update({
+							where: { id: chatSession.id },
+							data: { messageCount: { increment: 1 }, lastAccessedAt: new Date() },
+						});
+						return;
+					}
+
+					await prisma.chatMessage.create({
+						data: { sessionId: chatSession.id, role: "assistant", content: assistantText },
+					});
+
+					// Auto-name session after first exchange
+					const isFirstExchange = chatSession.messageCount === 0 && chatSession.name === "New Chat";
+					let newName: string | undefined;
+					if (isFirstExchange) {
 						try {
-							if (isAgent) {
-								for await (const chunk of runAgent({
-									url: endpoint.url,
-									apiKey,
-									model: chatSession.model,
-									messages: compactedHistory,
-									systemPrompt: effectiveSystemPrompt,
-									ownerId: userId,
-									mcpTools,
-								})) {
-									if (chunk.type === "delta") {
-										assistantText += chunk.delta;
-										send({ type: "delta", delta: chunk.delta });
-									} else if (chunk.type === "tool_result") {
-										send({ type: "tool_result", tool: chunk.tool, result: chunk.result });
-									} else if (chunk.type === "thinking") {
-										send({ type: "thinking", delta: chunk.delta });
-									} else if (chunk.type === "usage") {
-										send({
-											type: "usage",
-											input_tokens: chunk.input_tokens,
-											output_tokens: chunk.output_tokens,
-										});
-									} else if (chunk.type === "done") {
-										send({ type: "done" });
-									} else if (chunk.type === "error") {
-										send({ type: "error", error: chunk.error });
-									}
-								}
-							} else {
-								const llmStream = await streamLLM({
-									url: endpoint.url,
-									apiKey,
-									model: chatSession.model,
-									messages: compactedHistory,
-									systemPrompt: effectiveSystemPrompt,
-									temperature,
-								});
-								const reader = llmStream.getReader();
-								while (true) {
-									const { done, value } = await reader.read();
-									if (done) break;
-									if (value.type === "delta") {
-										assistantText += value.delta;
-										send({ type: "delta", delta: value.delta });
-									} else if (value.type === "thinking") {
-										send({ type: "thinking", delta: value.delta });
-									} else if (value.type === "usage") {
-										send({
-											type: "usage",
-											input_tokens: value.input_tokens,
-											output_tokens: value.output_tokens,
-										});
-									} else if (value.type === "done") {
-										send({ type: "done" });
-									} else if (value.type === "error") {
-										send({ type: "error", error: value.error });
-									}
-								}
-							}
-						} catch (err) {
-							send({ type: "error", error: err instanceof Error ? err.message : "Unknown error" });
-						} finally {
-							if (assistantText) {
-								await prisma.chatMessage.create({
-									data: { sessionId: chatSession.id, role: "assistant", content: assistantText },
-								});
-
-								// Auto-name session after first exchange
-								const isFirstExchange =
-									chatSession.messageCount === 0 && chatSession.name === "New Chat";
-								let newName: string | undefined;
-								if (isFirstExchange) {
-									try {
-										newName = await callLLM({
-											url: endpoint.url,
-											apiKey,
-											model: chatSession.model,
-											messages: [
-												{
-													role: "user",
-													content: `Summarize this conversation in 4-6 words as a chat title. No quotes, no punctuation at the end.\n\nUser: ${body.message.slice(0, 500)}\nAssistant: ${assistantText.slice(0, 500)}`,
-												},
-											],
-											temperature: 0.3,
-											maxTokens: 20,
-										});
-										newName = newName
-											?.replace(/["'.!?]+$/, "")
-											.trim()
-											.slice(0, 80);
-									} catch {
-										newName = body.message.split(/\s+/).slice(0, 5).join(" ");
-									}
-									if (newName) send({ type: "session_name", name: newName });
-								}
-
-								await prisma.chatSession.update({
-									where: { id: chatSession.id },
-									data: {
-										messageCount: { increment: 2 },
-										lastMessageAt: new Date(),
-										lastAccessedAt: new Date(),
-										...(newName ? { name: newName } : {}),
+							newName = await callLLM({
+								url: endpoint.url,
+								apiKey,
+								model: chatSession.model,
+								messages: [
+									{
+										role: "user",
+										content: `Summarize this conversation in 4-6 words as a chat title. No quotes, no punctuation at the end.\n\nUser: ${message.slice(0, 500)}\nAssistant: ${assistantText.slice(0, 500)}`,
 									},
-								});
-
-								// Fire outgoing webhooks (non-blocking)
-								fireWebhook(
-									"chat.completed",
-									{ sessionId: chatSession.id, messageCount: chatSession.messageCount + 2 },
-									userId,
-								).catch(() => {});
-							} else {
-								await prisma.chatSession.update({
-									where: { id: chatSession.id },
-									data: { messageCount: { increment: 1 }, lastAccessedAt: new Date() },
-								});
-							}
-							controller.close();
+								],
+								temperature: 0.3,
+								maxTokens: 20,
+							});
+							newName = newName
+								?.replace(/["'.!?]+$/, "")
+								.trim()
+								.slice(0, 80);
+						} catch {
+							newName = message.split(/\s+/).slice(0, 5).join(" ");
 						}
-					},
-				});
+					}
 
-				return new Response(readable, {
-					headers: {
-						"Content-Type": "text/event-stream",
-						"Cache-Control": "no-cache",
-						Connection: "keep-alive",
-						"X-Accel-Buffering": "no",
-					},
-				});
+					await prisma.chatSession.update({
+						where: { id: chatSession.id },
+						data: {
+							messageCount: { increment: 2 },
+							lastMessageAt: new Date(),
+							lastAccessedAt: new Date(),
+							...(newName ? { name: newName } : {}),
+						},
+					});
+
+					// Fire outgoing webhooks (non-blocking)
+					fireWebhook(
+						"chat.completed",
+						{ sessionId: chatSession.id, messageCount: chatSession.messageCount + 2 },
+						userId,
+					).catch(() => {});
+				};
+
+				const source = isAgent
+					? runAgentEvents({
+							url: endpoint.url,
+							apiKey,
+							model: chatSession.model,
+							messages: compactedHistory,
+							systemPrompt: effectiveSystemPrompt,
+							ownerId: userId,
+							mcpTools,
+						})
+					: streamLLMEvents({
+							url: endpoint.url,
+							apiKey,
+							model: chatSession.model,
+							messages: compactedHistory,
+							systemPrompt: effectiveSystemPrompt,
+							temperature,
+						});
+
+				// Wrap the raw @tanstack/ai event stream: accumulate the assistant text for
+				// persistence and run the side effects before the terminal RUN_FINISHED is
+				// forwarded, translating thrown provider errors into a RUN_ERROR event.
+				async function* withSideEffects(): AsyncGenerator<StreamChunk> {
+					try {
+						for await (const chunk of source) {
+							if (chunk.type === "TEXT_MESSAGE_CONTENT") assistantText += chunk.delta;
+							if (chunk.type === "RUN_FINISHED") {
+								await finalize();
+								yield chunk;
+								return;
+							}
+							yield chunk;
+						}
+					} catch (err) {
+						yield {
+							type: EventType.RUN_ERROR,
+							message: err instanceof Error ? err.message : "LLM request failed",
+						};
+					} finally {
+						await finalize();
+					}
+				}
+
+				return toServerSentEventsResponse(withSideEffects());
 			},
 		},
 	},

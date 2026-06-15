@@ -32,9 +32,6 @@ export type SSEChunk =
 	| { type: "done" }
 	| { type: "error"; error: string };
 
-/** A streamed agent event: every {@link SSEChunk} plus tool-execution results. */
-export type AgentSSEChunk = SSEChunk | { type: "tool_result"; tool: string; result: string };
-
 export type StreamLLMOptions = {
 	url: string;
 	apiKey?: string;
@@ -260,20 +257,33 @@ export async function streamLLM(opts: StreamLLMOptions): Promise<ReadableStream<
 }
 
 /**
- * Runs an agentic completion: `chat()` executes the supplied tools via
- * `executeTool` and loops until the model stops or {@link MAX_AGENT_ROUNDS} is
- * reached, while this generator surfaces text/thinking deltas, tool results,
- * token usage, and completion as {@link AgentSSEChunk} events.
+ * Streams a completion as the raw `@tanstack/ai` (AG-UI) event stream that the
+ * `@tanstack/ai-client` SSE adapter consumes natively. Unlike {@link streamLLM}
+ * this performs no downconversion — `chat()` text/reasoning deltas, usage, and
+ * run lifecycle events pass through verbatim.
+ *
+ * @param opts - Endpoint, model, messages, system prompt, and sampling controls.
+ * @returns The `@tanstack/ai` event stream for this completion.
+ */
+export function streamLLMEvents(opts: StreamLLMOptions): AsyncIterable<StreamChunk> {
+	return chatEvents(opts, withSystemPrompt(opts), undefined);
+}
+
+/**
+ * Runs an agentic completion as the raw `@tanstack/ai` (AG-UI) event stream:
+ * `chat()` executes the supplied tools via `executeTool` and loops until the
+ * model stops or {@link MAX_AGENT_ROUNDS} is reached. Tool-call lifecycle events
+ * pass through for the client to fold into tool-call/result message parts.
  *
  * @param opts - Stream options plus the tool catalog and an executor callback.
- * @returns An async generator of {@link AgentSSEChunk} events.
+ * @returns The `@tanstack/ai` event stream for this agent run.
  */
-export async function* streamAgent(
+export function streamAgentEvents(
 	opts: StreamLLMOptions & {
 		tools: LLMTool[];
 		executeTool: (name: string, args: unknown) => Promise<string>;
 	},
-): AsyncGenerator<AgentSSEChunk> {
+): AsyncIterable<StreamChunk> {
 	const tools = opts.tools.map((tool) =>
 		toolDefinition({
 			name: tool.function.name,
@@ -282,42 +292,7 @@ export async function* streamAgent(
 		}).server((args) => opts.executeTool(tool.function.name, args)),
 	);
 
-	const source = chatEvents(opts, withSystemPrompt(opts), tools);
-	const toolNames = new Map<string, string>();
-
-	for await (const chunk of source) {
-		switch (chunk.type) {
-			case "TEXT_MESSAGE_CONTENT":
-				yield { type: "delta", delta: chunk.delta };
-				break;
-			case "REASONING_MESSAGE_CONTENT":
-				yield { type: "thinking", delta: chunk.delta };
-				break;
-			case "TOOL_CALL_START":
-				toolNames.set(chunk.toolCallId, chunk.toolCallName);
-				break;
-			case "TOOL_CALL_RESULT":
-				yield {
-					type: "tool_result",
-					tool: toolNames.get(chunk.toolCallId) ?? "tool",
-					result: typeof chunk.content === "string" ? chunk.content : JSON.stringify(chunk.content),
-				};
-				break;
-			case "RUN_FINISHED":
-				if (chunk.usage) {
-					yield {
-						type: "usage",
-						input_tokens: chunk.usage.promptTokens ?? 0,
-						output_tokens: chunk.usage.completionTokens ?? 0,
-					};
-				}
-				break;
-			case "RUN_ERROR":
-				yield { type: "error", error: chunk.message ?? "LLM run error" };
-				break;
-		}
-	}
-	yield { type: "done" };
+	return chatEvents(opts, withSystemPrompt(opts), tools);
 }
 
 /**
