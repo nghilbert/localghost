@@ -8,6 +8,7 @@ import {
 	Scripts,
 } from "@tanstack/react-router";
 import { useEffect } from "react";
+import { Devtools } from "#/components/Devtools";
 import { Button } from "#/components/ui/button";
 import {
 	Empty,
@@ -61,6 +62,7 @@ function RootDocument() {
 						<TooltipProvider>
 							<Outlet />
 							<Toaster richColors position="bottom-right" />
+							<Devtools />
 						</TooltipProvider>
 					</ThemeProvider>
 				</QueryClientProvider>

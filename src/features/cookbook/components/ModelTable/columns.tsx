@@ -57,7 +57,6 @@ export function createModelColumns({
 					</div>
 				);
 			},
-			filterFn: "includesString",
 		},
 		{
 			id: "family",

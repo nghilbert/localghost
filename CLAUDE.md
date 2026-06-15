@@ -40,11 +40,11 @@ Copy `.env.example` to `.env`. Required: `DATABASE_URL`, `BETTER_AUTH_SECRET`, `
 - **Agent:** `src/lib/agent.server.ts` — `runAgent()` async generator, up to 10 tool rounds, yields `AgentChunk`. Built-in tools (`web_search`, `manage_*`, `search_chats`) plus MCP tools as `mcp__<slug>__<tool>`.
 - **Embeddings / vector search:** `embeddings.server.ts` tries each endpoint's `/v1/embeddings` (`null` on failure → keyword fallback). pgvector `vector(1536)` IVFFlat cosine on `Document`/`Memory`; raw queries via `prisma.$queryRawUnsafe` (`pgvector/pgvector:pg16`).
 - **Scheduler:** `src/lib/scheduler.server.ts`, initialized via side-effect import `#/lib/startup.server`.
-- **Rich text:** Tiptap headless — `useEditor` + `<Tiptap.Content />`, `StarterKit` + `Markdown`, always `immediatelyRender: false` for SSR.
+- **Markdown:** rendered with `streamdown` (`<Streamdown>` via `src/components/Markdown/`), with `@streamdown/code` for syntax highlighting wired through `globals.css`. Streaming-safe; no rich-text editor — notes and other text are plain markdown strings.
 
 ## Forms
 
-`src/hooks/use-app-form.ts` exports `useAppForm` (TanStack Form). Field components live in `src/components/appForm/` — `InputField`, `PasswordField`, `SelectField`, `TextareaField`, `ToggleGroupField`, `MultiToggleField`, `ColorField`, `SwitchField`, `SwatchField`, `ChecklistField` — and share `useAppField` (`src/hooks/use-field-shell.tsx`) for label + optional `description` + validation error. Context is in `src/hooks/app-form-context.ts`.
+`src/hooks/use-app-form.ts` exports `useAppForm` (TanStack Form). Field components live in `src/components/appForm/` — `InputField`, `PasswordField`, `SelectField`, `TextareaField`, `ToggleGroupField`, `MultiToggleField`, `ColorField`, `DateField` (Calendar + Popover; stores `yyyy-mm-dd`), `SwitchField`, `SwatchField`, `ChecklistField` — and share `useAppField` (`src/hooks/use-app-field.ts`) plus the shared `FieldShell` (`src/components/appForm/FieldShell.tsx`) for label + optional `description` + validation error. Context is in `src/hooks/app-form-context.ts`.
 
 - **All submit forms must use `useAppForm`** — never hand-wire `useState`-per-field + `Input`. (Live draft editors like `SkillEditor`/`DocumentEditor` that patch state on change are not submit forms.)
 - Validate with a Zod v4 schema via `validators: { onDynamic: Schema }` + `validationLogic: revalidateLogic()`; field errors render automatically through `FieldError` (`errorMap.onDynamic`).
@@ -107,15 +107,6 @@ const deleteMutation = useMutation({
   onSuccess: () => queryClient.invalidateQueries({ queryKey: ["items"] }),
 });
 
-// Tiptap editor (markdown-backed)
-const editor = useEditor({
-  extensions: [StarterKit, Markdown],
-  content: initialContent,
-  contentType: "markdown",
-  immediatelyRender: false,
-  onUpdate: ({ editor }) => onChange(editor.getMarkdown()),
-});
-
 // SSE streaming response
 const readable = new ReadableStream({
   async start(controller) {
@@ -146,25 +137,18 @@ await prisma.$executeRawUnsafe(
 | Cookbook (model browser) | `src/features/cookbook/`, `src/routes/api/cookbook/pull.tsx`, `src/lib/hardware.server.ts` |
 | Chat + streaming | `src/features/chat/`, `src/routes/api/chat/stream.tsx` |
 | Memory (pgvector) | `src/features/memory/`, `src/lib/tools/manage_memory.ts` |
-| Documents + RAG | `src/features/documents/`, `src/lib/research.server.ts` |
-| Email (IMAP/SMTP) | `src/features/email/`, `src/lib/imap.server.ts`, `src/lib/smtp.server.ts` |
-| Calendar (CalDAV) | `src/features/calendar/`, `src/lib/caldav.server.ts` |
 | Scheduled tasks | `src/features/tasks/`, `src/lib/scheduler.server.ts` |
 | Skills | `src/features/skills/`, `src/routes/_authenticated/skills.tsx` |
 | Notes | `src/features/notes/` |
-| Contacts | `src/features/contacts/` |
 | Presets | `src/features/chat/lib/preset.functions.ts` |
 | Theme / dark mode | `src/features/theme/` |
 | Webhooks | `src/features/webhooks/` — HMAC-SHA256, SSRF protection |
-| API tokens | `src/features/tokens/`, `src/lib/token.server.ts` (`ody_` prefix) |
 | MCP servers | `src/lib/mcp.server.ts`, `src/features/mcp/` |
-| Model compare | `src/features/compare/`, `src/routes/api/compare/stream.tsx` |
-| Gallery | `src/features/gallery/`, `src/routes/api/gallery/upload.tsx` |
+| Model compare | `src/features/compare/`, `src/routes/api/compare/stream.tsx` (Cookbook tab) |
 | Admin | `src/features/admin/lib/admin.functions.ts` |
 | Settings | `src/features/settings/components/` (one component per tab) |
 | Backup/import | `src/routes/api/backup/` — non-destructive merge |
-| STT proxy | `src/routes/api/stt/transcribe.tsx` → Whisper endpoint |
-| Diagnostics | `src/routes/api/diagnostics/` |
-| Voice I/O | `MicButton` (Web Speech API), `SpeakButton` (speechSynthesis) |
+| Voice I/O | `MicButton` (Web Speech API), `SpeakButton` (speechSynthesis) — zero-dep, native |
 | Context compaction | `src/lib/compactor.server.ts` — summarizes at 85% token limit |
+| Dev seed | `prisma/seed.ts` (`npm run seed`) — faker data; `dev@example.com` / `password123` |
 | PWA | `public/manifest.json`, `public/sw.js` |

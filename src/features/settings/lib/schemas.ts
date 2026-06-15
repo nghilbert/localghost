@@ -6,7 +6,6 @@ export const TAB_VALUES = [
 	"providers",
 	"theme",
 	"webhooks",
-	"tokens",
 	"presets",
 	"data",
 	"mcp",
@@ -19,13 +18,3 @@ export const SettingsSearchSchema = z.object({
 export const ProfileFormSchema = z.object({
 	name: z.string().trim().min(1, "Name is required"),
 });
-
-export const CreateTokenFormSchema = z.object({
-	name: z.string().trim().min(1, "Name is required"),
-	expiresInDays: z.string().regex(/^\d*$/, "Must be a number of days"),
-});
-
-export const createTokenDefaults: z.infer<typeof CreateTokenFormSchema> = {
-	name: "",
-	expiresInDays: "",
-};

@@ -2,7 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import {
 	BookmarkIcon,
 	DatabaseIcon,
-	KeyIcon,
 	PaletteIcon,
 	PlugIcon,
 	ServerIcon,
@@ -18,7 +17,6 @@ import { McpTab } from "#/features/settings/components/McpTab";
 import { PresetsTab } from "#/features/settings/components/PresetsTab";
 import { ProvidersTab } from "#/features/settings/components/ProvidersTab";
 import { SetupTab } from "#/features/settings/components/SetupTab";
-import { TokensTab } from "#/features/settings/components/TokensTab";
 import { WebhooksTab } from "#/features/settings/components/WebhooksTab";
 import { SettingsSearchSchema } from "#/features/settings/lib/schemas";
 import { AppearanceSettings } from "#/features/theme/AppearanceSettings";
@@ -57,10 +55,6 @@ function SettingsPage() {
 							<WebhookIcon size={13} />
 							Webhooks
 						</TabsTrigger>
-						<TabsTrigger value="tokens" className="gap-1.5">
-							<KeyIcon size={13} />
-							API Tokens
-						</TabsTrigger>
 						<TabsTrigger value="presets" className="gap-1.5">
 							<BookmarkIcon size={13} />
 							Presets
@@ -91,9 +85,6 @@ function SettingsPage() {
 				</TabsContent>
 				<TabsContent value="webhooks">
 					<WebhooksTab />
-				</TabsContent>
-				<TabsContent value="tokens">
-					<TokensTab />
 				</TabsContent>
 				<TabsContent value="presets">
 					<PresetsTab />

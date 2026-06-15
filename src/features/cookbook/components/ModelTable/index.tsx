@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { DataTable } from "#/components/DataTable";
+import { fuzzyFilter } from "#/components/DataTable/fuzzyFilter";
 import {
 	createModelColumns,
 	type ModelRow,
@@ -67,6 +68,7 @@ export function ModelTable({
 			emptyMessage="No models found."
 			initialSorting={[{ id: "overall", desc: true }]}
 			globalFilter={globalFilter}
+			globalFilterFn={fuzzyFilter}
 			getRowClassName={(row) => cn(row.installed && "bg-success/5")}
 			toolbar={(table) => (
 				<ModelTableToolbar
