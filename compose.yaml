@@ -52,33 +52,14 @@ services:
       <<: *app-env
       CHOKIDAR_USEPOLLING: "true"  # reliable file watching over the bind mount
 
-  # One Ollama service per hardware variant; COMPOSE_PROFILES in .env picks one
-  # (cpu, nvidia, or amd). All share the container name so the app reaches the
-  # active one at http://ollama:11434 and two variants can never run at once.
-  ollama-cpu:
+  # Bundled Ollama, reachable by the app at http://ollama:11434. CPU-only here; a
+  # GPU hardware overlay (compose.nvidia.yaml / compose.amd.yaml, merged via
+  # COMPOSE_FILE) patches this service for the GPU. Gated by the `ollama` profile
+  # so omitting it falls back to a host-native Ollama.
+  ollama:
     image: ollama/ollama
     container_name: ollama
-    profiles: [cpu]
-    volumes:
-      - ollama:/root/.ollama
-    restart: unless-stopped
-
-  ollama-nvidia:
-    image: ollama/ollama
-    container_name: ollama
-    profiles: [nvidia]
-    gpus: all
-    volumes:
-      - ollama:/root/.ollama
-    restart: unless-stopped
-
-  ollama-amd:
-    image: ollama/ollama:rocm
-    container_name: ollama
-    profiles: [amd]
-    devices:
-      - /dev/kfd
-      - /dev/dri
+    profiles: [ollama]
     volumes:
       - ollama:/root/.ollama
     restart: unless-stopped

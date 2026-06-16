@@ -1,9 +1,13 @@
-# Overlay (merged via COMPOSE_FILE) granting the app container AMD GPU access for
-# the cookbook hardware panel. Untested (dev box is NVIDIA); confirm rocm-smi is
-# reachable in-container. Omit on CPU-only hosts.
+# Overlay (merged via COMPOSE_FILE) for AMD hosts. Swaps the bundled Ollama to the
+# ROCm image and mounts the AMD devices for inference, and grants the app container
+# the same device access for the cookbook hardware panel (rocm-smi). Untested (dev
+# box is NVIDIA); confirm rocm-smi is reachable in-container. Omit on CPU-only hosts.
 services:
-  web: &gpu
-    devices:
+  ollama:
+    image: ollama/ollama:rocm
+    devices: &amd-devices
       - /dev/kfd
       - /dev/dri
+  web: &gpu
+    devices: *amd-devices
   web-dev: *gpu

@@ -19,10 +19,10 @@ npm run prisma -- migrate dev --name <name>
 npm run prisma -- generate
 ```
 
-**Dev loops** — develop natively, validate against the production image. `COMPOSE_PROFILES` selects an Ollama hardware variant (`cpu`/`nvidia`/`amd`) plus a run mode (`prod` = built image, `dev` = Vite with HMR); the `web` and `web-dev` services are mutually exclusive on port 3000, so exactly one mode is active.
+**Dev loops** — develop natively, validate against the production image. `COMPOSE_PROFILES` selects a run mode (`prod` = built image, `dev` = Vite with HMR) plus optional `ollama` (the bundled Ollama container; omit it to use a host-native Ollama); the `web` and `web-dev` services are mutually exclusive on port 3000, so exactly one mode is active. GPU hardware is selected separately via `COMPOSE_FILE` — append `compose.nvidia.yaml` or `compose.amd.yaml` to give both Ollama and the cookbook hardware panel GPU access. CPU hosts leave `COMPOSE_FILE` unset; the cookbook shows "No GPU detected" by design.
 - **Inner loop:** `docker compose up db -d` then `npm run dev`. Fastest HMR. Run Ollama natively at `localhost:11434` and add it as an in-app endpoint.
-- **Dockerized dev:** `COMPOSE_PROFILES=cpu,dev docker compose up --build` — runs the `dev` Dockerfile stage as `web-dev`, serving Vite with HMR over a bind mount. Author migrations via `docker compose exec web-dev npm run prisma -- migrate dev --name <name>`.
-- **Parity check (pre-push):** `docker compose up --build` — with the default `COMPOSE_PROFILES=cpu,prod`, builds the production Dockerfile and runs the bundled server (`.output/server/index.mjs`) against Dockerized Postgres.
+- **Dockerized dev:** `COMPOSE_PROFILES=ollama,dev docker compose up --build` — runs the `dev` Dockerfile stage as `web-dev`, serving Vite with HMR over a bind mount. Author migrations via `docker compose exec web-dev npm run prisma -- migrate dev --name <name>`.
+- **Parity check (pre-push):** `docker compose up --build` — with the default `COMPOSE_PROFILES=ollama,prod`, builds the production Dockerfile and runs the bundled server (`.output/server/index.mjs`) against Dockerized Postgres.
 
 ## Environment
 
