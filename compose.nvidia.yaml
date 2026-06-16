@@ -1,0 +1,14 @@
+# Overlay (merged via COMPOSE_FILE) that grants the app container NVIDIA GPU
+# visibility for the cookbook hardware panel. Requires the NVIDIA Container
+# Toolkit. The `utility` capability enables nvidia-smi/NVML without the CUDA
+# compute runtime. Omit this file on CPU-only hosts.
+services:
+  web: &gpu
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [utility]
+  web-dev: *gpu
