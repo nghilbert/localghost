@@ -216,7 +216,6 @@ export const forkSession = createServerFn({ method: "POST" })
 					sessionId: forked.id,
 					role: m.role,
 					content: m.content,
-					metadata: m.metadata ?? undefined,
 				})),
 			});
 		}

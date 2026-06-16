@@ -18,27 +18,11 @@ CREATE TABLE "account" (
 );
 
 -- CreateTable
-CREATE TABLE "api_token" (
-    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
-    "name" TEXT NOT NULL,
-    "token_hash" TEXT NOT NULL,
-    "prefix" TEXT NOT NULL,
-    "scopes" TEXT NOT NULL DEFAULT 'chat',
-    "last_used_at" TIMESTAMP(3),
-    "expires_at" TIMESTAMP(3),
-    "owner_id" UUID NOT NULL,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT "api_token_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
 CREATE TABLE "chat_message" (
     "id" UUID NOT NULL DEFAULT gen_random_uuid(),
     "session_id" UUID NOT NULL,
     "role" TEXT NOT NULL,
     "content" TEXT NOT NULL,
-    "metadata" JSONB,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "chat_message_pkey" PRIMARY KEY ("id")
@@ -99,7 +83,6 @@ CREATE TABLE "memory" (
     "text" TEXT NOT NULL,
     "category" TEXT NOT NULL DEFAULT 'fact',
     "source" TEXT NOT NULL DEFAULT 'user',
-    "session_id" UUID,
     "owner_id" UUID NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -249,15 +232,6 @@ CREATE TABLE "webhook" (
 CREATE INDEX "account_user_id_idx" ON "account"("user_id");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "api_token_token_hash_key" ON "api_token"("token_hash");
-
--- CreateIndex
-CREATE INDEX "api_token_owner_id_idx" ON "api_token"("owner_id");
-
--- CreateIndex
-CREATE INDEX "api_token_token_hash_idx" ON "api_token"("token_hash");
-
--- CreateIndex
 CREATE INDEX "chat_message_session_id_idx" ON "chat_message"("session_id");
 
 -- CreateIndex
@@ -315,9 +289,6 @@ CREATE INDEX "webhook_owner_id_idx" ON "webhook"("owner_id");
 ALTER TABLE "account" ADD CONSTRAINT "account_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "api_token" ADD CONSTRAINT "api_token_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE "chat_message" ADD CONSTRAINT "chat_message_session_id_fkey" FOREIGN KEY ("session_id") REFERENCES "chat_session"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -355,3 +326,14 @@ ALTER TABLE "skill" ADD CONSTRAINT "skill_owner_id_fkey" FOREIGN KEY ("owner_id"
 
 -- AddForeignKey
 ALTER TABLE "webhook" ADD CONSTRAINT "webhook_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- pgvector: semantic memory search. The embedding column and IVFFlat cosine
+-- index live outside the Prisma schema (Prisma has no native vector type);
+-- raw SQL in src/features/memory and src/lib/tools/manage_memory reads/writes it.
+CREATE EXTENSION IF NOT EXISTS vector;
+
+-- AlterTable
+ALTER TABLE "memory" ADD COLUMN "embedding" vector(1536);
+
+-- CreateIndex
+CREATE INDEX "memory_embedding_idx" ON "memory" USING ivfflat ("embedding" vector_cosine_ops) WITH (lists = 100);
