@@ -105,3 +105,9 @@ export const getTaskRuns = createServerFn({ method: "GET" })
 
 export const tasksQueryOptions = () =>
 	queryOptions({ queryKey: ["tasks"], queryFn: () => getTasks() });
+
+export const taskRunsQueryOptions = (taskId: string) =>
+	queryOptions({
+		queryKey: ["task-runs", taskId],
+		queryFn: () => getTaskRuns({ data: { taskId } }),
+	});

@@ -1,7 +1,7 @@
 import { revalidateLogic } from "@tanstack/react-form";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import { Field, FieldGroup } from "#/components/ui/field";
-import { useCreateMcpServer } from "#/features/mcp/hooks/use-create-mcp-server";
+import { useMcpServers } from "#/features/mcp/hooks/use-mcp-servers";
 import {
 	AddMcpServerFormSchema,
 	addMcpServerDefaults,
@@ -13,14 +13,14 @@ import { useAppForm } from "#/hooks/use-app-form";
 type AddMcpServerFormProps = { onSuccess?: () => void };
 
 export function AddMcpServerForm({ onSuccess }: AddMcpServerFormProps) {
-	const createMutation = useCreateMcpServer();
+	const { createServer } = useMcpServers();
 
 	const form = useAppForm({
 		defaultValues: addMcpServerDefaults,
 		validators: { onDynamic: AddMcpServerFormSchema },
 		validationLogic: revalidateLogic(),
 		onSubmit: async ({ value, formApi }) => {
-			await createMutation.mutate(toCreateMcpServerInput(value), {
+			await createServer.mutate(toCreateMcpServerInput(value), {
 				onSuccess: () => {
 					formApi.reset();
 					onSuccess?.();
@@ -56,7 +56,7 @@ export function AddMcpServerForm({ onSuccess }: AddMcpServerFormProps) {
 									<field.ToggleGroupField label="Transport" options={MCP_TRANSPORT_OPTIONS} />
 								)}
 							</form.AppField>
-							<form.FormError>{createMutation.error?.message}</form.FormError>
+							<form.FormError>{createServer.error?.message}</form.FormError>
 							<Field orientation="horizontal">
 								<form.SubmitButton size="sm">Add</form.SubmitButton>
 							</Field>

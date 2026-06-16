@@ -1,54 +1,15 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { toast } from "sonner";
 import { PageHeader } from "#/components/PageHeader";
 import { CreateTaskDialog } from "#/features/tasks/components/CreateTaskDialog";
 import { TaskCard } from "#/features/tasks/components/TaskCard";
-import {
-	deleteTask,
-	runTaskNow,
-	tasksQueryOptions,
-	updateTask,
-} from "#/features/tasks/lib/task.functions";
+import { useTasks } from "#/features/tasks/hooks/use-tasks";
 
 export const Route = createFileRoute("/_authenticated/tasks")({
 	component: TasksPage,
 });
 
 function TasksPage() {
-	const queryClient = useQueryClient();
-	const { data: tasks = [] } = useQuery(tasksQueryOptions());
-
-	function invalidate() {
-		queryClient.invalidateQueries({ queryKey: ["tasks"] });
-	}
-
-	const deleteMutation = useMutation({
-		mutationFn: (id: string) => deleteTask({ data: { id } }),
-		onSuccess: () => {
-			invalidate();
-			toast.success("Task deleted");
-		},
-		onError: () => toast.error("Failed to delete task"),
-	});
-
-	const toggleMutation = useMutation({
-		mutationFn: ({ id, status }: { id: string; status: "active" | "paused" }) =>
-			updateTask({ data: { id, status } }),
-		onSuccess: (_, { status }) => {
-			invalidate();
-			toast.success(status === "active" ? "Task resumed" : "Task paused");
-		},
-	});
-
-	const runNowMutation = useMutation({
-		mutationFn: (id: string) => runTaskNow({ data: { id } }),
-		onSuccess: () => {
-			invalidate();
-			toast.success("Task triggered");
-		},
-		onError: () => toast.error("Failed to run task"),
-	});
+	const { tasks, updateTask, deleteTask, runTask } = useTasks();
 
 	return (
 		<div className="flex h-full flex-col overflow-hidden">
@@ -69,17 +30,17 @@ function TasksPage() {
 							<TaskCard
 								key={task.id}
 								task={task}
-								onDelete={() => deleteMutation.mutate(task.id)}
+								onDelete={() => deleteTask.mutate(task.id)}
 								onToggle={() =>
-									toggleMutation.mutate({
+									updateTask.mutate({
 										id: task.id,
 										status: task.status === "active" ? "paused" : "active",
 									})
 								}
-								onRunNow={() => runNowMutation.mutate(task.id)}
-								isDeletePending={deleteMutation.isPending}
-								isTogglePending={toggleMutation.isPending}
-								isRunNowPending={runNowMutation.isPending}
+								onRunNow={() => runTask.mutate(task.id)}
+								isDeletePending={deleteTask.isPending}
+								isTogglePending={updateTask.isPending}
+								isRunNowPending={runTask.isPending}
 							/>
 						))}
 					</ul>

@@ -1,7 +1,5 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { BrainIcon, SearchIcon, Trash2Icon } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import {
@@ -17,11 +15,7 @@ import { Item, ItemGroup } from "#/components/ui/item";
 import { ScrollArea } from "#/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger } from "#/components/ui/tooltip";
 import { AddMemoryForm } from "#/features/memory/components/AddMemoryForm";
-import {
-	deleteMemory,
-	memoriesQueryOptions,
-	searchMemories,
-} from "#/features/memory/lib/memory.functions";
+import { useMemories } from "#/features/memory/hooks/use-memories";
 import { cn } from "#/lib/utils";
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -33,26 +27,10 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 export function MemoryDialog() {
-	const queryClient = useQueryClient();
 	const [open, setOpen] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
 
-	const { data: memories = [] } = useQuery(memoriesQueryOptions());
-
-	const { data: searchResults } = useQuery({
-		queryKey: ["memories-search", searchQuery],
-		queryFn: () => searchMemories({ data: { query: searchQuery, limit: 10 } }),
-		enabled: searchQuery.length > 2,
-		staleTime: 5_000,
-	});
-
-	const deleteMutation = useMutation({
-		mutationFn: (id: string) => deleteMemory({ data: { id } }),
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["memories"] });
-			toast.success("Memory deleted");
-		},
-	});
+	const { memories, searchResults, deleteMemory } = useMemories(searchQuery);
 
 	const displayed = searchQuery.length > 2 ? (searchResults ?? []) : memories;
 
@@ -120,8 +98,8 @@ export function MemoryDialog() {
 									variant="ghost"
 									size="icon-sm"
 									className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
-									onClick={() => deleteMutation.mutate(m.id)}
-									disabled={deleteMutation.isPending}
+									onClick={() => deleteMemory.mutate(m.id)}
+									disabled={deleteMemory.isPending}
 									aria-label="Delete memory"
 								>
 									<Trash2Icon size={12} />

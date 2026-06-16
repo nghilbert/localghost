@@ -1,6 +1,6 @@
 import { revalidateLogic } from "@tanstack/react-form";
 import { FieldGroup } from "#/components/ui/field";
-import { useCreateTask } from "#/features/tasks/hooks/use-create-task";
+import { useTasks } from "#/features/tasks/hooks/use-tasks";
 import {
 	CreateTaskFormSchema,
 	createTaskDefaults,
@@ -17,14 +17,14 @@ const SCHEDULE_OPTIONS = Object.entries(SCHEDULE_LABELS).map(([value, label]) =>
 type CreateTaskFormProps = { onSuccess?: () => void };
 
 export function CreateTaskForm({ onSuccess }: CreateTaskFormProps) {
-	const createMutation = useCreateTask();
+	const { createTask } = useTasks();
 
 	const form = useAppForm({
 		defaultValues: createTaskDefaults,
 		validators: { onDynamic: CreateTaskFormSchema },
 		validationLogic: revalidateLogic(),
 		onSubmit: async ({ value, formApi }) => {
-			await createMutation.mutate(toCreateTaskInput(value), {
+			await createTask.mutate(toCreateTaskInput(value), {
 				onSuccess: () => {
 					formApi.reset();
 					onSuccess?.();
@@ -76,7 +76,7 @@ export function CreateTaskForm({ onSuccess }: CreateTaskFormProps) {
 							</>
 						)}
 					</form.Subscribe>
-					<form.FormError>{createMutation.error?.message}</form.FormError>
+					<form.FormError>{createTask.error?.message}</form.FormError>
 					<form.SubmitButton>Create Task</form.SubmitButton>
 				</FieldGroup>
 			</form.AppForm>
