@@ -22,6 +22,7 @@ type ModelColumnOptions = {
 	hasHardware: boolean;
 	pulling: Record<string, PullProgress>;
 	onPull: (model: string) => void;
+	onStop: (model: string) => void;
 	onDelete: (model: string) => void;
 };
 
@@ -29,6 +30,7 @@ export function createModelColumns({
 	hasHardware,
 	pulling,
 	onPull,
+	onStop,
 	onDelete,
 }: ModelColumnOptions): ColumnDef<ModelRow>[] {
 	return [
@@ -135,6 +137,7 @@ export function createModelColumns({
 					installed={row.original.installed}
 					pullState={pulling[row.original.model.id]}
 					onPull={onPull}
+					onStop={onStop}
 					onDelete={onDelete}
 				/>
 			),
