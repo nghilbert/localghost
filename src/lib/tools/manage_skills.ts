@@ -81,6 +81,6 @@ export async function manageSkills(args: ManageSkillsArgs, ownerId: string): Pro
 		}
 
 		default:
-			return `Unknown action: ${(args as ManageSkillsArgs).action}`;
+			return `Unknown action: ${args.action}`;
 	}
 }

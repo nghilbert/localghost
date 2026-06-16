@@ -2,6 +2,7 @@ import "#/lib/startup.server";
 import { type StreamChunk, toServerSentEventsResponse } from "@tanstack/ai";
 import { EventType } from "@tanstack/ai/client";
 import { createFileRoute } from "@tanstack/react-router";
+import { z } from "zod/v4";
 import { auth } from "#/features/auth/lib/auth.server";
 import { chatStreamRequestSchema } from "#/features/chat/lib/schemas";
 import { runAgentEvents } from "#/lib/agent.server";
@@ -13,6 +14,10 @@ import { listAllMcpTools } from "#/lib/mcp.server";
 import { fireWebhook } from "#/lib/webhook.server";
 
 const MAX_HISTORY_MESSAGES = 40;
+
+// Persisted chat roles are user/assistant/system; coerce any unexpected stored
+// value to "user" so a stray row can't break the LLM message mapping.
+const chatRoleSchema = z.enum(["system", "user", "assistant"]).catch("user");
 
 function trimHistory(messages: LLMMessage[]): LLMMessage[] {
 	if (messages.length <= MAX_HISTORY_MESSAGES) return messages;
@@ -63,7 +68,7 @@ export const Route = createFileRoute("/api/chat/stream")({
 				});
 
 				const history: LLMMessage[] = chatSession.messages.map((m) => ({
-					role: m.role as LLMMessage["role"],
+					role: chatRoleSchema.parse(m.role),
 					content: m.content,
 				}));
 				history.push({ role: "user", content: message });
