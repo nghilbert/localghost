@@ -19,7 +19,7 @@ export function SignUpForm() {
 
 			await authClient.signUp.email(value, {
 				onError: ({ error }) => setErrorMsg(error.message ?? "Sign up failed. Please try again."),
-				onSuccess: async () => navigate({ to: "/onboarding" }),
+				onSuccess: async () => navigate({ to: "/" }),
 			});
 		},
 	});

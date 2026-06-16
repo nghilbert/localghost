@@ -17,7 +17,6 @@ import { Route as PublicSignInRouteImport } from './routes/_public/sign-in'
 import { Route as AuthenticatedTasksRouteImport } from './routes/_authenticated/tasks'
 import { Route as AuthenticatedSkillsRouteImport } from './routes/_authenticated/skills'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
-import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as AuthenticatedNotesRouteImport } from './routes/_authenticated/notes'
 import { Route as AuthenticatedCookbookRouteImport } from './routes/_authenticated/cookbook'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
@@ -65,11 +64,6 @@ const AuthenticatedSkillsRoute = AuthenticatedSkillsRouteImport.update({
 const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
-  id: '/onboarding',
-  path: '/onboarding',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedNotesRoute = AuthenticatedNotesRouteImport.update({
@@ -129,7 +123,6 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AuthenticatedAdminRoute
   '/cookbook': typeof AuthenticatedCookbookRoute
   '/notes': typeof AuthenticatedNotesRoute
-  '/onboarding': typeof AuthenticatedOnboardingRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/skills': typeof AuthenticatedSkillsRoute
   '/tasks': typeof AuthenticatedTasksRoute
@@ -148,7 +141,6 @@ export interface FileRoutesByTo {
   '/admin': typeof AuthenticatedAdminRoute
   '/cookbook': typeof AuthenticatedCookbookRoute
   '/notes': typeof AuthenticatedNotesRoute
-  '/onboarding': typeof AuthenticatedOnboardingRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/skills': typeof AuthenticatedSkillsRoute
   '/tasks': typeof AuthenticatedTasksRoute
@@ -169,7 +161,6 @@ export interface FileRoutesById {
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/cookbook': typeof AuthenticatedCookbookRoute
   '/_authenticated/notes': typeof AuthenticatedNotesRoute
-  '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/skills': typeof AuthenticatedSkillsRoute
   '/_authenticated/tasks': typeof AuthenticatedTasksRoute
@@ -191,7 +182,6 @@ export interface FileRouteTypes {
     | '/admin'
     | '/cookbook'
     | '/notes'
-    | '/onboarding'
     | '/settings'
     | '/skills'
     | '/tasks'
@@ -210,7 +200,6 @@ export interface FileRouteTypes {
     | '/admin'
     | '/cookbook'
     | '/notes'
-    | '/onboarding'
     | '/settings'
     | '/skills'
     | '/tasks'
@@ -230,7 +219,6 @@ export interface FileRouteTypes {
     | '/_authenticated/admin'
     | '/_authenticated/cookbook'
     | '/_authenticated/notes'
-    | '/_authenticated/onboarding'
     | '/_authenticated/settings'
     | '/_authenticated/skills'
     | '/_authenticated/tasks'
@@ -315,13 +303,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/onboarding': {
-      id: '/_authenticated/onboarding'
-      path: '/onboarding'
-      fullPath: '/onboarding'
-      preLoaderRoute: typeof AuthenticatedOnboardingRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
     '/_authenticated/notes': {
       id: '/_authenticated/notes'
       path: '/notes'
@@ -399,7 +380,6 @@ interface AuthenticatedRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedCookbookRoute: typeof AuthenticatedCookbookRoute
   AuthenticatedNotesRoute: typeof AuthenticatedNotesRoute
-  AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedSkillsRoute: typeof AuthenticatedSkillsRoute
   AuthenticatedTasksRoute: typeof AuthenticatedTasksRoute
@@ -411,7 +391,6 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedCookbookRoute: AuthenticatedCookbookRoute,
   AuthenticatedNotesRoute: AuthenticatedNotesRoute,
-  AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedSkillsRoute: AuthenticatedSkillsRoute,
   AuthenticatedTasksRoute: AuthenticatedTasksRoute,

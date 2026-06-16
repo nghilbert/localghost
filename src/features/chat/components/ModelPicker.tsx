@@ -43,7 +43,7 @@ export function ModelPicker({ sessionId, currentModel, currentEndpointId }: Prop
 					<ChevronDownIcon size={14} className="shrink-0" />
 				</Button>
 			</DropdownMenuTrigger>
-			<DropdownMenuContent align="end" className="w-64">
+			<DropdownMenuContent align="start" className="w-64">
 				{endpoints.length === 0 && (
 					<DropdownMenuLabel className="text-muted-foreground">
 						No endpoints configured
