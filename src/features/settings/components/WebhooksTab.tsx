@@ -1,39 +1,12 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { toast } from "sonner";
 import { Button } from "#/components/ui/button";
 import { AddWebhookForm } from "#/features/settings/components/AddWebhookForm";
 import { WebhookList } from "#/features/settings/components/WebhookList";
-import {
-	deleteWebhook,
-	testWebhook,
-	updateWebhook,
-	webhooksQueryOptions,
-} from "#/features/webhooks/lib/webhook.functions";
+import { useWebhooks } from "#/features/webhooks/hooks/use-webhooks";
 
 export function WebhooksTab() {
-	const queryClient = useQueryClient();
-	const { data: webhooks = [] } = useQuery(webhooksQueryOptions());
+	const { webhooks, updateWebhook, deleteWebhook, testWebhook } = useWebhooks();
 	const [showForm, setShowForm] = useState(false);
-
-	const toggleMutation = useMutation({
-		mutationFn: updateWebhook,
-		onSuccess: () => queryClient.invalidateQueries({ queryKey: ["webhooks"] }),
-	});
-
-	const deleteMutation = useMutation({
-		mutationFn: deleteWebhook,
-		onSuccess: () => queryClient.invalidateQueries({ queryKey: ["webhooks"] }),
-	});
-
-	const testMutation = useMutation({
-		mutationFn: testWebhook,
-		onSuccess: (result) => {
-			queryClient.invalidateQueries({ queryKey: ["webhooks"] });
-			toast.success(`Test ping: HTTP ${result.status}`);
-		},
-		onError: (error) => toast.error(`Test failed: ${error.message}`),
-	});
 
 	return (
 		<div className="space-y-4">
@@ -55,12 +28,12 @@ export function WebhooksTab() {
 			{webhooks.length > 0 && (
 				<WebhookList
 					webhooks={webhooks}
-					isTesting={testMutation.isPending}
-					onTest={(id) => testMutation.mutate({ data: { id } })}
+					isTesting={testWebhook.isPending}
+					onTest={(id) => testWebhook.mutate(id)}
 					onToggle={(webhook) =>
-						toggleMutation.mutate({ data: { id: webhook.id, isActive: !webhook.isActive } })
+						updateWebhook.mutate({ id: webhook.id, isActive: !webhook.isActive })
 					}
-					onDelete={(id) => deleteMutation.mutate({ data: { id } })}
+					onDelete={(id) => deleteWebhook.mutate(id)}
 				/>
 			)}
 		</div>

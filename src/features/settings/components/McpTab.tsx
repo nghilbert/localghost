@@ -1,37 +1,20 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Button } from "#/components/ui/button";
-import {
-	deleteMcpServer,
-	mcpServersQueryOptions,
-	testMcpServer,
-	updateMcpServer,
-} from "#/features/mcp/lib/mcp.functions";
+import { useMcpServers } from "#/features/mcp/hooks/use-mcp-servers";
 import { AddMcpServerForm } from "#/features/settings/components/AddMcpServerForm";
 import { McpServerList, type McpTestResult } from "#/features/settings/components/McpServerList";
 
 export function McpTab() {
-	const queryClient = useQueryClient();
-	const { data: servers = [] } = useQuery(mcpServersQueryOptions());
+	const { servers, updateServer, deleteServer, testServer } = useMcpServers();
 	const [showForm, setShowForm] = useState(false);
 	const [testResults, setTestResults] = useState<Record<string, McpTestResult | null>>({});
 	const [testingId, setTestingId] = useState<string | null>(null);
-
-	const toggleMutation = useMutation({
-		mutationFn: updateMcpServer,
-		onSuccess: () => queryClient.invalidateQueries({ queryKey: ["mcp-servers"] }),
-	});
-
-	const deleteMutation = useMutation({
-		mutationFn: deleteMcpServer,
-		onSuccess: () => queryClient.invalidateQueries({ queryKey: ["mcp-servers"] }),
-	});
 
 	async function handleTest(id: string) {
 		setTestingId(id);
 		setTestResults((prev) => ({ ...prev, [id]: null }));
 		try {
-			const res = await testMcpServer({ data: { id } });
+			const res = await testServer.mutateAsync(id);
 			setTestResults((prev) => ({ ...prev, [id]: res }));
 		} catch {
 			setTestResults((prev) => ({ ...prev, [id]: { ok: false, tools: [] } }));
@@ -63,10 +46,8 @@ export function McpTab() {
 					testResults={testResults}
 					testingId={testingId}
 					onTest={handleTest}
-					onToggle={(server) =>
-						toggleMutation.mutate({ data: { id: server.id, enabled: !server.enabled } })
-					}
-					onDelete={(id) => deleteMutation.mutate({ data: { id } })}
+					onToggle={(server) => updateServer.mutate({ id: server.id, enabled: !server.enabled })}
+					onDelete={(id) => deleteServer.mutate(id)}
 				/>
 			)}
 		</div>

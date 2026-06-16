@@ -1,7 +1,7 @@
 import { revalidateLogic } from "@tanstack/react-form";
 import { PlusIcon } from "lucide-react";
 import { Field, FieldGroup } from "#/components/ui/field";
-import { useAddMemory } from "#/features/memory/hooks/use-add-memory";
+import { useMemories } from "#/features/memory/hooks/use-memories";
 import {
 	AddMemoryFormSchema,
 	addMemoryDefaults,
@@ -15,14 +15,14 @@ const CATEGORY_OPTIONS = CATEGORY_VALUES.map((category) => ({ value: category, l
 type AddMemoryFormProps = { onSuccess?: () => void };
 
 export function AddMemoryForm({ onSuccess }: AddMemoryFormProps) {
-	const addMutation = useAddMemory();
+	const { addMemory } = useMemories();
 
 	const form = useAppForm({
 		defaultValues: addMemoryDefaults,
 		validators: { onDynamic: AddMemoryFormSchema },
 		validationLogic: revalidateLogic(),
 		onSubmit: async ({ value, formApi }) => {
-			await addMutation.mutate(toAddMemoryInput(value), {
+			await addMemory.mutate(toAddMemoryInput(value), {
 				onSuccess: () => {
 					formApi.reset();
 					onSuccess?.();
@@ -61,7 +61,7 @@ export function AddMemoryForm({ onSuccess }: AddMemoryFormProps) {
 					<form.AppField name="category">
 						{(field) => <field.SelectField label="Category" options={CATEGORY_OPTIONS} />}
 					</form.AppField>
-					<form.FormError>{addMutation.error?.message}</form.FormError>
+					<form.FormError>{addMemory.error?.message}</form.FormError>
 					<Field orientation="horizontal">
 						<form.SubmitButton size="sm">
 							<PlusIcon size={13} />

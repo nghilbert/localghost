@@ -14,7 +14,7 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "#/components/u
 import { Item, ItemGroup } from "#/components/ui/item";
 import { ScrollArea } from "#/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger } from "#/components/ui/tooltip";
-import { getTaskRuns } from "#/features/tasks/lib/task.functions";
+import { taskRunsQueryOptions } from "#/features/tasks/lib/task.functions";
 import { cn } from "#/lib/utils";
 
 type TaskRunsDialogProps = {
@@ -25,8 +25,7 @@ type TaskRunsDialogProps = {
 export function TaskRunsDialog({ taskId, taskName }: TaskRunsDialogProps) {
 	const [isOpen, setIsOpen] = useState(false);
 	const { data: runs = [], isLoading } = useQuery({
-		queryKey: ["task-runs", taskId],
-		queryFn: () => getTaskRuns({ data: { taskId } }),
+		...taskRunsQueryOptions(taskId),
 		enabled: isOpen,
 	});
 

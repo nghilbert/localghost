@@ -1,7 +1,7 @@
 import { revalidateLogic } from "@tanstack/react-form";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import { Field, FieldGroup } from "#/components/ui/field";
-import { useCreateWebhook } from "#/features/webhooks/hooks/use-create-webhook";
+import { useWebhooks } from "#/features/webhooks/hooks/use-webhooks";
 import {
 	AddWebhookFormSchema,
 	addWebhookDefaults,
@@ -13,14 +13,14 @@ import { useAppForm } from "#/hooks/use-app-form";
 type AddWebhookFormProps = { onSuccess?: () => void };
 
 export function AddWebhookForm({ onSuccess }: AddWebhookFormProps) {
-	const createMutation = useCreateWebhook();
+	const { createWebhook } = useWebhooks();
 
 	const form = useAppForm({
 		defaultValues: addWebhookDefaults,
 		validators: { onDynamic: AddWebhookFormSchema },
 		validationLogic: revalidateLogic(),
 		onSubmit: async ({ value, formApi }) => {
-			await createMutation.mutate(toCreateWebhookInput(value), {
+			await createWebhook.mutate(toCreateWebhookInput(value), {
 				onSuccess: () => {
 					formApi.reset();
 					onSuccess?.();
@@ -57,7 +57,7 @@ export function AddWebhookForm({ onSuccess }: AddWebhookFormProps) {
 									<field.MultiToggleField label="Events" options={WEBHOOK_EVENT_OPTIONS} />
 								)}
 							</form.AppField>
-							<form.FormError>{createMutation.error?.message}</form.FormError>
+							<form.FormError>{createWebhook.error?.message}</form.FormError>
 							<Field orientation="horizontal">
 								<form.SubmitButton size="sm">Create</form.SubmitButton>
 							</Field>
