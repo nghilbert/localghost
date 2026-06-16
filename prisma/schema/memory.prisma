@@ -4,7 +4,6 @@ model Memory {
     category  String   @default("fact")
     /// Where this memory came from: "user" (manually added), "agent" (extracted during a chat), etc.
     source    String   @default("user")
-    sessionId String?  @map("session_id") @db.Uuid
     ownerId   String   @map("owner_id") @db.Uuid
     owner     User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
     createdAt DateTime @default(now()) @map("created_at")
