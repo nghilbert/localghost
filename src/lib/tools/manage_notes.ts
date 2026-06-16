@@ -1,22 +1,28 @@
+import { z } from "zod/v4";
 import { prisma } from "#/lib/db.server";
 
-type ChecklistItem = { text: string; done?: boolean };
+const checklistItemSchema = z.object({ text: z.string(), done: z.boolean().optional() });
 
-type ManageNotesArgs = {
-	action: "list" | "add" | "update" | "delete" | "toggle_item";
-	id?: string;
-	title?: string;
-	content?: string;
-	note_type?: "note" | "checklist";
-	checklist_items?: ChecklistItem[];
-	color?: string;
-	label?: string;
-	pinned?: boolean;
-	archived?: boolean;
-	due_date?: string;
-	index?: number;
-	limit?: number;
-};
+/** Coerces a Prisma JSON column into checklist items, yielding `[]` for any non-conforming value. */
+const checklistItemsSchema = z.array(checklistItemSchema).catch([]);
+
+export const manageNotesArgsSchema = z.object({
+	action: z.enum(["list", "add", "update", "delete", "toggle_item"]),
+	id: z.string().optional(),
+	title: z.string().optional(),
+	content: z.string().optional(),
+	note_type: z.enum(["note", "checklist"]).optional(),
+	checklist_items: z.array(checklistItemSchema).optional(),
+	color: z.string().optional(),
+	label: z.string().optional(),
+	pinned: z.boolean().optional(),
+	archived: z.boolean().optional(),
+	due_date: z.string().optional(),
+	index: z.number().optional(),
+	limit: z.number().optional(),
+});
+
+type ManageNotesArgs = z.infer<typeof manageNotesArgsSchema>;
 
 export async function manageNotes(args: ManageNotesArgs, ownerId: string): Promise<string> {
 	switch (args.action) {
@@ -59,7 +65,7 @@ async function listNotes(args: ManageNotesArgs, ownerId: string): Promise<string
 
 	return notes
 		.map((n) => {
-			const items = Array.isArray(n.items) ? (n.items as ChecklistItem[]) : [];
+			const items = checklistItemsSchema.parse(n.items);
 			const preview =
 				n.noteType === "checklist"
 					? `[${items.filter((i) => i.done).length}/${items.length} done]`
@@ -105,7 +111,7 @@ async function updateNote(args: ManageNotesArgs, ownerId: string): Promise<strin
 	const noteType = args.note_type ?? note.noteType;
 	const dueDate = args.due_date !== undefined ? parseDueDate(args.due_date) : undefined;
 
-	const existingItems = Array.isArray(note.items) ? (note.items as ChecklistItem[]) : [];
+	const existingItems = checklistItemsSchema.parse(note.items);
 	const newItems =
 		args.checklist_items !== undefined
 			? args.checklist_items.map((i) => ({ text: i.text, done: i.done ?? false }))
@@ -143,7 +149,7 @@ async function toggleItem(args: ManageNotesArgs, ownerId: string): Promise<strin
 	const note = await findNote(args.id, ownerId);
 	if (!note) return `Note not found: ${args.id}`;
 
-	const items = Array.isArray(note.items) ? [...(note.items as ChecklistItem[])] : [];
+	const items = [...checklistItemsSchema.parse(note.items)];
 	if (args.index < 0 || args.index >= items.length) {
 		return `Index ${args.index} out of range (note has ${items.length} items)`;
 	}

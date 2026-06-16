@@ -1,4 +1,10 @@
+import { z } from "zod/v4";
 import { prisma } from "#/lib/db.server";
+
+export const searchChatsArgsSchema = z.object({
+	query: z.string().optional(),
+	limit: z.number().optional(),
+});
 
 export async function searchChats(query: string, ownerId: string, limit = 10): Promise<string> {
 	if (!query.trim()) return "query is required";

@@ -1,16 +1,17 @@
+import { z } from "zod/v4";
 import { prisma } from "#/lib/db.server";
 import { embed, toVectorLiteral } from "#/lib/embeddings.server";
 
-type MemoryAction = "add" | "search" | "list" | "delete";
+export const manageMemoryArgsSchema = z.object({
+	action: z.enum(["add", "search", "list", "delete"]),
+	text: z.string().optional(),
+	query: z.string().optional(),
+	id: z.string().optional(),
+	category: z.string().optional(),
+	limit: z.number().optional(),
+});
 
-type ManageMemoryArgs = {
-	action: MemoryAction;
-	text?: string;
-	query?: string;
-	id?: string;
-	category?: string;
-	limit?: number;
-};
+type ManageMemoryArgs = z.infer<typeof manageMemoryArgsSchema>;
 
 /**
  * Tool handler for memory management. Called by the agent loop when the LLM
