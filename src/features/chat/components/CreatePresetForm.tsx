@@ -1,6 +1,6 @@
 import { revalidateLogic } from "@tanstack/react-form";
 import { Field, FieldGroup } from "#/components/ui/field";
-import { useCreatePreset } from "#/features/chat/hooks/use-create-preset";
+import { usePresets } from "#/features/chat/hooks/use-presets";
 import {
 	CreatePresetFormSchema,
 	createPresetDefaults,
@@ -9,14 +9,14 @@ import {
 import { useAppForm } from "#/hooks/use-app-form";
 
 export function CreatePresetForm() {
-	const createMutation = useCreatePreset();
+	const { createPreset } = usePresets();
 
 	const form = useAppForm({
 		defaultValues: createPresetDefaults,
 		validators: { onDynamic: CreatePresetFormSchema },
 		validationLogic: revalidateLogic(),
 		onSubmit: async ({ value, formApi }) => {
-			await createMutation.mutate(toCreatePresetInput(value), { onSuccess: () => formApi.reset() });
+			await createPreset.mutate(toCreatePresetInput(value), { onSuccess: () => formApi.reset() });
 		},
 	});
 
@@ -45,7 +45,7 @@ export function CreatePresetForm() {
 							/>
 						)}
 					</form.AppField>
-					<form.FormError>{createMutation.error?.message}</form.FormError>
+					<form.FormError>{createPreset.error?.message}</form.FormError>
 					<Field orientation="horizontal">
 						<form.SubmitButton size="sm">Save preset</form.SubmitButton>
 					</Field>

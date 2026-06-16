@@ -1,6 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { TrashIcon } from "lucide-react";
-import { toast } from "sonner";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import {
@@ -12,20 +10,10 @@ import {
 	ItemTitle,
 } from "#/components/ui/item";
 import { CreatePresetForm } from "#/features/chat/components/CreatePresetForm";
-import { deletePreset, presetsQueryOptions } from "#/features/chat/lib/preset.functions";
+import { usePresets } from "#/features/chat/hooks/use-presets";
 
 export function PresetsTab() {
-	const queryClient = useQueryClient();
-	const { data: presets = [] } = useQuery(presetsQueryOptions());
-
-	const deleteMutation = useMutation({
-		mutationFn: (id: string) => deletePreset({ data: { id } }),
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["chat-presets"] });
-			toast.success("Preset deleted");
-		},
-		onError: (error) => toast.error(error.message),
-	});
+	const { presets, deletePreset } = usePresets();
 
 	return (
 		<div className="space-y-6">
@@ -54,7 +42,7 @@ export function PresetsTab() {
 									variant="ghost"
 									size="icon"
 									className="h-6 w-6 shrink-0 text-muted-foreground hover:text-destructive"
-									onClick={() => deleteMutation.mutate(p.id)}
+									onClick={() => deletePreset.mutate(p.id)}
 									aria-label="Delete preset"
 								>
 									<TrashIcon size={13} />

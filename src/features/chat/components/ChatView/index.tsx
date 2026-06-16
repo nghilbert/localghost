@@ -1,4 +1,3 @@
-import { useMutation } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { BookOpenIcon, ChevronDownIcon, SlidersHorizontalIcon, Volume2Icon } from "lucide-react";
 import { useState } from "react";
@@ -19,7 +18,7 @@ import { ExportMenu } from "#/features/chat/components/ChatView/ExportMenu";
 import { SessionSettingsPanel } from "#/features/chat/components/ChatView/SessionSettingsPanel";
 import { ModelPicker } from "#/features/chat/components/ModelPicker";
 import { useChatStream } from "#/features/chat/hooks/use-chat-stream";
-import { updateSession } from "#/features/chat/lib/chat.functions";
+import { useSession } from "#/features/chat/hooks/use-session";
 import { MemoryDialog } from "#/features/memory/components/MemoryDialog";
 import { useLocalStorage } from "#/hooks/use-local-storage";
 import { cn } from "#/lib/utils";
@@ -61,19 +60,11 @@ export function ChatView({ session }: ChatViewProps) {
 
 	const isReady = Boolean(session.model && session.endpointId);
 
-	const sessionSettingsMutation = useMutation({
-		mutationFn: (patch: { systemPrompt?: string | null; temperature?: number }) =>
-			updateSession({ data: { id: session.id, data: patch } }),
-	});
-
-	const modeMutation = useMutation({
-		mutationFn: (newMode: "chat" | "agent") =>
-			updateSession({ data: { id: session.id, data: { mode: newMode } } }),
-	});
+	const { updateSession } = useSession(session.id);
 
 	function handleModeChange(newMode: "chat" | "agent") {
 		setMode(newMode);
-		modeMutation.mutate(newMode);
+		updateSession.mutate({ mode: newMode });
 	}
 
 	function handleAutoSpeakToggle() {
@@ -125,7 +116,7 @@ export function ChatView({ session }: ChatViewProps) {
 						sessionModel={session.model}
 						initialSystemPrompt={session.systemPrompt ?? ""}
 						initialTemperature={session.temperature ?? 0.7}
-						onPatchSession={(patch) => sessionSettingsMutation.mutate(patch)}
+						onPatchSession={(patch) => updateSession.mutate(patch)}
 					/>
 				)}
 			</header>
