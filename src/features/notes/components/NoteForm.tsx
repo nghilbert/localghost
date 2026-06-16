@@ -3,9 +3,8 @@ import type { z } from "zod/v4";
 import { Button } from "#/components/ui/button";
 import { Card } from "#/components/ui/card";
 import { Field, FieldGroup } from "#/components/ui/field";
-import { NoteFormSchema } from "#/features/notes/lib/schemas";
+import { checklistItemsSchema, NoteFormSchema } from "#/features/notes/lib/schemas";
 import {
-	type ChecklistItem,
 	NOTE_COLORS,
 	type Note,
 	type NoteFormData,
@@ -41,7 +40,7 @@ export function NoteForm({ initial, isPending, onSave, onCancel }: NoteFormProps
 			title: initial?.title ?? "",
 			noteType: initial?.noteType === "checklist" ? "checklist" : "note",
 			content: initial?.content ?? "",
-			items: (initial?.items as ChecklistItem[] | null) ?? [],
+			items: checklistItemsSchema.parse(initial?.items),
 			color: initial?.color ?? DEFAULT_COLOR,
 			label: initial?.label ?? "",
 			pinned: initial?.pinned ?? false,

@@ -12,6 +12,7 @@ dist-ssr
 /src/generated/prisma
 .vinxi
 __unconfig*
+*.tsbuildinfo
 
 # Environment
 .env

@@ -6,6 +6,9 @@ export const checklistItemSchema = z.object({
 	checked: z.boolean(),
 });
 
+/** Forgiving parser for the `Note.items` JSON column, yielding `[]` for any non-conforming value. */
+export const checklistItemsSchema = z.array(checklistItemSchema).catch([]);
+
 export const NoteFormSchema = z.object({
 	title: z.string(),
 	noteType: z.enum(["note", "checklist"]),

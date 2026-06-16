@@ -1,19 +1,20 @@
+import { z } from "zod/v4";
 import { prisma } from "#/lib/db.server";
 import { computeNextRun, executeTaskById } from "#/lib/scheduler.server";
 
-type TaskAction = "list" | "create" | "update" | "delete" | "pause" | "resume" | "run_now";
+export const manageTasksArgsSchema = z.object({
+	action: z.enum(["list", "create", "update", "delete", "pause", "resume", "run_now"]),
+	id: z.string().optional(),
+	name: z.string().optional(),
+	prompt: z.string().optional(),
+	schedule: z.enum(["once", "daily", "weekly", "monthly", "cron"]).optional(),
+	scheduled_time: z.string().optional(),
+	cron_expression: z.string().optional(),
+	session_id: z.string().optional(),
+	limit: z.number().optional(),
+});
 
-type ManageTasksArgs = {
-	action: TaskAction;
-	id?: string;
-	name?: string;
-	prompt?: string;
-	schedule?: "once" | "daily" | "weekly" | "monthly" | "cron";
-	scheduled_time?: string;
-	cron_expression?: string;
-	session_id?: string;
-	limit?: number;
-};
+type ManageTasksArgs = z.infer<typeof manageTasksArgsSchema>;
 
 export async function manageTasks(args: ManageTasksArgs, ownerId: string): Promise<string> {
 	switch (args.action) {

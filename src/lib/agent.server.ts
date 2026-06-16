@@ -1,12 +1,13 @@
 import type { StreamChunk } from "@tanstack/ai";
+import { z } from "zod/v4";
 import { type LLMMessage, type LLMTool, streamAgentEvents } from "#/lib/llm.server";
 import { callMcpTool, type McpToolDef } from "#/lib/mcp.server";
-import { manageMemory } from "#/lib/tools/manage_memory";
-import { manageNotes } from "#/lib/tools/manage_notes";
-import { manageSkills } from "#/lib/tools/manage_skills";
-import { manageTasks } from "#/lib/tools/manage_tasks";
-import { searchChats } from "#/lib/tools/search_chats";
-import { webSearch } from "#/lib/tools/web_search";
+import { manageMemory, manageMemoryArgsSchema } from "#/lib/tools/manage_memory";
+import { manageNotes, manageNotesArgsSchema } from "#/lib/tools/manage_notes";
+import { manageSkills, manageSkillsArgsSchema } from "#/lib/tools/manage_skills";
+import { manageTasks, manageTasksArgsSchema } from "#/lib/tools/manage_tasks";
+import { searchChats, searchChatsArgsSchema } from "#/lib/tools/search_chats";
+import { webSearch, webSearchArgsSchema } from "#/lib/tools/web_search";
 
 export const AGENT_TOOLS: LLMTool[] = [
 	{
@@ -263,24 +264,28 @@ async function executeTool(
 		const args = normalizeToolArgs(rawArgs);
 
 		switch (name) {
-			case "web_search":
-				return webSearch((args.query as string) ?? "", 5);
+			case "web_search": {
+				const { query } = webSearchArgsSchema.parse(args);
+				return webSearch(query ?? "", 5);
+			}
 			case "manage_memory":
-				return manageMemory(args as Parameters<typeof manageMemory>[0], ownerId);
+				return manageMemory(manageMemoryArgsSchema.parse(args), ownerId);
 			case "manage_notes":
-				return manageNotes(args as Parameters<typeof manageNotes>[0], ownerId);
+				return manageNotes(manageNotesArgsSchema.parse(args), ownerId);
 			case "manage_tasks":
-				return manageTasks(args as Parameters<typeof manageTasks>[0], ownerId);
-			case "search_chats":
-				return searchChats((args.query as string) ?? "", ownerId, (args.limit as number) ?? 10);
+				return manageTasks(manageTasksArgsSchema.parse(args), ownerId);
+			case "search_chats": {
+				const { query, limit } = searchChatsArgsSchema.parse(args);
+				return searchChats(query ?? "", ownerId, limit ?? 10);
+			}
 			case "manage_skills":
-				return manageSkills(args as Parameters<typeof manageSkills>[0], ownerId);
+				return manageSkills(manageSkillsArgsSchema.parse(args), ownerId);
 		}
 
 		// MCP tool — look up by namespaced name and delegate to the server
 		const mcpTool = mcpTools.find((t) => t.name === name);
 		if (mcpTool) {
-			return callMcpTool(mcpTool, args);
+			return callMcpTool(mcpTool, mcpArgsSchema.parse(args));
 		}
 
 		return `Unknown tool: ${name}`;
@@ -289,15 +294,17 @@ async function executeTool(
 	}
 }
 
-/** Coerces model-supplied tool input into a plain object, accepting parsed objects or JSON strings. */
-function normalizeToolArgs(raw: unknown): Record<string, unknown> {
+/** MCP tools have no static schema, so their arguments are validated only as a plain object. */
+const mcpArgsSchema = z.record(z.string(), z.unknown());
+
+/** Coerces model-supplied tool input, accepting parsed objects or JSON strings; validated per-tool downstream. */
+function normalizeToolArgs(raw: unknown): unknown {
 	if (typeof raw === "string") {
 		try {
-			const parsed: unknown = JSON.parse(raw || "{}");
-			return parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : {};
+			return JSON.parse(raw || "{}");
 		} catch {
 			return {};
 		}
 	}
-	return raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+	return raw ?? {};
 }

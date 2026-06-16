@@ -2,7 +2,8 @@ import { PinIcon, Trash2Icon } from "lucide-react";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { Card } from "#/components/ui/card";
-import { type ChecklistItem, type Note, noteColorClasses } from "#/features/notes/lib/types";
+import { checklistItemsSchema } from "#/features/notes/lib/schemas";
+import { type Note, noteColorClasses } from "#/features/notes/lib/types";
 import { cn } from "#/lib/utils";
 
 type NoteCardProps = {
@@ -13,7 +14,7 @@ type NoteCardProps = {
 };
 
 export function NoteCard({ note, onEdit, onPin, onDelete }: NoteCardProps) {
-	const checklistItems = note.items as ChecklistItem[] | null;
+	const checklistItems = checklistItemsSchema.parse(note.items);
 
 	return (
 		<Card
@@ -23,11 +24,16 @@ export function NoteCard({ note, onEdit, onPin, onDelete }: NoteCardProps) {
 			)}
 		>
 			{/* Sibling overlay, not a wrapper: a button must not contain the action buttons below */}
-			<button type="button" className="absolute inset-0" onClick={onEdit} aria-label="Edit note" />
+			<Button
+				variant="ghost"
+				className="absolute inset-0 h-auto"
+				onClick={onEdit}
+				aria-label="Edit note"
+			/>
 
 			{note.title && <p className="font-medium leading-snug">{note.title}</p>}
 
-			{note.noteType === "checklist" && checklistItems ? (
+			{note.noteType === "checklist" && checklistItems.length > 0 ? (
 				<ul className="space-y-1">
 					{checklistItems.slice(0, 6).map((item) => (
 						<li key={item.id} className="flex items-start gap-1.5 text-sm">

@@ -1,3 +1,10 @@
+import { z } from "zod/v4";
+
+export const webSearchArgsSchema = z.object({
+	query: z.string().optional(),
+	limit: z.number().optional(),
+});
+
 export type SearchResult = {
 	title: string;
 	url: string;

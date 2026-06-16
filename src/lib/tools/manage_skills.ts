@@ -1,12 +1,15 @@
+import { z } from "zod/v4";
 import { prisma } from "#/lib/db.server";
 
-type ManageSkillsArgs = {
-	action: "list" | "read" | "add" | "update" | "delete";
-	id?: string;
-	name?: string;
-	description?: string;
-	content?: string;
-};
+export const manageSkillsArgsSchema = z.object({
+	action: z.enum(["list", "read", "add", "update", "delete"]),
+	id: z.string().optional(),
+	name: z.string().optional(),
+	description: z.string().optional(),
+	content: z.string().optional(),
+});
+
+type ManageSkillsArgs = z.infer<typeof manageSkillsArgsSchema>;
 
 async function findSkill(idOrPrefix: string, ownerId: string) {
 	if (idOrPrefix.length === 36) {
