@@ -22,6 +22,7 @@ type ModelTableProps = {
 	installedModels: OllamaInstalledModel[];
 	pulling: Record<string, PullProgress>;
 	onPull: (model: string) => void;
+	onStop: (model: string) => void;
 	onDelete: (model: string) => void;
 };
 
@@ -30,6 +31,7 @@ export function ModelTable({
 	installedModels,
 	pulling,
 	onPull,
+	onStop,
 	onDelete,
 }: ModelTableProps) {
 	const [globalFilter, setGlobalFilter] = useState("");
@@ -57,8 +59,8 @@ export function ModelTable({
 	}, [rows, statusFilter]);
 
 	const columns = useMemo(
-		() => createModelColumns({ hasHardware: Boolean(hardware), pulling, onPull, onDelete }),
-		[hardware, pulling, onPull, onDelete],
+		() => createModelColumns({ hasHardware: Boolean(hardware), pulling, onPull, onStop, onDelete }),
+		[hardware, pulling, onPull, onStop, onDelete],
 	);
 
 	return (

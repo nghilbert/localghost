@@ -26,7 +26,7 @@ export function BrowseTab() {
 		refetchInterval: (query) => (query.state.data?.found ? 30_000 : 5_000),
 	});
 
-	const { pulling, pull } = useModelPull();
+	const { pulling, pull, stop } = useModelPull();
 
 	const [isReconnecting, setIsReconnecting] = useState(false);
 
@@ -71,12 +71,14 @@ export function BrowseTab() {
 							installedModels={ollamaStatus.installedModels}
 							pulling={pulling}
 							onPull={handlePull}
+							onStop={stop}
 						/>
 						<ModelTable
 							hardware={hardware}
 							installedModels={ollamaStatus.installedModels}
 							pulling={pulling}
 							onPull={handlePull}
+							onStop={stop}
 							onDelete={(model) => deleteMutation.mutate(model)}
 						/>
 					</>

@@ -3,6 +3,11 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod/v4";
 import { getCurrentUserId } from "#/features/auth/lib/session.server";
 import { OllamaUrlSchema } from "#/features/cookbook/lib/ollama-url";
+import {
+	cancelPull,
+	getActivePulls as readActivePulls,
+	startPull,
+} from "#/features/cookbook/lib/pull-registry.server";
 import type { OllamaStatus } from "#/features/cookbook/lib/types";
 import { getHardwareInfo } from "#/lib/hardware.server";
 import {
@@ -60,10 +65,38 @@ export const registerRemoteOllama = createServerFn({ method: "POST" })
 		await upsertOllamaEndpoint(userId, data.url);
 	});
 
+export const startModelPull = createServerFn({ method: "POST" })
+	.validator(z.object({ model: z.string().min(1), ollamaUrl: z.string().optional() }))
+	.handler(async ({ data }) => {
+		const userId = await getCurrentUserId();
+		const ollamaUrl = data.ollamaUrl?.replace(/\/+$/, "") ?? (await getOllamaUrl(userId));
+		startPull(userId, data.model, ollamaUrl);
+	});
+
+export const cancelModelPull = createServerFn({ method: "POST" })
+	.validator(z.object({ model: z.string().min(1) }))
+	.handler(async ({ data }) => {
+		const userId = await getCurrentUserId();
+		cancelPull(userId, data.model);
+	});
+
+export const getActivePulls = createServerFn({ method: "GET" }).handler(async () => {
+	const userId = await getCurrentUserId();
+	return readActivePulls(userId);
+});
+
 export const cookbookStatusQueryOptions = () =>
 	queryOptions({
 		queryKey: ["cookbook-status"],
 		queryFn: () => scanOllamaStatus(),
+	});
+
+export const activePullsQueryOptions = () =>
+	queryOptions({
+		queryKey: ["cookbook", "active-pulls"],
+		queryFn: () => getActivePulls(),
+		// Poll while a pull is in flight; idle otherwise so there's no wasted traffic.
+		refetchInterval: (query) => (query.state.data && query.state.data.length > 0 ? 600 : false),
 	});
 
 export const hardwareQueryOptions = () =>

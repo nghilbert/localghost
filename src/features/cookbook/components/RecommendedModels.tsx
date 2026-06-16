@@ -31,6 +31,7 @@ type RecommendedModelsProps = {
 	installedModels: OllamaInstalledModel[];
 	pulling: Record<string, PullProgress>;
 	onPull: (model: string) => void;
+	onStop: (model: string) => void;
 };
 
 export function RecommendedModels({
@@ -38,6 +39,7 @@ export function RecommendedModels({
 	installedModels,
 	pulling,
 	onPull,
+	onStop,
 }: RecommendedModelsProps) {
 	if (!hardware) return null;
 
@@ -72,6 +74,7 @@ export function RecommendedModels({
 									installed={null}
 									pullState={pulling[model.id]}
 									onPull={onPull}
+									onStop={onStop}
 								/>
 							</ItemActions>
 						</Item>
