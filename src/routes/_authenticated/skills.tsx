@@ -1,15 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { PageHeader } from "#/components/PageHeader";
 import { SkillEditor } from "#/features/skills/components/SkillEditor";
 import { SkillList } from "#/features/skills/components/SkillList";
-import {
-	createSkill,
-	deleteSkill,
-	skillsQueryOptions,
-	updateSkill,
-} from "#/features/skills/lib/skill.functions";
+import { useSkills } from "#/features/skills/hooks/use-skills";
 import { BLANK_SKILL, type Skill, type SkillDraft } from "#/features/skills/lib/types";
 
 export const Route = createFileRoute("/_authenticated/skills")({
@@ -17,56 +11,11 @@ export const Route = createFileRoute("/_authenticated/skills")({
 });
 
 function SkillsPage() {
-	const queryClient = useQueryClient();
-	const { data: skills = [] } = useQuery(skillsQueryOptions());
+	const { skills, createSkill, updateSkill, deleteSkill } = useSkills();
 
 	const [selected, setSelected] = useState<Skill | null>(null);
 	const [draft, setDraft] = useState<SkillDraft>(BLANK_SKILL);
 	const [isNew, setIsNew] = useState(false);
-
-	const invalidate = () => queryClient.invalidateQueries({ queryKey: ["skills"] });
-
-	const createMutation = useMutation({
-		mutationFn: () =>
-			createSkill({
-				data: {
-					name: draft.name.trim(),
-					description: draft.description.trim() || undefined,
-					content: draft.content.trim(),
-				},
-			}),
-		onSuccess: (skill) => {
-			invalidate();
-			setIsNew(false);
-			setSelected(skill as Skill);
-			setDraft({ name: skill.name, description: skill.description, content: skill.content });
-		},
-	});
-
-	const updateMutation = useMutation({
-		mutationFn: (id: string) =>
-			updateSkill({
-				data: {
-					id,
-					name: draft.name.trim(),
-					description: draft.description.trim(),
-					content: draft.content.trim(),
-				},
-			}),
-		onSuccess: (skill) => {
-			invalidate();
-			setSelected(skill as Skill);
-		},
-	});
-
-	const deleteMutation = useMutation({
-		mutationFn: (id: string) => deleteSkill({ data: { id } }),
-		onSuccess: () => {
-			invalidate();
-			setSelected(null);
-			setIsNew(false);
-		},
-	});
 
 	function handleSelectSkill(skill: Skill) {
 		setIsNew(false);
@@ -78,6 +27,43 @@ function SkillsPage() {
 		setIsNew(true);
 		setSelected(null);
 		setDraft(BLANK_SKILL);
+	}
+
+	function handleSave() {
+		const trimmed = {
+			name: draft.name.trim(),
+			description: draft.description.trim(),
+			content: draft.content.trim(),
+		};
+		if (isNew) {
+			createSkill.mutate(
+				{ ...trimmed, description: trimmed.description || undefined },
+				{
+					onSuccess: (skill) => {
+						setIsNew(false);
+						setSelected(skill);
+						setDraft({ name: skill.name, description: skill.description, content: skill.content });
+					},
+				},
+			);
+			return;
+		}
+		if (!selected) return;
+		updateSkill.mutate(
+			{ id: selected.id, ...trimmed },
+			{ onSuccess: (skill) => setSelected(skill) },
+		);
+	}
+
+	function handleDelete() {
+		if (selected && confirm(`Delete skill "${selected.name}"?`)) {
+			deleteSkill.mutate(selected.id, {
+				onSuccess: () => {
+					setSelected(null);
+					setIsNew(false);
+				},
+			});
+		}
 	}
 
 	const isDirty = selected
@@ -95,7 +81,7 @@ function SkillsPage() {
 			<PageHeader title="Skills" description="Reusable procedures and instructions for the agent" />
 			<div className="flex min-h-0 flex-1">
 				<SkillList
-					skills={skills as Skill[]}
+					skills={skills}
 					selectedId={selected?.id ?? null}
 					isNew={isNew}
 					onSelect={handleSelectSkill}
@@ -112,17 +98,11 @@ function SkillsPage() {
 							draft={draft}
 							isNew={isNew}
 							canSave={canSave}
-							isSavePending={createMutation.isPending || updateMutation.isPending}
-							isDeletePending={deleteMutation.isPending}
+							isSavePending={createSkill.isPending || updateSkill.isPending}
+							isDeletePending={deleteSkill.isPending}
 							onChange={(patch) => setDraft((d) => ({ ...d, ...patch }))}
-							onSave={() =>
-								isNew ? createMutation.mutate() : selected && updateMutation.mutate(selected.id)
-							}
-							onDelete={() => {
-								if (selected && confirm(`Delete skill "${selected.name}"?`)) {
-									deleteMutation.mutate(selected.id);
-								}
-							}}
+							onSave={handleSave}
+							onDelete={handleDelete}
 						/>
 					)}
 				</div>
