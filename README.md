@@ -36,7 +36,13 @@ GPU runtime). CPU hosts leave it unset.
 ```bash
 COMPOSE_FILE=compose.yaml:compose.nvidia.yaml   # NVIDIA (NVIDIA Container Toolkit)
 COMPOSE_FILE=compose.yaml:compose.amd.yaml      # AMD (ROCm)
+COMPOSE_FILE=compose.yaml:compose.vulkan.yaml   # Vulkan (Intel, or AMD without ROCm)
 ```
+
+Vulkan is the cross-vendor fallback (Intel Arc/iGPU, or AMD without ROCm): it's
+bundled into the default Ollama image and enabled once the container can reach
+`/dev/dri`. The hardware panel has no Vulkan detection, so it still shows "No GPU
+detected" under this overlay.
 
 Author new migrations against the dockerized dev DB with:
 

@@ -1,0 +1,7 @@
+# Vulkan overlay (Intel, or AMD without ROCm). Vulkan ships in the default
+# ollama/ollama image and turns on once /dev/dri is reachable — no image swap.
+# Tune with OLLAMA_VULKAN=0 or GGML_VK_VISIBLE_DEVICES=<ids>.
+services:
+  ollama:
+    devices:
+      - /dev/dri
