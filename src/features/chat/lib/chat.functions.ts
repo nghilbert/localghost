@@ -234,3 +234,10 @@ export const sessionsQueryOptions = () =>
 
 export const sessionQueryOptions = (id: string) =>
 	queryOptions({ queryKey: ["session", id], queryFn: () => getSession({ data: { id } }) });
+
+export const endpointModelsQueryOptions = (endpointId: string) =>
+	queryOptions({
+		queryKey: ["endpoint-models", endpointId],
+		queryFn: () => getEndpointModels({ data: { endpointId } }),
+		staleTime: 30_000,
+	});

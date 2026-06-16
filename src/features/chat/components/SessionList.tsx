@@ -1,8 +1,6 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useNavigate, useParams } from "@tanstack/react-router";
+import { Link, useParams } from "@tanstack/react-router";
 import { ArchiveIcon, GitForkIcon, MoreHorizontalIcon, PlusIcon, SearchIcon } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 import { Button } from "#/components/ui/button";
 import {
 	DropdownMenu,
@@ -21,55 +19,14 @@ import {
 	SidebarMenuItem,
 } from "#/components/ui/sidebar";
 import { SearchSessionsDialog } from "#/features/chat/components/SearchSessionsDialog";
-import {
-	createSession,
-	forkSession,
-	sessionsQueryOptions,
-	updateSession,
-} from "#/features/chat/lib/chat.functions";
+import { useSessions } from "#/features/chat/hooks/use-sessions";
 
 export function SessionList() {
-	const queryClient = useQueryClient();
-	const navigate = useNavigate();
-	const { data: sessions = [] } = useQuery(sessionsQueryOptions());
+	const { sessions, createSession, renameSession, archiveSession, forkSession } = useSessions();
 	const [renamingId, setRenamingId] = useState<string | null>(null);
 	const [searchOpen, setSearchOpen] = useState(false);
 
 	const { sessionId: currentSessionId } = useParams({ strict: false });
-
-	const createMutation = useMutation({
-		mutationFn: () => createSession({ data: { name: "New Chat" } }),
-		onSuccess: (session) => {
-			queryClient.invalidateQueries({ queryKey: ["sessions"] });
-			navigate({ to: "/sessions/$sessionId", params: { sessionId: session.id } });
-		},
-	});
-
-	const archiveMutation = useMutation({
-		mutationFn: (id: string) => updateSession({ data: { id, data: { archived: true } } }),
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["sessions"] });
-			toast.success("Chat archived");
-		},
-		onError: (error) => toast.error(`Failed to archive chat: ${error.message}`),
-	});
-
-	const renameMutation = useMutation({
-		mutationFn: ({ id, name }: { id: string; name: string }) =>
-			updateSession({ data: { id, data: { name } } }),
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["sessions"] });
-			setRenamingId(null);
-		},
-	});
-
-	const forkMutation = useMutation({
-		mutationFn: (id: string) => forkSession({ data: { id } }),
-		onSuccess: (result) => {
-			queryClient.invalidateQueries({ queryKey: ["sessions"] });
-			navigate({ to: "/sessions/$sessionId", params: { sessionId: result.id } });
-		},
-	});
 
 	return (
 		<>
@@ -85,8 +42,8 @@ export function SessionList() {
 						<Button
 							variant="ghost"
 							size="icon-sm"
-							onClick={() => createMutation.mutate()}
-							disabled={createMutation.isPending}
+							onClick={() => createSession.mutate()}
+							disabled={createSession.isPending}
 						>
 							<PlusIcon size={14} />
 							<span className="sr-only">New chat</span>
@@ -105,7 +62,10 @@ export function SessionList() {
 										onBlur={(e) => {
 											const name = e.target.value.trim();
 											if (name && name !== session.name) {
-												renameMutation.mutate({ id: session.id, name });
+												renameSession.mutate(
+													{ id: session.id, name },
+													{ onSuccess: () => setRenamingId(null) },
+												);
 											} else {
 												setRenamingId(null);
 											}
@@ -135,11 +95,11 @@ export function SessionList() {
 										</SidebarMenuAction>
 									</DropdownMenuTrigger>
 									<DropdownMenuContent side="right" align="start" className="min-w-36">
-										<DropdownMenuItem onClick={() => forkMutation.mutate(session.id)}>
+										<DropdownMenuItem onClick={() => forkSession.mutate(session.id)}>
 											<GitForkIcon size={13} className="mr-2" />
 											Fork
 										</DropdownMenuItem>
-										<DropdownMenuItem onClick={() => archiveMutation.mutate(session.id)}>
+										<DropdownMenuItem onClick={() => archiveSession.mutate(session.id)}>
 											<ArchiveIcon size={13} className="mr-2" />
 											Archive
 										</DropdownMenuItem>

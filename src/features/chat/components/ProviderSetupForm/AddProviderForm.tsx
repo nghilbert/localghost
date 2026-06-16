@@ -1,12 +1,10 @@
 import { revalidateLogic } from "@tanstack/react-form";
-import { useMutation } from "@tanstack/react-query";
 import { ChevronDownIcon, PlusIcon } from "lucide-react";
 import { ConnectionTestAlert } from "#/components/ConnectionTestAlert";
 import { Button } from "#/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "#/components/ui/collapsible";
 import { Field, FieldGroup } from "#/components/ui/field";
-import { useCreateEndpoint } from "#/features/chat/hooks/use-create-endpoint";
-import { testEndpoint } from "#/features/chat/lib/chat.functions";
+import { useEndpoints } from "#/features/chat/hooks/use-endpoints";
 import {
 	buildEndpointFormSchema,
 	dbProviderFor,
@@ -22,11 +20,7 @@ type AddProviderFormProps = {
 export function AddProviderForm({ definition, onCreated }: AddProviderFormProps) {
 	const schema = buildEndpointFormSchema(definition);
 
-	const testMutation = useMutation({
-		mutationFn: (data: { url: string; apiKey?: string }) => testEndpoint({ data }),
-	});
-
-	const createMutation = useCreateEndpoint();
+	const { createEndpoint, testEndpoint } = useEndpoints();
 
 	const form = useAppForm({
 		defaultValues: {
@@ -37,7 +31,7 @@ export function AddProviderForm({ definition, onCreated }: AddProviderFormProps)
 		validators: { onDynamic: schema },
 		validationLogic: revalidateLogic(),
 		onSubmit: async ({ value, formApi }) => {
-			await createMutation.mutate(
+			await createEndpoint.mutate(
 				{
 					name: value.name.trim(),
 					url: value.url.trim(),
@@ -60,7 +54,7 @@ export function AddProviderForm({ definition, onCreated }: AddProviderFormProps)
 			form.validateAllFields("submit");
 			return;
 		}
-		testMutation.mutate({
+		testEndpoint.mutate({
 			url: parsed.data.url.trim(),
 			apiKey: parsed.data.apiKey || undefined,
 		});
@@ -116,18 +110,18 @@ export function AddProviderForm({ definition, onCreated }: AddProviderFormProps)
 						</Collapsible>
 					)}
 
-					{testMutation.data && (
+					{testEndpoint.data && (
 						<ConnectionTestAlert
-							ok={testMutation.data.ok}
-							title={testMutation.data.ok ? "Connection works" : "Connection failed"}
+							ok={testEndpoint.data.ok}
+							title={testEndpoint.data.ok ? "Connection works" : "Connection failed"}
 							description={
-								testMutation.data.ok
-									? `${testMutation.data.modelCount} models available.`
-									: (testMutation.data.error ?? "Request failed")
+								testEndpoint.data.ok
+									? `${testEndpoint.data.modelCount} models available.`
+									: (testEndpoint.data.error ?? "Request failed")
 							}
 						/>
 					)}
-					<form.FormError>{createMutation.error?.message}</form.FormError>
+					<form.FormError>{createEndpoint.error?.message}</form.FormError>
 
 					<Field orientation="horizontal">
 						<form.SubmitButton>
@@ -137,7 +131,7 @@ export function AddProviderForm({ definition, onCreated }: AddProviderFormProps)
 						<Button
 							type="button"
 							variant="outline"
-							disabled={testMutation.isPending}
+							disabled={testEndpoint.isPending}
 							onClick={handleTest}
 						>
 							Test connection

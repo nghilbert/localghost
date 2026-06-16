@@ -1,5 +1,3 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
 import { Button } from "#/components/ui/button";
 import {
 	Item,
@@ -10,20 +8,10 @@ import {
 	ItemTitle,
 } from "#/components/ui/item";
 import { EndpointDialog } from "#/features/chat/components/EndpointDialog";
-import { deleteEndpoint, endpointsQueryOptions } from "#/features/chat/lib/chat.functions";
+import { useEndpoints } from "#/features/chat/hooks/use-endpoints";
 
 export function ProvidersTab() {
-	const queryClient = useQueryClient();
-	const { data: endpoints = [] } = useQuery(endpointsQueryOptions());
-
-	const deleteMutation = useMutation({
-		mutationFn: (id: string) => deleteEndpoint({ data: { id } }),
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["endpoints"] });
-			toast.success("Endpoint removed");
-		},
-		onError: () => toast.error("Failed to remove endpoint"),
-	});
+	const { endpoints, deleteEndpoint } = useEndpoints();
 
 	return (
 		<div className="space-y-3">
@@ -56,8 +44,8 @@ export function ProvidersTab() {
 									variant="ghost"
 									size="sm"
 									className="text-destructive hover:text-destructive"
-									onClick={() => deleteMutation.mutate(ep.id)}
-									disabled={deleteMutation.isPending}
+									onClick={() => deleteEndpoint.mutate(ep.id)}
+									disabled={deleteEndpoint.isPending}
 								>
 									Remove
 								</Button>

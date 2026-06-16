@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { CheckIcon, ChevronDownIcon } from "lucide-react";
 import { Button } from "#/components/ui/button";
 import {
@@ -11,11 +11,9 @@ import {
 	DropdownMenuTrigger,
 } from "#/components/ui/dropdown-menu";
 import { Spinner } from "#/components/ui/spinner";
-import {
-	endpointsQueryOptions,
-	getEndpointModels,
-	updateSession,
-} from "#/features/chat/lib/chat.functions";
+import { useEndpoints } from "#/features/chat/hooks/use-endpoints";
+import { useSession } from "#/features/chat/hooks/use-session";
+import { endpointModelsQueryOptions } from "#/features/chat/lib/chat.functions";
 
 type Props = {
 	sessionId: string;
@@ -24,13 +22,11 @@ type Props = {
 };
 
 export function ModelPicker({ sessionId, currentModel, currentEndpointId }: Props) {
-	const queryClient = useQueryClient();
-	const { data: endpoints = [] } = useQuery(endpointsQueryOptions());
+	const { endpoints } = useEndpoints();
+	const { updateSession } = useSession(sessionId);
 
-	async function handleSelect(endpointId: string, model: string) {
-		await updateSession({ data: { id: sessionId, data: { endpointId, model } } });
-		queryClient.invalidateQueries({ queryKey: ["session", sessionId] });
-		queryClient.invalidateQueries({ queryKey: ["sessions"] });
+	function handleSelect(endpointId: string, model: string) {
+		updateSession.mutate({ endpointId, model });
 	}
 
 	const label = currentModel || "Select model";
@@ -76,11 +72,7 @@ function EndpointGroup({
 	currentEndpointId,
 	onSelect,
 }: EndpointGroupProps) {
-	const { data: models = [], isLoading } = useQuery({
-		queryKey: ["endpoint-models", endpoint.id],
-		queryFn: () => getEndpointModels({ data: { endpointId: endpoint.id } }),
-		staleTime: 30_000,
-	});
+	const { data: models = [], isLoading } = useQuery(endpointModelsQueryOptions(endpoint.id));
 
 	return (
 		<>

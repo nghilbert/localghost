@@ -1,7 +1,5 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ServerIcon, Trash2Icon } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 import { Button } from "#/components/ui/button";
 import {
 	Dialog,
@@ -22,22 +20,11 @@ import {
 } from "#/components/ui/item";
 import { Separator } from "#/components/ui/separator";
 import { ProviderSetupForm } from "#/features/chat/components/ProviderSetupForm";
-import { deleteEndpoint, endpointsQueryOptions } from "#/features/chat/lib/chat.functions";
+import { useEndpoints } from "#/features/chat/hooks/use-endpoints";
 
 export function EndpointDialog() {
 	const [open, setOpen] = useState(false);
-
-	const queryClient = useQueryClient();
-	const { data: endpoints = [] } = useQuery(endpointsQueryOptions());
-
-	const deleteMutation = useMutation({
-		mutationFn: (id: string) => deleteEndpoint({ data: { id } }),
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["endpoints"] });
-			toast.success("Provider deleted");
-		},
-		onError: (error) => toast.error(`Failed to delete provider: ${error.message}`),
-	});
+	const { endpoints, deleteEndpoint } = useEndpoints();
 
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
@@ -68,7 +55,7 @@ export function EndpointDialog() {
 										<Button
 											variant="ghost"
 											size="icon-sm"
-											onClick={() => deleteMutation.mutate(ep.id)}
+											onClick={() => deleteEndpoint.mutate(ep.id)}
 											aria-label="Delete provider"
 										>
 											<Trash2Icon size={14} />

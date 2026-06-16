@@ -1,6 +1,5 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { toast } from "sonner";
 import { Button } from "#/components/ui/button";
 import { Item, ItemActions, ItemContent, ItemDescription, ItemTitle } from "#/components/ui/item";
 import { Separator } from "#/components/ui/separator";
@@ -10,15 +9,13 @@ import { OllamaSetupCard } from "#/features/cookbook/components/OllamaSetupCard"
 import { RecommendedModels } from "#/features/cookbook/components/RecommendedModels";
 import { RemoteOllamaForm } from "#/features/cookbook/components/RemoteOllamaForm";
 import { useModelPull } from "#/features/cookbook/hooks/use-model-pull";
+import { useOllama } from "#/features/cookbook/hooks/use-ollama";
 import {
 	cookbookStatusQueryOptions,
-	deleteModel,
 	hardwareQueryOptions,
 } from "#/features/cookbook/lib/cookbook.functions";
 
 export function BrowseTab() {
-	const queryClient = useQueryClient();
-
 	const { data: hardware, isLoading: isLoadingHardware } = useQuery(hardwareQueryOptions());
 
 	const { data: ollamaStatus } = useQuery({
@@ -27,17 +24,9 @@ export function BrowseTab() {
 	});
 
 	const { pulling, pull, stop } = useModelPull();
+	const { deleteModel } = useOllama();
 
 	const [isReconnecting, setIsReconnecting] = useState(false);
-
-	const deleteMutation = useMutation({
-		mutationFn: (model: string) => deleteModel({ data: { model } }),
-		onSuccess: (_data, model) => {
-			queryClient.invalidateQueries({ queryKey: ["cookbook-status"] });
-			toast.success(`${model} deleted`);
-		},
-		onError: (error) => toast.error("Failed to delete model", { description: error.message }),
-	});
 
 	function handlePull(model: string) {
 		if (!ollamaStatus?.found) return;
@@ -79,7 +68,7 @@ export function BrowseTab() {
 							pulling={pulling}
 							onPull={handlePull}
 							onStop={stop}
-							onDelete={(model) => deleteMutation.mutate(model)}
+							onDelete={(model) => deleteModel.mutate(model)}
 						/>
 					</>
 				)

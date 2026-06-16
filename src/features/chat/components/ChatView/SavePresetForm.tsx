@@ -1,5 +1,5 @@
 import { revalidateLogic } from "@tanstack/react-form";
-import { useCreatePreset } from "#/features/chat/hooks/use-create-preset";
+import { usePresets } from "#/features/chat/hooks/use-presets";
 import { SavePresetNameFormSchema, savePresetNameDefaults } from "#/features/chat/lib/schemas";
 import { useAppForm } from "#/hooks/use-app-form";
 
@@ -16,14 +16,14 @@ export function SavePresetForm({
 	model,
 	onSuccess,
 }: SavePresetFormProps) {
-	const createMutation = useCreatePreset();
+	const { createPreset } = usePresets();
 
 	const form = useAppForm({
 		defaultValues: savePresetNameDefaults,
 		validators: { onDynamic: SavePresetNameFormSchema },
 		validationLogic: revalidateLogic(),
 		onSubmit: async ({ value, formApi }) => {
-			await createMutation.mutate(
+			await createPreset.mutate(
 				{ name: value.name.trim(), systemPrompt, temperature, model },
 				{
 					onSuccess: () => {
@@ -47,7 +47,7 @@ export function SavePresetForm({
 				<form.AppField name="name">
 					{(field) => <field.InputField label="Name" placeholder="My preset" />}
 				</form.AppField>
-				<form.FormError>{createMutation.error?.message}</form.FormError>
+				<form.FormError>{createPreset.error?.message}</form.FormError>
 				<form.SubmitButton>Save</form.SubmitButton>
 			</form.AppForm>
 		</form>
