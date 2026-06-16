@@ -1,68 +1,110 @@
 import { EventType } from "@tanstack/ai/client";
 import { fetchServerSentEvents } from "@tanstack/ai-client";
-import { useRef, useState } from "react";
+import {
+	experimental_streamedQuery as streamedQuery,
+	useQueries,
+	useQuery,
+	useQueryClient,
+} from "@tanstack/react-query";
 import type { Slot, SlotState } from "#/features/compare/lib/types";
 
 // The endpoint is static, so the SSE connection adapter is created once and reused
 // across every slot/run.
 const connection = fetchServerSentEvents("/api/compare/stream");
 
-export function useCompareStream() {
-	const [results, setResults] = useState<Record<number, SlotState>>({});
-	const [isStreaming, setIsStreaming] = useState(false);
-	const abortRefs = useRef<Record<number, AbortController>>({});
+const GC_TIME = 5 * 60_000;
+const EMPTY_SLOT_STATE: SlotState = { text: "", done: false, error: null };
 
-	function patch(slotId: number, change: (cur: SlotState) => SlotState) {
-		setResults((prev) => {
-			const cur = prev[slotId] ?? { text: "", done: false, error: null };
-			return { ...prev, [slotId]: change(cur) };
-		});
+// A run is the source of truth for the active comparison. It lives in the query
+// cache (not component state) so the streamed results survive a tab switch:
+// `CompareTab` unmounts when you leave the Compare tab, but the cached run and its
+// in-flight per-slot streams persist and reattach on return.
+type CompareRun = { runId: number; prompt: string; slots: Slot[] };
+
+export type SlotChunk =
+	| { type: "text"; delta: string }
+	| { type: "error"; message: string }
+	| { type: "done" };
+
+const RUN_KEY = ["compare", "run"] as const;
+const slotStreamKey = (runId: number, slotId: number) =>
+	["compare", "stream", runId, slotId] as const;
+
+async function* streamSlot(
+	slot: Slot,
+	prompt: string,
+	signal: AbortSignal,
+): AsyncIterable<SlotChunk> {
+	const stream = connection.connect(
+		[{ id: `compare-${slot.id}`, role: "user", parts: [{ type: "text", content: prompt }] }],
+		{ endpointId: slot.endpointId, model: slot.model },
+		signal,
+	);
+	for await (const chunk of stream) {
+		if (chunk.type === EventType.TEXT_MESSAGE_CONTENT) {
+			yield { type: "text", delta: chunk.delta };
+		} else if (chunk.type === EventType.RUN_ERROR) {
+			yield { type: "error", message: chunk.message };
+		}
 	}
+	yield { type: "done" };
+}
 
-	async function run(slots: Slot[], prompt: string) {
+export function reduceSlot(acc: SlotState, chunk: SlotChunk): SlotState {
+	if (chunk.type === "text") return { ...acc, text: acc.text + chunk.delta };
+	if (chunk.type === "error") return { ...acc, error: chunk.message, done: true };
+	return { ...acc, done: true };
+}
+
+export function useCompareStream() {
+	const queryClient = useQueryClient();
+
+	const { data: activeRun } = useQuery<CompareRun | null>({
+		queryKey: RUN_KEY,
+		queryFn: () => null,
+		enabled: false,
+		initialData: null,
+		staleTime: Number.POSITIVE_INFINITY,
+		gcTime: GC_TIME,
+	});
+
+	const slots = activeRun?.slots ?? [];
+
+	const queries = useQueries({
+		queries: slots.map((slot) => ({
+			queryKey: slotStreamKey(activeRun?.runId ?? 0, slot.id),
+			queryFn: streamedQuery({
+				streamFn: (ctx) => streamSlot(slot, activeRun?.prompt ?? "", ctx.signal),
+				reducer: reduceSlot,
+				initialValue: EMPTY_SLOT_STATE,
+			}),
+			staleTime: Number.POSITIVE_INFINITY,
+			gcTime: GC_TIME,
+			retry: false,
+		})),
+	});
+
+	const results: Record<number, SlotState> = {};
+	slots.forEach((slot, index) => {
+		const query = queries[index];
+		const data = query?.data ?? EMPTY_SLOT_STATE;
+		// A slot is done once its stream settles — completion, error, or a Stop that
+		// cancelled the query — so the streaming indicator clears in every case.
+		const settled = query !== undefined && query.fetchStatus !== "fetching" && query.isFetched;
+		results[slot.id] = settled ? { ...data, done: true } : data;
+	});
+
+	const isStreaming = queries.some((query) => query.fetchStatus === "fetching");
+
+	async function run(nextSlots: Slot[], prompt: string) {
 		if (!prompt.trim() || isStreaming) return;
-		for (const ctrl of Object.values(abortRefs.current)) ctrl.abort();
-		abortRefs.current = {};
-
-		const initial: Record<number, SlotState> = {};
-		for (const s of slots) initial[s.id] = { text: "", done: false, error: null };
-		setResults(initial);
-		setIsStreaming(true);
-
-		const promises = slots.map(async (slot) => {
-			const ctrl = new AbortController();
-			abortRefs.current[slot.id] = ctrl;
-
-			try {
-				const stream = connection.connect(
-					[{ id: `compare-${slot.id}`, role: "user", parts: [{ type: "text", content: prompt }] }],
-					{ endpointId: slot.endpointId, model: slot.model },
-					ctrl.signal,
-				);
-				for await (const chunk of stream) {
-					if (chunk.type === EventType.TEXT_MESSAGE_CONTENT) {
-						patch(slot.id, (cur) => ({ ...cur, text: cur.text + chunk.delta }));
-					} else if (chunk.type === EventType.RUN_ERROR) {
-						patch(slot.id, (cur) => ({ ...cur, error: chunk.message, done: true }));
-					}
-				}
-			} catch (err) {
-				if ((err as Error).name === "AbortError") return;
-				patch(slot.id, (cur) => ({ ...cur, error: (err as Error).message, done: true }));
-			} finally {
-				patch(slot.id, (cur) => ({ ...cur, done: true }));
-			}
-		});
-
-		await Promise.allSettled(promises);
-		setIsStreaming(false);
+		await queryClient.cancelQueries({ queryKey: ["compare", "stream"] });
+		queryClient.setQueryData<CompareRun>(RUN_KEY, { runId: Date.now(), prompt, slots: nextSlots });
 	}
 
 	function stop() {
-		for (const ctrl of Object.values(abortRefs.current)) ctrl.abort();
-		abortRefs.current = {};
-		setIsStreaming(false);
+		queryClient.cancelQueries({ queryKey: ["compare", "stream"] });
 	}
 
-	return { results, isStreaming, run, stop };
+	return { results, resultSlots: activeRun?.slots ?? null, isStreaming, run, stop };
 }

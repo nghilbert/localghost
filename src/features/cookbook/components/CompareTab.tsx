@@ -19,9 +19,9 @@ export function CompareTab() {
 	]);
 	const [prompt, setPrompt] = useState("");
 	const [isBlind, setIsBlind] = useState(false);
-	const { results, isStreaming, run, stop } = useCompareStream();
+	const { results, resultSlots, isStreaming, run, stop } = useCompareStream();
 
-	const hasResults = Object.keys(results).length > 0;
+	const hasResults = resultSlots !== null;
 
 	const updateSlot = (id: number, patch: Partial<Slot>) =>
 		setSlots((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
@@ -97,7 +97,7 @@ export function CompareTab() {
 				</div>
 			</div>
 
-			<CompareResults slots={slots} results={results} isBlind={isBlind} />
+			<CompareResults slots={resultSlots ?? slots} results={results} isBlind={isBlind} />
 		</div>
 	);
 }
