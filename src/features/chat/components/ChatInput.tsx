@@ -1,5 +1,5 @@
 import { ArrowUpIcon, BotIcon, MessageSquareIcon, SquareIcon } from "lucide-react";
-import { type KeyboardEvent, useRef } from "react";
+import { type KeyboardEvent, type ReactNode, useRef } from "react";
 import { Button } from "#/components/ui/button";
 import { Card, CardAction, CardContent, CardFooter } from "#/components/ui/card";
 import { Textarea } from "#/components/ui/textarea";
@@ -13,6 +13,7 @@ type Props = {
 	disabled?: boolean;
 	mode?: "chat" | "agent";
 	onModeChange?: (mode: "chat" | "agent") => void;
+	modelSelect?: ReactNode;
 };
 
 export function ChatInput({
@@ -22,6 +23,7 @@ export function ChatInput({
 	disabled,
 	mode = "chat",
 	onModeChange,
+	modelSelect,
 }: Props) {
 	const ref = useRef<HTMLTextAreaElement>(null);
 
@@ -68,8 +70,7 @@ export function ChatInput({
 				/>
 			</CardContent>
 			<CardFooter className="justify-between gap-2">
-				{/* Mode toggle */}
-				<CardAction>
+				<CardAction className="flex items-center gap-2">
 					<ToggleGroup
 						type="single"
 						variant="outline"
@@ -89,6 +90,7 @@ export function ChatInput({
 							Agent
 						</ToggleGroupItem>
 					</ToggleGroup>
+					{modelSelect}
 				</CardAction>
 
 				<CardAction>

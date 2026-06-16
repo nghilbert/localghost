@@ -1,9 +1,15 @@
 import { useMutation } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { ChevronDownIcon, SlidersHorizontalIcon, Volume2Icon } from "lucide-react";
+import { BookOpenIcon, ChevronDownIcon, SlidersHorizontalIcon, Volume2Icon } from "lucide-react";
 import { useState } from "react";
 import { Button } from "#/components/ui/button";
-import { Empty, EmptyDescription, EmptyHeader } from "#/components/ui/empty";
+import {
+	Empty,
+	EmptyContent,
+	EmptyDescription,
+	EmptyHeader,
+	EmptyTitle,
+} from "#/components/ui/empty";
 import { Tooltip, TooltipContent, TooltipTrigger } from "#/components/ui/tooltip";
 import { ChatFeed } from "#/features/chat/components/ChatFeed";
 import { ChatInput } from "#/features/chat/components/ChatInput";
@@ -52,6 +58,8 @@ export function ChatView({ session }: ChatViewProps) {
 	const [mode, setMode] = useState<"chat" | "agent">(session.mode === "agent" ? "agent" : "chat");
 	const [showSettings, setShowSettings] = useState(false);
 	const [autoSpeak, setAutoSpeak] = useLocalStorage("ody-auto-speak", false);
+
+	const isReady = Boolean(session.model && session.endpointId);
 
 	const sessionSettingsMutation = useMutation({
 		mutationFn: (patch: { systemPrompt?: string | null; temperature?: number }) =>
@@ -110,11 +118,6 @@ export function ChatView({ session }: ChatViewProps) {
 							messages={allDisplayMessages}
 						/>
 						<MemoryDialog />
-						<ModelPicker
-							sessionId={session.id}
-							currentModel={session.model}
-							currentEndpointId={session.endpointId}
-						/>
 					</div>
 				</div>
 				{showSettings && (
@@ -128,17 +131,32 @@ export function ChatView({ session }: ChatViewProps) {
 			</header>
 
 			<ChatFeed className="flex-1 px-4">
-				{allDisplayMessages.length === 0 && (
-					<Empty className="h-full">
-						<EmptyHeader>
-							<EmptyDescription>
-								{session.model
-									? "Send a message to start chatting."
-									: "Select a model above to get started."}
-							</EmptyDescription>
-						</EmptyHeader>
-					</Empty>
-				)}
+				{allDisplayMessages.length === 0 &&
+					(isReady ? (
+						<Empty className="h-full">
+							<EmptyHeader>
+								<EmptyDescription>Send a message to start chatting.</EmptyDescription>
+							</EmptyHeader>
+						</Empty>
+					) : (
+						<Empty className="h-full">
+							<EmptyHeader>
+								<EmptyTitle>No model connected yet</EmptyTitle>
+								<EmptyDescription>
+									Install a local model in the Cookbook, then pick it from the model menu below the
+									message box.
+								</EmptyDescription>
+							</EmptyHeader>
+							<EmptyContent>
+								<Button asChild>
+									<Link to="/cookbook">
+										<BookOpenIcon />
+										Browse the Cookbook
+									</Link>
+								</Button>
+							</EmptyContent>
+						</Empty>
+					))}
 				{allDisplayMessages.map((msg, idx) => (
 					<ChatMessage
 						key={msg.id}
@@ -162,24 +180,17 @@ export function ChatView({ session }: ChatViewProps) {
 					onSubmit={handleSubmit}
 					isStreaming={isStreaming}
 					onStop={handleStop}
-					disabled={!session.model || !session.endpointId}
+					disabled={!isReady}
 					mode={mode}
 					onModeChange={handleModeChange}
+					modelSelect={
+						<ModelPicker
+							sessionId={session.id}
+							currentModel={session.model}
+							currentEndpointId={session.endpointId}
+						/>
+					}
 				/>
-				{(!session.model || !session.endpointId) && (
-					<p className="mt-1 text-center text-xs text-muted-foreground">
-						{!session.endpointId ? (
-							<>
-								No provider configured —{" "}
-								<Link to="/onboarding" className="underline underline-offset-2">
-									run setup
-								</Link>
-							</>
-						) : (
-							"Select a model using the picker above"
-						)}
-					</p>
-				)}
 			</div>
 		</div>
 	);

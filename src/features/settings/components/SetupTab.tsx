@@ -1,8 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
-import { CheckCircle2Icon, CircleAlertIcon, WandSparklesIcon } from "lucide-react";
+import { CheckCircle2Icon, CircleAlertIcon } from "lucide-react";
 import { Badge } from "#/components/ui/badge";
-import { Button } from "#/components/ui/button";
 import { FieldDescription, FieldLegend, FieldSet } from "#/components/ui/field";
 import { Item, ItemContent, ItemDescription, ItemGroup, ItemTitle } from "#/components/ui/item";
 import { ProviderSetupForm } from "#/features/chat/components/ProviderSetupForm";
@@ -35,13 +33,6 @@ export function SetupTab() {
 
 	return (
 		<div className="space-y-6">
-			<Button variant="outline" size="sm" asChild>
-				<Link to="/onboarding">
-					<WandSparklesIcon />
-					Run guided setup
-				</Link>
-			</Button>
-
 			<FieldSet>
 				<FieldLegend className="flex items-center gap-2">
 					LLM providers
