@@ -39,7 +39,7 @@ Copy `.env.example` to `.env`. Required: `DATABASE_URL`, `BETTER_AUTH_SECRET`, `
 - **Encryption:** AES-256-GCM (`src/lib/crypto.server.ts`), format `iv:tag:ciphertext` (hex). Stores API keys and webhook secrets at rest.
 - **LLM:** `src/lib/llm.server.ts` — `streamLLM()` → `ReadableStream<SSEChunk>`, `callLLM()` non-streaming. Provider auto-detected from URL (Anthropic, Ollama, OpenRouter, Groq, OpenAI-compatible).
 - **Agent:** `src/lib/agent.server.ts` — `runAgent()` async generator, up to 10 tool rounds, yields `AgentChunk`. Built-in tools (`web_search`, `manage_*`, `search_chats`) plus MCP tools as `mcp__<slug>__<tool>`.
-- **Embeddings / vector search:** `embeddings.server.ts` tries each endpoint's `/v1/embeddings` (`null` on failure → keyword fallback). pgvector `vector(1536)` IVFFlat cosine on `Memory`; raw queries via `prisma.$queryRawUnsafe` (`pgvector/pgvector:pg16`).
+- **Embeddings / vector search:** `embeddings.server.ts` tries each endpoint's `/v1/embeddings` (`null` on failure → keyword fallback). pgvector `vector(1536)` IVFFlat cosine on `Memory`; raw queries via `prisma.$queryRawUnsafe` (`pgvector/pgvector:pg18`).
 - **Scheduler:** `src/lib/scheduler.server.ts`, initialized via side-effect import `#/lib/startup.server`.
 - **Markdown:** rendered with `streamdown` (`<Streamdown>` via `src/components/Markdown/`), with `@streamdown/code` for syntax highlighting wired through `globals.css`. Streaming-safe; no rich-text editor — notes and other text are plain markdown strings.
 
