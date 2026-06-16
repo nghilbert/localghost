@@ -1,4 +1,3 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { PlusIcon } from "lucide-react";
 import { useState } from "react";
@@ -6,49 +5,23 @@ import { PageHeader } from "#/components/PageHeader";
 import { Button } from "#/components/ui/button";
 import { NoteForm } from "#/features/notes/components/NoteForm";
 import { NoteGroup } from "#/features/notes/components/NoteGroup";
-import {
-	createNote,
-	deleteNote,
-	notesQueryOptions,
-	updateNote,
-} from "#/features/notes/lib/note.functions";
+import { useNotes } from "#/features/notes/hooks/use-notes";
+import type { NoteFormData } from "#/features/notes/lib/types";
 
 export const Route = createFileRoute("/_authenticated/notes")({
 	component: NotesPage,
 });
 
 function NotesPage() {
-	const queryClient = useQueryClient();
-	const { data: notes = [] } = useQuery(notesQueryOptions());
+	const { notes, createNote, updateNote, deleteNote } = useNotes();
 	const [isCreating, setIsCreating] = useState(false);
 	const [editingId, setEditingId] = useState<string | null>(null);
-
-	const createMutation = useMutation({
-		mutationFn: createNote,
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["notes"] });
-			setIsCreating(false);
-		},
-	});
-
-	const updateMutation = useMutation({
-		mutationFn: updateNote,
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["notes"] });
-			setEditingId(null);
-		},
-	});
-
-	const deleteMutation = useMutation({
-		mutationFn: deleteNote,
-		onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notes"] }),
-	});
 
 	const pinnedNotes = notes.filter((n) => n.pinned);
 	const unpinnedNotes = notes.filter((n) => !n.pinned);
 
-	function handleUpdate(id: string, formData: object) {
-		updateMutation.mutate({ data: { id, ...formData } });
+	function handleUpdate(id: string, formData: Partial<NoteFormData>) {
+		updateNote.mutate({ id, ...formData }, { onSuccess: () => setEditingId(null) });
 	}
 
 	return (
@@ -68,8 +41,10 @@ function NotesPage() {
 				{isCreating && (
 					<div className="mb-4">
 						<NoteForm
-							isPending={createMutation.isPending}
-							onSave={(formData) => createMutation.mutate({ data: formData })}
+							isPending={createNote.isPending}
+							onSave={(formData) =>
+								createNote.mutate(formData, { onSuccess: () => setIsCreating(false) })
+							}
 							onCancel={() => setIsCreating(false)}
 						/>
 					</div>
@@ -88,10 +63,10 @@ function NotesPage() {
 						label="Pinned"
 						notes={pinnedNotes}
 						editingId={editingId}
-						isUpdatePending={updateMutation.isPending}
+						isUpdatePending={updateNote.isPending}
 						onEdit={setEditingId}
 						onUpdate={handleUpdate}
-						onDelete={(id) => deleteMutation.mutate({ data: { id } })}
+						onDelete={(id) => deleteNote.mutate(id)}
 					/>
 				)}
 				{unpinnedNotes.length > 0 && (
@@ -99,10 +74,10 @@ function NotesPage() {
 						label={pinnedNotes.length > 0 ? "Others" : undefined}
 						notes={unpinnedNotes}
 						editingId={editingId}
-						isUpdatePending={updateMutation.isPending}
+						isUpdatePending={updateNote.isPending}
 						onEdit={setEditingId}
 						onUpdate={handleUpdate}
-						onDelete={(id) => deleteMutation.mutate({ data: { id } })}
+						onDelete={(id) => deleteNote.mutate(id)}
 					/>
 				)}
 			</div>
