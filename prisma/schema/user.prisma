@@ -9,13 +9,12 @@ model User {
     sessions       Session[]
     accounts       Account[]
     modelEndpoints ModelEndpoint[]
-    chatSessions   ChatSession[]
+    conversations  Conversation[]
     memories       Memory[]
     skills         Skill[]
     scheduledTasks ScheduledTask[]
     notes          Note[]
     webhooks       Webhook[]
-    chatPresets    ChatPreset[]
     mcpServers     McpServer[]
 
     @@unique([email])
