@@ -1,27 +1,11 @@
 import type { ModelMessage, ServerTool, StreamChunk } from "@tanstack/ai";
-import { chat, createModel, extendAdapter, maxIterations, toolDefinition } from "@tanstack/ai";
+import { chat, createModel, extendAdapter, maxIterations } from "@tanstack/ai";
 import { createAnthropicChat } from "@tanstack/ai-anthropic";
 import { createGeminiChat } from "@tanstack/ai-gemini";
 import { createOllamaChat } from "@tanstack/ai-ollama";
 import { openaiCompatibleText } from "@tanstack/ai-openai/compatible";
 
 export type LLMProvider = "anthropic" | "ollama" | "openai" | "openrouter" | "groq" | "gemini";
-
-export type LLMTool = {
-	type: "function";
-	function: {
-		name: string;
-		description: string;
-		parameters: Record<string, unknown>;
-	};
-};
-
-export type SSEChunk =
-	| { type: "delta"; delta: string }
-	| { type: "thinking"; delta: string }
-	| { type: "usage"; input_tokens: number; output_tokens: number }
-	| { type: "done" }
-	| { type: "error"; error: string };
 
 export type StreamLLMOptions = {
 	url: string;
@@ -161,108 +145,32 @@ function chatEvents(
 }
 
 /**
- * Streams a completion from a bring-your-own endpoint, normalizing every
- * provider onto our unified {@link SSEChunk} protocol (text deltas, thinking
- * deltas, token usage, done, error).
- *
- * @param opts - Endpoint, model, messages, system prompt, and sampling controls.
- * @returns A readable stream of {@link SSEChunk} events.
- */
-export async function streamLLM(opts: StreamLLMOptions): Promise<ReadableStream<SSEChunk>> {
-	const source = chatEvents(opts, undefined);
-
-	return new ReadableStream<SSEChunk>({
-		async start(controller) {
-			try {
-				for await (const chunk of source) {
-					switch (chunk.type) {
-						case "TEXT_MESSAGE_CONTENT":
-							controller.enqueue({ type: "delta", delta: chunk.delta });
-							break;
-						case "REASONING_MESSAGE_CONTENT":
-							controller.enqueue({ type: "thinking", delta: chunk.delta });
-							break;
-						case "RUN_FINISHED":
-							if (chunk.usage) {
-								controller.enqueue({
-									type: "usage",
-									input_tokens: chunk.usage.promptTokens ?? 0,
-									output_tokens: chunk.usage.completionTokens ?? 0,
-								});
-							}
-							break;
-						case "RUN_ERROR":
-							controller.enqueue({ type: "error", error: chunk.message ?? "LLM run error" });
-							break;
-					}
-				}
-				controller.enqueue({ type: "done" });
-			} catch (err) {
-				controller.enqueue({
-					type: "error",
-					error: err instanceof Error ? err.message : "LLM request failed",
-				});
-			} finally {
-				controller.close();
-			}
-		},
-	});
-}
-
-/**
  * Streams a completion as the raw `@tanstack/ai` (AG-UI) event stream that the
- * `@tanstack/ai-client` SSE adapter consumes natively. Unlike {@link streamLLM}
- * this performs no downconversion — `chat()` text/reasoning deltas, usage, and
- * run lifecycle events pass through verbatim.
+ * `@tanstack/ai-client` SSE adapter consumes natively. Unlike a downconverted
+ * stream, text/reasoning deltas, usage, and run lifecycle events pass through verbatim.
  *
  * @param opts - Endpoint, model, messages, system prompt, and sampling controls.
+ * @param tools - Optional `ServerTool[]` for agent mode; when provided the loop runs up to `MAX_AGENT_ROUNDS`.
  * @returns The `@tanstack/ai` event stream for this completion.
  */
-export function streamLLMEvents(opts: StreamLLMOptions): AsyncIterable<StreamChunk> {
-	return chatEvents(opts, undefined);
-}
-
-/**
- * Runs an agentic completion as the raw `@tanstack/ai` (AG-UI) event stream:
- * `chat()` executes the supplied tools via `executeTool` and loops until the
- * model stops or {@link MAX_AGENT_ROUNDS} is reached. Tool-call lifecycle events
- * pass through for the client to fold into tool-call/result message parts.
- *
- * @param opts - Stream options plus the tool catalog and an executor callback.
- * @returns The `@tanstack/ai` event stream for this agent run.
- */
-export function streamAgentEvents(
-	opts: StreamLLMOptions & {
-		tools: LLMTool[];
-		executeTool: (name: string, args: unknown) => Promise<string>;
-	},
+export function streamLLMEvents(
+	opts: StreamLLMOptions,
+	tools?: ServerTool[],
 ): AsyncIterable<StreamChunk> {
-	const tools = opts.tools.map((tool) =>
-		toolDefinition({
-			name: tool.function.name,
-			description: tool.function.description,
-			inputSchema: tool.function.parameters,
-		}).server((args) => opts.executeTool(tool.function.name, args)),
-	);
-
 	return chatEvents(opts, tools);
 }
 
 /**
- * Non-streaming convenience wrapper: drains {@link streamLLM} and returns the
- * concatenated assistant text.
+ * Non-streaming convenience wrapper: iterates `chatEvents` and collects
+ * `TEXT_MESSAGE_CONTENT` deltas into the full assistant response text.
  *
- * @param opts - Same options as {@link streamLLM}.
+ * @param opts - Same options as {@link streamLLMEvents}.
  * @returns The full assistant response text.
  */
 export async function callLLM(opts: StreamLLMOptions): Promise<string> {
-	const stream = await streamLLM(opts);
-	const reader = stream.getReader();
 	let text = "";
-	while (true) {
-		const { done, value } = await reader.read();
-		if (done) break;
-		if (value.type === "delta") text += value.delta;
+	for await (const chunk of chatEvents(opts, undefined)) {
+		if (chunk.type === "TEXT_MESSAGE_CONTENT") text += chunk.delta;
 	}
 	return text;
 }

@@ -2,7 +2,7 @@ import type { ModelMessage } from "@tanstack/ai";
 import cron from "node-cron";
 import { decrypt } from "#/lib/crypto.server";
 import { prisma } from "#/lib/db.server";
-import { streamLLM } from "#/lib/llm.server";
+import { callLLM } from "#/lib/llm.server";
 
 let initialized = false;
 
@@ -107,14 +107,7 @@ async function executeTask(task: {
 				const model = conversation?.model ?? "gpt-4o";
 
 				const messages: ModelMessage[] = [{ role: "user", content: task.prompt }];
-				const stream = await streamLLM({ url: endpoint.url, apiKey, model, messages });
-				const reader = stream.getReader();
-
-				while (true) {
-					const { done, value } = await reader.read();
-					if (done) break;
-					if (value.type === "delta") output += value.delta;
-				}
+				output = await callLLM({ url: endpoint.url, apiKey, model, messages });
 
 				// Append the output as an assistant message in the linked conversation's
 				// UIMessage[] blob (the framework's native persistence shape).
