@@ -2,115 +2,49 @@ import { z } from "zod/v4";
 
 const uuid = z.uuid();
 
-export const createEndpointSchema = z.object({
-	name: z.string().min(1, "Name is required"),
-	url: z.url("Must be a valid URL"),
-	apiKey: z.string().optional(),
-	provider: z
-		.enum(["openai", "anthropic", "ollama", "openrouter", "groq", "gemini"])
-		.default("openai"),
+/**
+ * One persisted `@tanstack/ai` UIMessage. `parts` is validated as opaque JSON so
+ * the framework's full part shape (text, thinking, tool-call, tool-result) round-
+ * trips through the `messages` JSONB column untouched.
+ */
+export const storedMessageSchema = z.object({
+	id: z.string(),
+	role: z.enum(["system", "user", "assistant"]),
+	parts: z.array(z.json()),
 });
 
-export const updateEndpointSchema = createEndpointSchema.partial();
-
-export const createSessionSchema = z.object({
-	name: z.string().default("New Chat"),
+export const createConversationSchema = z.object({
+	title: z.string().default("New Chat"),
 	endpointId: uuid.optional(),
 	model: z.string().default(""),
 	mode: z.enum(["chat", "agent"]).default("chat"),
 });
 
-export const updateSessionSchema = z.object({
-	name: z.string().min(1).optional(),
+export const updateConversationSchema = z.object({
+	title: z.string().min(1).optional(),
 	model: z.string().optional(),
-	endpointId: uuid.optional(),
+	endpointId: uuid.nullish(),
 	mode: z.enum(["chat", "agent"]).optional(),
 	systemPrompt: z.string().nullish(),
 	temperature: z.number().min(0).max(2).nullish(),
 	archived: z.boolean().optional(),
 });
 
-/**
- * The subset of the AG-UI `RunAgentInput` body that `@tanstack/ai-client`'s SSE
- * adapter POSTs to the chat stream route. Only the fields the server reads are
- * validated: the message history (to extract the latest user turn) and the
- * `forwardedProps.sessionId` the client forwards. Unknown content-part keys are
- * stripped by Zod.
- */
-export const chatStreamRequestSchema = z.object({
-	messages: z.array(
-		z.object({
-			role: z.string(),
-			content: z.union([
-				z.string(),
-				z.array(z.object({ type: z.string(), content: z.string().optional() })),
-			]),
-		}),
-	),
-	forwardedProps: z.object({ sessionId: uuid }),
-});
-
 // ── Server-fn inputs ─────────────────────────────────────────────────────────
 
-export const endpointIdInput = z.object({ id: uuid });
-export const sessionIdInput = z.object({ id: uuid });
-export const getEndpointModelsInput = z.object({ endpointId: uuid });
-export const testEndpointInput = z.object({
-	url: z.url().max(2048),
-	apiKey: z.string().max(4096).optional(),
-});
-export const updateEndpointInput = z.object({ id: uuid, data: updateEndpointSchema });
-export const updateSessionInput = z.object({ id: uuid, data: updateSessionSchema });
-export const searchMessagesInput = z.object({ query: z.string().min(1).max(200) });
-export const forkSessionInput = z.object({
+export const conversationIdInput = z.object({ id: uuid });
+export const updateConversationInput = z.object({ id: uuid, data: updateConversationSchema });
+export const saveMessagesInput = z.object({ id: uuid, messages: z.array(storedMessageSchema) });
+export const searchConversationsInput = z.object({ query: z.string().min(1).max(200) });
+export const renameConversationInput = z.object({
 	id: uuid,
-	keepCount: z.number().int().min(0).optional(),
+	userText: z.string().max(2000).default(""),
+	assistantText: z.string().max(2000).default(""),
 });
 
-// ── Presets ─────────────────────────────────────────────────────────────────
-
-export const CreatePresetFormSchema = z.object({
-	name: z.string().trim().min(1, "Name is required"),
-	description: z.string(),
-	systemPrompt: z.string().trim().min(1, "System prompt is required"),
-});
-
-export const createPresetDefaults: z.infer<typeof CreatePresetFormSchema> = {
-	name: "",
-	description: "",
-	systemPrompt: "",
-};
-
-export const SavePresetNameFormSchema = z.object({
-	name: z.string().trim().min(1, "Name is required").max(100),
-});
-
-export const savePresetNameDefaults: z.infer<typeof SavePresetNameFormSchema> = { name: "" };
-
-export const createPresetInput = z.object({
-	name: z.string().min(1).max(100),
-	description: z.string().max(300).optional(),
-	systemPrompt: z.string().min(1).max(10000),
-	model: z.string().optional(),
-	temperature: z.number().min(0).max(2).optional(),
-	mode: z.string().optional(),
-});
-
-export const updatePresetInput = z.object({
-	id: uuid,
-	name: z.string().min(1).max(100).optional(),
-	description: z.string().max(300).optional(),
-	systemPrompt: z.string().min(1).max(10000).optional(),
-	model: z.string().optional(),
-	temperature: z.number().min(0).max(2).optional(),
-});
-
-export const deletePresetInput = z.object({ id: uuid });
-
-export const toCreatePresetInput = (
-	value: z.infer<typeof CreatePresetFormSchema>,
-): z.input<typeof createPresetInput> => ({
-	name: value.name.trim(),
-	description: value.description.trim() || undefined,
-	systemPrompt: value.systemPrompt.trim(),
-});
+/**
+ * The `forwardedProps` the chat stream route reads from the AG-UI request body.
+ * Only the conversation id is forwarded; all model/endpoint config is the
+ * server's source of truth, read from the conversation row.
+ */
+export const chatStreamForwardedPropsSchema = z.object({ conversationId: uuid });
