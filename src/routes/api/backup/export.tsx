@@ -10,19 +10,15 @@ export const Route = createFileRoute("/api/backup/export")({
 				if (!session) return new Response("Unauthorized", { status: 401 });
 				const userId = session.user.id;
 
-				const [memories, notes, skills, presets, chatSessions] = await Promise.all([
+				const [memories, notes, skills, conversations] = await Promise.all([
 					prisma.memory.findMany({ where: { ownerId: userId }, orderBy: { createdAt: "asc" } }),
 					prisma.note.findMany({ where: { ownerId: userId }, orderBy: { createdAt: "asc" } }),
 					prisma.skill.findMany({ where: { ownerId: userId }, orderBy: { name: "asc" } }),
-					prisma.chatPreset.findMany({
-						where: { ownerId: userId },
-						orderBy: { name: "asc" },
-					}),
-					prisma.chatSession.findMany({
+					prisma.conversation.findMany({
 						where: { ownerId: userId, archived: false },
-						include: { messages: { orderBy: { createdAt: "asc" }, take: 200 } },
-						orderBy: { createdAt: "desc" },
+						orderBy: { updatedAt: "desc" },
 						take: 50,
+						select: { title: true, model: true, mode: true, systemPrompt: true, messages: true },
 					}),
 				]);
 
@@ -49,20 +45,13 @@ export const Route = createFileRoute("/api/backup/export")({
 						description: s.description,
 						content: s.content,
 					})),
-					presets: presets.map((p) => ({
-						name: p.name,
-						description: p.description,
-						systemPrompt: p.systemPrompt,
-						model: p.model,
-						temperature: p.temperature,
-						mode: p.mode,
-					})),
-					chatSessions: chatSessions.map((s) => ({
-						name: s.name,
-						model: s.model,
-						mode: s.mode,
-						systemPrompt: s.systemPrompt,
-						messages: s.messages.map((m) => ({ role: m.role, content: m.content })),
+					conversations: conversations.map((c) => ({
+						title: c.title,
+						model: c.model,
+						mode: c.mode,
+						systemPrompt: c.systemPrompt,
+						// The framework's `UIMessage[]` blob, round-tripped verbatim.
+						messages: c.messages,
 					})),
 				};
 

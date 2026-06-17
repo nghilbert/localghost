@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import {
-	BookmarkIcon,
 	DatabaseIcon,
 	PaletteIcon,
 	PlugIcon,
@@ -14,7 +13,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "#/components/ui/tabs";
 import { AccountTab } from "#/features/settings/components/AccountTab";
 import { DataTab } from "#/features/settings/components/DataTab";
 import { McpTab } from "#/features/settings/components/McpTab";
-import { PresetsTab } from "#/features/settings/components/PresetsTab";
 import { ProvidersTab } from "#/features/settings/components/ProvidersTab";
 import { SetupTab } from "#/features/settings/components/SetupTab";
 import { WebhooksTab } from "#/features/settings/components/WebhooksTab";
@@ -55,10 +53,6 @@ function SettingsPage() {
 							<WebhookIcon size={13} />
 							Webhooks
 						</TabsTrigger>
-						<TabsTrigger value="presets" className="gap-1.5">
-							<BookmarkIcon size={13} />
-							Presets
-						</TabsTrigger>
 						<TabsTrigger value="data" className="gap-1.5">
 							<DatabaseIcon size={13} />
 							Data
@@ -85,9 +79,6 @@ function SettingsPage() {
 				</TabsContent>
 				<TabsContent value="webhooks">
 					<WebhooksTab />
-				</TabsContent>
-				<TabsContent value="presets">
-					<PresetsTab />
 				</TabsContent>
 				<TabsContent value="data">
 					<DataTab />
