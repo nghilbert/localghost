@@ -4,12 +4,12 @@ import { ConnectionTestAlert } from "#/components/ConnectionTestAlert";
 import { Button } from "#/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "#/components/ui/collapsible";
 import { Field, FieldGroup } from "#/components/ui/field";
-import { useEndpoints } from "#/features/chat/hooks/use-endpoints";
+import { useEndpoints } from "#/features/endpoints/hooks/use-endpoints";
 import {
 	buildEndpointFormSchema,
 	dbProviderFor,
 	type ProviderDefinition,
-} from "#/features/chat/lib/providers";
+} from "#/features/endpoints/lib/providers";
 import { useAppForm } from "#/hooks/use-app-form";
 
 type AddProviderFormProps = {

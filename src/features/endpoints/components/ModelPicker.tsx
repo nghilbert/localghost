@@ -11,24 +11,18 @@ import {
 	DropdownMenuTrigger,
 } from "#/components/ui/dropdown-menu";
 import { Spinner } from "#/components/ui/spinner";
-import { useEndpoints } from "#/features/chat/hooks/use-endpoints";
-import { useSession } from "#/features/chat/hooks/use-session";
-import { endpointModelsQueryOptions } from "#/features/chat/lib/chat.functions";
+import { useEndpoints } from "#/features/endpoints/hooks/use-endpoints";
+import { endpointModelsQueryOptions } from "#/features/endpoints/lib/endpoint.functions";
 
 type Props = {
-	sessionId: string;
 	currentModel: string;
 	currentEndpointId?: string | null;
+	onSelect: (endpointId: string, model: string) => void;
 };
 
-export function ModelPicker({ sessionId, currentModel, currentEndpointId }: Props) {
+/** Endpoint + model dropdown. Presentational: the caller decides what `onSelect` does. */
+export function ModelPicker({ currentModel, currentEndpointId, onSelect }: Props) {
 	const { endpoints } = useEndpoints();
-	const { updateSession } = useSession(sessionId);
-
-	function handleSelect(endpointId: string, model: string) {
-		updateSession.mutate({ endpointId, model });
-	}
-
 	const label = currentModel || "Select model";
 
 	return (
@@ -51,7 +45,7 @@ export function ModelPicker({ sessionId, currentModel, currentEndpointId }: Prop
 						endpoint={ep}
 						currentModel={currentModel}
 						currentEndpointId={currentEndpointId}
-						onSelect={handleSelect}
+						onSelect={onSelect}
 					/>
 				))}
 			</DropdownMenuContent>

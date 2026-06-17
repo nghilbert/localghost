@@ -7,8 +7,8 @@ import {
 	ItemGroup,
 	ItemTitle,
 } from "#/components/ui/item";
-import { EndpointDialog } from "#/features/chat/components/EndpointDialog";
-import { useEndpoints } from "#/features/chat/hooks/use-endpoints";
+import { EndpointDialog } from "#/features/endpoints/components/EndpointDialog";
+import { useEndpoints } from "#/features/endpoints/hooks/use-endpoints";
 
 export function ProvidersTab() {
 	const { endpoints, deleteEndpoint } = useEndpoints();

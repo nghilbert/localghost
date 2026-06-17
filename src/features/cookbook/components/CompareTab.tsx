@@ -3,11 +3,11 @@ import { EyeIcon, EyeOffIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
 import { Button } from "#/components/ui/button";
 import { Textarea } from "#/components/ui/textarea";
-import { endpointsQueryOptions } from "#/features/chat/lib/chat.functions";
 import { CompareResults } from "#/features/compare/components/CompareResults";
 import { SlotPicker } from "#/features/compare/components/SlotPicker";
 import { useCompareStream } from "#/features/compare/hooks/use-compare-stream";
 import { nextSlotId, type Slot } from "#/features/compare/lib/types";
+import { endpointsQueryOptions } from "#/features/endpoints/lib/endpoint.functions";
 
 export function CompareTab() {
 	const { data: endpoints = [] } = useQuery(endpointsQueryOptions());
