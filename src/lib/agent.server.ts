@@ -1,6 +1,6 @@
-import type { StreamChunk } from "@tanstack/ai";
+import type { ModelMessage, StreamChunk } from "@tanstack/ai";
 import { z } from "zod/v4";
-import { type LLMMessage, type LLMTool, streamAgentEvents } from "#/lib/llm.server";
+import { type LLMTool, streamAgentEvents } from "#/lib/llm.server";
 import { callMcpTool, type McpToolDef } from "#/lib/mcp.server";
 import { manageMemory, manageMemoryArgsSchema } from "#/lib/tools/manage_memory";
 import { manageNotes, manageNotesArgsSchema } from "#/lib/tools/manage_notes";
@@ -215,7 +215,7 @@ export function runAgentEvents(opts: {
 	url: string;
 	apiKey?: string;
 	model: string;
-	messages: LLMMessage[];
+	messages: ModelMessage[];
 	systemPrompt?: string;
 	ownerId: string;
 	/** Extra tools from connected MCP servers */

@@ -1,7 +1,8 @@
+import type { ModelMessage } from "@tanstack/ai";
 import cron from "node-cron";
 import { decrypt } from "#/lib/crypto.server";
 import { prisma } from "#/lib/db.server";
-import { type LLMMessage, streamLLM } from "#/lib/llm.server";
+import { streamLLM } from "#/lib/llm.server";
 
 let initialized = false;
 
@@ -19,25 +20,28 @@ export function initScheduler() {
 		runDueTasks().catch((e) => console.error("[scheduler] poll error:", e));
 	});
 
-	// Auto-archive inactive sessions daily at 03:00
+	// Auto-archive inactive conversations daily at 03:00
 	cron.schedule("0 3 * * *", () => {
-		archiveInactiveSessions().catch((e) => console.error("[scheduler] session cleanup error:", e));
+		archiveInactiveConversations().catch((e) =>
+			console.error("[scheduler] conversation cleanup error:", e),
+		);
 	});
 }
 
-async function archiveInactiveSessions(): Promise<void> {
+async function archiveInactiveConversations(): Promise<void> {
 	const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-	const result = await prisma.chatSession.updateMany({
+	// A still-default title means the conversation never had a first exchange
+	// (auto-naming renames after the first turn), so those are left untouched.
+	const result = await prisma.conversation.updateMany({
 		where: {
 			archived: false,
-			lastAccessedAt: { lt: cutoff },
-			messageCount: { gt: 0 },
-			name: { not: "New Chat" },
+			updatedAt: { lt: cutoff },
+			title: { not: "New Chat" },
 		},
 		data: { archived: true },
 	});
 	if (result.count > 0) {
-		console.log(`[scheduler] archived ${result.count} inactive sessions`);
+		console.log(`[scheduler] archived ${result.count} inactive conversations`);
 	}
 }
 
@@ -97,12 +101,12 @@ async function executeTask(task: {
 
 			if (endpoint) {
 				const apiKey = endpoint.apiKeyEncrypted ? decrypt(endpoint.apiKeyEncrypted) : undefined;
-				const session = task.sessionId
-					? await prisma.chatSession.findFirst({ where: { id: task.sessionId } })
+				const conversation = task.sessionId
+					? await prisma.conversation.findFirst({ where: { id: task.sessionId } })
 					: null;
-				const model = session?.model ?? "gpt-4o";
+				const model = conversation?.model ?? "gpt-4o";
 
-				const messages: LLMMessage[] = [{ role: "user", content: task.prompt }];
+				const messages: ModelMessage[] = [{ role: "user", content: task.prompt }];
 				const stream = await streamLLM({ url: endpoint.url, apiKey, model, messages });
 				const reader = stream.getReader();
 
@@ -112,14 +116,18 @@ async function executeTask(task: {
 					if (value.type === "delta") output += value.delta;
 				}
 
-				// Save output as a message in the linked session
-				if (task.sessionId && output) {
-					await prisma.chatMessage.create({
-						data: {
-							sessionId: task.sessionId,
-							role: "assistant",
-							content: `**Scheduled task: ${task.name}**\n\n${output}`,
-						},
+				// Append the output as an assistant message in the linked conversation's
+				// UIMessage[] blob (the framework's native persistence shape).
+				if (conversation && output) {
+					const assistantMessage = {
+						id: crypto.randomUUID(),
+						role: "assistant",
+						parts: [{ type: "text", content: `**Scheduled task: ${task.name}**\n\n${output}` }],
+					};
+					const existing = Array.isArray(conversation.messages) ? conversation.messages : [];
+					await prisma.conversation.update({
+						where: { id: conversation.id },
+						data: { messages: [...existing, assistantMessage] },
 					});
 				}
 			}

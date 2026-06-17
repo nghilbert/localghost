@@ -1,11 +1,11 @@
 import { faker } from "@faker-js/faker";
+import type { ModelMessage } from "@tanstack/ai";
 import type {
 	CatalogModel,
 	GpuInfo,
 	HardwareInfo,
 	OllamaInstalledModel,
 } from "#/features/cookbook/lib/types";
-import type { LLMMessage } from "#/lib/llm.server";
 
 /**
  * Test data factories. Each builder fills semantically-irrelevant fields with
@@ -63,7 +63,7 @@ export function makeInstalledModel(
 	};
 }
 
-export function makeLLMMessage(overrides: Partial<LLMMessage> = {}): LLMMessage {
+export function makeModelMessage(overrides: Partial<ModelMessage> = {}): ModelMessage {
 	return {
 		role: "user",
 		content: faker.lorem.sentence(),

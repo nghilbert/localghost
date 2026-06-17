@@ -1,4 +1,5 @@
-import { callLLM, type LLMMessage } from "#/lib/llm.server";
+import type { ModelMessage } from "@tanstack/ai";
+import { callLLM } from "#/lib/llm.server";
 
 const COMPACT_THRESHOLD = 0.85;
 const SUMMARY_MAX_TOKENS = 1024;
@@ -74,67 +75,57 @@ function getContextLength(model: string): number {
 	return DEFAULT_CONTEXT;
 }
 
-/** Roughly estimates a message list's token count (~0.3 tokens/char plus per-message overhead). */
-function estimateTokens(messages: LLMMessage[]): number {
-	let total = 0;
-	for (const msg of messages) {
-		total += 4;
-		const content = msg.content;
-		if (typeof content === "string") {
-			total += Math.floor(content.length * 0.3);
-		} else if (Array.isArray(content)) {
-			for (const block of content) {
-				if (block.type === "text") total += Math.floor(block.text.length * 0.3);
-			}
-		}
-	}
-	return total;
-}
-
-/** Flattens message content to plain text, joining text blocks and dropping non-text ones. */
-function contentAsText(content: LLMMessage["content"]): string {
+/** Flattens a `ModelMessage`'s content to plain text, joining text parts and dropping non-text ones. */
+function contentAsText(content: ModelMessage["content"]): string {
 	if (typeof content === "string") return content;
 	if (Array.isArray(content)) {
-		return content
-			.filter((b) => b.type === "text")
-			.map((b) => (b.type === "text" ? b.text : ""))
-			.join(" ");
+		return content.flatMap((part) => (part.type === "text" ? [part.content] : [])).join(" ");
 	}
 	return "";
 }
 
+/** Roughly estimates a message list's token count (~0.3 tokens/char plus per-message overhead). */
+function estimateTokens(messages: ModelMessage[]): number {
+	let total = 0;
+	for (const msg of messages) {
+		total += 4;
+		total += Math.floor(contentAsText(msg.content).length * 0.3);
+	}
+	return total;
+}
+
 /**
  * Summarizes the older half of a conversation once it crosses
- * {@link COMPACT_THRESHOLD} of the model's context window, preserving system
- * messages and the recent half. On summarization failure it falls back to the
- * trimmed recent history, so the caller always receives a usable message list.
+ * {@link COMPACT_THRESHOLD} of the model's context window, preserving the recent
+ * half and folding the summary into the system prompt (the `ModelMessage` model
+ * has no `system` role). On summarization failure it falls back to the trimmed
+ * recent history, so the caller always receives a usable message list.
  *
- * @param messages - The full conversation, including system messages.
+ * @param messages - The conversation history (roles user/assistant/tool — no system).
+ * @param systemPrompt - The active system prompt; the summary is appended to it on compaction.
  * @param model - The model id, used to look up its context-window size.
  * @param url - Endpoint URL used to generate the summary.
  * @param apiKey - Optional bearer key for the summary request.
- * @returns The (possibly compacted) messages and whether compaction occurred.
+ * @returns The (possibly compacted) messages, the (possibly augmented) system prompt, and whether compaction occurred.
  */
 export async function maybeCompact(
-	messages: LLMMessage[],
+	messages: ModelMessage[],
+	systemPrompt: string | undefined,
 	model: string,
 	url: string,
 	apiKey?: string,
-): Promise<{ messages: LLMMessage[]; compacted: boolean }> {
+): Promise<{ messages: ModelMessage[]; systemPrompt: string | undefined; compacted: boolean }> {
 	const contextLength = getContextLength(model);
-	const used = estimateTokens(messages);
+	const used =
+		estimateTokens(messages) + (systemPrompt ? Math.floor(systemPrompt.length * 0.3) : 0);
 	const pct = used / contextLength;
 
-	if (pct < COMPACT_THRESHOLD) return { messages, compacted: false };
+	if (pct < COMPACT_THRESHOLD) return { messages, systemPrompt, compacted: false };
+	if (messages.length < 4) return { messages, systemPrompt, compacted: false };
 
-	const systemMsgs = messages.filter((m) => m.role === "system");
-	const convoMsgs = messages.filter((m) => m.role !== "system");
-
-	if (convoMsgs.length < 4) return { messages, compacted: false };
-
-	const splitPoint = Math.floor(convoMsgs.length / 2);
-	const older = convoMsgs.slice(0, splitPoint);
-	const recent = convoMsgs.slice(splitPoint);
+	const splitPoint = Math.floor(messages.length / 2);
+	const older = messages.slice(0, splitPoint);
+	const recent = messages.slice(splitPoint);
 
 	const convoText = older
 		.map((m) => `${m.role.toUpperCase()}: ${contentAsText(m.content).slice(0, 2000)}`)
@@ -145,25 +136,18 @@ export async function maybeCompact(
 			url,
 			apiKey,
 			model,
-			messages: [
-				{ role: "system", content: SUMMARY_PROMPT },
-				{ role: "user", content: convoText },
-			],
+			systemPrompt: SUMMARY_PROMPT,
+			messages: [{ role: "user", content: convoText }],
 			temperature: 0.2,
 			maxTokens: SUMMARY_MAX_TOKENS,
 		});
 
-		const summaryMsg: LLMMessage = {
-			role: "system",
-			content: `[Conversation summary — earlier messages were compacted]\n${summary}`,
-		};
+		const summaryNote = `[Conversation summary — earlier messages were compacted]\n${summary}`;
+		const mergedSystemPrompt = systemPrompt ? `${systemPrompt}\n\n${summaryNote}` : summaryNote;
 
-		return {
-			messages: [...systemMsgs, summaryMsg, ...recent],
-			compacted: true,
-		};
+		return { messages: recent, systemPrompt: mergedSystemPrompt, compacted: true };
 	} catch {
-		// Compaction failed — return trimmed history rather than nothing
-		return { messages: [...systemMsgs, ...recent], compacted: false };
+		// Compaction failed — return trimmed recent history rather than nothing
+		return { messages: recent, systemPrompt, compacted: false };
 	}
 }
