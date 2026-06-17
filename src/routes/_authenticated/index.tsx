@@ -1,17 +1,26 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { createSession, sessionsQueryOptions } from "#/features/chat/lib/chat.functions";
+import {
+	conversationsQueryOptions,
+	createConversation,
+} from "#/features/chat/lib/conversation.functions";
 
 export const Route = createFileRoute("/_authenticated/")({
-	// Landing goes straight to chat: open the most recent session, or create one
-	// for a brand-new account so there is always a conversation to drop into.
+	// Landing goes straight to chat: open the most recent conversation, or create
+	// one for a brand-new account so there is always a conversation to drop into.
 	loader: async ({ context }) => {
-		const sessions = await context.queryClient.ensureQueryData(sessionsQueryOptions());
-		const mostRecent = sessions[0];
+		const conversations = await context.queryClient.ensureQueryData(conversationsQueryOptions());
+		const mostRecent = conversations[0];
 		if (mostRecent) {
-			throw redirect({ to: "/sessions/$sessionId", params: { sessionId: mostRecent.id } });
+			throw redirect({
+				to: "/chat/$conversationId",
+				params: { conversationId: mostRecent.id },
+			});
 		}
-		const session = await createSession({ data: { name: "New Chat" } });
-		await context.queryClient.invalidateQueries({ queryKey: ["sessions"] });
-		throw redirect({ to: "/sessions/$sessionId", params: { sessionId: session.id } });
+		const conversation = await createConversation({ data: { title: "New Chat" } });
+		await context.queryClient.invalidateQueries({ queryKey: ["conversations"] });
+		throw redirect({
+			to: "/chat/$conversationId",
+			params: { conversationId: conversation.id },
+		});
 	},
 });

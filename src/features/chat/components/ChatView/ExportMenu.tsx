@@ -1,3 +1,4 @@
+import type { UIMessage } from "@tanstack/ai-client";
 import { DownloadIcon } from "lucide-react";
 import { Button } from "#/components/ui/button";
 import {
@@ -7,30 +8,38 @@ import {
 	DropdownMenuTrigger,
 } from "#/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "#/components/ui/tooltip";
+import { partsText } from "#/features/chat/lib/message-text";
 import { downloadBlob } from "#/lib/download";
 
-type ExportableMessage = { id: string; role: string; content: string };
-
 type ExportMenuProps = {
-	session: { id: string; name: string; model: string };
-	messages: ExportableMessage[];
+	conversation: { id: string; title: string; model: string };
+	messages: UIMessage[];
 };
 
-export function ExportMenu({ session, messages }: ExportMenuProps) {
+export function ExportMenu({ conversation, messages }: ExportMenuProps) {
 	function exportAs(format: "md" | "json") {
-		const filename = `${session.name.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.${format === "md" ? "md" : "json"}`;
+		const filename = `${conversation.title.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.${format === "md" ? "md" : "json"}`;
+		const flattened = messages.map((message) => ({
+			id: message.id,
+			role: message.role,
+			content: partsText(message.parts),
+		}));
 		let content: string;
 		if (format === "md") {
-			content = `# ${session.name}\n\n`;
-			for (const message of messages) {
+			content = `# ${conversation.title}\n\n`;
+			for (const message of flattened) {
 				const role = message.role === "user" ? "**You**" : "**Assistant**";
 				content += `${role}\n\n${message.content}\n\n---\n\n`;
 			}
 		} else {
 			content = JSON.stringify(
 				{
-					session: { id: session.id, name: session.name, model: session.model },
-					messages,
+					conversation: {
+						id: conversation.id,
+						title: conversation.title,
+						model: conversation.model,
+					},
+					messages: flattened,
 				},
 				null,
 				2,

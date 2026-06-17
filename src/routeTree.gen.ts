@@ -25,7 +25,7 @@ import { Route as ApiChatStreamRouteImport } from './routes/api/chat/stream'
 import { Route as ApiBackupImportRouteImport } from './routes/api/backup/import'
 import { Route as ApiBackupExportRouteImport } from './routes/api/backup/export'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
-import { Route as AuthenticatedSessionsSessionIdRouteImport } from './routes/_authenticated/sessions/$sessionId'
+import { Route as AuthenticatedChatConversationIdRouteImport } from './routes/_authenticated/chat/$conversationId'
 
 const PublicRoute = PublicRouteImport.update({
   id: '/_public',
@@ -105,10 +105,10 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedSessionsSessionIdRoute =
-  AuthenticatedSessionsSessionIdRouteImport.update({
-    id: '/sessions/$sessionId',
-    path: '/sessions/$sessionId',
+const AuthenticatedChatConversationIdRoute =
+  AuthenticatedChatConversationIdRouteImport.update({
+    id: '/chat/$conversationId',
+    path: '/chat/$conversationId',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
 
@@ -122,7 +122,7 @@ export interface FileRoutesByFullPath {
   '/tasks': typeof AuthenticatedTasksRoute
   '/sign-in': typeof PublicSignInRoute
   '/sign-up': typeof PublicSignUpRoute
-  '/sessions/$sessionId': typeof AuthenticatedSessionsSessionIdRoute
+  '/chat/$conversationId': typeof AuthenticatedChatConversationIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/backup/export': typeof ApiBackupExportRoute
   '/api/backup/import': typeof ApiBackupImportRoute
@@ -139,7 +139,7 @@ export interface FileRoutesByTo {
   '/tasks': typeof AuthenticatedTasksRoute
   '/sign-in': typeof PublicSignInRoute
   '/sign-up': typeof PublicSignUpRoute
-  '/sessions/$sessionId': typeof AuthenticatedSessionsSessionIdRoute
+  '/chat/$conversationId': typeof AuthenticatedChatConversationIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/backup/export': typeof ApiBackupExportRoute
   '/api/backup/import': typeof ApiBackupImportRoute
@@ -159,7 +159,7 @@ export interface FileRoutesById {
   '/_public/sign-in': typeof PublicSignInRoute
   '/_public/sign-up': typeof PublicSignUpRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
-  '/_authenticated/sessions/$sessionId': typeof AuthenticatedSessionsSessionIdRoute
+  '/_authenticated/chat/$conversationId': typeof AuthenticatedChatConversationIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/backup/export': typeof ApiBackupExportRoute
   '/api/backup/import': typeof ApiBackupImportRoute
@@ -178,7 +178,7 @@ export interface FileRouteTypes {
     | '/tasks'
     | '/sign-in'
     | '/sign-up'
-    | '/sessions/$sessionId'
+    | '/chat/$conversationId'
     | '/api/auth/$'
     | '/api/backup/export'
     | '/api/backup/import'
@@ -195,7 +195,7 @@ export interface FileRouteTypes {
     | '/tasks'
     | '/sign-in'
     | '/sign-up'
-    | '/sessions/$sessionId'
+    | '/chat/$conversationId'
     | '/api/auth/$'
     | '/api/backup/export'
     | '/api/backup/import'
@@ -214,7 +214,7 @@ export interface FileRouteTypes {
     | '/_public/sign-in'
     | '/_public/sign-up'
     | '/_authenticated/'
-    | '/_authenticated/sessions/$sessionId'
+    | '/_authenticated/chat/$conversationId'
     | '/api/auth/$'
     | '/api/backup/export'
     | '/api/backup/import'
@@ -346,11 +346,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/sessions/$sessionId': {
-      id: '/_authenticated/sessions/$sessionId'
-      path: '/sessions/$sessionId'
-      fullPath: '/sessions/$sessionId'
-      preLoaderRoute: typeof AuthenticatedSessionsSessionIdRouteImport
+    '/_authenticated/chat/$conversationId': {
+      id: '/_authenticated/chat/$conversationId'
+      path: '/chat/$conversationId'
+      fullPath: '/chat/$conversationId'
+      preLoaderRoute: typeof AuthenticatedChatConversationIdRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
   }
@@ -364,7 +364,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedSkillsRoute: typeof AuthenticatedSkillsRoute
   AuthenticatedTasksRoute: typeof AuthenticatedTasksRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
-  AuthenticatedSessionsSessionIdRoute: typeof AuthenticatedSessionsSessionIdRoute
+  AuthenticatedChatConversationIdRoute: typeof AuthenticatedChatConversationIdRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
@@ -375,7 +375,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedSkillsRoute: AuthenticatedSkillsRoute,
   AuthenticatedTasksRoute: AuthenticatedTasksRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
-  AuthenticatedSessionsSessionIdRoute: AuthenticatedSessionsSessionIdRoute,
+  AuthenticatedChatConversationIdRoute: AuthenticatedChatConversationIdRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(

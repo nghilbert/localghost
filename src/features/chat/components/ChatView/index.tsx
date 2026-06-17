@@ -10,79 +10,65 @@ import {
 	EmptyTitle,
 } from "#/components/ui/empty";
 import { Tooltip, TooltipContent, TooltipTrigger } from "#/components/ui/tooltip";
-import { ChatFeed } from "#/features/chat/components/ChatFeed";
 import { ChatInput } from "#/features/chat/components/ChatInput";
 import { ChatMessage } from "#/features/chat/components/ChatMessage";
 import { ChatHeaderToggle } from "#/features/chat/components/ChatView/ChatHeaderToggle";
+import { ConversationSettingsPanel } from "#/features/chat/components/ChatView/ConversationSettingsPanel";
 import { ExportMenu } from "#/features/chat/components/ChatView/ExportMenu";
-import { SessionSettingsPanel } from "#/features/chat/components/ChatView/SessionSettingsPanel";
-import { ModelPicker } from "#/features/chat/components/ModelPicker";
 import { useChatStream } from "#/features/chat/hooks/use-chat-stream";
-import { useSession } from "#/features/chat/hooks/use-session";
+import { useConversation } from "#/features/chat/hooks/use-conversation";
+import { ModelPicker } from "#/features/endpoints/components/ModelPicker";
 import { MemoryDialog } from "#/features/memory/components/MemoryDialog";
 import { useLocalStorage } from "#/hooks/use-local-storage";
 import { cn } from "#/lib/utils";
 
-type ToolCallRecord = { id: string; tool: string; result: string };
-
-type Message = {
+type Conversation = {
 	id: string;
-	role: string;
-	content: string;
-	toolCalls?: ToolCallRecord[];
-};
-
-type Session = {
-	id: string;
-	name: string;
+	title: string;
 	model: string;
 	mode: string;
 	systemPrompt?: string | null;
 	temperature?: number | null;
 	endpointId?: string | null;
 	endpoint?: { id: string; name: string; url: string; provider: string } | null;
-	messages: Message[];
 };
 
 type ChatViewProps = {
-	session: Session;
+	conversation: Conversation;
 };
 
-export function ChatView({ session }: ChatViewProps) {
-	const { allDisplayMessages, isStreaming, bottomRef, handleSubmit, handleStop } = useChatStream({
-		sessionId: session.id,
-		initialMessages: session.messages,
+export function ChatView({ conversation }: ChatViewProps) {
+	const { messages, isStreaming, bottomRef, handleSubmit, handleStop } = useChatStream({
+		conversationId: conversation.id,
 	});
 
-	const [mode, setMode] = useState<"chat" | "agent">(session.mode === "agent" ? "agent" : "chat");
+	const [mode, setMode] = useState<"chat" | "agent">(
+		conversation.mode === "agent" ? "agent" : "chat",
+	);
 	const [showSettings, setShowSettings] = useState(false);
 	const [autoSpeak, setAutoSpeak] = useLocalStorage("ody-auto-speak", false);
 
-	const isReady = Boolean(session.model && session.endpointId);
+	const isReady = Boolean(conversation.model && conversation.endpointId);
 
-	const { updateSession } = useSession(session.id);
+	const { updateConversation } = useConversation(conversation.id);
 
 	function handleModeChange(newMode: "chat" | "agent") {
 		setMode(newMode);
-		updateSession.mutate({ mode: newMode });
-	}
-
-	function handleAutoSpeakToggle() {
-		setAutoSpeak((prev) => !prev);
+		updateConversation.mutate({ mode: newMode });
 	}
 
 	return (
 		<div className="flex h-full flex-col">
 			<header className="shrink-0 border-b bg-background/80 backdrop-blur-sm">
 				<div className="flex items-center justify-between px-4 py-2">
-					<h1 className="truncate text-sm font-medium text-foreground">{session.name}</h1>
+					<h1 className="truncate text-sm font-medium text-foreground">{conversation.title}</h1>
 					<div className="flex items-center gap-1.5">
 						<ChatHeaderToggle
 							icon={<Volume2Icon size={13} />}
 							isActive={autoSpeak}
 							activeLabel="Auto-speak enabled — click to disable"
 							inactiveLabel="Enable auto-speak"
-							onToggle={handleAutoSpeakToggle}
+							onToggle={() => setAutoSpeak((prev) => !prev)}
 						/>
 						<Tooltip>
 							<TooltipTrigger asChild>
@@ -93,7 +79,7 @@ export function ChatView({ session }: ChatViewProps) {
 										"h-7 gap-1 px-2 text-xs text-muted-foreground",
 										showSettings && "bg-muted text-foreground",
 									)}
-									aria-label="Session settings"
+									aria-label="Conversation settings"
 								>
 									<SlidersHorizontalIcon size={13} />
 									<ChevronDownIcon
@@ -102,27 +88,35 @@ export function ChatView({ session }: ChatViewProps) {
 									/>
 								</Button>
 							</TooltipTrigger>
-							<TooltipContent>Session settings</TooltipContent>
+							<TooltipContent>Conversation settings</TooltipContent>
 						</Tooltip>
 						<ExportMenu
-							session={{ id: session.id, name: session.name, model: session.model }}
-							messages={allDisplayMessages}
+							conversation={{
+								id: conversation.id,
+								title: conversation.title,
+								model: conversation.model,
+							}}
+							messages={messages}
 						/>
 						<MemoryDialog />
 					</div>
 				</div>
 				{showSettings && (
-					<SessionSettingsPanel
-						sessionModel={session.model}
-						initialSystemPrompt={session.systemPrompt ?? ""}
-						initialTemperature={session.temperature ?? 0.7}
-						onPatchSession={(patch) => updateSession.mutate(patch)}
+					<ConversationSettingsPanel
+						initialSystemPrompt={conversation.systemPrompt ?? ""}
+						initialTemperature={conversation.temperature ?? 0.7}
+						onPatch={(patch) => updateConversation.mutate(patch)}
 					/>
 				)}
 			</header>
 
-			<ChatFeed className="flex-1 px-4">
-				{allDisplayMessages.length === 0 &&
+			<section
+				aria-label="Conversation"
+				aria-live="polite"
+				aria-relevant="additions"
+				className="flex flex-1 flex-col overflow-y-auto px-4"
+			>
+				{messages.length === 0 &&
 					(isReady ? (
 						<Empty className="h-full">
 							<EmptyHeader>
@@ -148,23 +142,20 @@ export function ChatView({ session }: ChatViewProps) {
 							</EmptyContent>
 						</Empty>
 					))}
-				{allDisplayMessages.map((msg, idx) => (
-					<ChatMessage
-						key={msg.id}
-						senderRole={msg.role}
-						content={msg.content}
-						isStreaming={msg.id === "streaming"}
-						toolCalls={msg.toolCalls}
-						autoSpeak={
-							autoSpeak &&
-							msg.role === "assistant" &&
-							msg.id !== "streaming" &&
-							idx === allDisplayMessages.length - 1
-						}
-					/>
-				))}
+				{messages.map((msg, idx) => {
+					const isLast = idx === messages.length - 1;
+					const isStreamingMessage = isStreaming && isLast && msg.role === "assistant";
+					return (
+						<ChatMessage
+							key={msg.id}
+							message={msg}
+							isStreaming={isStreamingMessage}
+							autoSpeak={autoSpeak && msg.role === "assistant" && !isStreamingMessage && isLast}
+						/>
+					);
+				})}
 				<div ref={bottomRef} />
-			</ChatFeed>
+			</section>
 
 			<div className="px-4 py-3">
 				<ChatInput
@@ -176,9 +167,9 @@ export function ChatView({ session }: ChatViewProps) {
 					onModeChange={handleModeChange}
 					modelSelect={
 						<ModelPicker
-							sessionId={session.id}
-							currentModel={session.model}
-							currentEndpointId={session.endpointId}
+							currentModel={conversation.model}
+							currentEndpointId={conversation.endpointId}
+							onSelect={(endpointId, model) => updateConversation.mutate({ endpointId, model })}
 						/>
 					}
 				/>
