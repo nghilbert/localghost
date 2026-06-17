@@ -70,11 +70,11 @@ export function RecommendedModels({
 							<ItemActions>
 								<FitBadge tier={fit.tier} overall={fit.overall} />
 								<ModelActionsCell
-									model={model}
+									modelId={model.id}
 									installed={null}
 									pullState={pulling[model.id]}
-									onPull={onPull}
 									onStop={onStop}
+									onPull={onPull}
 								/>
 							</ItemActions>
 						</Item>

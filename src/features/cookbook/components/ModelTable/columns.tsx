@@ -133,11 +133,11 @@ export function createModelColumns({
 			header: "",
 			cell: ({ row }) => (
 				<ModelActionsCell
-					model={row.original.model}
+					modelId={row.original.model.id}
 					installed={row.original.installed}
 					pullState={pulling[row.original.model.id]}
-					onPull={onPull}
 					onStop={onStop}
+					onPull={onPull}
 					onDelete={onDelete}
 				/>
 			),

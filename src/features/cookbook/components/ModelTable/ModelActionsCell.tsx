@@ -2,28 +2,25 @@ import { DownloadIcon, Loader2Icon, SquareIcon, Trash2Icon } from "lucide-react"
 import { Button } from "#/components/ui/button";
 import { Progress } from "#/components/ui/progress";
 import { Tooltip, TooltipContent, TooltipTrigger } from "#/components/ui/tooltip";
-import type {
-	CatalogModel,
-	OllamaInstalledModel,
-	PullProgress,
-} from "#/features/cookbook/lib/types";
+import type { OllamaInstalledModel, PullProgress } from "#/features/cookbook/lib/types";
 
 type ModelActionsCellProps = {
-	model: CatalogModel;
+	modelId: string;
 	installed: OllamaInstalledModel | null;
 	pullState: PullProgress | undefined;
-	onPull: (model: string) => void;
 	onStop: (model: string) => void;
+	/** Omit when the cell can never show a not-yet-installed model (My Models). */
+	onPull?: (model: string) => void;
 	/** Omit when the cell can never show an installed model. */
 	onDelete?: (model: string) => void;
 };
 
 export function ModelActionsCell({
-	model,
+	modelId,
 	installed,
 	pullState,
-	onPull,
 	onStop,
+	onPull,
 	onDelete,
 }: ModelActionsCellProps) {
 	if (pullState) {
@@ -49,7 +46,7 @@ export function ModelActionsCell({
 								variant="ghost"
 								size="icon-sm"
 								className="text-muted-foreground hover:text-destructive"
-								onClick={() => onStop(model.id)}
+								onClick={() => onStop(modelId)}
 								aria-label="Stop pull"
 							>
 								<SquareIcon size={12} />
@@ -70,7 +67,7 @@ export function ModelActionsCell({
 						variant="ghost"
 						size="icon-sm"
 						className="text-muted-foreground hover:text-destructive"
-						onClick={() => onDelete?.(model.id)}
+						onClick={() => onDelete?.(modelId)}
 						aria-label="Delete model"
 					>
 						<Trash2Icon size={13} />
@@ -82,7 +79,7 @@ export function ModelActionsCell({
 	}
 
 	return (
-		<Button variant="ghost" size="sm" className="gap-1 text-xs" onClick={() => onPull(model.id)}>
+		<Button variant="ghost" size="sm" className="gap-1 text-xs" onClick={() => onPull?.(modelId)}>
 			<DownloadIcon size={12} />
 			Pull
 		</Button>
