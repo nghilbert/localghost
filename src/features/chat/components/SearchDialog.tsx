@@ -16,23 +16,21 @@ import {
 } from "#/components/ui/input-group";
 import { Item, ItemContent, ItemDescription, ItemTitle } from "#/components/ui/item";
 import { Spinner } from "#/components/ui/spinner";
-import { searchMessages } from "#/features/chat/lib/chat.functions";
+import { searchConversations } from "#/features/chat/lib/conversation.functions";
 
 type SearchResult = {
-	messageId: string;
-	sessionId: string;
-	sessionName: string;
-	role: string;
+	id: string;
+	title: string;
 	snippet: string;
-	createdAt: Date | string;
+	updatedAt: Date | string;
 };
 
-type SearchSessionsDialogProps = {
+type SearchDialogProps = {
 	open: boolean;
 	onClose: () => void;
 };
 
-export function SearchSessionsDialog({ open, onClose }: SearchSessionsDialogProps) {
+export function SearchDialog({ open, onClose }: SearchDialogProps) {
 	const navigate = useNavigate();
 	const [query, setQuery] = useState("");
 	const [results, setResults] = useState<SearchResult[]>([]);
@@ -46,7 +44,7 @@ export function SearchSessionsDialog({ open, onClose }: SearchSessionsDialogProp
 		}
 		setIsSearching(true);
 		try {
-			const res = await searchMessages({ data: { query: nextQuery } });
+			const res = await searchConversations({ data: { query: nextQuery } });
 			setResults(res);
 		} catch {
 			setResults([]);
@@ -55,8 +53,8 @@ export function SearchSessionsDialog({ open, onClose }: SearchSessionsDialogProp
 		}
 	}
 
-	function handleOpenSession(sessionId: string) {
-		navigate({ to: "/sessions/$sessionId", params: { sessionId } });
+	function handleOpenConversation(conversationId: string) {
+		navigate({ to: "/chat/$conversationId", params: { conversationId } });
 		onClose();
 	}
 
@@ -65,7 +63,7 @@ export function SearchSessionsDialog({ open, onClose }: SearchSessionsDialogProp
 			<DialogContent className="max-w-lg">
 				<DialogHeader>
 					<DialogTitle>Search chats</DialogTitle>
-					<DialogDescription>Find messages across all your chat sessions.</DialogDescription>
+					<DialogDescription>Find messages across all your conversations.</DialogDescription>
 				</DialogHeader>
 				<InputGroup>
 					<InputGroupAddon>
@@ -102,17 +100,10 @@ export function SearchSessionsDialog({ open, onClose }: SearchSessionsDialogProp
 						<p className="py-4 text-center text-xs text-muted-foreground">No results</p>
 					)}
 					{results.map((result) => (
-						<Item
-							key={result.messageId}
-							asChild
-							size="sm"
-							className="cursor-pointer hover:bg-muted"
-						>
-							<button type="button" onClick={() => handleOpenSession(result.sessionId)}>
+						<Item key={result.id} asChild size="sm" className="cursor-pointer hover:bg-muted">
+							<button type="button" onClick={() => handleOpenConversation(result.id)}>
 								<ItemContent className="gap-0.5">
-									<ItemDescription className="text-xs font-medium">
-										{result.sessionName}
-									</ItemDescription>
+									<ItemDescription className="text-xs font-medium">{result.title}</ItemDescription>
 									<ItemTitle className="block w-full truncate font-normal">
 										{result.snippet}
 									</ItemTitle>

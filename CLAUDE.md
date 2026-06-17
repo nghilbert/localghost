@@ -39,6 +39,7 @@ Copy `.env.example` to `.env`. Required: `DATABASE_URL`, `BETTER_AUTH_SECRET`, `
 - **Encryption:** AES-256-GCM (`src/lib/crypto.server.ts`), format `iv:tag:ciphertext` (hex). Stores API keys and webhook secrets at rest.
 - **LLM:** `src/lib/llm.server.ts` — `streamLLM()` → `ReadableStream<SSEChunk>`, `callLLM()` non-streaming. Provider auto-detected from URL (Anthropic, Ollama, OpenRouter, Groq, OpenAI-compatible).
 - **Agent:** `src/lib/agent.server.ts` — `runAgent()` async generator, up to 10 tool rounds, yields `AgentChunk`. Built-in tools (`web_search`, `manage_*`, `search_chats`) plus MCP tools as `mcp__<slug>__<tool>`.
+- **Chat persistence:** one `Conversation` row = one `@tanstack/ai` `UIMessage[]` blob (`messages` JSONB), modeled directly on `@tanstack/ai-client`'s `ChatClientPersistence`. The **client** owns persistence (`src/features/chat/lib/chat-persistence.ts` — hydrates via `getItem`, writes the full blob via `setItem` on every change keyed by conversation id), so `routes/api/chat/stream.tsx` is pure streaming and performs **zero DB writes**. Server fns live in `conversation.functions.ts`; conversation search is a read-time JSONB traversal (no generated column). Endpoint/provider config is its own feature (`src/features/endpoints/`), since the `ModelEndpoint` table is shared with compare/cookbook/settings/scheduler.
 - **Embeddings / vector search:** `embeddings.server.ts` tries each endpoint's `/v1/embeddings` (`null` on failure → keyword fallback). pgvector `vector(1536)` IVFFlat cosine on `Memory`; raw queries via `prisma.$queryRawUnsafe` (`pgvector/pgvector:pg18`).
 - **Scheduler:** `src/lib/scheduler.server.ts`, initialized via side-effect import `#/lib/startup.server`.
 - **Markdown:** rendered with `streamdown` (`<Streamdown>` via `src/components/Markdown/`), with `@streamdown/code` for syntax highlighting wired through `globals.css`. Streaming-safe; no rich-text editor — notes and other text are plain markdown strings.
@@ -73,13 +74,15 @@ src/features/<name>/
 
 - Branch from `main`: `feat/`, `fix/`, `refactor/`, `chore/` — never commit to `main`. One logical change per PR, kept small and reviewable. PR title ≤70 chars, imperative. Open with `gh pr create`; merge into `main`.
 - **Before every commit, all four must pass:** `npm run fix` → `npm run check` → `npx vitest run` → `npm run build`.
+- **Compaction checkpoints:** every implementation plan must mark explicit `🛑 STOP — compaction checkpoint` points at natural boundaries (e.g. between phases). Pause before starting implementation and at each checkpoint so the user can compact the conversation; don't barrel through multiple phases without stopping.
 
 ## Non-negotiable Rules
 
+- **Do it right, lean on the framework:** never hand-roll what a modern dependency already does, and never try to out-engineer it with a parallel/“better” implementation, bridge, or compatibility shim. Adopt the library’s native model end-to-end (its types, persistence shape, helpers) even when that means a larger diff or a schema migration — the count of changed files is irrelevant. Doing it right almost always simplifies; if a workaround is growing to preserve an older shape, delete the older shape instead.
 - **Zod v4:** import from `"zod/v4"`; `z.uuid()`, not `z.string().uuid()`.
 - **`createServerFn`:** use `.validator(schema)` (`.inputValidator()` is deprecated).
 - **Prisma:** app model IDs `@default(dbgenerated("gen_random_uuid()")) @db.Uuid`; auth-table IDs (user/session/account/verification) `@id @db.Uuid` with no `@default` (better-auth supplies them via `advanced.database.generateId`); all FKs `@db.Uuid`; all camelCase fields `@map("snake_case")`.
-- **`LLMMessage.content`:** `string | LLMContentBlock[]` — never `null`.
+- **Message model:** use `@tanstack/ai`'s `ModelMessage` (server — llm/agent/compactor/scheduler) and `@tanstack/ai-client`'s `UIMessage` (client + persistence). Never reinvent a message type. `ModelMessage` has no `system` role — system text flows through the `systemPrompt`/`systemPrompts` channel.
 - **Biome:** tabs, 100-char width; fix all warnings, never use `biome-ignore`.
 - **Server-only:** never import `.server.ts` from client code.
 - **No `as` casts:** type correctly via generics, annotations, or Prisma model types from `#/generated/prisma/models`; `as` is a last resort for genuinely untyped external data.
@@ -136,12 +139,12 @@ await prisma.$executeRawUnsafe(
 | Area | Key files |
 |------|-----------|
 | Cookbook (model browser) | `src/features/cookbook/`, `src/features/cookbook/lib/pull-registry.server.ts` (pull source-of-truth), `src/routes/api/cookbook/pull.tsx`, `src/lib/hardware.server.ts` |
-| Chat + streaming | `src/features/chat/`, `src/routes/api/chat/stream.tsx` |
+| Chat + streaming | `src/features/chat/` (`lib/conversation.functions.ts`, `lib/chat-persistence.ts`), `src/routes/api/chat/stream.tsx` (pure streaming, zero DB writes) |
+| Endpoints / providers | `src/features/endpoints/` — endpoint CRUD, provider definitions, `ModelPicker` (shared `ModelEndpoint` table) |
 | Memory (pgvector) | `src/features/memory/`, `src/lib/tools/manage_memory.ts` |
 | Scheduled tasks | `src/features/tasks/`, `src/lib/scheduler.server.ts` |
 | Skills | `src/features/skills/`, `src/routes/_authenticated/skills.tsx` |
 | Notes | `src/features/notes/` |
-| Presets | `src/features/chat/lib/preset.functions.ts` |
 | Theme / dark mode | `src/features/theme/` |
 | Webhooks | `src/features/webhooks/` — HMAC-SHA256, SSRF protection |
 | MCP servers | `src/lib/mcp.server.ts`, `src/features/mcp/` |

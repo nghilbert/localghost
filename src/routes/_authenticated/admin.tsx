@@ -33,8 +33,7 @@ function AdminPage() {
 						{(
 							[
 								["Users", users.length],
-								["Chat sessions", stats.sessions],
-								["Messages", stats.messages],
+								["Conversations", stats.conversations],
 								["Memories", stats.memories],
 								["Notes", stats.notes],
 								["Active webhooks", stats.webhooks],
@@ -67,7 +66,7 @@ function AdminPage() {
 											<div className="truncate text-xs text-muted-foreground">{u.email}</div>
 										</div>
 										<div className="flex shrink-0 gap-4 text-xs text-muted-foreground">
-											<span>{u._count.chatSessions} sessions</span>
+											<span>{u._count.conversations} chats</span>
 											<span>{u._count.memories} memories</span>
 										</div>
 										<div className="shrink-0 text-xs text-muted-foreground">

@@ -20,7 +20,7 @@ import {
 	SidebarMenuItem,
 	SidebarTrigger,
 } from "#/components/ui/sidebar";
-import { SessionList } from "#/features/chat/components/SessionList";
+import { ConversationList } from "#/features/chat/components/ConversationList";
 import { ModeToggle } from "#/features/theme/ModeToggle";
 import { APP_NAME } from "#/lib/constants";
 import { AuthMenu } from "./AuthMenu";
@@ -49,8 +49,8 @@ export function AppSidebar() {
 			</SidebarHeader>
 
 			<SidebarContent>
-				{/* Chat sessions */}
-				<SessionList />
+				{/* Chat conversations */}
+				<ConversationList />
 
 				{/* Feature nav */}
 				<SidebarGroup>

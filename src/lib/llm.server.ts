@@ -1,4 +1,4 @@
-import type { ContentPart, ModelMessage, ServerTool, StreamChunk } from "@tanstack/ai";
+import type { ModelMessage, ServerTool, StreamChunk } from "@tanstack/ai";
 import { chat, createModel, extendAdapter, maxIterations, toolDefinition } from "@tanstack/ai";
 import { createAnthropicChat } from "@tanstack/ai-anthropic";
 import { createGeminiChat } from "@tanstack/ai-gemini";
@@ -6,15 +6,6 @@ import { createOllamaChat } from "@tanstack/ai-ollama";
 import { openaiCompatibleText } from "@tanstack/ai-openai/compatible";
 
 export type LLMProvider = "anthropic" | "ollama" | "openai" | "openrouter" | "groq" | "gemini";
-
-export type LLMMessage = {
-	role: "system" | "user" | "assistant";
-	content: string | LLMContentBlock[];
-};
-
-export type LLMContentBlock =
-	| { type: "text"; text: string }
-	| { type: "image_url"; image_url: { url: string } };
 
 export type LLMTool = {
 	type: "function";
@@ -36,7 +27,8 @@ export type StreamLLMOptions = {
 	url: string;
 	apiKey?: string;
 	model: string;
-	messages: LLMMessage[];
+	/** Conversation history as framework `ModelMessage`s (roles user/assistant/tool — no system). */
+	messages: ModelMessage[];
 	systemPrompt?: string;
 	temperature?: number;
 	maxTokens?: number;
@@ -84,45 +76,6 @@ function geminiBaseUrl(url: string): string {
 	return url.replace(/\/+$/, "");
 }
 
-/** Converts our message content into `@tanstack/ai` model-message content. */
-function toModelContent(content: string | LLMContentBlock[]): string | ContentPart[] {
-	if (typeof content === "string") return content;
-	return content.map((block) =>
-		block.type === "text"
-			? { type: "text", content: block.text }
-			: { type: "image", source: { type: "url", value: block.image_url.url } },
-	);
-}
-
-/** Splits messages into system prompts and `@tanstack/ai` model messages. */
-function toModelMessages(messages: LLMMessage[]): {
-	systemPrompts: string[];
-	modelMessages: ModelMessage[];
-} {
-	const systemPrompts: string[] = [];
-	const modelMessages: ModelMessage[] = [];
-	for (const message of messages) {
-		if (message.role === "system") {
-			if (typeof message.content === "string") systemPrompts.push(message.content);
-			continue;
-		}
-		modelMessages.push({
-			role: message.role,
-			content: toModelContent(message.content),
-		});
-	}
-	return { systemPrompts, modelMessages };
-}
-
-/** Prepends the system prompt (replacing any inline system messages) when one is supplied. */
-function withSystemPrompt(opts: StreamLLMOptions): LLMMessage[] {
-	if (!opts.systemPrompt) return opts.messages;
-	return [
-		{ role: "system", content: opts.systemPrompt },
-		...opts.messages.filter((m) => m.role !== "system"),
-	];
-}
-
 /** Clamps a temperature into Anthropic's accepted `[0, 1]` range. */
 function clampUnit(value: number): number {
 	return Math.min(Math.max(value, 0), 1);
@@ -137,11 +90,11 @@ function clampUnit(value: number): number {
  */
 function chatEvents(
 	opts: StreamLLMOptions,
-	messages: LLMMessage[],
 	tools: ServerTool[] | undefined,
 ): AsyncIterable<StreamChunk> {
 	const provider = detectProvider(opts.url);
-	const { systemPrompts, modelMessages } = toModelMessages(messages);
+	const systemPrompts = opts.systemPrompt ? [opts.systemPrompt] : [];
+	const modelMessages = opts.messages;
 	const temperature = opts.temperature ?? 0.7;
 	const maxTokens = opts.maxTokens ?? DEFAULT_MAX_TOKENS;
 	const shared = {
@@ -216,7 +169,7 @@ function chatEvents(
  * @returns A readable stream of {@link SSEChunk} events.
  */
 export async function streamLLM(opts: StreamLLMOptions): Promise<ReadableStream<SSEChunk>> {
-	const source = chatEvents(opts, withSystemPrompt(opts), undefined);
+	const source = chatEvents(opts, undefined);
 
 	return new ReadableStream<SSEChunk>({
 		async start(controller) {
@@ -266,7 +219,7 @@ export async function streamLLM(opts: StreamLLMOptions): Promise<ReadableStream<
  * @returns The `@tanstack/ai` event stream for this completion.
  */
 export function streamLLMEvents(opts: StreamLLMOptions): AsyncIterable<StreamChunk> {
-	return chatEvents(opts, withSystemPrompt(opts), undefined);
+	return chatEvents(opts, undefined);
 }
 
 /**
@@ -292,7 +245,7 @@ export function streamAgentEvents(
 		}).server((args) => opts.executeTool(tool.function.name, args)),
 	);
 
-	return chatEvents(opts, withSystemPrompt(opts), tools);
+	return chatEvents(opts, tools);
 }
 
 /**

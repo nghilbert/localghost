@@ -18,49 +18,21 @@ CREATE TABLE "account" (
 );
 
 -- CreateTable
-CREATE TABLE "chat_message" (
+CREATE TABLE "conversation" (
     "id" UUID NOT NULL DEFAULT gen_random_uuid(),
-    "session_id" UUID NOT NULL,
-    "role" TEXT NOT NULL,
-    "content" TEXT NOT NULL,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT "chat_message_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "chat_preset" (
-    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
-    "name" TEXT NOT NULL,
-    "description" TEXT,
-    "system_prompt" TEXT NOT NULL,
-    "model" TEXT,
-    "temperature" DOUBLE PRECISION,
-    "mode" TEXT,
     "owner_id" UUID NOT NULL,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "chat_preset_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "chat_session" (
-    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
-    "name" TEXT NOT NULL DEFAULT 'New Chat',
+    "title" TEXT NOT NULL DEFAULT 'New Chat',
     "endpoint_id" UUID,
     "model" TEXT NOT NULL DEFAULT '',
-    "owner_id" UUID NOT NULL,
     "mode" TEXT NOT NULL DEFAULT 'chat',
     "system_prompt" TEXT,
     "temperature" DOUBLE PRECISION,
     "archived" BOOLEAN NOT NULL DEFAULT false,
-    "message_count" INTEGER NOT NULL DEFAULT 0,
-    "last_accessed_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "last_message_at" TIMESTAMP(3),
+    "messages" JSONB NOT NULL DEFAULT '[]',
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "chat_session_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "conversation_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -232,19 +204,7 @@ CREATE TABLE "webhook" (
 CREATE INDEX "account_user_id_idx" ON "account"("user_id");
 
 -- CreateIndex
-CREATE INDEX "chat_message_session_id_idx" ON "chat_message"("session_id");
-
--- CreateIndex
-CREATE INDEX "chat_message_session_id_created_at_idx" ON "chat_message"("session_id", "created_at");
-
--- CreateIndex
-CREATE INDEX "chat_preset_owner_id_idx" ON "chat_preset"("owner_id");
-
--- CreateIndex
-CREATE INDEX "chat_session_owner_id_idx" ON "chat_session"("owner_id");
-
--- CreateIndex
-CREATE INDEX "chat_session_owner_id_archived_idx" ON "chat_session"("owner_id", "archived");
+CREATE INDEX "conversation_owner_id_archived_idx" ON "conversation"("owner_id", "archived");
 
 -- CreateIndex
 CREATE INDEX "mcp_server_owner_id_idx" ON "mcp_server"("owner_id");
@@ -289,16 +249,10 @@ CREATE INDEX "webhook_owner_id_idx" ON "webhook"("owner_id");
 ALTER TABLE "account" ADD CONSTRAINT "account_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "chat_message" ADD CONSTRAINT "chat_message_session_id_fkey" FOREIGN KEY ("session_id") REFERENCES "chat_session"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "conversation" ADD CONSTRAINT "conversation_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "chat_preset" ADD CONSTRAINT "chat_preset_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "chat_session" ADD CONSTRAINT "chat_session_endpoint_id_fkey" FOREIGN KEY ("endpoint_id") REFERENCES "model_endpoint"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "chat_session" ADD CONSTRAINT "chat_session_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "conversation" ADD CONSTRAINT "conversation_endpoint_id_fkey" FOREIGN KEY ("endpoint_id") REFERENCES "model_endpoint"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "mcp_server" ADD CONSTRAINT "mcp_server_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -326,14 +280,3 @@ ALTER TABLE "skill" ADD CONSTRAINT "skill_owner_id_fkey" FOREIGN KEY ("owner_id"
 
 -- AddForeignKey
 ALTER TABLE "webhook" ADD CONSTRAINT "webhook_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- pgvector: semantic memory search. The embedding column and IVFFlat cosine
--- index live outside the Prisma schema (Prisma has no native vector type);
--- raw SQL in src/features/memory and src/lib/tools/manage_memory reads/writes it.
-CREATE EXTENSION IF NOT EXISTS vector;
-
--- AlterTable
-ALTER TABLE "memory" ADD COLUMN "embedding" vector(1536);
-
--- CreateIndex
-CREATE INDEX "memory_embedding_idx" ON "memory" USING ivfflat ("embedding" vector_cosine_ops) WITH (lists = 100);

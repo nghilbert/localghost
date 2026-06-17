@@ -6,7 +6,6 @@ export const TAB_VALUES = [
 	"providers",
 	"theme",
 	"webhooks",
-	"presets",
 	"data",
 	"mcp",
 ] as const;

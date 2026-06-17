@@ -15,15 +15,13 @@ type ImportPayload = {
 		pinned?: boolean;
 	}>;
 	skills?: Array<{ name: string; description?: string; content: string }>;
-	presets?: Array<{
-		name: string;
-		description?: string | null;
-		systemPrompt: string;
+	conversations?: Array<{
+		title?: string;
 		model?: string | null;
-		temperature?: number | null;
 		mode?: string | null;
+		systemPrompt?: string | null;
+		messages?: unknown;
 	}>;
-	// chatSessions intentionally skipped on import — too complex to deduplicate
 };
 
 export const Route = createFileRoute("/api/backup/import")({
@@ -49,7 +47,7 @@ export const Route = createFileRoute("/api/backup/import")({
 					memories: 0,
 					notes: 0,
 					skills: 0,
-					presets: 0,
+					conversations: 0,
 				};
 
 				if (Array.isArray(payload.memories)) {
@@ -101,21 +99,23 @@ export const Route = createFileRoute("/api/backup/import")({
 					}
 				}
 
-				if (Array.isArray(payload.presets)) {
-					for (const p of payload.presets) {
-						if (!p?.name || !p?.systemPrompt) continue;
-						await prisma.chatPreset.create({
+				if (Array.isArray(payload.conversations)) {
+					for (const c of payload.conversations) {
+						// Round-trip to a clean JSON blob for the `messages` JSONB column. The
+						// endpoint is not restored (ids are account-specific), so the imported
+						// conversation reconnects to a model once the user picks one.
+						const messages = JSON.parse(JSON.stringify(c.messages ?? []));
+						await prisma.conversation.create({
 							data: {
-								name: p.name,
-								description: p.description ?? null,
-								systemPrompt: p.systemPrompt,
-								model: p.model ?? null,
-								temperature: p.temperature ?? null,
-								mode: p.mode ?? null,
+								title: c.title ?? "Imported chat",
+								model: c.model ?? "",
+								mode: c.mode ?? "chat",
+								systemPrompt: c.systemPrompt ?? null,
+								messages,
 								ownerId: userId,
 							},
 						});
-						results.presets++;
+						results.conversations++;
 					}
 				}
 

@@ -3,8 +3,8 @@ import { CheckCircle2Icon, CircleAlertIcon } from "lucide-react";
 import { Badge } from "#/components/ui/badge";
 import { FieldDescription, FieldLegend, FieldSet } from "#/components/ui/field";
 import { Item, ItemContent, ItemDescription, ItemGroup, ItemTitle } from "#/components/ui/item";
-import { ProviderSetupForm } from "#/features/chat/components/ProviderSetupForm";
-import { endpointsQueryOptions } from "#/features/chat/lib/chat.functions";
+import { ProviderSetupForm } from "#/features/endpoints/components/ProviderSetupForm";
+import { endpointsQueryOptions } from "#/features/endpoints/lib/endpoint.functions";
 
 function StatusBadge({
 	isOk,

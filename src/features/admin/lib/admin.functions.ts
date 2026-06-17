@@ -12,19 +12,18 @@ export const getAdminStats = createServerFn({ method: "GET" }).handler(async () 
 
 	if (!(await isAdmin(session.user.id))) throw new Error("Forbidden");
 
-	const [users, sessions, messages, memories, notes, webhooks] = await Promise.all([
+	const [users, conversations, memories, notes, webhooks] = await Promise.all([
 		prisma.user.findMany({
 			select: {
 				id: true,
 				name: true,
 				email: true,
 				createdAt: true,
-				_count: { select: { chatSessions: true, memories: true } },
+				_count: { select: { conversations: true, memories: true } },
 			},
 			orderBy: { createdAt: "asc" },
 		}),
-		prisma.chatSession.count(),
-		prisma.chatMessage.count(),
+		prisma.conversation.count(),
 		prisma.memory.count(),
 		prisma.note.count(),
 		prisma.webhook.count({ where: { isActive: true } }),
@@ -32,7 +31,7 @@ export const getAdminStats = createServerFn({ method: "GET" }).handler(async () 
 
 	return {
 		users,
-		stats: { sessions, messages, memories, notes, webhooks },
+		stats: { conversations, memories, notes, webhooks },
 	};
 });
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "#/components/ui/button";
 import { NativeSelect, NativeSelectOption } from "#/components/ui/native-select";
-import { getEndpointModels } from "#/features/chat/lib/chat.functions";
+import { getEndpointModels } from "#/features/endpoints/lib/endpoint.functions";
 import type { Slot } from "../lib/types";
 
 type SlotPickerProps = {

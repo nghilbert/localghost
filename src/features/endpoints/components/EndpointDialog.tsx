@@ -19,8 +19,8 @@ import {
 	ItemTitle,
 } from "#/components/ui/item";
 import { Separator } from "#/components/ui/separator";
-import { ProviderSetupForm } from "#/features/chat/components/ProviderSetupForm";
-import { useEndpoints } from "#/features/chat/hooks/use-endpoints";
+import { ProviderSetupForm } from "#/features/endpoints/components/ProviderSetupForm";
+import { useEndpoints } from "#/features/endpoints/hooks/use-endpoints";
 
 export function EndpointDialog() {
 	const [open, setOpen] = useState(false);

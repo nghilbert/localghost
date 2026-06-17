@@ -49,18 +49,18 @@ async function main() {
 
 	for (let i = 0; i < 5; i++) {
 		const messageCount = faker.number.int({ min: 2, max: 6 });
-		await prisma.chatSession.create({
+		// One conversation row holds the whole transcript as a `@tanstack/ai`
+		// UIMessage[] blob — the framework's native persistence shape.
+		const messages = Array.from({ length: messageCount }, (_, index) => ({
+			id: faker.string.uuid(),
+			role: index % 2 === 0 ? "user" : "assistant",
+			parts: [{ type: "text", content: faker.lorem.paragraph() }],
+		}));
+		await prisma.conversation.create({
 			data: {
 				ownerId: user.id,
-				name: faker.lorem.sentence({ min: 2, max: 4 }),
-				messageCount,
-				lastMessageAt: faker.date.recent({ days: 14 }),
-				messages: {
-					create: Array.from({ length: messageCount }, (_, index) => ({
-						role: index % 2 === 0 ? "user" : "assistant",
-						content: faker.lorem.paragraph(),
-					})),
-				},
+				title: faker.lorem.sentence({ min: 2, max: 4 }),
+				messages,
 			},
 		});
 	}

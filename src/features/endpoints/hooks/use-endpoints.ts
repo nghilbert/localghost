@@ -6,8 +6,8 @@ import {
 	deleteEndpoint,
 	endpointsQueryOptions,
 	testEndpoint,
-} from "#/features/chat/lib/chat.functions";
-import type { createEndpointSchema, testEndpointInput } from "#/features/chat/lib/schemas";
+} from "#/features/endpoints/lib/endpoint.functions";
+import type { createEndpointSchema, testEndpointInput } from "#/features/endpoints/lib/schemas";
 
 export function useEndpoints() {
 	const queryClient = useQueryClient();

@@ -1,5 +1,5 @@
 import { Link, useParams } from "@tanstack/react-router";
-import { ArchiveIcon, GitForkIcon, MoreHorizontalIcon, PlusIcon, SearchIcon } from "lucide-react";
+import { ArchiveIcon, MoreHorizontalIcon, PlusIcon, SearchIcon, Trash2Icon } from "lucide-react";
 import { useState } from "react";
 import { Button } from "#/components/ui/button";
 import {
@@ -18,19 +18,25 @@ import {
 	SidebarMenuButton,
 	SidebarMenuItem,
 } from "#/components/ui/sidebar";
-import { SearchSessionsDialog } from "#/features/chat/components/SearchSessionsDialog";
-import { useSessions } from "#/features/chat/hooks/use-sessions";
+import { SearchDialog } from "#/features/chat/components/SearchDialog";
+import { useConversations } from "#/features/chat/hooks/use-conversations";
 
-export function SessionList() {
-	const { sessions, createSession, renameSession, archiveSession, forkSession } = useSessions();
+export function ConversationList() {
+	const {
+		conversations,
+		createConversation,
+		renameConversation,
+		archiveConversation,
+		deleteConversation,
+	} = useConversations();
 	const [renamingId, setRenamingId] = useState<string | null>(null);
 	const [searchOpen, setSearchOpen] = useState(false);
 
-	const { sessionId: currentSessionId } = useParams({ strict: false });
+	const { conversationId: currentConversationId } = useParams({ strict: false });
 
 	return (
 		<>
-			<SearchSessionsDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
+			<SearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
 			<SidebarGroup>
 				<SidebarGroupLabel className="flex items-center justify-between pr-1">
 					Chats
@@ -42,8 +48,8 @@ export function SessionList() {
 						<Button
 							variant="ghost"
 							size="icon-sm"
-							onClick={() => createSession.mutate()}
-							disabled={createSession.isPending}
+							onClick={() => createConversation.mutate()}
+							disabled={createConversation.isPending}
 						>
 							<PlusIcon size={14} />
 							<span className="sr-only">New chat</span>
@@ -52,18 +58,18 @@ export function SessionList() {
 				</SidebarGroupLabel>
 				<SidebarGroupContent>
 					<SidebarMenu>
-						{sessions.map((session) => (
-							<SidebarMenuItem key={session.id}>
-								{renamingId === session.id ? (
+						{conversations.map((conversation) => (
+							<SidebarMenuItem key={conversation.id}>
+								{renamingId === conversation.id ? (
 									<Input
 										ref={(el) => el?.focus()}
-										defaultValue={session.name}
+										defaultValue={conversation.title}
 										className="h-7"
 										onBlur={(e) => {
-											const name = e.target.value.trim();
-											if (name && name !== session.name) {
-												renameSession.mutate(
-													{ id: session.id, name },
+											const title = e.target.value.trim();
+											if (title && title !== conversation.title) {
+												renameConversation.mutate(
+													{ id: conversation.id, title },
 													{ onSuccess: () => setRenamingId(null) },
 												);
 											} else {
@@ -78,12 +84,12 @@ export function SessionList() {
 								) : (
 									<SidebarMenuButton
 										asChild
-										isActive={currentSessionId === session.id}
-										tooltip={session.name}
-										onDoubleClick={() => setRenamingId(session.id)}
+										isActive={currentConversationId === conversation.id}
+										tooltip={conversation.title}
+										onDoubleClick={() => setRenamingId(conversation.id)}
 									>
-										<Link to="/sessions/$sessionId" params={{ sessionId: session.id }}>
-											<span className="truncate">{session.name}</span>
+										<Link to="/chat/$conversationId" params={{ conversationId: conversation.id }}>
+											<span className="truncate">{conversation.title}</span>
 										</Link>
 									</SidebarMenuButton>
 								)}
@@ -91,23 +97,26 @@ export function SessionList() {
 									<DropdownMenuTrigger asChild>
 										<SidebarMenuAction>
 											<MoreHorizontalIcon size={14} />
-											<span className="sr-only">Session actions</span>
+											<span className="sr-only">Chat actions</span>
 										</SidebarMenuAction>
 									</DropdownMenuTrigger>
 									<DropdownMenuContent side="right" align="start" className="min-w-36">
-										<DropdownMenuItem onClick={() => forkSession.mutate(session.id)}>
-											<GitForkIcon size={13} className="mr-2" />
-											Fork
-										</DropdownMenuItem>
-										<DropdownMenuItem onClick={() => archiveSession.mutate(session.id)}>
+										<DropdownMenuItem onClick={() => archiveConversation.mutate(conversation.id)}>
 											<ArchiveIcon size={13} className="mr-2" />
 											Archive
+										</DropdownMenuItem>
+										<DropdownMenuItem
+											variant="destructive"
+											onClick={() => deleteConversation.mutate(conversation.id)}
+										>
+											<Trash2Icon size={13} className="mr-2" />
+											Delete
 										</DropdownMenuItem>
 									</DropdownMenuContent>
 								</DropdownMenu>
 							</SidebarMenuItem>
 						))}
-						{sessions.length === 0 && (
+						{conversations.length === 0 && (
 							<p className="px-2 py-3 text-xs text-muted-foreground">No chats yet.</p>
 						)}
 					</SidebarMenu>

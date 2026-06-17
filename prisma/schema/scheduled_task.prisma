@@ -18,7 +18,7 @@ model ScheduledTask {
     nextRun        DateTime? @map("next_run")
     lastRun        DateTime? @map("last_run")
     runCount       Int       @default(0) @map("run_count")
-    /// Which chat session to deliver output to
+    /// Which conversation to deliver output to (loose id reference, no FK)
     sessionId      String?   @map("session_id") @db.Uuid
     ownerId        String    @map("owner_id") @db.Uuid
     owner          User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)

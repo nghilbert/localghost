@@ -7,8 +7,8 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "#/components/ui/select";
-import { AddProviderForm } from "#/features/chat/components/ProviderSetupForm/AddProviderForm";
-import { PROVIDERS, type ProviderId } from "#/features/chat/lib/providers";
+import { AddProviderForm } from "#/features/endpoints/components/ProviderSetupForm/AddProviderForm";
+import { PROVIDERS, type ProviderId } from "#/features/endpoints/lib/providers";
 
 type ProviderSetupFormProps = {
 	onCreated?: () => void;
