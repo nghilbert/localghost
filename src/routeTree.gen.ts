@@ -20,7 +20,6 @@ import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedNotesRouteImport } from './routes/_authenticated/notes'
 import { Route as AuthenticatedCookbookRouteImport } from './routes/_authenticated/cookbook'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
-import { Route as ApiCompareStreamRouteImport } from './routes/api/compare/stream'
 import { Route as ApiChatStreamRouteImport } from './routes/api/chat/stream'
 import { Route as ApiBackupImportRouteImport } from './routes/api/backup/import'
 import { Route as ApiBackupExportRouteImport } from './routes/api/backup/export'
@@ -80,11 +79,6 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const ApiCompareStreamRoute = ApiCompareStreamRouteImport.update({
-  id: '/api/compare/stream',
-  path: '/api/compare/stream',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiChatStreamRoute = ApiChatStreamRouteImport.update({
   id: '/api/chat/stream',
   path: '/api/chat/stream',
@@ -127,7 +121,6 @@ export interface FileRoutesByFullPath {
   '/api/backup/export': typeof ApiBackupExportRoute
   '/api/backup/import': typeof ApiBackupImportRoute
   '/api/chat/stream': typeof ApiChatStreamRoute
-  '/api/compare/stream': typeof ApiCompareStreamRoute
 }
 export interface FileRoutesByTo {
   '/': typeof AuthenticatedIndexRoute
@@ -144,7 +137,6 @@ export interface FileRoutesByTo {
   '/api/backup/export': typeof ApiBackupExportRoute
   '/api/backup/import': typeof ApiBackupImportRoute
   '/api/chat/stream': typeof ApiChatStreamRoute
-  '/api/compare/stream': typeof ApiCompareStreamRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -164,7 +156,6 @@ export interface FileRoutesById {
   '/api/backup/export': typeof ApiBackupExportRoute
   '/api/backup/import': typeof ApiBackupImportRoute
   '/api/chat/stream': typeof ApiChatStreamRoute
-  '/api/compare/stream': typeof ApiCompareStreamRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -183,7 +174,6 @@ export interface FileRouteTypes {
     | '/api/backup/export'
     | '/api/backup/import'
     | '/api/chat/stream'
-    | '/api/compare/stream'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -200,7 +190,6 @@ export interface FileRouteTypes {
     | '/api/backup/export'
     | '/api/backup/import'
     | '/api/chat/stream'
-    | '/api/compare/stream'
   id:
     | '__root__'
     | '/_authenticated'
@@ -219,7 +208,6 @@ export interface FileRouteTypes {
     | '/api/backup/export'
     | '/api/backup/import'
     | '/api/chat/stream'
-    | '/api/compare/stream'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -229,7 +217,6 @@ export interface RootRouteChildren {
   ApiBackupExportRoute: typeof ApiBackupExportRoute
   ApiBackupImportRoute: typeof ApiBackupImportRoute
   ApiChatStreamRoute: typeof ApiChatStreamRoute
-  ApiCompareStreamRoute: typeof ApiCompareStreamRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -310,13 +297,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin'
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRoute
-    }
-    '/api/compare/stream': {
-      id: '/api/compare/stream'
-      path: '/api/compare/stream'
-      fullPath: '/api/compare/stream'
-      preLoaderRoute: typeof ApiCompareStreamRouteImport
-      parentRoute: typeof rootRouteImport
     }
     '/api/chat/stream': {
       id: '/api/chat/stream'
@@ -402,7 +382,6 @@ const rootRouteChildren: RootRouteChildren = {
   ApiBackupExportRoute: ApiBackupExportRoute,
   ApiBackupImportRoute: ApiBackupImportRoute,
   ApiChatStreamRoute: ApiChatStreamRoute,
-  ApiCompareStreamRoute: ApiCompareStreamRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

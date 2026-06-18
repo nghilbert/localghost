@@ -12,7 +12,6 @@ export type TaskRun = {
 	startedAt: Date;
 	finishedAt: Date | null;
 	error: string | null;
-	output?: string | null;
 };
 
 export type Task = {

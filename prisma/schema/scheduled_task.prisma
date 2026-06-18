@@ -37,7 +37,6 @@ model TaskRun {
     task       ScheduledTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
     /// "running", "success", "error"
     status     String        @default("running")
-    output     String?
     error      String?
     startedAt  DateTime      @default(now()) @map("started_at")
     finishedAt DateTime?     @map("finished_at")

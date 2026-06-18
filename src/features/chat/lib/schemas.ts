@@ -2,17 +2,6 @@ import { z } from "zod/v4";
 
 const uuid = z.uuid();
 
-/**
- * One persisted `@tanstack/ai` UIMessage. `parts` is validated as opaque JSON so
- * the framework's full part shape (text, thinking, tool-call, tool-result) round-
- * trips through the `messages` JSONB column untouched.
- */
-export const storedMessageSchema = z.object({
-	id: z.string(),
-	role: z.enum(["system", "user", "assistant"]),
-	parts: z.array(z.json()),
-});
-
 export const createConversationSchema = z.object({
 	title: z.string().default("New Chat"),
 	endpointId: uuid.optional(),
@@ -34,7 +23,10 @@ export const updateConversationSchema = z.object({
 
 export const conversationIdInput = z.object({ id: uuid });
 export const updateConversationInput = z.object({ id: uuid, data: updateConversationSchema });
-export const saveMessagesInput = z.object({ id: uuid, messages: z.array(storedMessageSchema) });
+export const saveMessagesInput = z.object({
+	id: uuid,
+	messages: z.array(z.record(z.string(), z.unknown())),
+});
 export const searchConversationsInput = z.object({ query: z.string().min(1).max(200) });
 export const renameConversationInput = z.object({
 	id: uuid,

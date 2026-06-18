@@ -81,9 +81,6 @@ export function TaskRunsDialog({ taskId, taskName }: TaskRunsDialogProps) {
 										</span>
 									</div>
 									{run.error && <p className="text-xs text-destructive">{run.error}</p>}
-									{run.output && (
-										<p className="line-clamp-3 text-xs text-muted-foreground">{run.output}</p>
-									)}
 								</Item>
 							))}
 						</ItemGroup>

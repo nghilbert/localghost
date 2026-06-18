@@ -1,4 +1,5 @@
 import type { ModelMessage } from "@tanstack/ai";
+import type { UIMessage } from "@tanstack/ai-client";
 import cron from "node-cron";
 import { decrypt } from "#/lib/crypto.server";
 import { prisma } from "#/lib/db.server";
@@ -112,7 +113,7 @@ async function executeTask(task: {
 				// Append the output as an assistant message in the linked conversation's
 				// UIMessage[] blob (the framework's native persistence shape).
 				if (conversation && output) {
-					const assistantMessage = {
+					const assistantMessage: UIMessage = {
 						id: crypto.randomUUID(),
 						role: "assistant",
 						parts: [{ type: "text", content: `**Scheduled task: ${task.name}**\n\n${output}` }],
@@ -120,7 +121,7 @@ async function executeTask(task: {
 					const existing = Array.isArray(conversation.messages) ? conversation.messages : [];
 					await prisma.conversation.update({
 						where: { id: conversation.id },
-						data: { messages: [...existing, assistantMessage] },
+						data: { messages: JSON.parse(JSON.stringify([...existing, assistantMessage])) },
 					});
 				}
 			}
@@ -128,7 +129,7 @@ async function executeTask(task: {
 
 		await prisma.taskRun.update({
 			where: { id: run.id },
-			data: { status: "success", output, finishedAt: new Date() },
+			data: { status: "success", finishedAt: new Date() },
 		});
 
 		await prisma.scheduledTask.update({

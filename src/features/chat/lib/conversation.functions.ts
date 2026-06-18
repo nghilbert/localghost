@@ -17,7 +17,7 @@ import {
 export const listConversations = createServerFn({ method: "GET" }).handler(async () => {
 	const userId = await getCurrentUserId();
 	return prisma.conversation.findMany({
-		where: { ownerId: userId, archived: false },
+		where: { ownerId: userId, archived: false, mode: { not: "compare" } },
 		orderBy: { updatedAt: "desc" },
 		select: { id: true, title: true, model: true, mode: true, updatedAt: true },
 	});
@@ -62,7 +62,7 @@ export const saveConversationMessages = createServerFn({ method: "POST" })
 		const userId = await getCurrentUserId();
 		await prisma.conversation.updateMany({
 			where: { id, ownerId: userId },
-			data: { messages },
+			data: { messages: JSON.parse(JSON.stringify(messages)) },
 		});
 	});
 

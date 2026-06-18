@@ -1,14 +1,18 @@
 import { Markdown } from "#/components/Markdown";
+import { partsText } from "#/features/chat/lib/message-text";
 import { cn } from "#/lib/utils";
-import type { Slot, SlotState } from "../lib/types";
+import type { useCompareSlot } from "../hooks/use-compare";
+import type { Slot } from "../lib/types";
+
+type SlotChat = ReturnType<typeof useCompareSlot>;
 
 type CompareResultsProps = {
 	slots: Slot[];
-	results: Record<number, SlotState>;
+	slotChats: SlotChat[];
 	isBlind: boolean;
 };
 
-export function CompareResults({ slots, results, isBlind }: CompareResultsProps) {
+export function CompareResults({ slots, slotChats, isBlind }: CompareResultsProps) {
 	return (
 		<div className="flex-1 overflow-auto p-4">
 			<div
@@ -22,22 +26,27 @@ export function CompareResults({ slots, results, isBlind }: CompareResultsProps)
 				)}
 			>
 				{slots.map((slot, idx) => {
-					const state = results[slot.id];
+					const chat = slotChats[idx];
 					const label = isBlind
 						? `Model ${String.fromCharCode(65 + idx)}`
 						: slot.model || `Slot ${idx + 1}`;
+					const isStreaming = chat?.status === "submitted" || chat?.status === "streaming";
+					const assistantMessages = chat?.messages.filter((m) => m.role === "assistant") ?? [];
+					const lastAssistant = assistantMessages[assistantMessages.length - 1];
+					const text = lastAssistant ? partsText(lastAssistant.parts) : "";
+					const hasMessages = (chat?.messages.length ?? 0) > 0;
+
 					return (
 						<div key={slot.id} className="flex min-h-48 flex-col gap-2">
 							<div className="flex items-center gap-2">
 								<span className="text-xs font-medium text-muted-foreground">{label}</span>
-								{state && !state.done && (
+								{isStreaming && (
 									<span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
 								)}
 							</div>
 							<div className="flex-1 overflow-auto rounded-xl border bg-muted/20 p-4 text-sm">
-								{!state && <span className="text-xs text-muted-foreground">Waiting…</span>}
-								{state?.error && <span className="text-xs text-destructive">{state.error}</span>}
-								{state?.text && <Markdown content={state.text} />}
+								{!hasMessages && <span className="text-xs text-muted-foreground">Waiting…</span>}
+								{text && <Markdown content={text} />}
 							</div>
 						</div>
 					);

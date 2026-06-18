@@ -15,7 +15,6 @@
 		"lint": "biome lint",
 		"fix": "biome check --write",
 		"test": "vitest",
-		"gen:routes": "tsr generate",
 		"prisma": "prisma",
 		"seed": "tsx --env-file=.env prisma/seed.ts"
 	},
@@ -70,7 +69,6 @@
 		"@tanstack/react-devtools": "^0.10.5",
 		"@tanstack/react-query-devtools": "^5.101.0",
 		"@tanstack/react-router-devtools": "^1.167.0",
-		"@tanstack/router-cli": "^1.167.17",
 		"@testing-library/jest-dom": "^6.9.1",
 		"@testing-library/react": "^16.3.2",
 		"@testing-library/user-event": "^14.6.1",
