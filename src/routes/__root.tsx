@@ -1,4 +1,5 @@
 import "#/lib/globals.css";
+import { aiDevtoolsPlugin } from "@tanstack/react-ai-devtools";
 import { TanStackDevtools } from "@tanstack/react-devtools";
 import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtoolsPanel } from "@tanstack/react-query-devtools";
@@ -68,7 +69,9 @@ function RootDocument() {
 								plugins={[
 									{ name: "TanStack Query", render: <ReactQueryDevtoolsPanel /> },
 									{ name: "TanStack Router", render: <TanStackRouterDevtoolsPanel /> },
+									aiDevtoolsPlugin(),
 								]}
+								eventBusConfig={{ connectToServerBus: true }}
 							/>
 						</TooltipProvider>
 					</ThemeProvider>
