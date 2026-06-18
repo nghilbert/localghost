@@ -1,5 +1,4 @@
 import { revalidateLogic } from "@tanstack/react-form";
-import { FieldGroup } from "#/components/ui/field";
 import { useTasks } from "#/features/tasks/hooks/use-tasks";
 import {
 	CreateTaskFormSchema,
@@ -34,14 +33,9 @@ export function CreateTaskForm({ onSuccess }: CreateTaskFormProps) {
 	});
 
 	return (
-		<form
-			onSubmit={(event) => {
-				event.preventDefault();
-				form.handleSubmit();
-			}}
-		>
-			<form.AppForm>
-				<FieldGroup className="gap-3">
+		<form.AppForm>
+			<form.SubmitForm>
+				<form.Section legend="Task">
 					<form.AppField name="name">
 						{(field) => <field.InputField label="Name" placeholder="Task name" />}
 					</form.AppField>
@@ -55,6 +49,8 @@ export function CreateTaskForm({ onSuccess }: CreateTaskFormProps) {
 							/>
 						)}
 					</form.AppField>
+				</form.Section>
+				<form.Section legend="Schedule">
 					<form.AppField name="schedule">
 						{(field) => <field.SelectField label="Schedule" options={SCHEDULE_OPTIONS} />}
 					</form.AppField>
@@ -76,10 +72,10 @@ export function CreateTaskForm({ onSuccess }: CreateTaskFormProps) {
 							</>
 						)}
 					</form.Subscribe>
-					<form.FormError>{createTask.error?.message}</form.FormError>
-					<form.SubmitButton>Create Task</form.SubmitButton>
-				</FieldGroup>
-			</form.AppForm>
-		</form>
+				</form.Section>
+				<form.FormError>{createTask.error?.message}</form.FormError>
+				<form.SubmitButton>Create Task</form.SubmitButton>
+			</form.SubmitForm>
+		</form.AppForm>
 	);
 }

@@ -1,6 +1,6 @@
 import { revalidateLogic } from "@tanstack/react-form";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
-import { Field, FieldGroup } from "#/components/ui/field";
+import { Field } from "#/components/ui/field";
 import { useWebhooks } from "#/features/webhooks/hooks/use-webhooks";
 import {
 	AddWebhookFormSchema,
@@ -35,35 +35,26 @@ export function AddWebhookForm({ onSuccess }: AddWebhookFormProps) {
 				<CardTitle>New webhook</CardTitle>
 			</CardHeader>
 			<CardContent>
-				<form
-					onSubmit={(event) => {
-						event.preventDefault();
-						form.handleSubmit();
-					}}
-				>
-					<form.AppForm>
-						<FieldGroup className="gap-3">
-							<form.AppField name="name">
-								{(field) => <field.InputField label="Name" placeholder="My webhook" />}
-							</form.AppField>
-							<form.AppField name="url">
-								{(field) => <field.InputField label="URL" placeholder="https://example.com/hook" />}
-							</form.AppField>
-							<form.AppField name="secret">
-								{(field) => <field.PasswordField label="Signing secret (optional)" />}
-							</form.AppField>
-							<form.AppField name="events">
-								{(field) => (
-									<field.MultiToggleField label="Events" options={WEBHOOK_EVENT_OPTIONS} />
-								)}
-							</form.AppField>
-							<form.FormError>{createWebhook.error?.message}</form.FormError>
-							<Field orientation="horizontal">
-								<form.SubmitButton size="sm">Create</form.SubmitButton>
-							</Field>
-						</FieldGroup>
-					</form.AppForm>
-				</form>
+				<form.AppForm>
+					<form.SubmitForm className="gap-3">
+						<form.AppField name="name">
+							{(field) => <field.InputField label="Name" placeholder="My webhook" />}
+						</form.AppField>
+						<form.AppField name="url">
+							{(field) => <field.InputField label="URL" placeholder="https://example.com/hook" />}
+						</form.AppField>
+						<form.AppField name="secret">
+							{(field) => <field.PasswordField label="Signing secret (optional)" />}
+						</form.AppField>
+						<form.AppField name="events">
+							{(field) => <field.MultiToggleField label="Events" options={WEBHOOK_EVENT_OPTIONS} />}
+						</form.AppField>
+						<form.FormError>{createWebhook.error?.message}</form.FormError>
+						<Field orientation="horizontal">
+							<form.SubmitButton size="sm">Create</form.SubmitButton>
+						</Field>
+					</form.SubmitForm>
+				</form.AppForm>
 			</CardContent>
 		</Card>
 	);

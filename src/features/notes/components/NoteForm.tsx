@@ -2,7 +2,7 @@ import { revalidateLogic } from "@tanstack/react-form";
 import type { z } from "zod/v4";
 import { Button } from "#/components/ui/button";
 import { Card } from "#/components/ui/card";
-import { Field, FieldGroup } from "#/components/ui/field";
+import { Field } from "#/components/ui/field";
 import { checklistItemsSchema, NoteFormSchema } from "#/features/notes/lib/schemas";
 import {
 	NOTE_COLORS,
@@ -64,14 +64,9 @@ export function NoteForm({ initial, isPending, onSave, onCancel }: NoteFormProps
 		<form.Subscribe selector={(state) => state.values.color}>
 			{(color) => (
 				<Card className={cn("p-4", noteColorClasses(color === DEFAULT_COLOR ? null : color))}>
-					<form
-						onSubmit={(event) => {
-							event.preventDefault();
-							form.handleSubmit();
-						}}
-					>
-						<form.AppForm>
-							<FieldGroup className="gap-3">
+					<form.AppForm>
+						<form.SubmitForm>
+							<form.Section legend="Content">
 								<form.AppField name="title">
 									{(field) => <field.InputField label="Title" autoFocus />}
 								</form.AppField>
@@ -97,6 +92,8 @@ export function NoteForm({ initial, isPending, onSave, onCancel }: NoteFormProps
 										)
 									}
 								</form.Subscribe>
+							</form.Section>
+							<form.Section legend="Appearance">
 								<form.AppField name="label">
 									{(field) => <field.InputField label="Label (optional)" />}
 								</form.AppField>
@@ -106,17 +103,17 @@ export function NoteForm({ initial, isPending, onSave, onCancel }: NoteFormProps
 								<form.AppField name="pinned">
 									{(field) => <field.SwitchField label="Pinned" />}
 								</form.AppField>
-								<Field orientation="horizontal">
-									<form.SubmitButton size="sm" disabled={isPending}>
-										{isPending ? "Saving…" : "Save"}
-									</form.SubmitButton>
-									<Button type="button" variant="ghost" size="sm" onClick={onCancel}>
-										Cancel
-									</Button>
-								</Field>
-							</FieldGroup>
-						</form.AppForm>
-					</form>
+							</form.Section>
+							<Field orientation="horizontal">
+								<form.SubmitButton size="sm" disabled={isPending}>
+									{isPending ? "Saving…" : "Save"}
+								</form.SubmitButton>
+								<Button type="button" variant="ghost" size="sm" onClick={onCancel}>
+									Cancel
+								</Button>
+							</Field>
+						</form.SubmitForm>
+					</form.AppForm>
 				</Card>
 			)}
 		</form.Subscribe>
