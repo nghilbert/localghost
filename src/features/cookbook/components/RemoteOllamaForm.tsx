@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { ConnectionTestAlert } from "#/components/ConnectionTestAlert";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "#/components/ui/card";
-import { Field, FieldGroup } from "#/components/ui/field";
+import { Field } from "#/components/ui/field";
 import { useOllama } from "#/features/cookbook/hooks/use-ollama";
 import { OllamaUrlSchema } from "#/features/cookbook/lib/ollama-url";
 import { useAppForm } from "#/hooks/use-app-form";
@@ -39,53 +39,46 @@ export function RemoteOllamaForm({ onBack }: { onBack: () => void }) {
 				</CardDescription>
 			</CardHeader>
 			<CardContent>
-				<form
-					onSubmit={(event) => {
-						event.preventDefault();
-						form.handleSubmit();
-					}}
-				>
-					<form.AppForm>
-						<FieldGroup>
-							<form.AppField name="url">
-								{(field) => (
-									<field.InputField
-										label="Ollama URL"
-										placeholder="http://192.168.1.50:11434"
-										description="Full URL including http:// or https:// and the port."
-									/>
-								)}
-							</form.AppField>
-
-							{testRemote.data && (
-								<ConnectionTestAlert
-									ok={testRemote.data.reachable}
-									title={testRemote.data.reachable ? "Connection works" : "Connection failed"}
-									description={
-										testRemote.data.reachable
-											? `Found ${testRemote.data.modelCount} installed model${testRemote.data.modelCount === 1 ? "" : "s"}.`
-											: "Check the address and that Ollama accepts network connections."
-									}
+				<form.AppForm>
+					<form.Shell>
+						<form.AppField name="url">
+							{(field) => (
+								<field.InputField
+									label="Ollama URL"
+									placeholder="http://192.168.1.50:11434"
+									description="Full URL including http:// or https:// and the port."
 								/>
 							)}
+						</form.AppField>
 
-							<Field orientation="horizontal">
-								<form.SubmitButton>Connect</form.SubmitButton>
-								<Button
-									type="button"
-									variant="outline"
-									disabled={testRemote.isPending}
-									onClick={handleTest}
-								>
-									Test connection
-								</Button>
-								<Button type="button" variant="ghost" onClick={onBack}>
-									Back
-								</Button>
-							</Field>
-						</FieldGroup>
-					</form.AppForm>
-				</form>
+						{testRemote.data && (
+							<ConnectionTestAlert
+								ok={testRemote.data.reachable}
+								title={testRemote.data.reachable ? "Connection works" : "Connection failed"}
+								description={
+									testRemote.data.reachable
+										? `Found ${testRemote.data.modelCount} installed model${testRemote.data.modelCount === 1 ? "" : "s"}.`
+										: "Check the address and that Ollama accepts network connections."
+								}
+							/>
+						)}
+
+						<Field orientation="horizontal">
+							<form.SubmitButton>Connect</form.SubmitButton>
+							<Button
+								type="button"
+								variant="outline"
+								disabled={testRemote.isPending}
+								onClick={handleTest}
+							>
+								Test connection
+							</Button>
+							<Button type="button" variant="ghost" onClick={onBack}>
+								Back
+							</Button>
+						</Field>
+					</form.Shell>
+				</form.AppForm>
 			</CardContent>
 		</Card>
 	);

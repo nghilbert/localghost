@@ -3,7 +3,7 @@ import { ChevronDownIcon, PlusIcon } from "lucide-react";
 import { ConnectionTestAlert } from "#/components/ConnectionTestAlert";
 import { Button } from "#/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "#/components/ui/collapsible";
-import { Field, FieldGroup } from "#/components/ui/field";
+import { Field } from "#/components/ui/field";
 import { useEndpoints } from "#/features/endpoints/hooks/use-endpoints";
 import {
 	buildEndpointFormSchema,
@@ -76,69 +76,62 @@ export function AddProviderForm({ definition, onCreated }: AddProviderFormProps)
 	);
 
 	return (
-		<form
-			onSubmit={(event) => {
-				event.preventDefault();
-				form.handleSubmit();
-			}}
-		>
-			<form.AppForm>
-				<FieldGroup className="gap-3">
-					<form.AppField name="name">{(field) => <field.InputField label="Name" />}</form.AppField>
+		<form.AppForm>
+			<form.Shell className="gap-3">
+				<form.AppField name="name">{(field) => <field.InputField label="Name" />}</form.AppField>
 
-					<form.AppField name="apiKey">
-						{(field) => (
-							<field.PasswordField
-								label={definition.requiresApiKey ? "API key" : "API key (optional)"}
-								placeholder={definition.keyPlaceholder ?? "sk-…"}
-								description={keyDescription}
-							/>
-						)}
-					</form.AppField>
-
-					{definition.defaultBaseUrl === null ? (
-						urlField
-					) : (
-						<Collapsible>
-							<CollapsibleTrigger asChild>
-								<Button type="button" variant="ghost" size="sm" className="text-muted-foreground">
-									<ChevronDownIcon />
-									Advanced
-								</Button>
-							</CollapsibleTrigger>
-							<CollapsibleContent className="pt-2">{urlField}</CollapsibleContent>
-						</Collapsible>
-					)}
-
-					{testEndpoint.data && (
-						<ConnectionTestAlert
-							ok={testEndpoint.data.ok}
-							title={testEndpoint.data.ok ? "Connection works" : "Connection failed"}
-							description={
-								testEndpoint.data.ok
-									? `${testEndpoint.data.modelCount} models available.`
-									: (testEndpoint.data.error ?? "Request failed")
-							}
+				<form.AppField name="apiKey">
+					{(field) => (
+						<field.PasswordField
+							label={definition.requiresApiKey ? "API key" : "API key (optional)"}
+							placeholder={definition.keyPlaceholder ?? "sk-…"}
+							description={keyDescription}
 						/>
 					)}
-					<form.FormError>{createEndpoint.error?.message}</form.FormError>
+				</form.AppField>
 
-					<Field orientation="horizontal">
-						<form.SubmitButton>
-							<PlusIcon />
-							Add provider
-						</form.SubmitButton>
-						<Button
-							type="button"
-							variant="outline"
-							disabled={testEndpoint.isPending}
-							onClick={handleTest}
-						>
-							Test connection
-						</Button>
-					</Field>
-				</FieldGroup>
-			</form.AppForm>
-		</form>
+				{definition.defaultBaseUrl === null ? (
+					urlField
+				) : (
+					<Collapsible>
+						<CollapsibleTrigger asChild>
+							<Button type="button" variant="ghost" size="sm" className="text-muted-foreground">
+								<ChevronDownIcon />
+								Advanced
+							</Button>
+						</CollapsibleTrigger>
+						<CollapsibleContent className="pt-2">{urlField}</CollapsibleContent>
+					</Collapsible>
+				)}
+
+				{testEndpoint.data && (
+					<ConnectionTestAlert
+						ok={testEndpoint.data.ok}
+						title={testEndpoint.data.ok ? "Connection works" : "Connection failed"}
+						description={
+							testEndpoint.data.ok
+								? `${testEndpoint.data.modelCount} models available.`
+								: (testEndpoint.data.error ?? "Request failed")
+						}
+					/>
+				)}
+				<form.FormError>{createEndpoint.error?.message}</form.FormError>
+
+				<Field orientation="horizontal">
+					<form.SubmitButton>
+						<PlusIcon />
+						Add provider
+					</form.SubmitButton>
+					<Button
+						type="button"
+						variant="outline"
+						disabled={testEndpoint.isPending}
+						onClick={handleTest}
+					>
+						Test connection
+					</Button>
+				</Field>
+			</form.Shell>
+		</form.AppForm>
 	);
 }
