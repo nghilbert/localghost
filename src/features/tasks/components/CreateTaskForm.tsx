@@ -34,39 +34,45 @@ export function CreateTaskForm({ onSuccess }: CreateTaskFormProps) {
 
 	return (
 		<form.AppForm>
-			<form.Shell className="gap-3">
-				<form.AppField name="name">
-					{(field) => <field.InputField label="Name" placeholder="Task name" />}
-				</form.AppField>
-				<form.AppField name="prompt">
-					{(field) => (
-						<field.TextareaField
-							label="Prompt"
-							placeholder="LLM prompt to run on schedule…"
-							rows={4}
-							className="resize-none"
-						/>
-					)}
-				</form.AppField>
-				<form.AppField name="schedule">
-					{(field) => <field.SelectField label="Schedule" options={SCHEDULE_OPTIONS} />}
-				</form.AppField>
-				<form.Subscribe selector={(state) => state.values.schedule}>
-					{(schedule) => (
-						<>
-							{schedule !== "once" && schedule !== "cron" && (
-								<form.AppField name="scheduledTime">
-									{(field) => <field.InputField label="Time (UTC)" type="time" />}
-								</form.AppField>
-							)}
-							{schedule === "cron" && (
-								<form.AppField name="cronExpression">
-									{(field) => <field.InputField label="Cron expression" placeholder="0 9 * * *" />}
-								</form.AppField>
-							)}
-						</>
-					)}
-				</form.Subscribe>
+			<form.Shell>
+				<form.Section legend="Task">
+					<form.AppField name="name">
+						{(field) => <field.InputField label="Name" placeholder="Task name" />}
+					</form.AppField>
+					<form.AppField name="prompt">
+						{(field) => (
+							<field.TextareaField
+								label="Prompt"
+								placeholder="LLM prompt to run on schedule…"
+								rows={4}
+								className="resize-none"
+							/>
+						)}
+					</form.AppField>
+				</form.Section>
+				<form.Section legend="Schedule">
+					<form.AppField name="schedule">
+						{(field) => <field.SelectField label="Schedule" options={SCHEDULE_OPTIONS} />}
+					</form.AppField>
+					<form.Subscribe selector={(state) => state.values.schedule}>
+						{(schedule) => (
+							<>
+								{schedule !== "once" && schedule !== "cron" && (
+									<form.AppField name="scheduledTime">
+										{(field) => <field.InputField label="Time (UTC)" type="time" />}
+									</form.AppField>
+								)}
+								{schedule === "cron" && (
+									<form.AppField name="cronExpression">
+										{(field) => (
+											<field.InputField label="Cron expression" placeholder="0 9 * * *" />
+										)}
+									</form.AppField>
+								)}
+							</>
+						)}
+					</form.Subscribe>
+				</form.Section>
 				<form.FormError>{createTask.error?.message}</form.FormError>
 				<form.SubmitButton>Create Task</form.SubmitButton>
 			</form.Shell>

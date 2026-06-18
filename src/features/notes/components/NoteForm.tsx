@@ -65,37 +65,45 @@ export function NoteForm({ initial, isPending, onSave, onCancel }: NoteFormProps
 			{(color) => (
 				<Card className={cn("p-4", noteColorClasses(color === DEFAULT_COLOR ? null : color))}>
 					<form.AppForm>
-						<form.Shell className="gap-3">
-							<form.AppField name="title">
-								{(field) => <field.InputField label="Title" autoFocus />}
-							</form.AppField>
-							<form.AppField name="noteType">
-								{(field) => <field.ToggleGroupField label="Type" options={NOTE_TYPE_OPTIONS} />}
-							</form.AppField>
-							<form.Subscribe selector={(state) => state.values.noteType}>
-								{(noteType) =>
-									noteType === "note" ? (
-										<form.AppField name="content">
-											{(field) => (
-												<field.TextareaField label="Content" placeholder="Take a note…" rows={3} />
-											)}
-										</form.AppField>
-									) : (
-										<form.AppField name="items">
-											{(field) => <field.ChecklistField label="Items" orientation="vertical" />}
-										</form.AppField>
-									)
-								}
-							</form.Subscribe>
-							<form.AppField name="label">
-								{(field) => <field.InputField label="Label (optional)" />}
-							</form.AppField>
-							<form.AppField name="color">
-								{(field) => <field.SwatchField label="Color" options={COLOR_OPTIONS} />}
-							</form.AppField>
-							<form.AppField name="pinned">
-								{(field) => <field.SwitchField label="Pinned" />}
-							</form.AppField>
+						<form.Shell>
+							<form.Section legend="Content">
+								<form.AppField name="title">
+									{(field) => <field.InputField label="Title" autoFocus />}
+								</form.AppField>
+								<form.AppField name="noteType">
+									{(field) => <field.ToggleGroupField label="Type" options={NOTE_TYPE_OPTIONS} />}
+								</form.AppField>
+								<form.Subscribe selector={(state) => state.values.noteType}>
+									{(noteType) =>
+										noteType === "note" ? (
+											<form.AppField name="content">
+												{(field) => (
+													<field.TextareaField
+														label="Content"
+														placeholder="Take a note…"
+														rows={3}
+													/>
+												)}
+											</form.AppField>
+										) : (
+											<form.AppField name="items">
+												{(field) => <field.ChecklistField label="Items" orientation="vertical" />}
+											</form.AppField>
+										)
+									}
+								</form.Subscribe>
+							</form.Section>
+							<form.Section legend="Appearance">
+								<form.AppField name="label">
+									{(field) => <field.InputField label="Label (optional)" />}
+								</form.AppField>
+								<form.AppField name="color">
+									{(field) => <field.SwatchField label="Color" options={COLOR_OPTIONS} />}
+								</form.AppField>
+								<form.AppField name="pinned">
+									{(field) => <field.SwitchField label="Pinned" />}
+								</form.AppField>
+							</form.Section>
 							<Field orientation="horizontal">
 								<form.SubmitButton size="sm" disabled={isPending}>
 									{isPending ? "Saving…" : "Save"}
