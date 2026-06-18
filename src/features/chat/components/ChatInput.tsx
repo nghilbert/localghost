@@ -4,7 +4,6 @@ import { Button } from "#/components/ui/button";
 import { Card, CardAction, CardContent, CardFooter } from "#/components/ui/card";
 import { Textarea } from "#/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "#/components/ui/toggle-group";
-import { MicButton } from "#/features/chat/components/MicButton";
 
 type Props = {
 	onSubmit: (message: string) => void;
@@ -39,21 +38,6 @@ export function ChatInput({
 		if (!value || isStreaming || disabled) return;
 		onSubmit(value);
 		if (ref.current) ref.current.value = "";
-		resize();
-	}
-
-	function handleTranscript(text: string) {
-		if (!ref.current) return;
-		const cur = ref.current.value;
-		ref.current.value = cur ? `${cur} ${text}` : text;
-		resize();
-	}
-
-	function resize() {
-		const el = ref.current;
-		if (!el) return;
-		el.style.height = "auto";
-		el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
 	}
 
 	return (
@@ -63,9 +47,8 @@ export function ChatInput({
 					ref={ref}
 					rows={1}
 					placeholder="Message…"
-					className="max-h-50 resize-none disabled:bg-transparent dark:bg-transparent dark:disabled:bg-transparent"
+					className="max-h-50 field-sizing-content resize-none"
 					onKeyDown={handleKeyDown}
-					onInput={resize}
 					disabled={disabled}
 				/>
 			</CardContent>
@@ -94,10 +77,6 @@ export function ChatInput({
 				</CardAction>
 
 				<CardAction>
-					{/* Mic / Voice input */}
-					<MicButton onTranscript={handleTranscript} disabled={disabled || isStreaming} />
-
-					{/* Send / Stop */}
 					{isStreaming ? (
 						<Button
 							size="icon"

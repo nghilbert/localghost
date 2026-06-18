@@ -1,8 +1,8 @@
 import type { UIMessage } from "@tanstack/ai-client";
-import { BrainIcon, ChevronRightIcon, TerminalIcon } from "lucide-react";
 import { Markdown } from "#/components/Markdown";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "#/components/ui/collapsible";
-import { SpeakButton } from "#/features/chat/components/SpeakButton";
+import { ReasoningBlock } from "#/features/chat/components/ChatMessage/ReasoningBlock";
+import { SpeakButton } from "#/features/chat/components/ChatMessage/SpeakButton";
+import { ToolCallBlock } from "#/features/chat/components/ChatMessage/ToolCallBlock";
 import { partsText } from "#/features/chat/lib/message-text";
 import { cn } from "#/lib/utils";
 
@@ -82,45 +82,5 @@ export function ChatMessage({ message, isStreaming, autoSpeak }: Props) {
 				</div>
 			)}
 		</article>
-	);
-}
-
-function ReasoningBlock({ content }: { content: string }) {
-	return (
-		<Collapsible className="overflow-hidden rounded-lg border bg-muted/30 text-xs">
-			<CollapsibleTrigger className="group flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left font-medium text-muted-foreground transition-colors hover:bg-muted/50">
-				<BrainIcon size={12} className="shrink-0" />
-				<span className="flex-1">Reasoning</span>
-				<ChevronRightIcon
-					size={12}
-					className="transition-transform group-data-[state=open]:rotate-90"
-				/>
-			</CollapsibleTrigger>
-			<CollapsibleContent>
-				<div className="max-h-56 overflow-y-auto whitespace-pre-wrap wrap-break-word border-t px-3 py-2.5 leading-relaxed text-muted-foreground">
-					{content}
-				</div>
-			</CollapsibleContent>
-		</Collapsible>
-	);
-}
-
-function ToolCallBlock({ tool, result }: { tool: string; result: string }) {
-	return (
-		<Collapsible className="overflow-hidden rounded-lg border bg-muted/30 text-xs">
-			<CollapsibleTrigger className="group flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left font-medium text-muted-foreground transition-colors hover:bg-muted/50">
-				<TerminalIcon size={12} className="shrink-0" />
-				<span className="flex-1 font-mono">{tool}</span>
-				<ChevronRightIcon
-					size={12}
-					className="transition-transform group-data-[state=open]:rotate-90"
-				/>
-			</CollapsibleTrigger>
-			<CollapsibleContent>
-				<pre className="max-h-56 overflow-y-auto whitespace-pre-wrap wrap-break-word border-t px-3 py-2.5 font-mono leading-relaxed text-muted-foreground">
-					{result}
-				</pre>
-			</CollapsibleContent>
-		</Collapsible>
 	);
 }

@@ -67,6 +67,7 @@ src/features/<name>/
 
 ## Non-negotiable Rules
 
+- **Simplicty is the fix, NOT more complexity:** when you are feeling friction when creating functions or creating a component, you are likely thinking to hard about it. Instead, try Removing divs and unnecessary nesting. Try to reduce complexity and the problem will either dissapear or the issue will become apparent. Adding more will always make things more complicated; avoid it
 - **Do it right, WORK WITH THE FRAMEWORK:** never hand-roll what a modern dependency already does, and never try to out-engineer it with a parallel/“better” implementation, bridge, or compatibility shim. Adopt the library’s native model end-to-end (its types, persistence shape, helpers) even when that means a larger diff or a schema migration — the count of changed files is irrelevant. Doing it right almost always simplifies; if a workaround is growing to preserve an older shape, delete the older shape instead.
 - **shadcn-first:** before building UI, find the shadcn component that fits (consult the MCP registry). Compose primitives; never raw HTML where a shadcn equivalent exists. The UI must stay themeable via CSS variables only — no hardcoded colors.
 - **Prisma:** app model IDs `@default(dbgenerated("gen_random_uuid()")) @db.Uuid`; auth-table IDs `@id @db.Uuid` with no `@default`; all FKs `@db.Uuid`; all camelCase fields `@map("snake_case")`.

@@ -15,6 +15,7 @@ import {
 	InputGroupInput,
 } from "#/components/ui/input-group";
 import { Item, ItemContent, ItemDescription, ItemTitle } from "#/components/ui/item";
+import { ScrollArea } from "#/components/ui/scroll-area";
 import { Spinner } from "#/components/ui/spinner";
 import { searchConversations } from "#/features/chat/lib/conversation.functions";
 
@@ -89,29 +90,33 @@ export function SearchDialog({ open, onClose }: SearchDialogProps) {
 						</InputGroupAddon>
 					)}
 				</InputGroup>
-				<div className="max-h-80 space-y-1 overflow-auto">
-					{isSearching && (
-						<p className="flex items-center justify-center gap-1.5 py-4 text-xs text-muted-foreground">
-							<Spinner className="size-3" />
-							Searching…
-						</p>
-					)}
-					{!isSearching && results.length === 0 && query && (
-						<p className="py-4 text-center text-xs text-muted-foreground">No results</p>
-					)}
-					{results.map((result) => (
-						<Item key={result.id} asChild size="sm" className="cursor-pointer hover:bg-muted">
-							<button type="button" onClick={() => handleOpenConversation(result.id)}>
-								<ItemContent className="gap-0.5">
-									<ItemDescription className="text-xs font-medium">{result.title}</ItemDescription>
-									<ItemTitle className="block w-full truncate font-normal">
-										{result.snippet}
-									</ItemTitle>
-								</ItemContent>
-							</button>
-						</Item>
-					))}
-				</div>
+				<ScrollArea className="max-h-80">
+					<div className="space-y-1">
+						{isSearching && (
+							<p className="flex items-center justify-center gap-1.5 py-4 text-xs text-muted-foreground">
+								<Spinner className="size-3" />
+								Searching…
+							</p>
+						)}
+						{!isSearching && results.length === 0 && query && (
+							<p className="py-4 text-center text-xs text-muted-foreground">No results</p>
+						)}
+						{results.map((result) => (
+							<Item key={result.id} asChild size="sm" className="cursor-pointer hover:bg-muted">
+								<button type="button" onClick={() => handleOpenConversation(result.id)}>
+									<ItemContent className="gap-0.5">
+										<ItemDescription className="text-xs font-medium">
+											{result.title}
+										</ItemDescription>
+										<ItemTitle className="block w-full truncate font-normal">
+											{result.snippet}
+										</ItemTitle>
+									</ItemContent>
+								</button>
+							</Item>
+						))}
+					</div>
+				</ScrollArea>
 			</DialogContent>
 		</Dialog>
 	);

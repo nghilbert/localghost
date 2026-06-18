@@ -9,10 +9,10 @@ import {
 	EmptyHeader,
 	EmptyTitle,
 } from "#/components/ui/empty";
+import { ScrollArea } from "#/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger } from "#/components/ui/tooltip";
 import { ChatInput } from "#/features/chat/components/ChatInput";
 import { ChatMessage } from "#/features/chat/components/ChatMessage";
-import { ChatHeaderToggle } from "#/features/chat/components/ChatView/ChatHeaderToggle";
 import { ConversationSettingsPanel } from "#/features/chat/components/ChatView/ConversationSettingsPanel";
 import { ExportMenu } from "#/features/chat/components/ChatView/ExportMenu";
 import { useChatStream } from "#/features/chat/hooks/use-chat-stream";
@@ -63,13 +63,26 @@ export function ChatView({ conversation }: ChatViewProps) {
 				<div className="flex items-center justify-between px-4 py-2">
 					<h1 className="truncate text-sm font-medium text-foreground">{conversation.title}</h1>
 					<div className="flex items-center gap-1.5">
-						<ChatHeaderToggle
-							icon={<Volume2Icon size={13} />}
-							isActive={autoSpeak}
-							activeLabel="Auto-speak enabled — click to disable"
-							inactiveLabel="Enable auto-speak"
-							onToggle={() => setAutoSpeak((prev) => !prev)}
-						/>
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<Button
+									variant="ghost"
+									onClick={() => setAutoSpeak((prev) => !prev)}
+									className={cn(
+										"h-7 gap-1 px-2 text-xs",
+										autoSpeak ? "bg-primary/10 text-primary" : "text-muted-foreground",
+									)}
+									aria-label={
+										autoSpeak ? "Auto-speak enabled — click to disable" : "Enable auto-speak"
+									}
+								>
+									<Volume2Icon size={13} />
+								</Button>
+							</TooltipTrigger>
+							<TooltipContent>
+								{autoSpeak ? "Auto-speak enabled — click to disable" : "Enable auto-speak"}
+							</TooltipContent>
+						</Tooltip>
 						<Tooltip>
 							<TooltipTrigger asChild>
 								<Button
@@ -114,47 +127,51 @@ export function ChatView({ conversation }: ChatViewProps) {
 				aria-label="Conversation"
 				aria-live="polite"
 				aria-relevant="additions"
-				className="flex flex-1 flex-col overflow-y-auto px-4"
+				className="flex-1 overflow-hidden"
 			>
-				{messages.length === 0 &&
-					(isReady ? (
-						<Empty className="h-full">
-							<EmptyHeader>
-								<EmptyDescription>Send a message to start chatting.</EmptyDescription>
-							</EmptyHeader>
-						</Empty>
-					) : (
-						<Empty className="h-full">
-							<EmptyHeader>
-								<EmptyTitle>No model connected yet</EmptyTitle>
-								<EmptyDescription>
-									Install a local model in the Cookbook, then pick it from the model menu below the
-									message box.
-								</EmptyDescription>
-							</EmptyHeader>
-							<EmptyContent>
-								<Button asChild>
-									<Link to="/cookbook">
-										<BookOpenIcon />
-										Browse the Cookbook
-									</Link>
-								</Button>
-							</EmptyContent>
-						</Empty>
-					))}
-				{messages.map((msg, idx) => {
-					const isLast = idx === messages.length - 1;
-					const isStreamingMessage = isStreaming && isLast && msg.role === "assistant";
-					return (
-						<ChatMessage
-							key={msg.id}
-							message={msg}
-							isStreaming={isStreamingMessage}
-							autoSpeak={autoSpeak && msg.role === "assistant" && !isStreamingMessage && isLast}
-						/>
-					);
-				})}
-				<div ref={bottomRef} />
+				<ScrollArea className="h-full">
+					<div className="flex min-h-full flex-col px-4">
+						{messages.length === 0 &&
+							(isReady ? (
+								<Empty className="h-full">
+									<EmptyHeader>
+										<EmptyDescription>Send a message to start chatting.</EmptyDescription>
+									</EmptyHeader>
+								</Empty>
+							) : (
+								<Empty className="h-full">
+									<EmptyHeader>
+										<EmptyTitle>No model connected yet</EmptyTitle>
+										<EmptyDescription>
+											Install a local model in the Cookbook, then pick it from the model menu below
+											the message box.
+										</EmptyDescription>
+									</EmptyHeader>
+									<EmptyContent>
+										<Button asChild>
+											<Link to="/cookbook">
+												<BookOpenIcon />
+												Browse the Cookbook
+											</Link>
+										</Button>
+									</EmptyContent>
+								</Empty>
+							))}
+						{messages.map((msg, idx) => {
+							const isLast = idx === messages.length - 1;
+							const isStreamingMessage = isStreaming && isLast && msg.role === "assistant";
+							return (
+								<ChatMessage
+									key={msg.id}
+									message={msg}
+									isStreaming={isStreamingMessage}
+									autoSpeak={autoSpeak && msg.role === "assistant" && !isStreamingMessage && isLast}
+								/>
+							);
+						})}
+						<div ref={bottomRef} />
+					</div>
+				</ScrollArea>
 			</section>
 
 			<div className="px-4 py-3">

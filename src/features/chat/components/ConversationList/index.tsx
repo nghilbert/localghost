@@ -18,7 +18,7 @@ import {
 	SidebarMenuButton,
 	SidebarMenuItem,
 } from "#/components/ui/sidebar";
-import { SearchDialog } from "#/features/chat/components/SearchDialog";
+import { SearchDialog } from "#/features/chat/components/ConversationList/SearchDialog";
 import { useConversations } from "#/features/chat/hooks/use-conversations";
 
 export function ConversationList() {
