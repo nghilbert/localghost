@@ -26,7 +26,7 @@ export function SignUpForm() {
 
 	return (
 		<form.AppForm>
-			<form.Shell>
+			<form.SubmitForm>
 				<form.AppField name="name">
 					{(field) => (
 						<field.InputField
@@ -55,7 +55,7 @@ export function SignUpForm() {
 
 				<form.SubmitButton>Sign up</form.SubmitButton>
 				<FieldError>{errorMsg}</FieldError>
-			</form.Shell>
+			</form.SubmitForm>
 		</form.AppForm>
 	);
 }

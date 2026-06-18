@@ -22,13 +22,13 @@ export function UpdateProfileForm() {
 
 	return (
 		<form.AppForm>
-			<form.Shell className="gap-3">
+			<form.SubmitForm className="gap-3">
 				<form.AppField name="name">{(field) => <field.InputField label="Name" />}</form.AppField>
 				<form.FormError>{updateMutation.error?.message}</form.FormError>
 				<Field orientation="horizontal">
 					<form.SubmitButton size="sm">Save</form.SubmitButton>
 				</Field>
-			</form.Shell>
+			</form.SubmitForm>
 		</form.AppForm>
 	);
 }

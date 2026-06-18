@@ -40,7 +40,7 @@ export function RemoteOllamaForm({ onBack }: { onBack: () => void }) {
 			</CardHeader>
 			<CardContent>
 				<form.AppForm>
-					<form.Shell>
+					<form.SubmitForm>
 						<form.AppField name="url">
 							{(field) => (
 								<field.InputField
@@ -77,7 +77,7 @@ export function RemoteOllamaForm({ onBack }: { onBack: () => void }) {
 								Back
 							</Button>
 						</Field>
-					</form.Shell>
+					</form.SubmitForm>
 				</form.AppForm>
 			</CardContent>
 		</Card>

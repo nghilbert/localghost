@@ -36,7 +36,7 @@ export function AddMcpServerForm({ onSuccess }: AddMcpServerFormProps) {
 			</CardHeader>
 			<CardContent>
 				<form.AppForm>
-					<form.Shell className="gap-3">
+					<form.SubmitForm className="gap-3">
 						<form.AppField name="name">
 							{(field) => <field.InputField label="Name" placeholder="My MCP server" />}
 						</form.AppField>
@@ -54,7 +54,7 @@ export function AddMcpServerForm({ onSuccess }: AddMcpServerFormProps) {
 						<Field orientation="horizontal">
 							<form.SubmitButton size="sm">Add</form.SubmitButton>
 						</Field>
-					</form.Shell>
+					</form.SubmitForm>
 				</form.AppForm>
 			</CardContent>
 		</Card>

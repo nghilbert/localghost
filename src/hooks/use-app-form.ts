@@ -8,8 +8,8 @@ import { MultiToggleField } from "#/components/appForm/MultiToggleField";
 import { PasswordField } from "#/components/appForm/PasswordField";
 import { Section } from "#/components/appForm/Section";
 import { SelectField } from "#/components/appForm/SelectField";
-import { Shell } from "#/components/appForm/Shell";
 import { SubmitButton } from "#/components/appForm/SubmitButton";
+import { SubmitForm } from "#/components/appForm/SubmitForm";
 import { SwatchField } from "#/components/appForm/SwatchField";
 import { SwitchField } from "#/components/appForm/SwitchField";
 import { TextareaField } from "#/components/appForm/TextareaField";
@@ -32,5 +32,5 @@ export const { useAppForm, withForm } = createFormHook({
 		SwatchField,
 		ChecklistField,
 	},
-	formComponents: { SubmitButton, FormError, Section, Shell },
+	formComponents: { SubmitButton, FormError, Section, SubmitForm },
 });

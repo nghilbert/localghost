@@ -33,7 +33,7 @@ export function AddMemoryForm({ onSuccess }: AddMemoryFormProps) {
 
 	return (
 		<form.AppForm>
-			<form.Shell className="gap-3 border-b pb-4">
+			<form.SubmitForm className="gap-3 border-b pb-4">
 				<form.AppField name="text">
 					{(field) => (
 						<field.TextareaField
@@ -61,7 +61,7 @@ export function AddMemoryForm({ onSuccess }: AddMemoryFormProps) {
 						Save
 					</form.SubmitButton>
 				</Field>
-			</form.Shell>
+			</form.SubmitForm>
 		</form.AppForm>
 	);
 }

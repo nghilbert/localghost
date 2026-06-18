@@ -65,7 +65,7 @@ export function NoteForm({ initial, isPending, onSave, onCancel }: NoteFormProps
 			{(color) => (
 				<Card className={cn("p-4", noteColorClasses(color === DEFAULT_COLOR ? null : color))}>
 					<form.AppForm>
-						<form.Shell>
+						<form.SubmitForm>
 							<form.Section legend="Content">
 								<form.AppField name="title">
 									{(field) => <field.InputField label="Title" autoFocus />}
@@ -112,7 +112,7 @@ export function NoteForm({ initial, isPending, onSave, onCancel }: NoteFormProps
 									Cancel
 								</Button>
 							</Field>
-						</form.Shell>
+						</form.SubmitForm>
 					</form.AppForm>
 				</Card>
 			)}

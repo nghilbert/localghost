@@ -36,7 +36,7 @@ export function AddWebhookForm({ onSuccess }: AddWebhookFormProps) {
 			</CardHeader>
 			<CardContent>
 				<form.AppForm>
-					<form.Shell className="gap-3">
+					<form.SubmitForm className="gap-3">
 						<form.AppField name="name">
 							{(field) => <field.InputField label="Name" placeholder="My webhook" />}
 						</form.AppField>
@@ -53,7 +53,7 @@ export function AddWebhookForm({ onSuccess }: AddWebhookFormProps) {
 						<Field orientation="horizontal">
 							<form.SubmitButton size="sm">Create</form.SubmitButton>
 						</Field>
-					</form.Shell>
+					</form.SubmitForm>
 				</form.AppForm>
 			</CardContent>
 		</Card>

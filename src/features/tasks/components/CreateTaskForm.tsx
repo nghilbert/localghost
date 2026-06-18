@@ -34,7 +34,7 @@ export function CreateTaskForm({ onSuccess }: CreateTaskFormProps) {
 
 	return (
 		<form.AppForm>
-			<form.Shell>
+			<form.SubmitForm>
 				<form.Section legend="Task">
 					<form.AppField name="name">
 						{(field) => <field.InputField label="Name" placeholder="Task name" />}
@@ -75,7 +75,7 @@ export function CreateTaskForm({ onSuccess }: CreateTaskFormProps) {
 				</form.Section>
 				<form.FormError>{createTask.error?.message}</form.FormError>
 				<form.SubmitButton>Create Task</form.SubmitButton>
-			</form.Shell>
+			</form.SubmitForm>
 		</form.AppForm>
 	);
 }

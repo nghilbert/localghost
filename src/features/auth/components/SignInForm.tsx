@@ -26,7 +26,7 @@ export function SignInForm() {
 
 	return (
 		<form.AppForm>
-			<form.Shell>
+			<form.SubmitForm>
 				<form.AppField name="email">
 					{(field) => (
 						<field.InputField
@@ -44,7 +44,7 @@ export function SignInForm() {
 
 				<form.SubmitButton>Sign in</form.SubmitButton>
 				<FieldError>{errorMsg}</FieldError>
-			</form.Shell>
+			</form.SubmitForm>
 		</form.AppForm>
 	);
 }

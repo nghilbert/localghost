@@ -77,7 +77,7 @@ export function AddProviderForm({ definition, onCreated }: AddProviderFormProps)
 
 	return (
 		<form.AppForm>
-			<form.Shell className="gap-3">
+			<form.SubmitForm className="gap-3">
 				<form.AppField name="name">{(field) => <field.InputField label="Name" />}</form.AppField>
 
 				<form.AppField name="apiKey">
@@ -131,7 +131,7 @@ export function AddProviderForm({ definition, onCreated }: AddProviderFormProps)
 						Test connection
 					</Button>
 				</Field>
-			</form.Shell>
+			</form.SubmitForm>
 		</form.AppForm>
 	);
 }
