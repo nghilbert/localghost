@@ -73,60 +73,6 @@ CREATE TABLE "model_endpoint" (
 );
 
 -- CreateTable
-CREATE TABLE "note" (
-    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
-    "title" TEXT NOT NULL DEFAULT '',
-    "content" TEXT,
-    "items" JSONB,
-    "note_type" TEXT NOT NULL DEFAULT 'note',
-    "color" TEXT,
-    "label" TEXT,
-    "pinned" BOOLEAN NOT NULL DEFAULT false,
-    "archived" BOOLEAN NOT NULL DEFAULT false,
-    "due_date" TIMESTAMP(3),
-    "sort_order" INTEGER,
-    "owner_id" UUID NOT NULL,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "note_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "scheduled_task" (
-    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
-    "name" TEXT NOT NULL DEFAULT 'Untitled Task',
-    "prompt" TEXT,
-    "task_type" TEXT NOT NULL DEFAULT 'llm',
-    "schedule" TEXT NOT NULL DEFAULT 'daily',
-    "scheduled_time" TEXT,
-    "cron_expression" TEXT,
-    "scheduled_date" TIMESTAMP(3),
-    "status" TEXT NOT NULL DEFAULT 'active',
-    "next_run" TIMESTAMP(3),
-    "last_run" TIMESTAMP(3),
-    "run_count" INTEGER NOT NULL DEFAULT 0,
-    "session_id" UUID,
-    "owner_id" UUID NOT NULL,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "scheduled_task_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "task_run" (
-    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
-    "task_id" UUID NOT NULL,
-    "status" TEXT NOT NULL DEFAULT 'running',
-    "error" TEXT,
-    "started_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "finished_at" TIMESTAMP(3),
-
-    CONSTRAINT "task_run_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
 CREATE TABLE "session" (
     "id" UUID NOT NULL,
     "expires_at" TIMESTAMP(3) NOT NULL,
@@ -172,6 +118,7 @@ CREATE TABLE "user_settings" (
     "owner_id" UUID NOT NULL,
     "system_prompt" TEXT,
     "temperature" DOUBLE PRECISION,
+    "memory_enabled" BOOLEAN NOT NULL DEFAULT true,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
 
@@ -190,24 +137,6 @@ CREATE TABLE "verification" (
     CONSTRAINT "verification_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
-CREATE TABLE "webhook" (
-    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
-    "name" TEXT NOT NULL,
-    "url" TEXT NOT NULL,
-    "events" TEXT NOT NULL DEFAULT 'chat.completed',
-    "secret_encrypted" TEXT,
-    "is_active" BOOLEAN NOT NULL DEFAULT true,
-    "last_triggered_at" TIMESTAMP(3),
-    "last_status_code" INTEGER,
-    "last_error" TEXT,
-    "owner_id" UUID NOT NULL,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "webhook_pkey" PRIMARY KEY ("id")
-);
-
 -- CreateIndex
 CREATE INDEX "account_user_id_idx" ON "account"("user_id");
 
@@ -222,18 +151,6 @@ CREATE INDEX "memory_owner_id_idx" ON "memory"("owner_id");
 
 -- CreateIndex
 CREATE INDEX "model_endpoint_owner_id_idx" ON "model_endpoint"("owner_id");
-
--- CreateIndex
-CREATE INDEX "note_owner_id_idx" ON "note"("owner_id");
-
--- CreateIndex
-CREATE INDEX "scheduled_task_owner_id_idx" ON "scheduled_task"("owner_id");
-
--- CreateIndex
-CREATE INDEX "scheduled_task_status_next_run_idx" ON "scheduled_task"("status", "next_run");
-
--- CreateIndex
-CREATE INDEX "task_run_task_id_idx" ON "task_run"("task_id");
 
 -- CreateIndex
 CREATE INDEX "session_user_id_idx" ON "session"("user_id");
@@ -252,9 +169,6 @@ CREATE UNIQUE INDEX "user_settings_owner_id_key" ON "user_settings"("owner_id");
 
 -- CreateIndex
 CREATE INDEX "verification_identifier_idx" ON "verification"("identifier");
-
--- CreateIndex
-CREATE INDEX "webhook_owner_id_idx" ON "webhook"("owner_id");
 
 -- AddForeignKey
 ALTER TABLE "account" ADD CONSTRAINT "account_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -275,15 +189,6 @@ ALTER TABLE "memory" ADD CONSTRAINT "memory_owner_id_fkey" FOREIGN KEY ("owner_i
 ALTER TABLE "model_endpoint" ADD CONSTRAINT "model_endpoint_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "note" ADD CONSTRAINT "note_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "scheduled_task" ADD CONSTRAINT "scheduled_task_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "task_run" ADD CONSTRAINT "task_run_task_id_fkey" FOREIGN KEY ("task_id") REFERENCES "scheduled_task"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE "session" ADD CONSTRAINT "session_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -291,6 +196,3 @@ ALTER TABLE "skill" ADD CONSTRAINT "skill_owner_id_fkey" FOREIGN KEY ("owner_id"
 
 -- AddForeignKey
 ALTER TABLE "user_settings" ADD CONSTRAINT "user_settings_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "webhook" ADD CONSTRAINT "webhook_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
