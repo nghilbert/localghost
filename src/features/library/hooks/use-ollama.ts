@@ -25,7 +25,6 @@ export function useOllama() {
 			queryClient.invalidateQueries({ queryKey: ["endpoints"] });
 			toast.success("Connected to Ollama");
 		},
-		onError: (error) => toast.error("Could not connect", { description: error.message }),
 	});
 
 	const testRemoteMutation = useMutation({
