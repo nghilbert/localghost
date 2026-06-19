@@ -1,6 +1,5 @@
 import { revalidateLogic } from "@tanstack/react-form";
 import { toast } from "sonner";
-import { ConnectionTestAlert } from "#/components/ConnectionTestAlert";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "#/components/ui/card";
 import { Field } from "#/components/ui/field";
@@ -50,18 +49,6 @@ export function RemoteOllamaForm({ onBack }: { onBack: () => void }) {
 								/>
 							)}
 						</form.AppField>
-
-						{testRemote.data && (
-							<ConnectionTestAlert
-								ok={testRemote.data.reachable}
-								title={testRemote.data.reachable ? "Connection works" : "Connection failed"}
-								description={
-									testRemote.data.reachable
-										? `Found ${testRemote.data.modelCount} installed model${testRemote.data.modelCount === 1 ? "" : "s"}.`
-										: "Check the address and that Ollama accepts network connections."
-								}
-							/>
-						)}
 
 						<Field orientation="horizontal">
 							<form.SubmitButton>Connect</form.SubmitButton>
