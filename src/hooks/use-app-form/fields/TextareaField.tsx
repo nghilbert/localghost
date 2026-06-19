@@ -1,19 +1,19 @@
-import { Input } from "#/components/ui/input";
-import { useFieldContext } from "#/hooks/app-form-context";
+import { Textarea } from "#/components/ui/textarea";
+import { useFieldContext } from "../app-form-context";
 import { FieldShell } from "./FieldShell";
 import type { ComponentFieldProps } from "./types";
 
-export function InputField({
+export function TextareaField({
 	label,
 	description,
 	orientation,
 	...props
-}: ComponentFieldProps<typeof Input>) {
+}: ComponentFieldProps<typeof Textarea>) {
 	const field = useFieldContext<string>();
 
 	return (
 		<FieldShell label={label} description={description} orientation={orientation}>
-			<Input
+			<Textarea
 				id={field.name}
 				value={field.state.value}
 				onBlur={field.handleBlur}

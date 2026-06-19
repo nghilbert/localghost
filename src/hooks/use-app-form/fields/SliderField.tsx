@@ -1,5 +1,5 @@
 import { Slider } from "#/components/ui/slider";
-import { useFieldContext } from "#/hooks/app-form-context";
+import { useFieldContext } from "../app-form-context";
 import { FieldShell } from "./FieldShell";
 import type { ComponentFieldProps } from "./types";
 

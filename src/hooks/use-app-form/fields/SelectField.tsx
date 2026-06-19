@@ -5,7 +5,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "#/components/ui/select";
-import { useFieldContext } from "#/hooks/app-form-context";
+import { useFieldContext } from "../app-form-context";
 import { FieldShell } from "./FieldShell";
 import type { ComponentFieldProps, FieldOption } from "./types";
 

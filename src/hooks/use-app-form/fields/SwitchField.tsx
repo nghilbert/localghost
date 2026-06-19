@@ -1,23 +1,23 @@
-import { Textarea } from "#/components/ui/textarea";
-import { useFieldContext } from "#/hooks/app-form-context";
+import { Switch } from "#/components/ui/switch";
+import { useFieldContext } from "../app-form-context";
 import { FieldShell } from "./FieldShell";
 import type { ComponentFieldProps } from "./types";
 
-export function TextareaField({
+export function SwitchField({
 	label,
 	description,
 	orientation,
 	...props
-}: ComponentFieldProps<typeof Textarea>) {
-	const field = useFieldContext<string>();
+}: ComponentFieldProps<typeof Switch>) {
+	const field = useFieldContext<boolean>();
 
 	return (
 		<FieldShell label={label} description={description} orientation={orientation}>
-			<Textarea
+			<Switch
 				id={field.name}
-				value={field.state.value}
+				checked={field.state.value}
+				onCheckedChange={(checked) => field.handleChange(checked)}
 				onBlur={field.handleBlur}
-				onChange={(event) => field.handleChange(event.target.value)}
 				aria-invalid={!field.state.meta.isValid}
 				{...props}
 			/>

@@ -1,24 +1,26 @@
 import { ToggleGroup, ToggleGroupItem } from "#/components/ui/toggle-group";
-import { useFieldContext } from "#/hooks/app-form-context";
+import { cn } from "#/lib/utils";
+import { useFieldContext } from "../app-form-context";
 import { FieldShell } from "./FieldShell";
 import type { ComponentFieldProps, FieldOption } from "./types";
 
-export type ToggleGroupFieldProps = Omit<ComponentFieldProps<typeof ToggleGroup>, "type"> & {
-	options: FieldOption[];
+type SwatchFieldProps = Omit<ComponentFieldProps<typeof ToggleGroup>, "type"> & {
+	options: (FieldOption & { swatchClassName: string })[];
 };
 
-export function ToggleGroupField({
+export function SwatchField({
 	label,
 	description,
 	orientation,
 	options,
 	...props
-}: ToggleGroupFieldProps) {
+}: SwatchFieldProps) {
 	const field = useFieldContext<string>();
 
 	return (
 		<FieldShell label={label} description={description} orientation={orientation}>
 			<ToggleGroup
+				id={field.name}
 				type="single"
 				value={field.state.value}
 				onValueChange={(value) => {
@@ -28,12 +30,8 @@ export function ToggleGroupField({
 				{...props}
 			>
 				{options.map((option) => (
-					<ToggleGroupItem
-						key={option.value}
-						value={option.value}
-						aria-invalid={!field.state.meta.isValid}
-					>
-						{option.label}
+					<ToggleGroupItem key={option.value} value={option.value} aria-label={option.label}>
+						<span className={cn("size-3 rounded-full border", option.swatchClassName)} />
 					</ToggleGroupItem>
 				))}
 			</ToggleGroup>

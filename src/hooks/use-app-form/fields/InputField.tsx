@@ -1,23 +1,23 @@
-import { Switch } from "#/components/ui/switch";
-import { useFieldContext } from "#/hooks/app-form-context";
+import { Input } from "#/components/ui/input";
+import { useFieldContext } from "../app-form-context";
 import { FieldShell } from "./FieldShell";
 import type { ComponentFieldProps } from "./types";
 
-export function SwitchField({
+export function InputField({
 	label,
 	description,
 	orientation,
 	...props
-}: ComponentFieldProps<typeof Switch>) {
-	const field = useFieldContext<boolean>();
+}: ComponentFieldProps<typeof Input>) {
+	const field = useFieldContext<string>();
 
 	return (
 		<FieldShell label={label} description={description} orientation={orientation}>
-			<Switch
+			<Input
 				id={field.name}
-				checked={field.state.value}
-				onCheckedChange={(checked) => field.handleChange(checked)}
+				value={field.state.value}
 				onBlur={field.handleBlur}
+				onChange={(event) => field.handleChange(event.target.value)}
 				aria-invalid={!field.state.meta.isValid}
 				{...props}
 			/>

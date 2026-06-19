@@ -7,7 +7,7 @@ import {
 	InputGroupInput,
 } from "#/components/ui/input-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "#/components/ui/tooltip";
-import { useFieldContext } from "#/hooks/app-form-context";
+import { useFieldContext } from "../app-form-context";
 import { FieldShell } from "./FieldShell";
 import type { ComponentFieldProps } from "./types";
 
