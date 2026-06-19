@@ -9,7 +9,6 @@ import {
 	UserIcon,
 	WrenchIcon,
 } from "lucide-react";
-import { PageHeader } from "#/components/PageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "#/components/ui/tabs";
 import { AccountTab } from "#/features/settings/components/AccountTab";
 import { ChatTab } from "#/features/settings/components/ChatTab";
@@ -39,45 +38,42 @@ function SettingsPage() {
 
 	return (
 		<Tabs defaultValue={tab ?? "account"} className="flex h-full flex-col overflow-hidden">
-			<PageHeader
-				title="Settings"
-				actions={
-					<TabsList variant="line">
-						<TabsTrigger value="account" className="gap-1.5">
-							<UserIcon size={13} />
-							Account
-						</TabsTrigger>
-						<TabsTrigger value="chat" className="gap-1.5">
-							<MessageSquareIcon size={13} />
-							Chat
-						</TabsTrigger>
-						<TabsTrigger value="memory" className="gap-1.5">
-							<BrainIcon size={13} />
-							Memory
-						</TabsTrigger>
-						<TabsTrigger value="setup" className="gap-1.5">
-							<WrenchIcon size={13} />
-							Setup
-						</TabsTrigger>
-						<TabsTrigger value="providers" className="gap-1.5">
-							<PlugIcon size={13} />
-							Providers
-						</TabsTrigger>
-						<TabsTrigger value="theme" className="gap-1.5">
-							<PaletteIcon size={13} />
-							Theme
-						</TabsTrigger>
-						<TabsTrigger value="data" className="gap-1.5">
-							<DatabaseIcon size={13} />
-							Data
-						</TabsTrigger>
-						<TabsTrigger value="mcp" className="gap-1.5">
-							<ServerIcon size={13} />
-							MCP
-						</TabsTrigger>
-					</TabsList>
-				}
-			/>
+			<div className="shrink-0 border-b px-4 py-2">
+				<TabsList variant="line">
+					<TabsTrigger value="account" className="gap-1.5">
+						<UserIcon size={13} />
+						Account
+					</TabsTrigger>
+					<TabsTrigger value="chat" className="gap-1.5">
+						<MessageSquareIcon size={13} />
+						Chat
+					</TabsTrigger>
+					<TabsTrigger value="memory" className="gap-1.5">
+						<BrainIcon size={13} />
+						Memory
+					</TabsTrigger>
+					<TabsTrigger value="setup" className="gap-1.5">
+						<WrenchIcon size={13} />
+						Setup
+					</TabsTrigger>
+					<TabsTrigger value="providers" className="gap-1.5">
+						<PlugIcon size={13} />
+						Providers
+					</TabsTrigger>
+					<TabsTrigger value="theme" className="gap-1.5">
+						<PaletteIcon size={13} />
+						Theme
+					</TabsTrigger>
+					<TabsTrigger value="data" className="gap-1.5">
+						<DatabaseIcon size={13} />
+						Data
+					</TabsTrigger>
+					<TabsTrigger value="mcp" className="gap-1.5">
+						<ServerIcon size={13} />
+						MCP
+					</TabsTrigger>
+				</TabsList>
+			</div>
 			<div className="mx-auto w-full max-w-2xl overflow-auto p-6">
 				<TabsContent value="account">
 					<AccountTab />

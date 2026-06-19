@@ -1,6 +1,5 @@
 import { getRouteApi } from "@tanstack/react-router";
 import { BoxesIcon, Rows3Icon } from "lucide-react";
-import { PageHeader } from "#/components/PageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "#/components/ui/tabs";
 import { BrowseTab } from "#/features/library/components/BrowseTab";
 import { MyModelsTab } from "#/features/library/components/MyModelsTab";
@@ -26,22 +25,18 @@ export function LibraryPage() {
 			}}
 			className="flex h-full flex-col overflow-hidden"
 		>
-			<PageHeader
-				title="Library"
-				description="Browse and install local models to chat with."
-				actions={
-					<TabsList variant="line">
-						<TabsTrigger value="my-models" className="gap-1.5">
-							<BoxesIcon size={13} />
-							My Models
-						</TabsTrigger>
-						<TabsTrigger value="browse" className="gap-1.5">
-							<Rows3Icon size={13} />
-							Browse
-						</TabsTrigger>
-					</TabsList>
-				}
-			/>
+			<div className="shrink-0 border-b px-4 py-2">
+				<TabsList variant="line">
+					<TabsTrigger value="my-models" className="gap-1.5">
+						<BoxesIcon size={13} />
+						My Models
+					</TabsTrigger>
+					<TabsTrigger value="browse" className="gap-1.5">
+						<Rows3Icon size={13} />
+						Browse
+					</TabsTrigger>
+				</TabsList>
+			</div>
 			<TabsContent value="my-models" className="flex flex-col overflow-auto">
 				<MyModelsTab onBrowse={() => navigate({ search: { tab: "browse" } })} />
 			</TabsContent>

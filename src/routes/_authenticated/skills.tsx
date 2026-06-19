@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { PageHeader } from "#/components/PageHeader";
 import { SkillEditor } from "#/features/skills/components/SkillEditor";
 import { SkillList } from "#/features/skills/components/SkillList";
 import { useSkills } from "#/features/skills/hooks/use-skills";
@@ -78,7 +77,6 @@ function SkillsPage() {
 
 	return (
 		<div className="flex h-full flex-col">
-			<PageHeader title="Skills" description="Reusable procedures and instructions for the agent" />
 			<div className="flex min-h-0 flex-1">
 				<SkillList
 					skills={skills}
