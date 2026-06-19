@@ -7,8 +7,8 @@ import {
 	mcpServerIdInput,
 	updateMcpServerInput,
 } from "#/features/mcp/lib/schemas";
+import { listMcpTools } from "#/features/mcp/lib/tools.server";
 import { prisma } from "#/lib/db.server";
-import { listMcpTools } from "#/lib/mcp.server";
 
 async function getCurrentUserId(): Promise<string> {
 	const headers = getRequestHeaders();

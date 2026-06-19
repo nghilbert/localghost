@@ -1,6 +1,6 @@
 import { z } from "zod/v4";
 import { prisma } from "#/lib/db.server";
-import { embed, toVectorLiteral } from "#/lib/embeddings.server";
+import { embed, toVectorLiteral } from "#/lib/tools/embeddings.server";
 
 export const manageMemoryArgsSchema = z.object({
 	action: z.enum(["add", "search", "list", "delete"]),

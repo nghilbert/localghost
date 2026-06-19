@@ -8,13 +8,13 @@ import {
 import { EventType } from "@tanstack/ai/client";
 import { createFileRoute } from "@tanstack/react-router";
 import { auth } from "#/features/auth/lib/auth.server";
+import { buildChatTools } from "#/features/chat/lib/agent.server";
+import { maybeCompact } from "#/features/chat/lib/compactor.server";
 import { chatStreamForwardedPropsSchema } from "#/features/chat/lib/schemas";
-import { buildChatTools } from "#/lib/agent.server";
-import { maybeCompact } from "#/lib/compactor.server";
+import { listAllMcpTools } from "#/features/mcp/lib/tools.server";
 import { decrypt } from "#/lib/crypto.server";
 import { prisma } from "#/lib/db.server";
 import { streamLLMEvents } from "#/lib/llm.server";
-import { listAllMcpTools } from "#/lib/mcp.server";
 import { MCP_TOOL_PREFIX } from "#/lib/tools/catalog";
 import { recallMemories } from "#/lib/tools/manage_memory";
 

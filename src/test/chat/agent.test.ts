@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { buildChatTools } from "#/lib/agent.server";
-import type { McpToolDef } from "#/lib/mcp.server";
+import { buildChatTools } from "#/features/chat/lib/agent.server";
+import type { McpToolDef } from "#/features/mcp/lib/tools.server";
 
 const OWNER = "test-user-id";
 

@@ -1,5 +1,5 @@
+import { decrypt } from "#/lib/crypto.server";
 import { prisma } from "#/lib/db.server";
-import { decrypt } from "./crypto.server";
 
 /**
  * Fetches a text embedding from the user's first endpoint that supports
