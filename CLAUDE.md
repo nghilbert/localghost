@@ -19,7 +19,7 @@ Guidance for Claude Code working in this repository.
 
 ## Project Purpose
 
-A ground-up TypeScript reimplementation of [Odysseus](https://github.com/pewdiepie-archdaemon/odysseus). Goal: feature parity — chat, agent, cookbook, research, notes, tasks, memory, skills — with cleaner architecture and better UX. Treat `../odysseus/` as the behavior reference, but improve on it rather than porting verbatim.
+A modern, local-first AI chat app: install whatever model you want (local via Ollama, or bring-your-own cloud endpoint) and chat with it — as simple and polished as the big brands, but yours. The **Library** is the core surface (browse and install models, then chat). Capabilities are **inline tools, never tabs**: web search, MCP servers, and an automatic long-term **Memory** all live inside chat. Keep it simple and powerful; cut anything that doesn't serve that loop.
 
 ## Commands
 
@@ -33,7 +33,9 @@ npm run prisma -- migrate dev --name <name>
 npm run prisma -- generate
 ```
 
-**Inner dev loop:** `docker compose up db -d` then `npm run dev`.
+**Inner dev loop (fastest HMR):** `docker compose up db -d` then `npm run dev` — app native against a Dockerized Postgres.
+
+**Full stack in Docker:** `COMPOSE_PROFILES=ollama,dev docker compose up --build` — the `dev` profile runs Vite with HMR over a bind mount (`web-dev` service); the `ollama` profile adds a bundled Ollama. `COMPOSE_FILE` overlays add GPU access; see `.env.example` / `README.md`.
 
 ## Environment
 
@@ -47,9 +49,9 @@ Copy `.env.example` to `.env`. Required: `DATABASE_URL`, `BETTER_AUTH_SECRET`, `
 - **Data:** TanStack Query + `createServerFn` in co-located `*.functions.ts`. Call as `fn({ data: { ... } })`.
 - **Database:** Prisma 7 + `@prisma/adapter-pg`. Multi-file schema in `prisma/schema/`. Generated client in `src/generated/prisma/`. Import `prisma` — never alias.
 - **Styling:** Tailwind v4. `src/lib/globals.css` is the single CSS entry. Light/dark via `.dark` on `<html>`. `cn()` in `src/lib/utils.ts`.
-- **LLM:** `src/lib/llm.server.ts` — `streamLLMEvents()` → `AsyncIterable<StreamChunk>`, `callLLM()` non-streaming. Provider auto-detected from URL. Both wrap `@tanstack/ai`'s `chat()`.
-- **Agent:** `src/lib/agent.server.ts` — `runAgentEvents()` returns the same event stream with built-in tools auto-executed up to 10 rounds.
-- **Chat persistence:** one `Conversation` row = one `UIMessage[]` blob (`messages` JSONB). The **client** owns persistence via `ChatClientPersistence` (`src/features/chat/lib/chat-persistence.ts`), so `/api/chat/stream` performs **zero DB writes**. Sidebar filters `mode: { not: "compare" }` so ephemeral compare rows stay invisible.
+- **LLM:** `src/lib/llm.server.ts` — `streamLLMEvents()` → `AsyncIterable<StreamChunk>` (pass a `ServerTool[]` to enable the agent loop), `callLLM()` non-streaming. A data-driven `PROVIDERS` registry handles per-provider URL/header/model-list/options quirks; provider auto-detected from URL. All wrap `@tanstack/ai`'s `chat()` with native adapters.
+- **Tools:** `src/lib/agent.server.ts` — `buildAgentTools()` assembles the built-in `ServerTool[]` (web search, memory, skills, search chats) plus MCP server tools; `chat()` auto-executes them. There is **one** chat — no separate "agent mode". Which tools are offered is an **ephemeral per-request choice** the client sends via `forwardedProps` (not persisted); memory tools are always on unless opted out in Settings.
+- **Chat persistence:** one `Conversation` row = one `UIMessage[]` blob (`messages` JSONB). The **client** owns persistence via `ChatClientPersistence` (`src/features/chat/lib/chat-persistence.ts`), so `/api/chat/stream` performs **zero DB writes**.
 
 ## Forms
 
@@ -81,14 +83,10 @@ src/features/<name>/
 | Area | Key files |
 |------|-----------|
 | Chat + streaming | `src/features/chat/` (`conversation.functions.ts`, `chat-persistence.ts`), `src/routes/api/chat/stream.tsx` |
-| Model compare | `src/features/compare/` — `Conversation` rows (`mode="compare"`), `useChat` per slot, in-memory persistence, reuses `/api/chat/stream` |
-| Cookbook | `src/features/cookbook/`, `src/routes/api/cookbook/pull.tsx`, `src/lib/hardware.server.ts` |
+| Library (core) | `src/features/library/`, `src/routes/api/library/pull.tsx`, `src/lib/hardware.server.ts` — browse/install local models (My Models, Browse) |
 | Endpoints / providers | `src/features/endpoints/` — shared `ModelEndpoint` table |
-| Memory (pgvector) | `src/features/memory/`, `src/lib/tools/manage_memory.ts` |
-| Scheduled tasks | `src/features/tasks/`, `src/lib/scheduler.server.ts` |
+| Memory (pgvector, automatic) | `src/lib/tools/manage_memory.ts`, `src/lib/embeddings.server.ts` — recall injected into context; opt out in Settings |
 | Skills | `src/features/skills/` |
-| Notes | `src/features/notes/` |
-| Webhooks | `src/features/webhooks/` — HMAC-SHA256, SSRF protection |
 | MCP servers | `src/lib/mcp.server.ts`, `src/features/mcp/` |
 | Settings | `src/features/settings/components/` |
 | Backup/import | `src/routes/api/backup/` — non-destructive merge |
