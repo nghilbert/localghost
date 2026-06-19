@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import {
 	DatabaseIcon,
+	MessageSquareIcon,
 	PaletteIcon,
 	PlugIcon,
 	ServerIcon,
@@ -11,17 +12,22 @@ import {
 import { PageHeader } from "#/components/PageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "#/components/ui/tabs";
 import { AccountTab } from "#/features/settings/components/AccountTab";
+import { ChatTab } from "#/features/settings/components/ChatTab";
 import { DataTab } from "#/features/settings/components/DataTab";
 import { McpTab } from "#/features/settings/components/McpTab";
 import { ProvidersTab } from "#/features/settings/components/ProvidersTab";
 import { SetupTab } from "#/features/settings/components/SetupTab";
 import { WebhooksTab } from "#/features/settings/components/WebhooksTab";
 import { SettingsSearchSchema } from "#/features/settings/lib/schemas";
+import { userSettingsQueryOptions } from "#/features/settings/lib/user-settings.functions";
 import { AppearanceSettings } from "#/features/theme/AppearanceSettings";
 
 export const Route = createFileRoute("/_authenticated/settings")({
 	component: SettingsPage,
 	validateSearch: (search) => SettingsSearchSchema.parse(search),
+	loader: async ({ context }) => {
+		await context.queryClient.ensureQueryData(userSettingsQueryOptions());
+	},
 });
 
 function SettingsPage() {
@@ -36,6 +42,10 @@ function SettingsPage() {
 						<TabsTrigger value="account" className="gap-1.5">
 							<UserIcon size={13} />
 							Account
+						</TabsTrigger>
+						<TabsTrigger value="chat" className="gap-1.5">
+							<MessageSquareIcon size={13} />
+							Chat
 						</TabsTrigger>
 						<TabsTrigger value="setup" className="gap-1.5">
 							<WrenchIcon size={13} />
@@ -67,6 +77,9 @@ function SettingsPage() {
 			<div className="mx-auto w-full max-w-2xl overflow-auto p-6">
 				<TabsContent value="account">
 					<AccountTab />
+				</TabsContent>
+				<TabsContent value="chat">
+					<ChatTab />
 				</TabsContent>
 				<TabsContent value="setup">
 					<SetupTab />

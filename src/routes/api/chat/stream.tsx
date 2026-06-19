@@ -58,12 +58,17 @@ export const Route = createFileRoute("/api/chat/stream")({
 				const endpoint = conversation.endpoint;
 				const apiKey = endpoint.apiKeyEncrypted ? decrypt(endpoint.apiKeyEncrypted) : undefined;
 				const isAgent = conversation.mode === "agent";
-				const temperature = conversation.temperature ?? undefined;
+
+				// System prompt + temperature are global per-user chat defaults.
+				const userSettings = await prisma.userSettings.findUnique({
+					where: { ownerId: userId },
+				});
+				const temperature = userSettings?.temperature ?? undefined;
 
 				const modelMessages = convertMessagesToModelMessages(params.messages);
 
-				// Build effective system prompt: the conversation prompt plus the user's skills.
-				let systemPrompt = conversation.systemPrompt ?? undefined;
+				// Build effective system prompt: the user's global prompt plus their skills.
+				let systemPrompt = userSettings?.systemPrompt ?? undefined;
 				const userSkills = await prisma.skill.findMany({
 					where: { ownerId: userId },
 					orderBy: { updatedAt: "desc" },

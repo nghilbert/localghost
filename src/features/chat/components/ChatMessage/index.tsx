@@ -10,10 +10,9 @@ import { cn } from "#/lib/utils";
 type Props = {
 	message: UIMessage;
 	isStreaming?: boolean;
-	autoSpeak?: boolean;
 };
 
-export function ChatMessage({ message, isStreaming, autoSpeak }: Props) {
+export function ChatMessage({ message, isStreaming }: Props) {
 	const content = partsText(message.parts);
 
 	if (message.role === "user") {
@@ -96,7 +95,7 @@ export function ChatMessage({ message, isStreaming, autoSpeak }: Props) {
 
 			{!isStreaming && content && (
 				<div className="flex items-center gap-1">
-					<SpeakButton text={content} autoPlay={autoSpeak} />
+					<SpeakButton text={content} />
 				</div>
 			)}
 		</article>

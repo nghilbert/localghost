@@ -1,5 +1,5 @@
 import { Switch } from "#/components/ui/switch";
-import { useAppField } from "#/hooks/use-app-field";
+import { useFieldContext } from "#/hooks/app-form-context";
 import { FieldShell } from "./FieldShell";
 import type { ComponentFieldProps } from "./types";
 
@@ -9,7 +9,7 @@ export function SwitchField({
 	orientation,
 	...props
 }: ComponentFieldProps<typeof Switch>) {
-	const { field, isFieldValid } = useAppField<boolean>();
+	const field = useFieldContext<boolean>();
 
 	return (
 		<FieldShell label={label} description={description} orientation={orientation}>
@@ -18,7 +18,7 @@ export function SwitchField({
 				checked={field.state.value}
 				onCheckedChange={(checked) => field.handleChange(checked)}
 				onBlur={field.handleBlur}
-				aria-invalid={!isFieldValid}
+				aria-invalid={!field.state.meta.isValid}
 				{...props}
 			/>
 		</FieldShell>

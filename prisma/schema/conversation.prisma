@@ -10,8 +10,6 @@ model Conversation {
     endpoint     ModelEndpoint? @relation(fields: [endpointId], references: [id], onDelete: SetNull)
     model        String         @default("")
     mode         String         @default("chat")
-    systemPrompt String?        @map("system_prompt")
-    temperature  Float?
     archived     Boolean        @default(false)
     /// @tanstack/ai UIMessage[] — the full conversation transcript.
     messages     Json           @default("[]")

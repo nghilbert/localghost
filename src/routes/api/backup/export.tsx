@@ -10,7 +10,7 @@ export const Route = createFileRoute("/api/backup/export")({
 				if (!session) return new Response("Unauthorized", { status: 401 });
 				const userId = session.user.id;
 
-				const [memories, notes, skills, conversations] = await Promise.all([
+				const [memories, notes, skills, conversations, userSettings] = await Promise.all([
 					prisma.memory.findMany({ where: { ownerId: userId }, orderBy: { createdAt: "asc" } }),
 					prisma.note.findMany({ where: { ownerId: userId }, orderBy: { createdAt: "asc" } }),
 					prisma.skill.findMany({ where: { ownerId: userId }, orderBy: { name: "asc" } }),
@@ -18,14 +18,18 @@ export const Route = createFileRoute("/api/backup/export")({
 						where: { ownerId: userId, archived: false },
 						orderBy: { updatedAt: "desc" },
 						take: 50,
-						select: { title: true, model: true, mode: true, systemPrompt: true, messages: true },
+						select: { title: true, model: true, mode: true, messages: true },
 					}),
+					prisma.userSettings.findUnique({ where: { ownerId: userId } }),
 				]);
 
 				const payload = {
-					version: 1,
+					version: 2,
 					exportedAt: new Date().toISOString(),
 					exportedBy: session.user.email,
+					userSettings: userSettings
+						? { systemPrompt: userSettings.systemPrompt, temperature: userSettings.temperature }
+						: null,
 					memories: memories.map((m) => ({
 						text: m.text,
 						category: m.category,
@@ -49,7 +53,6 @@ export const Route = createFileRoute("/api/backup/export")({
 						title: c.title,
 						model: c.model,
 						mode: c.mode,
-						systemPrompt: c.systemPrompt,
 						// The framework's `UIMessage[]` blob, round-tripped verbatim.
 						messages: c.messages,
 					})),

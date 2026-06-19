@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "#/components/ui/button";
 import { Calendar } from "#/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "#/components/ui/popover";
-import { useAppField } from "#/hooks/use-app-field";
+import { useFieldContext } from "#/hooks/app-form-context";
 import { cn } from "#/lib/utils";
 import { FieldShell } from "./FieldShell";
 import type { BaseFieldProps } from "./types";
@@ -39,7 +39,7 @@ export function DateField({
 	orientation,
 	placeholder = "Pick a date",
 }: DateFieldProps) {
-	const { field, isFieldValid } = useAppField<string>();
+	const field = useFieldContext<string>();
 	const [open, setOpen] = useState(false);
 	const selected = parseValue(field.state.value);
 
@@ -51,7 +51,7 @@ export function DateField({
 						id={field.name}
 						type="button"
 						variant="outline"
-						aria-invalid={!isFieldValid}
+						aria-invalid={!field.state.meta.isValid}
 						onBlur={field.handleBlur}
 						className={cn("justify-start font-normal", !selected && "text-muted-foreground")}
 					>

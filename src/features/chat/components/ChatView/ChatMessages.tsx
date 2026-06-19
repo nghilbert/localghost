@@ -1,7 +1,7 @@
 import type { UIMessage } from "@tanstack/ai-client";
 import { Link } from "@tanstack/react-router";
 import { BookOpenIcon } from "lucide-react";
-import type { RefObject } from "react";
+import { useEffect, useRef } from "react";
 import { Button } from "#/components/ui/button";
 import {
 	Empty,
@@ -15,18 +15,18 @@ import { ChatMessage } from "#/features/chat/components/ChatMessage";
 type Props = {
 	messages: UIMessage[];
 	isStreaming: boolean;
-	autoSpeak: boolean;
 	isReady: boolean;
-	bottomRef: RefObject<HTMLDivElement | null>;
 };
 
-export function ConversationMessages({
-	messages,
-	isStreaming,
-	autoSpeak,
-	isReady,
-	bottomRef,
-}: Props) {
+export function ChatMessages({ messages, isStreaming, isReady }: Props) {
+	const bottomRef = useRef<HTMLDivElement>(null);
+
+	// Runs every render so the feed stays pinned to the latest content as the
+	// transcript streams in (streaming deltas mutate the last message in place).
+	useEffect(() => {
+		requestAnimationFrame(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }));
+	});
+
 	return (
 		<section
 			aria-label="Conversation"
@@ -63,14 +63,7 @@ export function ConversationMessages({
 			{messages.map((msg, idx) => {
 				const isLast = idx === messages.length - 1;
 				const isStreamingMessage = isStreaming && isLast && msg.role === "assistant";
-				return (
-					<ChatMessage
-						key={msg.id}
-						message={msg}
-						isStreaming={isStreamingMessage}
-						autoSpeak={autoSpeak && msg.role === "assistant" && !isStreamingMessage && isLast}
-					/>
-				);
+				return <ChatMessage key={msg.id} message={msg} isStreaming={isStreamingMessage} />;
 			})}
 			<div ref={bottomRef} />
 		</section>

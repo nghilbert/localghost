@@ -1,17 +1,15 @@
 import { Volume2Icon, VolumeXIcon } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Button } from "#/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "#/components/ui/tooltip";
 import { cn } from "#/lib/utils";
 
 type Props = {
 	text: string;
-	autoPlay?: boolean;
 };
 
-export function SpeakButton({ text, autoPlay = false }: Props) {
+export function SpeakButton({ text }: Props) {
 	const [speaking, setSpeaking] = useState(false);
-	const hasAutoPlayed = useRef(false);
 	const supported = typeof window !== "undefined" && "speechSynthesis" in window;
 
 	const speak = useCallback(() => {
@@ -23,13 +21,6 @@ export function SpeakButton({ text, autoPlay = false }: Props) {
 		window.speechSynthesis.speak(utterance);
 		setSpeaking(true);
 	}, [text, supported]);
-
-	useEffect(() => {
-		if (autoPlay && !hasAutoPlayed.current && supported && text.trim()) {
-			hasAutoPlayed.current = true;
-			speak();
-		}
-	}, [autoPlay, text, supported, speak]);
 
 	useEffect(() => {
 		return () => {
