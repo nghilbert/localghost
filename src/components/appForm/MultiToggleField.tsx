@@ -1,5 +1,5 @@
 import { ToggleGroup, ToggleGroupItem } from "#/components/ui/toggle-group";
-import { useAppField } from "#/hooks/use-app-field";
+import { useFieldContext } from "#/hooks/app-form-context";
 import { FieldShell } from "./FieldShell";
 import type { ToggleGroupFieldProps } from "./ToggleGroupField";
 
@@ -10,7 +10,7 @@ export function MultiToggleField({
 	options,
 	...props
 }: ToggleGroupFieldProps) {
-	const { field, isFieldValid } = useAppField<string[]>();
+	const field = useFieldContext<string[]>();
 
 	return (
 		<FieldShell label={label} description={description} orientation={orientation}>
@@ -23,7 +23,11 @@ export function MultiToggleField({
 				{...props}
 			>
 				{options.map((option) => (
-					<ToggleGroupItem key={option.value} value={option.value} aria-invalid={!isFieldValid}>
+					<ToggleGroupItem
+						key={option.value}
+						value={option.value}
+						aria-invalid={!field.state.meta.isValid}
+					>
 						{option.label}
 					</ToggleGroupItem>
 				))}

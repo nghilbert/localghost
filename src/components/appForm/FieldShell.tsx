@@ -31,10 +31,9 @@ export function FieldShell({
 	children,
 }: FieldShellProps) {
 	const field = useFieldContext();
-	const isFieldValid = !field.state.meta.isTouched ? true : field.state.meta.isValid;
 
 	return (
-		<Field orientation={orientation} data-invalid={!isFieldValid}>
+		<Field orientation={orientation} data-invalid={!field.state.meta.isValid}>
 			<FieldContent>
 				<FieldLabel htmlFor={field.name}>{label}</FieldLabel>
 				{description && <FieldDescription>{description}</FieldDescription>}
