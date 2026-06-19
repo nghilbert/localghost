@@ -30,20 +30,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 	component: RootDocument,
 	notFoundComponent: NotFound,
 	head: () => ({
-		meta: [
-			{ title: "Pretty Odysseus" },
-			{ name: "description", content: "Self-hosted AI workspace" },
-		],
+		meta: [{ title: "localghost" }, { name: "description", content: "Self-hosted AI workspace" }],
 		links: [
 			{ rel: "icon", href: "/favicon.ico" },
 			{ rel: "manifest", href: "/manifest.json" },
-		],
-		scripts: [
-			{
-				// Apply dark mode + accent theme before first paint to avoid a flash
-				// of the wrong scheme; mirrors ThemeProvider's storage keys.
-				children: `(function(){try{var m=localStorage.getItem("odysseus-mode");var d=m==="dark"||(m!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches);if(d)document.documentElement.classList.add("dark");var t=localStorage.getItem("odysseus-theme");if(t&&t!=="default")document.documentElement.classList.add("theme-"+t);}catch(e){}})();`,
-			},
 		],
 	}),
 });

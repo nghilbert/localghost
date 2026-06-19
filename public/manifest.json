@@ -1,6 +1,6 @@
 {
-	"name": "Pretty Odysseus",
-	"short_name": "Odysseus",
+	"name": "localghost",
+	"short_name": "localghost",
 	"description": "Self-hosted AI workspace",
 	"start_url": "/",
 	"display": "standalone",

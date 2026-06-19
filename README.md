@@ -1,4 +1,8 @@
-# pretty-odysseus
+# localghost
+
+A local-first AI chat app: install whatever model you want (local via Ollama, or
+bring your own cloud endpoint) and chat with it — a private intelligence that
+lives only on your host.
 
 ## Setup
 

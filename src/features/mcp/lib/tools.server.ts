@@ -25,7 +25,7 @@ function slug(name: string) {
 }
 
 function makeClient() {
-	return new Client({ name: "pretty-odysseus", version: "1.0.0" });
+	return new Client({ name: "localghost", version: "1.0.0" });
 }
 
 function makeTransport(url: string, type: string) {

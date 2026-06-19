@@ -14,8 +14,8 @@ export const THEME_LABELS: Record<Theme, string> = {
 	"midnight-bloom": "Midnight Bloom",
 };
 
-const THEME_STORAGE_KEY = "odysseus-theme";
-const MODE_STORAGE_KEY = "odysseus-mode";
+const THEME_STORAGE_KEY = "localghost-theme";
+const MODE_STORAGE_KEY = "localghost-mode";
 
 export function isTheme(value: string | null): value is Theme {
 	return THEMES.some((theme) => theme === value);

@@ -47,7 +47,7 @@ export const Route = createFileRoute("/api/backup/export")({
 					})),
 				};
 
-				const filename = `odysseus-backup-${new Date().toISOString().slice(0, 10)}.json`;
+				const filename = `localghost-backup-${new Date().toISOString().slice(0, 10)}.json`;
 				return new Response(JSON.stringify(payload, null, 2), {
 					headers: {
 						"Content-Type": "application/json",

@@ -1,4 +1,4 @@
-const CACHE = "odysseus-v1";
+const CACHE = "localghost-v1";
 
 const STATIC_EXTENSIONS = [".js", ".css", ".woff2", ".woff", ".png", ".ico", ".svg"];
 

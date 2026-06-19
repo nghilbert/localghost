@@ -18,7 +18,7 @@ export type StreamLLMOptions = {
 	maxTokens?: number;
 };
 
-const OPENROUTER_REFERER = "https://pretty-odysseus.app";
+const OPENROUTER_REFERER = "https://localghost.app";
 const DEFAULT_MAX_TOKENS = 4096;
 const MAX_AGENT_ROUNDS = 10;
 
