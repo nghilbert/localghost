@@ -4,8 +4,6 @@ x-app: &app
   ports:
     - "3000:3000"
   environment: &app-env
-    # `:?` guards fail compose up with a clear message if a required secret is
-    # unset; `:-` supplies a default so the var is optional.
     DATABASE_URL: "postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:-localghost}"
     BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?set BETTER_AUTH_SECRET in .env}
     BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}

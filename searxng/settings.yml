@@ -1,12 +1,10 @@
-# Minimal SearXNG config for the bundled compose service. The stock image ships
-# with the JSON API disabled and requires a secret key to boot, so we enable the
-# `json` format the app parses and disable the bot limiter for local API access.
 use_default_settings: true
 
+# The app calls SearXNG's JSON API, which the stock image ships disabled: enable
+# the json format and drop the bot limiter so programmatic requests get through.
 server:
-  secret_key: "change-me-local-dev"
+  secret_key: "localghost-dev" # unused while limiter is off; local instance only
   limiter: false
-
 search:
   formats:
     - html
