@@ -1,12 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import {
-	BookOpenIcon,
-	CheckSquareIcon,
-	ChefHatIcon,
-	SettingsIcon,
-	ShieldIcon,
-	StickyNotesIcon,
-} from "lucide-react";
+import { BookOpenIcon, LibraryIcon, SettingsIcon } from "lucide-react";
 import {
 	Sidebar,
 	SidebarContent,
@@ -26,10 +19,8 @@ import { APP_NAME } from "#/lib/constants";
 import { AuthMenu } from "./AuthMenu";
 
 const NAV_ITEMS = [
-	{ to: "/notes", label: "Notes", icon: StickyNotesIcon },
+	{ to: "/library", label: "Library", icon: LibraryIcon },
 	{ to: "/skills", label: "Skills", icon: BookOpenIcon },
-	{ to: "/tasks", label: "Tasks", icon: CheckSquareIcon },
-	{ to: "/cookbook", label: "Cookbook", icon: ChefHatIcon },
 ] as const;
 
 export function AppSidebar() {
@@ -89,14 +80,6 @@ export function AppSidebar() {
 									<Link to="/settings">
 										<SettingsIcon size={15} />
 										<span>Settings</span>
-									</Link>
-								</SidebarMenuButton>
-							</SidebarMenuItem>
-							<SidebarMenuItem>
-								<SidebarMenuButton asChild isActive={location.startsWith("/admin")} tooltip="Admin">
-									<Link to="/admin">
-										<ShieldIcon size={15} />
-										<span>Admin</span>
 									</Link>
 								</SidebarMenuButton>
 							</SidebarMenuItem>

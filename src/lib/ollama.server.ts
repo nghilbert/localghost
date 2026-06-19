@@ -1,4 +1,4 @@
-import type { OllamaInstalledModel } from "#/features/cookbook/lib/types";
+import type { OllamaInstalledModel } from "#/features/library/lib/types";
 import { prisma } from "#/lib/db.server";
 
 const DEFAULT_OLLAMA_URL = "http://localhost:11434";

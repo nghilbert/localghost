@@ -1,15 +1,15 @@
 /// An external MCP (Model Context Protocol) server whose tools are injected into agent sessions.
 model McpServer {
-    id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-    name      String
-    url       String
-    type      String   @default("streamable-http") // "streamable-http" | "sse"
-    enabled   Boolean  @default(true)
-    ownerId   String   @map("owner_id") @db.Uuid
-    owner     User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-    createdAt DateTime @default(now()) @map("created_at")
-    updatedAt DateTime @updatedAt @map("updated_at")
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String
+  url       String
+  type      String   @default("streamable-http") // "streamable-http" | "sse"
+  enabled   Boolean  @default(true)
+  ownerId   String   @map("owner_id") @db.Uuid
+  owner     User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-    @@index([ownerId])
-    @@map("mcp_server")
+  @@index([ownerId])
+  @@map("mcp_server")
 }

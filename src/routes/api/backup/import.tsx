@@ -6,20 +6,10 @@ type ImportPayload = {
 	version?: number;
 	userSettings?: { systemPrompt?: string | null; temperature?: number | null } | null;
 	memories?: Array<{ text: string; category?: string | null; source?: string }>;
-	notes?: Array<{
-		title?: string;
-		content?: string | null;
-		noteType?: string;
-		items?: unknown;
-		color?: string | null;
-		label?: string | null;
-		pinned?: boolean;
-	}>;
 	skills?: Array<{ name: string; description?: string; content: string }>;
 	conversations?: Array<{
 		title?: string;
 		model?: string | null;
-		mode?: string | null;
 		messages?: unknown;
 	}>;
 };
@@ -45,7 +35,6 @@ export const Route = createFileRoute("/api/backup/import")({
 
 				const results = {
 					memories: 0,
-					notes: 0,
 					skills: 0,
 					conversations: 0,
 				};
@@ -78,25 +67,6 @@ export const Route = createFileRoute("/api/backup/import")({
 					}
 				}
 
-				if (Array.isArray(payload.notes)) {
-					for (const n of payload.notes) {
-						if (!n?.title && !n?.content) continue;
-						await prisma.note.create({
-							data: {
-								title: n.title ?? "Imported note",
-								content: n.content ?? null,
-								noteType: n.noteType ?? "note",
-								items: n.items ?? [],
-								color: n.color ?? null,
-								label: n.label ?? null,
-								pinned: n.pinned ?? false,
-								ownerId: userId,
-							},
-						});
-						results.notes++;
-					}
-				}
-
 				if (Array.isArray(payload.skills)) {
 					for (const s of payload.skills) {
 						if (!s?.name || !s?.content) continue;
@@ -122,7 +92,6 @@ export const Route = createFileRoute("/api/backup/import")({
 							data: {
 								title: c.title ?? "Imported chat",
 								model: c.model ?? "",
-								mode: c.mode ?? "chat",
 								messages,
 								ownerId: userId,
 							},

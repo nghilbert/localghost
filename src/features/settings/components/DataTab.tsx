@@ -52,7 +52,7 @@ export function DataTab() {
 			<section>
 				<h2 className="mb-1 text-sm font-medium">Export your data</h2>
 				<p className="mb-3 text-xs text-muted-foreground">
-					Download all your memories, notes, skills, and recent conversations as a single JSON file.
+					Download all your memories, skills, and recent conversations as a single JSON file.
 				</p>
 				<Button size="sm" variant="outline" onClick={handleExport}>
 					<DownloadIcon size={13} className="mr-1.5" />

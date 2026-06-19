@@ -1,14 +1,14 @@
 /// A user-defined persona or instruction set the agent can assume.
 model Skill {
-    id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-    name        String
-    description String
-    content     String
-    ownerId     String   @map("owner_id") @db.Uuid
-    owner       User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-    createdAt   DateTime @default(now()) @map("created_at")
-    updatedAt   DateTime @updatedAt @map("updated_at")
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String
+  description String
+  content     String
+  ownerId     String   @map("owner_id") @db.Uuid
+  owner       User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
-    @@index([ownerId])
-    @@map("skill")
+  @@index([ownerId])
+  @@map("skill")
 }
