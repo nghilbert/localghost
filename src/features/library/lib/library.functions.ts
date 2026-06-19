@@ -2,6 +2,13 @@ import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod/v4";
 import { getCurrentUserId } from "#/features/auth/lib/session.server";
+import { getHardwareInfo } from "#/features/library/lib/hardware.server";
+import {
+	getOllamaUrl,
+	probeOllama,
+	scanForOllama,
+	upsertOllamaEndpoint,
+} from "#/features/library/lib/ollama.server";
 import { OllamaUrlSchema } from "#/features/library/lib/ollama-url";
 import {
 	cancelPull,
@@ -9,13 +16,6 @@ import {
 	startPull,
 } from "#/features/library/lib/pull-registry.server";
 import type { OllamaStatus } from "#/features/library/lib/types";
-import { getHardwareInfo } from "#/lib/hardware.server";
-import {
-	getOllamaUrl,
-	probeOllama,
-	scanForOllama,
-	upsertOllamaEndpoint,
-} from "#/lib/ollama.server";
 
 export const getHardware = createServerFn({ method: "GET" }).handler(async () => {
 	await getCurrentUserId();

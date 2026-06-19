@@ -50,7 +50,7 @@ Copy `.env.example` to `.env`. Required: `DATABASE_URL`, `BETTER_AUTH_SECRET`, `
 - **Database:** Prisma 7 + `@prisma/adapter-pg`. Multi-file schema in `prisma/schema/`. Generated client in `src/generated/prisma/`. Import `prisma` — never alias.
 - **Styling:** Tailwind v4. `src/lib/globals.css` is the single CSS entry. Light/dark via `.dark` on `<html>`. `cn()` in `src/lib/utils.ts`.
 - **LLM:** `src/lib/llm.server.ts` — `streamLLMEvents()` → `AsyncIterable<StreamChunk>` (pass a `ServerTool[]` to enable the agent loop), `callLLM()` non-streaming. A data-driven `PROVIDERS` registry handles per-provider URL/header/model-list/options quirks; provider auto-detected from URL. All wrap `@tanstack/ai`'s `chat()` with native adapters.
-- **Tools:** `src/lib/agent.server.ts` — `buildAgentTools()` assembles the built-in `ServerTool[]` (web search, memory, skills, search chats) plus MCP server tools; `chat()` auto-executes them. There is **one** chat — no separate "agent mode". Which tools are offered is an **ephemeral per-request choice** the client sends via `forwardedProps` (not persisted); memory tools are always on unless opted out in Settings.
+- **Tools:** `src/features/chat/lib/agent.server.ts` — `buildAgentTools()` assembles the built-in `ServerTool[]` (web search, memory, skills, search chats) plus MCP server tools; `chat()` auto-executes them. There is **one** chat — no separate "agent mode". Which tools are offered is an **ephemeral per-request choice** the client sends via `forwardedProps` (not persisted); memory tools are always on unless opted out in Settings.
 - **Chat persistence:** one `Conversation` row = one `UIMessage[]` blob (`messages` JSONB). The **client** owns persistence via `ChatClientPersistence` (`src/features/chat/lib/chat-persistence.ts`), so `/api/chat/stream` performs **zero DB writes**.
 
 ## Forms
@@ -83,13 +83,13 @@ src/features/<name>/
 | Area | Key files |
 |------|-----------|
 | Chat + streaming | `src/features/chat/` (`conversation.functions.ts`, `chat-persistence.ts`), `src/routes/api/chat/stream.tsx` |
-| Library (core) | `src/features/library/`, `src/routes/api/library/pull.tsx`, `src/lib/hardware.server.ts` — browse/install local models (My Models, Browse) |
+| Library (core) | `src/features/library/`, `src/routes/api/library/pull.tsx`, `src/features/library/lib/hardware.server.ts` — browse/install local models (My Models, Browse) |
 | Endpoints / providers | `src/features/endpoints/` — shared `ModelEndpoint` table |
-| Memory (pgvector, automatic) | `src/lib/tools/manage_memory.ts`, `src/lib/embeddings.server.ts` — recall injected into context; opt out in Settings |
+| Memory (pgvector, automatic) | `src/lib/tools/manage_memory.ts`, `src/lib/tools/embeddings.server.ts` — recall injected into context; opt out in Settings |
 | Skills | `src/features/skills/` |
-| MCP servers | `src/lib/mcp.server.ts`, `src/features/mcp/` |
+| MCP servers | `src/features/mcp/lib/tools.server.ts`, `src/features/mcp/` |
 | Settings | `src/features/settings/components/` |
 | Backup/import | `src/routes/api/backup/` — non-destructive merge |
-| Context compaction | `src/lib/compactor.server.ts` — summarizes at 85% token limit |
+| Context compaction | `src/features/chat/lib/compactor.server.ts` — summarizes at 85% token limit |
 | Auth | `src/features/auth/` |
 | Theme | `src/features/theme/` |

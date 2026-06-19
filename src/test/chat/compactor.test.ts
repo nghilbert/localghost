@@ -8,7 +8,7 @@ vi.mock("#/lib/llm.server", () => ({
 }));
 
 // Import after mock is set up
-const { maybeCompact } = await import("#/lib/compactor.server");
+const { maybeCompact } = await import("#/features/chat/lib/compactor.server");
 
 const msg = (role: ModelMessage["role"], content: string) => makeModelMessage({ role, content });
 

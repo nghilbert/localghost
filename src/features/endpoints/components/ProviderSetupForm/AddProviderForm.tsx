@@ -1,5 +1,6 @@
 import { revalidateLogic } from "@tanstack/react-form";
 import { ChevronDownIcon, PlusIcon } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "#/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "#/components/ui/collapsible";
 import { Field } from "#/components/ui/field";
@@ -40,6 +41,7 @@ export function AddProviderForm({ definition, onCreated }: AddProviderFormProps)
 				{
 					onSuccess: () => {
 						formApi.reset();
+						testEndpoint.reset();
 						onCreated?.();
 					},
 				},
@@ -53,10 +55,24 @@ export function AddProviderForm({ definition, onCreated }: AddProviderFormProps)
 			form.validateAllFields("submit");
 			return;
 		}
-		testEndpoint.mutate({
-			url: parsed.data.url.trim(),
-			apiKey: parsed.data.apiKey || undefined,
-		});
+		testEndpoint.reset();
+		testEndpoint.mutate(
+			{
+				url: parsed.data.url.trim(),
+				apiKey: parsed.data.apiKey || undefined,
+			},
+			{
+				onSuccess: (result) => {
+					if (result.ok) {
+						toast.success(
+							result.modelCount != null
+								? `Connection works — ${result.modelCount} models available`
+								: "Connection works",
+						);
+					}
+				},
+			},
+		);
 	}
 
 	const keyDescription = definition.keyConsoleUrl
@@ -103,7 +119,10 @@ export function AddProviderForm({ definition, onCreated }: AddProviderFormProps)
 					</Collapsible>
 				)}
 
-				<form.FormError>{createEndpoint.error?.message}</form.FormError>
+				<form.FormError>
+					{createEndpoint.error?.message ??
+						(testEndpoint.data && !testEndpoint.data.ok ? testEndpoint.data.error : undefined)}
+				</form.FormError>
 
 				<Field orientation="horizontal">
 					<form.SubmitButton>

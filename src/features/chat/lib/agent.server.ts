@@ -1,7 +1,7 @@
 import type { ServerTool } from "@tanstack/ai";
 import { toolDefinition } from "@tanstack/ai";
 import { z } from "zod/v4";
-import { callMcpTool, type McpToolDef } from "#/lib/mcp.server";
+import { callMcpTool, type McpToolDef } from "#/features/mcp/lib/tools.server";
 import { MCP_TOOL_PREFIX, type ToolCatalogId } from "#/lib/tools/catalog";
 import { manageMemory, manageMemoryArgsSchema } from "#/lib/tools/manage_memory";
 import { manageSkills, manageSkillsArgsSchema } from "#/lib/tools/manage_skills";

@@ -1,5 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { buildOllamaCandidateUrls, getOllamaUrl, upsertOllamaEndpoint } from "#/lib/ollama.server";
+import {
+	buildOllamaCandidateUrls,
+	getOllamaUrl,
+	upsertOllamaEndpoint,
+} from "#/features/library/lib/ollama.server";
 
 const { findFirst, findMany, create, update } = vi.hoisted(() => ({
 	findFirst: vi.fn(),

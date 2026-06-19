@@ -25,7 +25,14 @@ export function RemoteOllamaForm({ onBack }: { onBack: () => void }) {
 			toast.error("Enter a valid URL first");
 			return;
 		}
-		testRemote.mutate(parsed.data.url);
+		testRemote.reset();
+		testRemote.mutate(parsed.data.url, {
+			onSuccess: (result) => {
+				if (result.reachable) {
+					toast.success(`Connection works — ${result.modelCount} models available`);
+				}
+			},
+		});
 	}
 
 	return (
@@ -49,6 +56,13 @@ export function RemoteOllamaForm({ onBack }: { onBack: () => void }) {
 								/>
 							)}
 						</form.AppField>
+
+						<form.FormError>
+							{connectRemote.error?.message ??
+								(testRemote.data && !testRemote.data.reachable
+									? `No Ollama instance is responding at ${form.state.values.url}`
+									: undefined)}
+						</form.FormError>
 
 						<Field orientation="horizontal">
 							<form.SubmitButton>Connect</form.SubmitButton>
