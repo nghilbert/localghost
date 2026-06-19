@@ -5,6 +5,7 @@ import { callMcpTool, type McpToolDef } from "#/features/mcp/lib/tools.server";
 import { MCP_TOOL_PREFIX, type ToolCatalogId } from "#/lib/tools/catalog";
 import { manageMemory, manageMemoryArgsSchema } from "#/lib/tools/manage_memory";
 import { manageSkills, manageSkillsArgsSchema } from "#/lib/tools/manage_skills";
+import { readUrl, readUrlArgsSchema } from "#/lib/tools/read_url";
 import { searchChats, searchChatsArgsSchema } from "#/lib/tools/search_chats";
 import { webSearch, webSearchArgsSchema } from "#/lib/tools/web_search";
 
@@ -25,12 +26,35 @@ function webSearchTool(): ServerTool {
 	});
 }
 
+function readUrlTool(): ServerTool {
+	return toolDefinition({
+		name: "read_url",
+		description:
+			"Fetch a web page and return its main content as clean text. " +
+			"Use after web_search to read a result in full.",
+		inputSchema: {
+			type: "object",
+			properties: {
+				url: { type: "string", description: "The page URL to read" },
+			},
+			required: ["url"],
+		},
+	}).server(async (args) => {
+		const { url } = readUrlArgsSchema.parse(args);
+		return readUrl(url);
+	});
+}
+
 function manageMemoryTool(ownerId: string): ServerTool {
 	return toolDefinition({
 		name: "manage_memory",
 		description:
-			"Add, search, list, or delete persistent memories about the user. " +
-			"Use add to save important facts the user shares. Use search to recall relevant context.",
+			"Persistent long-term memory about the user. " +
+			"Use search to recall saved context when the user refers to something from a past " +
+			"conversation or asks what you remember. Use add ONLY when the user shares a durable fact " +
+			"worth remembering across sessions (a stable preference, personal detail, ongoing project, " +
+			"or an explicit 'remember this') — never save trivial or ephemeral conversation details. " +
+			"Use list or delete to manage saved memories.",
 		inputSchema: {
 			type: "object",
 			properties: {
@@ -119,8 +143,8 @@ function mcpTool(t: McpToolDef): ServerTool {
 }
 
 /** Builders for the user-toggleable catalog tools, keyed by their catalog id. */
-const CATALOG_BUILDERS: Record<ToolCatalogId, () => ServerTool> = {
-	web_search: webSearchTool,
+const CATALOG_BUILDERS: Record<ToolCatalogId, () => ServerTool[]> = {
+	web_search: () => [webSearchTool(), readUrlTool()],
 };
 
 export type BuildChatToolsOptions = {
@@ -150,7 +174,7 @@ export function buildChatTools({
 
 	const selected = new Set(enabledTools);
 	for (const id of Object.keys(CATALOG_BUILDERS) as ToolCatalogId[]) {
-		if (selected.has(id)) tools.push(CATALOG_BUILDERS[id]());
+		if (selected.has(id)) tools.push(...CATALOG_BUILDERS[id]());
 	}
 
 	const enabledServers = new Set(

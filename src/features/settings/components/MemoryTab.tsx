@@ -36,10 +36,10 @@ export function MemoryTab() {
 		<div className="space-y-6">
 			<Field orientation="horizontal">
 				<FieldContent>
-					<FieldTitle>Automatic memory</FieldTitle>
+					<FieldTitle>Memory</FieldTitle>
 					<FieldDescription>
-						Recall relevant memories into every chat and let the assistant save new ones. Turn off
-						to stop all recall and saving.
+						Let the assistant save and recall long-term memories with the memory tool when relevant.
+						Turn off to disable memory entirely.
 					</FieldDescription>
 				</FieldContent>
 				<Switch

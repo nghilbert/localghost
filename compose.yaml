@@ -4,29 +4,32 @@ x-app: &app
   ports:
     - "3000:3000"
   environment: &app-env
-    DATABASE_URL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}"
-    BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
-    BETTER_AUTH_URL: ${BETTER_AUTH_URL}
-    ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+    DATABASE_URL: "postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:-localghost}"
+    BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?set BETTER_AUTH_SECRET in .env}
+    BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
+    ENCRYPTION_KEY: ${ENCRYPTION_KEY:?set ENCRYPTION_KEY (64-char hex) in .env}
+    SEARXNG_URL: ${SEARXNG_URL:-http://searxng:8080}
   extra_hosts:
     - "host.docker.internal:host-gateway"
   depends_on:
     db:
       condition: service_healthy
+    searxng:
+      condition: service_started
 
 services:
   db:
     image: pgvector/pgvector:pg18
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-localghost}
     ports:
       - "5432:5432"
     volumes:
-      - db_data:/var/lib/postgresql
+      - pg:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-localghost}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -52,18 +55,28 @@ services:
       <<: *app-env
       CHOKIDAR_USEPOLLING: "true"  # reliable file watching over the bind mount
 
+  # Bundled keyless web search, reachable by the app at http://searxng:8080. The
+  # JSON API the app calls is disabled in the stock image, so ./searxng/settings.yml
+  # enables the `json` format and a secret key.
+  searxng:
+    image: searxng/searxng
+    volumes:
+      - ./searxng:/etc/searxng:rw
+    environment:
+      SEARXNG_BASE_URL: http://localhost:8080/
+    restart: unless-stopped
+
   # Bundled Ollama, reachable by the app at http://ollama:11434. CPU-only here; a
   # GPU hardware overlay (compose.nvidia.yaml / compose.amd.yaml, merged via
   # COMPOSE_FILE) patches this service for the GPU. Gated by the `ollama` profile
   # so omitting it falls back to a host-native Ollama.
   ollama:
     image: ollama/ollama
-    container_name: ollama
     profiles: [ollama]
     volumes:
       - ollama:/root/.ollama
     restart: unless-stopped
 
 volumes:
-  db_data:
+  pg:
   ollama:

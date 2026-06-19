@@ -2,7 +2,6 @@ import { z } from "zod/v4";
 
 export const webSearchArgsSchema = z.object({
 	query: z.string().optional(),
-	limit: z.number().optional(),
 });
 
 export type SearchResult = {
@@ -12,17 +11,18 @@ export type SearchResult = {
 };
 
 /**
- * Search the web via SearXNG (SEARXNG_URL env) or DuckDuckGo HTML as fallback.
- * Returns up to `limit` results as plain text the agent can reason over.
+ * Search the web via a SearXNG instance (SEARXNG_URL env). Returns up to `limit`
+ * results as plain text the agent can reason over, or a guidance string when no
+ * instance is configured.
  */
 export async function webSearch(query: string, limit = 5): Promise<string> {
 	const searxUrl = process.env.SEARXNG_URL;
+	if (!searxUrl) {
+		return "Web search is not configured. Set SEARXNG_URL to a running SearXNG instance to enable it.";
+	}
 
 	try {
-		const results = searxUrl
-			? await searchSearXNG(query, limit, searxUrl)
-			: await searchDuckDuckGo(query, limit);
-
+		const results = await searchSearXNG(query, limit, searxUrl);
 		if (results.length === 0) return "No results found.";
 		return results.map((r, i) => `[${i + 1}] ${r.title}\n${r.url}\n${r.snippet}`).join("\n\n");
 	} catch (err) {
@@ -56,46 +56,4 @@ async function searchSearXNG(
 		url: r.url ?? "",
 		snippet: r.content ?? "",
 	}));
-}
-
-async function searchDuckDuckGo(query: string, limit: number): Promise<SearchResult[]> {
-	// DuckDuckGo Instant Answer API — low-fi but no auth needed
-	const url = new URL("https://api.duckduckgo.com/");
-	url.searchParams.set("q", query);
-	url.searchParams.set("format", "json");
-	url.searchParams.set("no_html", "1");
-	url.searchParams.set("skip_disambig", "1");
-
-	const res = await fetch(url.toString(), { signal: AbortSignal.timeout(10_000) });
-	if (!res.ok) throw new Error(`DuckDuckGo HTTP ${res.status}`);
-
-	const data = (await res.json()) as {
-		AbstractText?: string;
-		AbstractURL?: string;
-		AbstractSource?: string;
-		RelatedTopics?: Array<{ Text?: string; FirstURL?: string }>;
-	};
-
-	const results: SearchResult[] = [];
-
-	if (data.AbstractText) {
-		results.push({
-			title: data.AbstractSource ?? "DuckDuckGo",
-			url: data.AbstractURL ?? "",
-			snippet: data.AbstractText,
-		});
-	}
-
-	for (const topic of data.RelatedTopics ?? []) {
-		if (results.length >= limit) break;
-		if (topic.Text && topic.FirstURL) {
-			results.push({
-				title: topic.Text.split(" - ")[0] ?? "",
-				url: topic.FirstURL,
-				snippet: topic.Text,
-			});
-		}
-	}
-
-	return results;
 }

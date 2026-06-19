@@ -1,0 +1,11 @@
+use_default_settings: true
+
+# The app calls SearXNG's JSON API, which the stock image ships disabled: enable
+# the json format and drop the bot limiter so programmatic requests get through.
+server:
+  secret_key: "localghost-dev" # unused while limiter is off; local instance only
+  limiter: false
+search:
+  formats:
+    - html
+    - json

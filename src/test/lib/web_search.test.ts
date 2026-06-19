@@ -10,73 +10,14 @@ describe("webSearch", () => {
 		vi.restoreAllMocks();
 	});
 
-	it("returns DuckDuckGo abstract when available", async () => {
-		vi.stubGlobal(
-			"fetch",
-			vi.fn().mockResolvedValue({
-				ok: true,
-				json: async () => ({
-					AbstractText: "TypeScript is a typed superset of JavaScript.",
-					AbstractURL: "https://www.typescriptlang.org",
-					AbstractSource: "TypeScript.org",
-					RelatedTopics: [],
-				}),
-			}),
-		);
-
-		const result = await webSearch("TypeScript", 5);
-		expect(result).toContain("TypeScript is a typed superset");
-		expect(result).toContain("TypeScript.org");
+	it("returns guidance when SEARXNG_URL is not configured", async () => {
+		const result = await webSearch("anything", 5);
+		expect(result).toContain("not configured");
+		expect(result).toContain("SEARXNG_URL");
 	});
 
-	it("includes related topics when abstract is empty", async () => {
-		vi.stubGlobal(
-			"fetch",
-			vi.fn().mockResolvedValue({
-				ok: true,
-				json: async () => ({
-					AbstractText: "",
-					AbstractURL: "",
-					AbstractSource: "",
-					RelatedTopics: [
-						{ Text: "React - A JS library for building UIs", FirstURL: "https://react.dev" },
-					],
-				}),
-			}),
-		);
-
-		const result = await webSearch("React", 5);
-		expect(result).toContain("React");
-		expect(result).toContain("react.dev");
-	});
-
-	it("returns 'No results found.' when DuckDuckGo has no results", async () => {
-		vi.stubGlobal(
-			"fetch",
-			vi.fn().mockResolvedValue({
-				ok: true,
-				json: async () => ({
-					AbstractText: "",
-					AbstractURL: "",
-					AbstractSource: "",
-					RelatedTopics: [],
-				}),
-			}),
-		);
-
-		const result = await webSearch("xyzzy1234nonexistent", 5);
-		expect(result).toBe("No results found.");
-	});
-
-	it("returns error message when fetch throws", async () => {
-		vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("Network error")));
-		const result = await webSearch("test", 5);
-		expect(result).toContain("Search failed");
-		expect(result).toContain("Network error");
-	});
-
-	it("uses SearXNG when SEARXNG_URL is set", async () => {
-		process.env.SEARXNG_URL = "http://localhost:8080";
+	it("parses SearXNG results when SEARXNG_URL is set", async () => {
+		process.env.SEARXNG_URL = "http://searxng:8080";
 		const mockFetch = vi.fn().mockResolvedValue({
 			ok: true,
 			json: async () => ({
@@ -87,10 +28,28 @@ describe("webSearch", () => {
 
 		const result = await webSearch("test query", 5);
 		expect(mockFetch).toHaveBeenCalledWith(
-			expect.stringContaining("localhost:8080"),
+			expect.stringContaining("searxng:8080"),
 			expect.any(Object),
 		);
 		expect(result).toContain("Result 1");
 		expect(result).toContain("example.com");
+	});
+
+	it("returns 'No results found.' when SearXNG has no results", async () => {
+		process.env.SEARXNG_URL = "http://searxng:8080";
+		vi.stubGlobal(
+			"fetch",
+			vi.fn().mockResolvedValue({ ok: true, json: async () => ({ results: [] }) }),
+		);
+		const result = await webSearch("xyzzy1234nonexistent", 5);
+		expect(result).toBe("No results found.");
+	});
+
+	it("returns error message when fetch throws", async () => {
+		process.env.SEARXNG_URL = "http://searxng:8080";
+		vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("Network error")));
+		const result = await webSearch("test", 5);
+		expect(result).toContain("Search failed");
+		expect(result).toContain("Network error");
 	});
 });

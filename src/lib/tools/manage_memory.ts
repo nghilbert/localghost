@@ -8,7 +8,7 @@ export const manageMemoryArgsSchema = z.object({
 	query: z.string().optional(),
 	id: z.string().optional(),
 	category: z.string().optional(),
-	limit: z.number().optional(),
+	limit: z.coerce.number().optional(),
 });
 
 type ManageMemoryArgs = z.infer<typeof manageMemoryArgsSchema>;
