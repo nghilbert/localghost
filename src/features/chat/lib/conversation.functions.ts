@@ -17,9 +17,9 @@ import {
 export const listConversations = createServerFn({ method: "GET" }).handler(async () => {
 	const userId = await getCurrentUserId();
 	return prisma.conversation.findMany({
-		where: { ownerId: userId, archived: false, mode: { not: "compare" } },
+		where: { ownerId: userId, archived: false },
 		orderBy: { updatedAt: "desc" },
-		select: { id: true, title: true, model: true, mode: true, updatedAt: true },
+		select: { id: true, title: true, model: true, updatedAt: true },
 	});
 });
 
@@ -45,7 +45,6 @@ export const createConversation = createServerFn({ method: "POST" })
 				title: data.title,
 				endpointId: data.endpointId ?? null,
 				model: data.model,
-				mode: data.mode,
 				ownerId: userId,
 			},
 		});
@@ -78,7 +77,6 @@ export const updateConversation = createServerFn({ method: "POST" })
 				...(patch.title !== undefined && { title: patch.title }),
 				...(patch.model !== undefined && { model: patch.model }),
 				...(patch.endpointId !== undefined && { endpointId: patch.endpointId }),
-				...(patch.mode !== undefined && { mode: patch.mode }),
 				...(patch.archived !== undefined && { archived: patch.archived }),
 			},
 		});

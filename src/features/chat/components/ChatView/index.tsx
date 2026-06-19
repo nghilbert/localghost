@@ -1,4 +1,5 @@
 import { useChat } from "@tanstack/ai-react";
+import { useMemo, useState } from "react";
 import { PageHeader } from "#/components/PageHeader";
 import { ChatInput } from "#/features/chat/components/ChatView/ChatInput";
 import { ChatWindow } from "#/features/chat/components/ChatView/ChatWindow";
@@ -14,11 +15,20 @@ type ChatViewProps = { conversation: Conversation };
 export function ChatView({ conversation }: ChatViewProps) {
 	const { isReady } = useConversationSettings(conversation.id);
 
+	// Ephemeral per-conversation tool selection — sent with each message via
+	// `forwardedProps`, never persisted. `useChat` re-reads `forwardedProps` on
+	// every send, so a fresh object here means the latest choice rides along.
+	const [enabledTools, setEnabledTools] = useState<string[]>([]);
+	const forwardedProps = useMemo(
+		() => ({ conversationId: conversation.id, enabledTools }),
+		[conversation.id, enabledTools],
+	);
+
 	const { onFinish, messagesRef } = useChatAutoRename(conversation.id);
 	const { messages, sendMessage, stop, status } = useChat({
 		...chatClientOptions,
 		id: conversation.id,
-		forwardedProps: { conversationId: conversation.id },
+		forwardedProps,
 		onFinish,
 	});
 	messagesRef.current = messages;
@@ -38,6 +48,8 @@ export function ChatView({ conversation }: ChatViewProps) {
 					<ChatInput
 						conversationId={conversation.id}
 						isStreaming={isStreaming}
+						enabledTools={enabledTools}
+						onEnabledToolsChange={setEnabledTools}
 						sendMessage={sendMessage}
 						stop={stop}
 					/>

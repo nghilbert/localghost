@@ -2,221 +2,165 @@ import type { ServerTool } from "@tanstack/ai";
 import { toolDefinition } from "@tanstack/ai";
 import { z } from "zod/v4";
 import { callMcpTool, type McpToolDef } from "#/lib/mcp.server";
+import { MCP_TOOL_PREFIX, type ToolCatalogId } from "#/lib/tools/catalog";
 import { manageMemory, manageMemoryArgsSchema } from "#/lib/tools/manage_memory";
-import { manageNotes, manageNotesArgsSchema } from "#/lib/tools/manage_notes";
 import { manageSkills, manageSkillsArgsSchema } from "#/lib/tools/manage_skills";
-import { manageTasks, manageTasksArgsSchema } from "#/lib/tools/manage_tasks";
 import { searchChats, searchChatsArgsSchema } from "#/lib/tools/search_chats";
 import { webSearch, webSearchArgsSchema } from "#/lib/tools/web_search";
 
+function webSearchTool(): ServerTool {
+	return toolDefinition({
+		name: "web_search",
+		description: "Search the web for current information. Use when you need facts you don't know.",
+		inputSchema: {
+			type: "object",
+			properties: {
+				query: { type: "string", description: "Search query" },
+			},
+			required: ["query"],
+		},
+	}).server(async (args) => {
+		const { query } = webSearchArgsSchema.parse(args);
+		return webSearch(query ?? "", 5);
+	});
+}
+
+function manageMemoryTool(ownerId: string): ServerTool {
+	return toolDefinition({
+		name: "manage_memory",
+		description:
+			"Add, search, list, or delete persistent memories about the user. " +
+			"Use add to save important facts the user shares. Use search to recall relevant context.",
+		inputSchema: {
+			type: "object",
+			properties: {
+				action: {
+					type: "string",
+					enum: ["add", "search", "list", "delete"],
+					description: "What to do with memories",
+				},
+				text: { type: "string", description: "Memory text (required for add)" },
+				query: { type: "string", description: "Search query (required for search)" },
+				id: { type: "string", description: "Memory ID (required for delete)" },
+				category: {
+					type: "string",
+					description: "Category hint: fact, preference, contact, project, instruction",
+				},
+				limit: { type: "number", description: "Max results (default 5)" },
+			},
+			required: ["action"],
+		},
+	}).server(async (args) => manageMemory(manageMemoryArgsSchema.parse(args), ownerId));
+}
+
+function searchChatsTool(ownerId: string): ServerTool {
+	return toolDefinition({
+		name: "search_chats",
+		description:
+			"Search the user's past chat conversations by keyword. " +
+			"Use when the user asks about previous chats or wants to find a past discussion.",
+		inputSchema: {
+			type: "object",
+			properties: {
+				query: {
+					type: "string",
+					description: "Keyword(s) to search for in past conversations",
+				},
+				limit: { type: "number", description: "Max results (default 10)" },
+			},
+			required: ["query"],
+		},
+	}).server(async (args) => {
+		const { query, limit } = searchChatsArgsSchema.parse(args);
+		return searchChats(query ?? "", ownerId, limit ?? 10);
+	});
+}
+
+function manageSkillsTool(ownerId: string): ServerTool {
+	return toolDefinition({
+		name: "manage_skills",
+		description:
+			"List, read, add, update, or delete reusable skills — saved procedures and instructions " +
+			"that describe how to accomplish specific tasks. Use add to save a new learned technique. " +
+			"Use list or read to recall a saved skill before applying it.",
+		inputSchema: {
+			type: "object",
+			properties: {
+				action: {
+					type: "string",
+					enum: ["list", "read", "add", "update", "delete"],
+					description: "Action to perform",
+				},
+				id: {
+					type: "string",
+					description: "Skill id or 8-char prefix (required for read/update/delete)",
+				},
+				name: { type: "string", description: "Skill name (required for add)" },
+				description: {
+					type: "string",
+					description: "One-line description of when the skill is useful",
+				},
+				content: {
+					type: "string",
+					description: "Skill body — procedure, steps, or instructions (required for add)",
+				},
+			},
+			required: ["action"],
+		},
+	}).server(async (args) => manageSkills(manageSkillsArgsSchema.parse(args), ownerId));
+}
+
+function mcpTool(t: McpToolDef): ServerTool {
+	return toolDefinition({
+		name: t.name,
+		description: t.description,
+		inputSchema: t.inputSchema,
+	}).server(async (args) => callMcpTool(t, z.record(z.string(), z.unknown()).parse(args)));
+}
+
+/** Builders for the user-toggleable catalog tools, keyed by their catalog id. */
+const CATALOG_BUILDERS: Record<ToolCatalogId, () => ServerTool> = {
+	web_search: webSearchTool,
+};
+
+export type BuildChatToolsOptions = {
+	ownerId: string;
+	/** The user's ephemeral per-send selection: catalog ids and `mcp:<serverId>`. */
+	enabledTools: string[];
+	/** Tools discovered from the user's enabled MCP servers. */
+	mcpTools: McpToolDef[];
+	/** Whether automatic memory is active (gives the model the manage_memory tool). */
+	memoryEnabled: boolean;
+};
+
 /**
- * Builds the full tool catalog for an agent run: the six built-in tools plus
- * any MCP server tools. Each tool is defined with its JSON schema and an inline
- * server executor, so `chat()` can auto-execute them without a separate dispatcher.
+ * Assembles the `ServerTool[]` for one chat run from three tiers: always-on
+ * tools (search_chats, manage_skills, and manage_memory unless opted out), the
+ * user-toggled catalog tools, and the tools of any user-toggled MCP servers.
+ * `chat()` auto-executes whatever is returned.
  */
-export function buildAgentTools(ownerId: string, mcpTools: McpToolDef[]): ServerTool[] {
-	return [
-		toolDefinition({
-			name: "web_search",
-			description:
-				"Search the web for current information. Use when you need facts you don't know.",
-			inputSchema: {
-				type: "object",
-				properties: {
-					query: { type: "string", description: "Search query" },
-				},
-				required: ["query"],
-			},
-		}).server(async (args) => {
-			const { query } = webSearchArgsSchema.parse(args);
-			return webSearch(query ?? "", 5);
-		}),
+export function buildChatTools({
+	ownerId,
+	enabledTools,
+	mcpTools,
+	memoryEnabled,
+}: BuildChatToolsOptions): ServerTool[] {
+	const tools: ServerTool[] = [searchChatsTool(ownerId), manageSkillsTool(ownerId)];
+	if (memoryEnabled) tools.push(manageMemoryTool(ownerId));
 
-		toolDefinition({
-			name: "manage_memory",
-			description:
-				"Add, search, list, or delete persistent memories about the user. " +
-				"Use add to save important facts the user shares. Use search to recall relevant context.",
-			inputSchema: {
-				type: "object",
-				properties: {
-					action: {
-						type: "string",
-						enum: ["add", "search", "list", "delete"],
-						description: "What to do with memories",
-					},
-					text: { type: "string", description: "Memory text (required for add)" },
-					query: { type: "string", description: "Search query (required for search)" },
-					id: { type: "string", description: "Memory ID (required for delete)" },
-					category: {
-						type: "string",
-						description: "Category hint: fact, preference, contact, project, instruction",
-					},
-					limit: { type: "number", description: "Max results (default 5)" },
-				},
-				required: ["action"],
-			},
-		}).server(async (args) => manageMemory(manageMemoryArgsSchema.parse(args), ownerId)),
+	const selected = new Set(enabledTools);
+	for (const id of Object.keys(CATALOG_BUILDERS) as ToolCatalogId[]) {
+		if (selected.has(id)) tools.push(CATALOG_BUILDERS[id]());
+	}
 
-		toolDefinition({
-			name: "manage_notes",
-			description:
-				"Create and manage notes and checklists: list, add, update, delete, toggle_item. " +
-				"For to-do lists, set note_type='checklist' and pass items as checklist_items array. " +
-				"For freeform notes, use note_type='note' and put the body in content.",
-			inputSchema: {
-				type: "object",
-				properties: {
-					action: {
-						type: "string",
-						enum: ["list", "add", "update", "delete", "toggle_item"],
-						description: "The action to perform",
-					},
-					id: {
-						type: "string",
-						description: "Note id or 8-char prefix (for update/delete/toggle_item)",
-					},
-					title: { type: "string", description: "Note title (for add/update)" },
-					content: { type: "string", description: "Body text for note_type='note'" },
-					note_type: {
-						type: "string",
-						enum: ["note", "checklist"],
-						description: "'note' = freeform text. 'checklist' = to-do items. Defaults to 'note'.",
-					},
-					checklist_items: {
-						type: "array",
-						items: {
-							type: "object",
-							properties: {
-								text: { type: "string" },
-								done: { type: "boolean" },
-							},
-							required: ["text"],
-						},
-						description: "Checklist items for note_type='checklist'",
-					},
-					color: { type: "string", description: "Color label (e.g. 'yellow', 'blue')" },
-					label: { type: "string", description: "Category label" },
-					pinned: { type: "boolean", description: "Pin to top" },
-					archived: {
-						type: "boolean",
-						description: "Archive/unarchive or list archived notes",
-					},
-					due_date: {
-						type: "string",
-						description: "Reminder time (ISO 8601 or natural language)",
-					},
-					index: {
-						type: "number",
-						description: "Checklist item index for toggle_item (0-based)",
-					},
-					limit: { type: "number", description: "Max results for list (default 20)" },
-				},
-				required: ["action"],
-			},
-		}).server(async (args) => manageNotes(manageNotesArgsSchema.parse(args), ownerId)),
+	const enabledServers = new Set(
+		enabledTools
+			.filter((id) => id.startsWith(MCP_TOOL_PREFIX))
+			.map((id) => id.slice(MCP_TOOL_PREFIX.length)),
+	);
+	for (const t of mcpTools) {
+		if (enabledServers.has(t.serverId)) tools.push(mcpTool(t));
+	}
 
-		toolDefinition({
-			name: "manage_tasks",
-			description:
-				"Manage scheduled LLM tasks: list, create, update, delete, pause, resume, or run_now. " +
-				"Tasks run an LLM prompt on a schedule and deliver output to a chat session.",
-			inputSchema: {
-				type: "object",
-				properties: {
-					action: {
-						type: "string",
-						enum: ["list", "create", "update", "delete", "pause", "resume", "run_now"],
-						description: "Action to perform",
-					},
-					id: {
-						type: "string",
-						description: "Task id or 8-char prefix (for update/delete/pause/resume/run_now)",
-					},
-					name: { type: "string", description: "Task name (for create/update)" },
-					prompt: {
-						type: "string",
-						description: "LLM prompt to run on schedule (for create/update)",
-					},
-					schedule: {
-						type: "string",
-						enum: ["once", "daily", "weekly", "monthly", "cron"],
-						description: "Recurrence schedule",
-					},
-					scheduled_time: {
-						type: "string",
-						description: "HH:MM UTC time for daily/weekly/monthly tasks",
-					},
-					cron_expression: {
-						type: "string",
-						description: "Cron expression when schedule=cron",
-					},
-					session_id: { type: "string", description: "Chat session ID to deliver output to" },
-					limit: { type: "number", description: "Max results for list (default 20)" },
-				},
-				required: ["action"],
-			},
-		}).server(async (args) => manageTasks(manageTasksArgsSchema.parse(args), ownerId)),
-
-		toolDefinition({
-			name: "search_chats",
-			description:
-				"Search the user's past chat conversations by keyword. " +
-				"Use when the user asks about previous chats or wants to find a past discussion.",
-			inputSchema: {
-				type: "object",
-				properties: {
-					query: {
-						type: "string",
-						description: "Keyword(s) to search for in past conversations",
-					},
-					limit: { type: "number", description: "Max results (default 10)" },
-				},
-				required: ["query"],
-			},
-		}).server(async (args) => {
-			const { query, limit } = searchChatsArgsSchema.parse(args);
-			return searchChats(query ?? "", ownerId, limit ?? 10);
-		}),
-
-		toolDefinition({
-			name: "manage_skills",
-			description:
-				"List, read, add, update, or delete reusable skills — saved procedures and instructions " +
-				"that describe how to accomplish specific tasks. Use add to save a new learned technique. " +
-				"Use list or read to recall a saved skill before applying it.",
-			inputSchema: {
-				type: "object",
-				properties: {
-					action: {
-						type: "string",
-						enum: ["list", "read", "add", "update", "delete"],
-						description: "Action to perform",
-					},
-					id: {
-						type: "string",
-						description: "Skill id or 8-char prefix (required for read/update/delete)",
-					},
-					name: { type: "string", description: "Skill name (required for add)" },
-					description: {
-						type: "string",
-						description: "One-line description of when the skill is useful",
-					},
-					content: {
-						type: "string",
-						description: "Skill body — procedure, steps, or instructions (required for add)",
-					},
-				},
-				required: ["action"],
-			},
-		}).server(async (args) => manageSkills(manageSkillsArgsSchema.parse(args), ownerId)),
-
-		...mcpTools.map((t) =>
-			toolDefinition({
-				name: t.name,
-				description: t.description,
-				inputSchema: t.inputSchema,
-			}).server(async (args) => callMcpTool(t, z.record(z.string(), z.unknown()).parse(args))),
-		),
-	];
+	return tools;
 }

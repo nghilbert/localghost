@@ -1,12 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import {
+	BrainIcon,
 	DatabaseIcon,
 	MessageSquareIcon,
 	PaletteIcon,
 	PlugIcon,
 	ServerIcon,
 	UserIcon,
-	WebhookIcon,
 	WrenchIcon,
 } from "lucide-react";
 import { PageHeader } from "#/components/PageHeader";
@@ -15,9 +15,10 @@ import { AccountTab } from "#/features/settings/components/AccountTab";
 import { ChatTab } from "#/features/settings/components/ChatTab";
 import { DataTab } from "#/features/settings/components/DataTab";
 import { McpTab } from "#/features/settings/components/McpTab";
+import { MemoryTab } from "#/features/settings/components/MemoryTab";
 import { ProvidersTab } from "#/features/settings/components/ProvidersTab";
 import { SetupTab } from "#/features/settings/components/SetupTab";
-import { WebhooksTab } from "#/features/settings/components/WebhooksTab";
+import { savedMemoriesQueryOptions } from "#/features/settings/lib/memory.functions";
 import { SettingsSearchSchema } from "#/features/settings/lib/schemas";
 import { userSettingsQueryOptions } from "#/features/settings/lib/user-settings.functions";
 import { AppearanceSettings } from "#/features/theme/AppearanceSettings";
@@ -26,7 +27,10 @@ export const Route = createFileRoute("/_authenticated/settings")({
 	component: SettingsPage,
 	validateSearch: (search) => SettingsSearchSchema.parse(search),
 	loader: async ({ context }) => {
-		await context.queryClient.ensureQueryData(userSettingsQueryOptions());
+		await Promise.all([
+			context.queryClient.ensureQueryData(userSettingsQueryOptions()),
+			context.queryClient.ensureQueryData(savedMemoriesQueryOptions()),
+		]);
 	},
 });
 
@@ -47,6 +51,10 @@ function SettingsPage() {
 							<MessageSquareIcon size={13} />
 							Chat
 						</TabsTrigger>
+						<TabsTrigger value="memory" className="gap-1.5">
+							<BrainIcon size={13} />
+							Memory
+						</TabsTrigger>
 						<TabsTrigger value="setup" className="gap-1.5">
 							<WrenchIcon size={13} />
 							Setup
@@ -58,10 +66,6 @@ function SettingsPage() {
 						<TabsTrigger value="theme" className="gap-1.5">
 							<PaletteIcon size={13} />
 							Theme
-						</TabsTrigger>
-						<TabsTrigger value="webhooks" className="gap-1.5">
-							<WebhookIcon size={13} />
-							Webhooks
 						</TabsTrigger>
 						<TabsTrigger value="data" className="gap-1.5">
 							<DatabaseIcon size={13} />
@@ -81,6 +85,9 @@ function SettingsPage() {
 				<TabsContent value="chat">
 					<ChatTab />
 				</TabsContent>
+				<TabsContent value="memory">
+					<MemoryTab />
+				</TabsContent>
 				<TabsContent value="setup">
 					<SetupTab />
 				</TabsContent>
@@ -89,9 +96,6 @@ function SettingsPage() {
 				</TabsContent>
 				<TabsContent value="theme">
 					<AppearanceSettings />
-				</TabsContent>
-				<TabsContent value="webhooks">
-					<WebhooksTab />
 				</TabsContent>
 				<TabsContent value="data">
 					<DataTab />

@@ -1,0 +1,27 @@
+import { queryOptions } from "@tanstack/react-query";
+import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod/v4";
+import { getCurrentUserId } from "#/features/auth/lib/session.server";
+import { prisma } from "#/lib/db.server";
+
+const deleteMemoryInput = z.object({ id: z.uuid() });
+
+/** The current user's saved memories, newest first — for the Settings Memory list. */
+export const listSavedMemories = createServerFn({ method: "GET" }).handler(async () => {
+	const userId = await getCurrentUserId();
+	return prisma.memory.findMany({
+		where: { ownerId: userId },
+		orderBy: { createdAt: "desc" },
+		select: { id: true, text: true, category: true, source: true, createdAt: true },
+	});
+});
+
+export const deleteSavedMemory = createServerFn({ method: "POST" })
+	.validator(deleteMemoryInput)
+	.handler(async ({ data: { id } }) => {
+		const userId = await getCurrentUserId();
+		await prisma.memory.deleteMany({ where: { id, ownerId: userId } });
+	});
+
+export const savedMemoriesQueryOptions = () =>
+	queryOptions({ queryKey: ["saved-memories"], queryFn: () => listSavedMemories() });

@@ -6,14 +6,12 @@ export const createConversationSchema = z.object({
 	title: z.string().default("New Chat"),
 	endpointId: uuid.optional(),
 	model: z.string().default(""),
-	mode: z.enum(["chat", "agent"]).default("chat"),
 });
 
 export const updateConversationSchema = z.object({
 	title: z.string().min(1).optional(),
 	model: z.string().optional(),
 	endpointId: uuid.nullish(),
-	mode: z.enum(["chat", "agent"]).optional(),
 	archived: z.boolean().optional(),
 });
 
@@ -34,7 +32,11 @@ export const renameConversationInput = z.object({
 
 /**
  * The `forwardedProps` the chat stream route reads from the AG-UI request body.
- * Only the conversation id is forwarded; all model/endpoint config is the
- * server's source of truth, read from the conversation row.
+ * `conversationId` resolves the row whose model/endpoint config is the server's
+ * source of truth; `enabledTools` is the user's ephemeral per-send tool choice
+ * (catalog tool ids and `mcp:<serverId>`), never persisted.
  */
-export const chatStreamForwardedPropsSchema = z.object({ conversationId: uuid });
+export const chatStreamForwardedPropsSchema = z.object({
+	conversationId: uuid,
+	enabledTools: z.array(z.string()).default([]),
+});

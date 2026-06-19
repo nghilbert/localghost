@@ -37,15 +37,15 @@ export function ChatWindow({ messages, isStreaming, isReady }: Props) {
 						<EmptyHeader>
 							<EmptyTitle>No model connected yet</EmptyTitle>
 							<EmptyDescription>
-								Install a local model in the Cookbook, then pick it from the model menu below the
+								Install a local model in the Library, then pick it from the model menu below the
 								message box.
 							</EmptyDescription>
 						</EmptyHeader>
 						<EmptyContent>
 							<Button asChild>
-								<Link to="/cookbook">
+								<Link to="/library">
 									<BookOpenIcon />
-									Browse the Cookbook
+									Browse the Library
 								</Link>
 							</Button>
 						</EmptyContent>

@@ -49,36 +49,50 @@ async function addMemory(args: ManageMemoryArgs, ownerId: string): Promise<strin
 	return `Memory saved: "${args.text.slice(0, 80)}${args.text.length > 80 ? "…" : ""}"`;
 }
 
-async function searchMemory(args: ManageMemoryArgs, ownerId: string): Promise<string> {
-	const query = args.query?.trim();
-	if (!query) return "query is required to search memories";
+export type RecalledMemory = { text: string; category: string };
 
-	const limit = Math.min(args.limit ?? 5, 20);
-	const embedding = await embed(query, ownerId);
+/**
+ * Vector-similarity recall (with a keyword fallback when no embedding endpoint
+ * is configured) over the user's memories. Shared by the `manage_memory` search
+ * action and the automatic recall injected into every chat's system prompt.
+ */
+export async function recallMemories(
+	ownerId: string,
+	query: string,
+	limit = 5,
+): Promise<RecalledMemory[]> {
+	const trimmed = query.trim();
+	if (!trimmed) return [];
 
-	let rows: Array<{ text: string; category: string; score?: number }> = [];
+	const capped = Math.min(limit, 20);
+	const embedding = await embed(trimmed, ownerId);
 
 	if (embedding) {
-		// Vector similarity search when embeddings are available
-		rows = await prisma.$queryRawUnsafe<typeof rows>(
-			`SELECT text, category, 1 - (embedding <=> $1::vector) AS score
+		// Vector similarity search when embeddings are available.
+		return prisma.$queryRawUnsafe<RecalledMemory[]>(
+			`SELECT text, category
              FROM memory WHERE owner_id = $2 AND embedding IS NOT NULL
              ORDER BY embedding <=> $1::vector LIMIT $3`,
 			toVectorLiteral(embedding),
 			ownerId,
-			limit,
-		);
-	} else {
-		// Full-text keyword fallback when no embedding endpoint is configured
-		rows = await prisma.$queryRawUnsafe<typeof rows>(
-			`SELECT text, category FROM memory WHERE owner_id = $1
-             AND lower(text) LIKE lower($2) LIMIT $3`,
-			ownerId,
-			`%${query}%`,
-			limit,
+			capped,
 		);
 	}
+	// Full-text keyword fallback when no embedding endpoint is configured.
+	return prisma.$queryRawUnsafe<RecalledMemory[]>(
+		`SELECT text, category FROM memory WHERE owner_id = $1
+         AND lower(text) LIKE lower($2) LIMIT $3`,
+		ownerId,
+		`%${trimmed}%`,
+		capped,
+	);
+}
 
+async function searchMemory(args: ManageMemoryArgs, ownerId: string): Promise<string> {
+	const query = args.query?.trim();
+	if (!query) return "query is required to search memories";
+
+	const rows = await recallMemories(ownerId, query, args.limit ?? 5);
 	if (rows.length === 0) return "No matching memories found.";
 	return rows.map((r, i) => `[${i + 1}] (${r.category}) ${r.text}`).join("\n");
 }
