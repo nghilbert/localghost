@@ -49,6 +49,7 @@ export function ChatInput({ conversationId, isStreaming, sendMessage, stop }: Pr
 					disabled={!isReady}
 				/>
 			</CardContent>
+
 			<CardFooter className="justify-between gap-2">
 				<CardAction className="flex items-center gap-2">
 					<ToggleGroup

@@ -1,7 +1,7 @@
 import { useChat } from "@tanstack/ai-react";
 import { PageHeader } from "#/components/PageHeader";
 import { ChatInput } from "#/features/chat/components/ChatView/ChatInput";
-import { ChatMessages } from "#/features/chat/components/ChatView/ChatMessages";
+import { ChatWindow } from "#/features/chat/components/ChatView/ChatWindow";
 import { useChatAutoRename } from "#/features/chat/hooks/use-chat-auto-rename";
 import { useConversationSettings } from "#/features/chat/hooks/use-conversation-settings";
 import { chatClientOptions } from "#/features/chat/lib/chat-client-options";
@@ -28,27 +28,20 @@ export function ChatView({ conversation }: ChatViewProps) {
 		<div className="flex h-full flex-col">
 			<PageHeader
 				title={conversation.title}
-				actions={
-					<ExportMenu
-						conversation={{
-							id: conversation.id,
-							title: conversation.title,
-							model: conversation.model,
-						}}
-						messages={messages}
-					/>
-				}
+				actions={<ExportMenu conversation={conversation} messages={messages} />}
 			/>
 
-			<ChatMessages messages={messages} isStreaming={isStreaming} isReady={isReady} />
+			<div className="mx-auto flex w-full max-w-3xl flex-1 flex-col min-h-0">
+				<ChatWindow messages={messages} isStreaming={isStreaming} isReady={isReady} />
 
-			<div className="px-4 py-3">
-				<ChatInput
-					conversationId={conversation.id}
-					isStreaming={isStreaming}
-					sendMessage={sendMessage}
-					stop={stop}
-				/>
+				<div className="px-4 pb-4 pt-2">
+					<ChatInput
+						conversationId={conversation.id}
+						isStreaming={isStreaming}
+						sendMessage={sendMessage}
+						stop={stop}
+					/>
+				</div>
 			</div>
 		</div>
 	);

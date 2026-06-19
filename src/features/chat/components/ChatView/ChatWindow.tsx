@@ -18,15 +18,7 @@ type Props = {
 	isReady: boolean;
 };
 
-export function ChatMessages({ messages, isStreaming, isReady }: Props) {
-	const bottomRef = useRef<HTMLDivElement>(null);
-
-	// Runs every render so the feed stays pinned to the latest content as the
-	// transcript streams in (streaming deltas mutate the last message in place).
-	useEffect(() => {
-		requestAnimationFrame(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }));
-	});
-
+export function ChatWindow({ messages, isStreaming, isReady }: Props) {
 	return (
 		<section
 			aria-label="Conversation"
@@ -65,7 +57,6 @@ export function ChatMessages({ messages, isStreaming, isReady }: Props) {
 				const isStreamingMessage = isStreaming && isLast && msg.role === "assistant";
 				return <ChatMessage key={msg.id} message={msg} isStreaming={isStreamingMessage} />;
 			})}
-			<div ref={bottomRef} />
 		</section>
 	);
 }
