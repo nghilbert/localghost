@@ -1,7 +1,6 @@
-import type { ModelMessage, ServerTool, StreamChunk } from "@tanstack/ai";
+import type { ServerTool } from "@tanstack/ai";
 import { toolDefinition } from "@tanstack/ai";
 import { z } from "zod/v4";
-import { streamLLMEvents } from "#/lib/llm.server";
 import { callMcpTool, type McpToolDef } from "#/lib/mcp.server";
 import { manageMemory, manageMemoryArgsSchema } from "#/lib/tools/manage_memory";
 import { manageNotes, manageNotesArgsSchema } from "#/lib/tools/manage_notes";
@@ -220,29 +219,4 @@ export function buildAgentTools(ownerId: string, mcpTools: McpToolDef[]): Server
 			}).server(async (args) => callMcpTool(t, z.record(z.string(), z.unknown()).parse(args))),
 		),
 	];
-}
-
-/**
- * Runs the multi-round agent as the raw `@tanstack/ai` (AG-UI) event stream.
- * Built-in tools and any MCP server tools are handed to `streamLLMEvents` as
- * `ServerTool[]`; `chat()` auto-executes them and loops until the model finishes
- * or `MAX_AGENT_ROUNDS` is reached. The resulting event stream (text/thinking
- * deltas, tool-call lifecycle, run lifecycle) passes through for the client to render.
- *
- * @param opts - Endpoint, model, conversation, owner, and optional MCP tools.
- * @returns The `@tanstack/ai` event stream for this agent run.
- */
-export function runAgentEvents(opts: {
-	url: string;
-	apiKey?: string;
-	model: string;
-	messages: ModelMessage[];
-	systemPrompt?: string;
-	ownerId: string;
-	/** Extra tools from connected MCP servers */
-	mcpTools?: McpToolDef[];
-}): AsyncIterable<StreamChunk> {
-	const { url, apiKey, model, messages, systemPrompt, ownerId, mcpTools = [] } = opts;
-	const tools = buildAgentTools(ownerId, mcpTools);
-	return streamLLMEvents({ url, apiKey, model, messages, systemPrompt }, tools);
 }

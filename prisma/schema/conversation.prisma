@@ -2,19 +2,17 @@
 /// The client owns persistence via the framework's ChatClientPersistence
 /// adapter (getItem/setItem/removeItem), so the stream route never writes here.
 model Conversation {
-    id           String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-    ownerId      String         @map("owner_id") @db.Uuid
-    owner        User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-    title        String         @default("New Chat")
-    endpointId   String?        @map("endpoint_id") @db.Uuid
-    endpoint     ModelEndpoint? @relation(fields: [endpointId], references: [id], onDelete: SetNull)
-    model        String         @default("")
-    mode         String         @default("chat")
-    archived     Boolean        @default(false)
-    /// @tanstack/ai UIMessage[] — the full conversation transcript.
-    messages     Json           @default("[]")
-    createdAt    DateTime       @default(now()) @map("created_at")
-    updatedAt    DateTime       @updatedAt @map("updated_at")
+    id         String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+    ownerId    String         @map("owner_id") @db.Uuid
+    owner      User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+    title      String         @default("New Chat")
+    endpointId String?        @map("endpoint_id") @db.Uuid
+    endpoint   ModelEndpoint? @relation(fields: [endpointId], references: [id], onDelete: SetNull)
+    model      String         @default("")
+    archived   Boolean        @default(false)
+    messages   Json           @default("[]") /// @tanstack/ai UIMessage[] — the full conversation transcript.
+    createdAt  DateTime       @default(now()) @map("created_at")
+    updatedAt  DateTime       @updatedAt @map("updated_at")
 
     // A `content_text` generated column (Postgres derives it from `messages`)
     // lives outside this schema — like `memory.embedding` — and powers text

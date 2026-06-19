@@ -10,12 +10,10 @@ import { EventType } from "@tanstack/ai/client";
 import { createFileRoute } from "@tanstack/react-router";
 import { auth } from "#/features/auth/lib/auth.server";
 import { chatStreamForwardedPropsSchema } from "#/features/chat/lib/schemas";
-import { runAgentEvents } from "#/lib/agent.server";
 import { maybeCompact } from "#/lib/compactor.server";
 import { decrypt } from "#/lib/crypto.server";
 import { prisma } from "#/lib/db.server";
 import { streamLLMEvents } from "#/lib/llm.server";
-import { listAllMcpTools } from "#/lib/mcp.server";
 import { fireWebhook } from "#/lib/webhook.server";
 
 const MAX_HISTORY_MESSAGES = 40;
@@ -51,13 +49,11 @@ export const Route = createFileRoute("/api/chat/stream")({
 					include: { endpoint: true },
 				});
 				if (!conversation) return new Response("Conversation not found", { status: 404 });
-				if (!conversation.endpoint) {
+				if (!conversation.endpoint)
 					return new Response("No model endpoint configured", { status: 400 });
-				}
 
 				const endpoint = conversation.endpoint;
 				const apiKey = endpoint.apiKeyEncrypted ? decrypt(endpoint.apiKeyEncrypted) : undefined;
-				const isAgent = conversation.mode === "agent";
 
 				// System prompt + temperature are global per-user chat defaults.
 				const userSettings = await prisma.userSettings.findUnique({
@@ -93,34 +89,14 @@ export const Route = createFileRoute("/api/chat/stream")({
 						apiKey,
 					);
 
-				// Enumerate enabled MCP server tools for agent mode.
-				const mcpTools = isAgent
-					? await (async () => {
-							const servers = await prisma.mcpServer.findMany({
-								where: { ownerId: userId, enabled: true },
-							});
-							return servers.length > 0 ? listAllMcpTools(servers) : [];
-						})()
-					: [];
-
-				const source = isAgent
-					? runAgentEvents({
-							url: endpoint.url,
-							apiKey,
-							model: conversation.model,
-							messages: compactedHistory,
-							systemPrompt: effectiveSystemPrompt,
-							ownerId: userId,
-							mcpTools,
-						})
-					: streamLLMEvents({
-							url: endpoint.url,
-							apiKey,
-							model: conversation.model,
-							messages: compactedHistory,
-							systemPrompt: effectiveSystemPrompt,
-							temperature,
-						});
+				const source = streamLLMEvents({
+					url: endpoint.url,
+					apiKey,
+					model: conversation.model,
+					messages: compactedHistory,
+					systemPrompt: effectiveSystemPrompt,
+					temperature,
+				});
 
 				// Forward the event stream, firing the completion webhook on RUN_FINISHED
 				// and translating provider errors into a terminal RUN_ERROR event.

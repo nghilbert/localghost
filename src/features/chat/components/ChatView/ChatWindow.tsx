@@ -1,7 +1,6 @@
 import type { UIMessage } from "@tanstack/ai-client";
 import { Link } from "@tanstack/react-router";
 import { BookOpenIcon } from "lucide-react";
-import { useEffect, useRef } from "react";
 import { Button } from "#/components/ui/button";
 import {
 	Empty,

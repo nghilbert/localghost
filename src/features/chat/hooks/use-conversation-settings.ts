@@ -28,14 +28,10 @@ export function useConversationSettings(conversationId: string) {
 		onError: () => toast.error("Failed to save settings"),
 	});
 
-	const mode: "chat" | "agent" = conversation.mode === "agent" ? "agent" : "chat";
-
 	return {
-		mode,
 		model: conversation.model,
 		endpointId: conversation.endpointId,
 		isReady: Boolean(conversation.model && conversation.endpointId),
-		setMode: (value: "chat" | "agent") => patch.mutate({ mode: value }),
 		setModel: (endpointId: string, model: string) => patch.mutate({ endpointId, model }),
 	};
 }

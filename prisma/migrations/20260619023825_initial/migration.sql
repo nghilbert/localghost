@@ -24,7 +24,6 @@ CREATE TABLE "conversation" (
     "title" TEXT NOT NULL DEFAULT 'New Chat',
     "endpoint_id" UUID,
     "model" TEXT NOT NULL DEFAULT '',
-    "mode" TEXT NOT NULL DEFAULT 'chat',
     "archived" BOOLEAN NOT NULL DEFAULT false,
     "messages" JSONB NOT NULL DEFAULT '[]',
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,

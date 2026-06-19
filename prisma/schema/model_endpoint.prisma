@@ -1,10 +1,10 @@
 model ModelEndpoint {
-    id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+    id              String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
     name            String
     url             String
-    apiKeyEncrypted String?       @map("api_key_encrypted")
-    provider        String        @default("openai")
-    ownerId         String        @map("owner_id") @db.Uuid
+    apiKeyEncrypted String?        @map("api_key_encrypted")
+    provider        String         @default("openai")
+    ownerId         String         @map("owner_id") @db.Uuid
     owner           User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
     conversations   Conversation[]
     createdAt       DateTime       @default(now()) @map("created_at")
