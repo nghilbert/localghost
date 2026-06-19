@@ -1,6 +1,6 @@
 import { execSync } from "node:child_process";
 import os from "node:os";
-import type { GpuInfo, HardwareInfo } from "#/features/cookbook/lib/types";
+import type { GpuInfo, HardwareInfo } from "#/features/library/lib/types";
 
 /** Queries `nvidia-smi` for installed NVIDIA GPUs, or `null` if the tool is absent or returns nothing. */
 function detectNvidiaGpus(): GpuInfo[] | null {

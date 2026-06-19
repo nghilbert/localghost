@@ -1,23 +1,20 @@
 model User {
-    id             String          @id @db.Uuid
-    name           String
-    email          String
-    emailVerified  Boolean         @default(false) @map("email_verified")
-    image          String?
-    createdAt      DateTime        @default(now()) @map("created_at")
-    updatedAt      DateTime        @updatedAt @map("updated_at")
-    sessions       Session[]
-    accounts       Account[]
-    modelEndpoints ModelEndpoint[]
-    conversations  Conversation[]
-    memories       Memory[]
-    skills         Skill[]
-    scheduledTasks ScheduledTask[]
-    notes          Note[]
-    webhooks       Webhook[]
-    mcpServers     McpServer[]
-    settings       UserSettings?
+  id             String          @id @db.Uuid
+  name           String
+  email          String
+  emailVerified  Boolean         @default(false) @map("email_verified")
+  image          String?
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+  sessions       Session[]
+  accounts       Account[]
+  modelEndpoints ModelEndpoint[]
+  conversations  Conversation[]
+  memories       Memory[]
+  skills         Skill[]
+  mcpServers     McpServer[]
+  settings       UserSettings?
 
-    @@unique([email])
-    @@map("user")
+  @@unique([email])
+  @@map("user")
 }

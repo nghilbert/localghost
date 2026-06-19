@@ -3,17 +3,27 @@ import { type KeyboardEvent, useRef } from "react";
 import { Button } from "#/components/ui/button";
 import { Card, CardAction, CardContent, CardFooter } from "#/components/ui/card";
 import { Textarea } from "#/components/ui/textarea";
+import { ToolsPicker } from "#/features/chat/components/ChatView/ToolsPicker";
 import { useConversationSettings } from "#/features/chat/hooks/use-conversation-settings";
 import { ModelPicker } from "#/features/endpoints/components/ModelPicker";
 
 type Props = {
 	conversationId: string;
 	isStreaming: boolean;
+	enabledTools: string[];
+	onEnabledToolsChange: (enabledTools: string[]) => void;
 	sendMessage: (content: string) => Promise<void>;
 	stop: () => void;
 };
 
-export function ChatInput({ conversationId, isStreaming, sendMessage, stop }: Props) {
+export function ChatInput({
+	conversationId,
+	isStreaming,
+	enabledTools,
+	onEnabledToolsChange,
+	sendMessage,
+	stop,
+}: Props) {
 	const { model, endpointId, isReady, setModel } = useConversationSettings(conversationId);
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -45,8 +55,9 @@ export function ChatInput({ conversationId, isStreaming, sendMessage, stop }: Pr
 			</CardContent>
 
 			<CardFooter className="justify-between gap-2">
-				<CardAction>
+				<CardAction className="flex items-center gap-2">
 					<ModelPicker currentModel={model} currentEndpointId={endpointId} onSelect={setModel} />
+					<ToolsPicker enabledTools={enabledTools} onChange={onEnabledToolsChange} />
 				</CardAction>
 				<CardAction>
 					{isStreaming ? (

@@ -3,10 +3,10 @@ import { z } from "zod/v4";
 export const TAB_VALUES = [
 	"account",
 	"chat",
+	"memory",
 	"setup",
 	"providers",
 	"theme",
-	"webhooks",
 	"data",
 	"mcp",
 ] as const;

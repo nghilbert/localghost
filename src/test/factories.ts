@@ -5,7 +5,7 @@ import type {
 	GpuInfo,
 	HardwareInfo,
 	OllamaInstalledModel,
-} from "#/features/cookbook/lib/types";
+} from "#/features/library/lib/types";
 
 /**
  * Test data factories. Each builder fills semantically-irrelevant fields with

@@ -3,16 +3,13 @@ import { auth } from "#/features/auth/lib/auth.server";
 import { prisma } from "#/lib/db.server";
 
 /**
- * Dev-only seed: provisions a known login plus a spread of realistic notes, skills, and chat
+ * Dev-only seed: provisions a known login plus a spread of realistic skills and chat
  * sessions so the app has something to render on a fresh database. Never run against production.
  *
  * Login: dev@example.com / password123
  */
 const DEV_EMAIL = "dev@example.com";
 const DEV_PASSWORD = "password123";
-
-const NOTE_TYPES = ["note", "task"] as const;
-const NOTE_COLORS = ["amber", "rose", "sky", "violet", "emerald"] as const;
 
 async function main() {
 	faker.seed(42);
@@ -26,17 +23,6 @@ async function main() {
 		body: { email: DEV_EMAIL, password: DEV_PASSWORD, name: faker.person.fullName() },
 	});
 	const user = await prisma.user.findFirstOrThrow({ where: { email: DEV_EMAIL } });
-
-	await prisma.note.createMany({
-		data: Array.from({ length: 12 }, () => ({
-			ownerId: user.id,
-			title: faker.lorem.sentence({ min: 2, max: 5 }),
-			content: faker.lorem.paragraphs({ min: 1, max: 3 }),
-			noteType: faker.helpers.arrayElement(NOTE_TYPES),
-			color: faker.helpers.arrayElement(NOTE_COLORS),
-			pinned: faker.datatype.boolean({ probability: 0.25 }),
-		})),
-	});
 
 	await prisma.skill.createMany({
 		data: Array.from({ length: 4 }, () => ({
@@ -65,7 +51,7 @@ async function main() {
 		});
 	}
 
-	console.log(`Seeded ${DEV_EMAIL} with notes, skills, and chats.`);
+	console.log(`Seeded ${DEV_EMAIL} with skills and chats.`);
 }
 
 main()

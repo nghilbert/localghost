@@ -1,4 +1,4 @@
-import type { ModelMessage, ServerTool, StreamChunk } from "@tanstack/ai";
+import type { AnyTextAdapter, ModelMessage, ServerTool, StreamChunk } from "@tanstack/ai";
 import { chat, createModel, extendAdapter, maxIterations } from "@tanstack/ai";
 import { createAnthropicChat } from "@tanstack/ai-anthropic";
 import { createGeminiChat } from "@tanstack/ai-gemini";
@@ -22,9 +22,137 @@ const OPENROUTER_REFERER = "https://pretty-odysseus.app";
 const DEFAULT_MAX_TOKENS = 4096;
 const MAX_AGENT_ROUNDS = 10;
 
+/** Shape of the model-list responses across providers (OpenAI `data`, Ollama/Gemini `models`). */
+type ModelsResponse = {
+	data?: Array<{ id: string }>;
+	models?: Array<{ name: string }>;
+};
+
+/**
+ * Per-provider configuration that drives every provider-specific decision:
+ * adapter construction, base-URL normalization, the `modelOptions` request
+ * shape, and the model-list endpoint's URL/headers/parsing. Keyed by
+ * {@link LLMProvider} in {@link PROVIDERS} so the rest of the file stays
+ * branch-free.
+ */
+type ProviderConfig = {
+	/** Normalizes a configured endpoint URL to the base the chat adapter expects. */
+	chatBaseUrl: (url: string) => string;
+	/** Builds the `@tanstack/ai` text adapter for a model against the normalized base URL. */
+	buildAdapter: (model: string, apiKey: string, baseUrl: string) => AnyTextAdapter;
+	/** The provider-specific `modelOptions` payload for a `chat()` call. */
+	modelOptions: (model: string, temperature: number, maxTokens: number) => Record<string, unknown>;
+	/** Headers for the model-list fetch (auth lives here for header-auth providers). */
+	modelsHeaders: (apiKey?: string) => Record<string, string>;
+	/** The model-list endpoint URL, given a trailing-slash-stripped base. */
+	modelsUrl: (base: string, apiKey?: string) => string;
+	/** Extracts the advertised model ids from a model-list response. */
+	parseModels: (json: ModelsResponse) => string[];
+};
+
+/** Clamps a temperature into Anthropic's accepted `[0, 1]` range. */
+function clampUnit(value: number): number {
+	return Math.min(Math.max(value, 0), 1);
+}
+
+/** Builds an OpenAI-compatible adapter, optionally with extra default headers. */
+function openaiAdapter(
+	model: string,
+	apiKey: string,
+	baseURL: string,
+	defaultHeaders?: Record<string, string>,
+): AnyTextAdapter {
+	return openaiCompatibleText(model, {
+		baseURL,
+		apiKey,
+		api: "chat-completions",
+		...(defaultHeaders ? { defaultHeaders } : {}),
+	});
+}
+
+const OPENAI_COMPATIBLE: ProviderConfig = {
+	// Normalize to end at `/v1`; the SDK appends `/chat/completions`.
+	chatBaseUrl: (url) => {
+		const base = url.replace(/\/+$/, "").replace(/\/chat\/completions$/, "");
+		return base.endsWith("/v1") ? base : `${base}/v1`;
+	},
+	buildAdapter: (model, apiKey, baseURL) => openaiAdapter(model, apiKey, baseURL),
+	modelOptions: (_model, temperature, maxTokens) => ({ temperature, max_tokens: maxTokens }),
+	modelsHeaders: (apiKey) => ({
+		"Content-Type": "application/json",
+		...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
+	}),
+	modelsUrl: (base) => `${base}/v1/models`,
+	parseModels: (json) => (json.data ?? []).map((m) => m.id),
+};
+
+const PROVIDERS: Record<LLMProvider, ProviderConfig> = {
+	anthropic: {
+		// Strip a trailing slash and a redundant `/v1` so the SDK appends its own path.
+		chatBaseUrl: (url) => url.replace(/\/+$/, "").replace(/\/v1$/, ""),
+		buildAdapter: (model, apiKey, baseURL) => {
+			// `createAnthropicChat` type-constrains the model to a fixed list; widen it with a
+			// runtime model definition so any bring-your-own Claude model name is accepted.
+			const factory = extendAdapter(createAnthropicChat, [
+				createModel(model, ["text", "image", "document"]),
+			]);
+			return factory(model, apiKey, { baseURL });
+		},
+		modelOptions: (_model, temperature, maxTokens) => ({
+			temperature: clampUnit(temperature),
+			max_tokens: maxTokens,
+		}),
+		modelsHeaders: (apiKey) => ({
+			"Content-Type": "application/json",
+			"anthropic-version": "2023-06-01",
+			...(apiKey ? { "x-api-key": apiKey } : {}),
+		}),
+		modelsUrl: (base) => `${base}/v1/models`,
+		parseModels: (json) => (json.data ?? []).map((m) => m.id),
+	},
+	gemini: {
+		chatBaseUrl: (url) => url.replace(/\/+$/, ""),
+		buildAdapter: (model, apiKey, baseUrl) => {
+			// `createGeminiChat` type-constrains the model to a fixed list; widen it with a
+			// runtime model definition so any bring-your-own Gemini model name is accepted.
+			const factory = extendAdapter(createGeminiChat, [
+				createModel(model, ["text", "image", "document"]),
+			]);
+			return factory(model, apiKey, { httpOptions: { baseUrl } });
+		},
+		modelOptions: (_model, temperature, maxTokens) => ({
+			temperature,
+			maxOutputTokens: maxTokens,
+		}),
+		// Gemini authenticates via a `?key=` query parameter, not an Authorization header.
+		modelsHeaders: () => ({ "Content-Type": "application/json" }),
+		modelsUrl: (base, apiKey) => `${base}/v1beta/models?key=${apiKey ?? ""}`,
+		parseModels: (json) => (json.models ?? []).map((m) => m.name.replace(/^models\//, "")),
+	},
+	ollama: {
+		// Reduce to the host root; the SDK appends `/api/chat`.
+		chatBaseUrl: (url) => url.replace(/\/+$/, "").replace(/\/api$/, ""),
+		buildAdapter: (model, _apiKey, host) => createOllamaChat(model, host),
+		modelOptions: (model, temperature, maxTokens) => ({
+			model,
+			options: { temperature, num_predict: maxTokens },
+		}),
+		modelsHeaders: () => ({ "Content-Type": "application/json" }),
+		modelsUrl: (base) => `${base}/api/tags`,
+		parseModels: (json) => (json.models ?? []).map((m) => m.name),
+	},
+	openrouter: {
+		...OPENAI_COMPATIBLE,
+		buildAdapter: (model, apiKey, baseURL) =>
+			openaiAdapter(model, apiKey, baseURL, { "HTTP-Referer": OPENROUTER_REFERER }),
+	},
+	groq: OPENAI_COMPATIBLE,
+	openai: OPENAI_COMPATIBLE,
+};
+
 /**
  * Auto-detects the provider family from a bring-your-own endpoint URL so the
- * right `@tanstack/ai` adapter and request shape are selected.
+ * right {@link ProviderConfig} is selected.
  *
  * @param url - The endpoint base URL configured on a `ModelEndpoint`.
  * @returns The detected provider family.
@@ -39,108 +167,27 @@ export function detectProvider(url: string): LLMProvider {
 	return "openai";
 }
 
-/** Strips a trailing slash and a redundant `/v1` so the Anthropic SDK can append its own path. */
-function anthropicBaseUrl(url: string): string {
-	return url.replace(/\/+$/, "").replace(/\/v1$/, "");
-}
-
-/** Normalizes an OpenAI-compatible base URL to end at `/v1` (the SDK appends `/chat/completions`). */
-function openaiBaseUrl(url: string): string {
-	const base = url.replace(/\/+$/, "").replace(/\/chat\/completions$/, "");
-	return base.endsWith("/v1") ? base : `${base}/v1`;
-}
-
-/** Reduces an Ollama URL to its host root (the SDK appends `/api/chat`). */
-function ollamaHost(url: string): string {
-	return url.replace(/\/+$/, "").replace(/\/api$/, "");
-}
-
-/** Strips a trailing slash so the Gemini SDK can append its own versioned path. */
-function geminiBaseUrl(url: string): string {
-	return url.replace(/\/+$/, "");
-}
-
-/** Clamps a temperature into Anthropic's accepted `[0, 1]` range. */
-function clampUnit(value: number): number {
-	return Math.min(Math.max(value, 0), 1);
-}
-
 /**
- * Drives a `chat()` run against the detected provider, applying per-provider
- * adapter construction, base-URL normalization, header quirks, and the
- * provider-specific `modelOptions` shape. Returns the raw `@tanstack/ai`
- * (AG-UI) event stream — `chat()` auto-executes any server tools and loops up
- * to `maxIterations`.
+ * Drives a `chat()` run against the detected provider, applying the registry's
+ * adapter construction, base-URL normalization, and `modelOptions` shape.
+ * Returns the raw `@tanstack/ai` (AG-UI) event stream — `chat()` auto-executes
+ * any server tools and loops up to `MAX_AGENT_ROUNDS`.
  */
 function chatEvents(
 	opts: StreamLLMOptions,
 	tools: ServerTool[] | undefined,
 ): AsyncIterable<StreamChunk> {
-	const provider = detectProvider(opts.url);
-	const systemPrompts = opts.systemPrompt ? [opts.systemPrompt] : [];
-	const modelMessages = opts.messages;
+	const config = PROVIDERS[detectProvider(opts.url)];
 	const temperature = opts.temperature ?? 0.7;
 	const maxTokens = opts.maxTokens ?? DEFAULT_MAX_TOKENS;
-	const shared = {
-		messages: modelMessages,
-		systemPrompts,
-		stream: true as const,
-		...(tools ? { tools, agentLoopStrategy: maxIterations(MAX_AGENT_ROUNDS) } : {}),
-	};
-
-	if (provider === "anthropic") {
-		// `createAnthropicChat` type-constrains the model to a fixed list; widen it with a
-		// runtime model definition so any bring-your-own Claude model name is accepted.
-		const factory = extendAdapter(createAnthropicChat, [
-			createModel(opts.model, ["text", "image", "document"]),
-		]);
-		const adapter = factory(opts.model, opts.apiKey ?? "", {
-			baseURL: anthropicBaseUrl(opts.url),
-		});
-		return chat({
-			adapter,
-			...shared,
-			modelOptions: { temperature: clampUnit(temperature), max_tokens: maxTokens },
-		});
-	}
-
-	if (provider === "ollama") {
-		const adapter = createOllamaChat(opts.model, ollamaHost(opts.url));
-		return chat({
-			adapter,
-			...shared,
-			modelOptions: { model: opts.model, options: { temperature, num_predict: maxTokens } },
-		});
-	}
-
-	if (provider === "gemini") {
-		// `createGeminiChat` type-constrains the model to a fixed list; widen it with a
-		// runtime model definition so any bring-your-own Gemini model name is accepted.
-		const factory = extendAdapter(createGeminiChat, [
-			createModel(opts.model, ["text", "image", "document"]),
-		]);
-		const adapter = factory(opts.model, opts.apiKey ?? "", {
-			httpOptions: { baseUrl: geminiBaseUrl(opts.url) },
-		});
-		return chat({
-			adapter,
-			...shared,
-			modelOptions: { temperature, maxOutputTokens: maxTokens },
-		});
-	}
-
-	const adapter = openaiCompatibleText(opts.model, {
-		baseURL: openaiBaseUrl(opts.url),
-		apiKey: opts.apiKey ?? "",
-		api: "chat-completions",
-		...(provider === "openrouter"
-			? { defaultHeaders: { "HTTP-Referer": OPENROUTER_REFERER } }
-			: {}),
-	});
+	const adapter = config.buildAdapter(opts.model, opts.apiKey ?? "", config.chatBaseUrl(opts.url));
 	return chat({
 		adapter,
-		...shared,
-		modelOptions: { temperature, max_tokens: maxTokens },
+		messages: opts.messages,
+		systemPrompts: opts.systemPrompt ? [opts.systemPrompt] : [],
+		stream: true as const,
+		modelOptions: config.modelOptions(opts.model, temperature, maxTokens),
+		...(tools ? { tools, agentLoopStrategy: maxIterations(MAX_AGENT_ROUNDS) } : {}),
 	});
 }
 
@@ -182,18 +229,6 @@ export type EndpointProbeResult = {
 	error?: string;
 };
 
-function modelsHeaders(provider: LLMProvider, apiKey?: string): Record<string, string> {
-	const headers: Record<string, string> = { "Content-Type": "application/json" };
-	if (provider === "anthropic") {
-		if (apiKey) headers["x-api-key"] = apiKey;
-		headers["anthropic-version"] = "2023-06-01";
-	} else if (provider !== "gemini" && apiKey) {
-		// Gemini authenticates via a `?key=` query parameter, not an Authorization header.
-		headers.Authorization = `Bearer ${apiKey}`;
-	}
-	return headers;
-}
-
 /**
  * Probes a provider's model-list endpoint with real auth so failures are
  * distinguishable — unlike {@link listModels}, which collapses errors into `[]`.
@@ -203,25 +238,19 @@ function modelsHeaders(provider: LLMProvider, apiKey?: string): Record<string, s
  * @returns Whether the endpoint responded, its status, and a model count when available.
  */
 export async function probeEndpoint(url: string, apiKey?: string): Promise<EndpointProbeResult> {
-	const provider = detectProvider(url);
-	const base = url.replace(/\/$/, "");
-	const modelsUrl =
-		provider === "ollama"
-			? `${base}/api/tags`
-			: provider === "gemini"
-				? `${base}/v1beta/models?key=${apiKey ?? ""}`
-				: `${base}/v1/models`;
+	const config = PROVIDERS[detectProvider(url)];
+	const base = url.replace(/\/+$/, "");
 	try {
-		const res = await fetch(modelsUrl, {
-			headers: modelsHeaders(provider, apiKey),
+		const res = await fetch(config.modelsUrl(base, apiKey), {
+			headers: config.modelsHeaders(apiKey),
 			signal: AbortSignal.timeout(8000),
 		});
 		if (!res.ok) {
 			const reason = res.status === 401 || res.status === 403 ? "API key rejected" : res.statusText;
 			return { ok: false, status: res.status, error: `${reason} (HTTP ${res.status})` };
 		}
-		const data = (await res.json()) as { data?: unknown[]; models?: unknown[] };
-		return { ok: true, status: res.status, modelCount: (data.data ?? data.models ?? []).length };
+		const data: ModelsResponse = await res.json();
+		return { ok: true, status: res.status, modelCount: config.parseModels(data).length };
 	} catch (err) {
 		return { ok: false, error: err instanceof Error ? err.message : "Request failed" };
 	}
@@ -235,27 +264,15 @@ export async function probeEndpoint(url: string, apiKey?: string): Promise<Endpo
  * @returns The available model ids, or `[]` on any failure.
  */
 export async function listModels(url: string, apiKey?: string): Promise<string[]> {
-	const provider = detectProvider(url);
-	const base = url.replace(/\/$/, "");
+	const config = PROVIDERS[detectProvider(url)];
+	const base = url.replace(/\/+$/, "");
 	try {
-		if (provider === "ollama") {
-			const res = await fetch(`${base}/api/tags`, { headers: modelsHeaders(provider, apiKey) });
-			if (!res.ok) return [];
-			const data = (await res.json()) as { models?: { name: string }[] };
-			return (data.models ?? []).map((m) => m.name);
-		}
-		if (provider === "gemini") {
-			const res = await fetch(`${base}/v1beta/models?key=${apiKey ?? ""}`, {
-				headers: modelsHeaders(provider, apiKey),
-			});
-			if (!res.ok) return [];
-			const data = (await res.json()) as { models?: { name: string }[] };
-			return (data.models ?? []).map((m) => m.name.replace(/^models\//, ""));
-		}
-		const res = await fetch(`${base}/v1/models`, { headers: modelsHeaders(provider, apiKey) });
+		const res = await fetch(config.modelsUrl(base, apiKey), {
+			headers: config.modelsHeaders(apiKey),
+		});
 		if (!res.ok) return [];
-		const data = (await res.json()) as { data?: { id: string }[] };
-		return (data.data ?? []).map((m) => m.id);
+		const data: ModelsResponse = await res.json();
+		return config.parseModels(data);
 	} catch {
 		return [];
 	}

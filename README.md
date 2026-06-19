@@ -1,7 +1,5 @@
 # pretty-odysseus
 
-A TypeScript reimplementation of [Odysseus](https://github.com/pewdiepie-archdaemon/odysseus) on TanStack Start.
-
 ## Setup
 
 ```bash
@@ -30,7 +28,7 @@ COMPOSE_PROFILES=ollama,dev docker compose up --build
 ```
 
 On a GPU host, append the matching hardware overlay via `COMPOSE_FILE` to give
-both Ollama and the cookbook hardware panel GPU access (needs the matching host
+both Ollama and the Library hardware panel GPU access (needs the matching host
 GPU runtime). CPU hosts leave it unset.
 
 ```bash
@@ -48,14 +46,4 @@ Author new migrations against the dockerized dev DB with:
 
 ```bash
 docker compose exec web-dev npm run prisma -- migrate dev --name <name>
-```
-
-## Production parity check
-
-Build and run the production image against Postgres before pushing. The `web`
-service runs under the `prod` profile, which the `.env.example` default
-(`COMPOSE_PROFILES=ollama,prod`) supplies:
-
-```bash
-docker compose up --build
 ```

@@ -1,6 +1,5 @@
 import { revalidateLogic } from "@tanstack/react-form";
 import { ChevronDownIcon, PlusIcon } from "lucide-react";
-import { ConnectionTestAlert } from "#/components/ConnectionTestAlert";
 import { Button } from "#/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "#/components/ui/collapsible";
 import { Field } from "#/components/ui/field";
@@ -104,17 +103,6 @@ export function AddProviderForm({ definition, onCreated }: AddProviderFormProps)
 					</Collapsible>
 				)}
 
-				{testEndpoint.data && (
-					<ConnectionTestAlert
-						ok={testEndpoint.data.ok}
-						title={testEndpoint.data.ok ? "Connection works" : "Connection failed"}
-						description={
-							testEndpoint.data.ok
-								? `${testEndpoint.data.modelCount} models available.`
-								: (testEndpoint.data.error ?? "Request failed")
-						}
-					/>
-				)}
 				<form.FormError>{createEndpoint.error?.message}</form.FormError>
 
 				<Field orientation="horizontal">

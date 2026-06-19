@@ -7,6 +7,7 @@ import { prisma } from "#/lib/db.server";
 const updateUserSettingsInput = z.object({
 	systemPrompt: z.string().nullish(),
 	temperature: z.number().min(0).max(2).nullish(),
+	memoryEnabled: z.boolean().optional(),
 });
 
 /** Global chat defaults for the current user, falling back to sensible defaults. */
@@ -16,6 +17,7 @@ export const getUserSettings = createServerFn({ method: "GET" }).handler(async (
 	return {
 		systemPrompt: settings?.systemPrompt ?? null,
 		temperature: settings?.temperature ?? 0.7,
+		memoryEnabled: settings?.memoryEnabled ?? true,
 	};
 });
 
@@ -27,12 +29,17 @@ export const updateUserSettings = createServerFn({ method: "POST" })
 		const temperature = data.temperature ?? null;
 		const settings = await prisma.userSettings.upsert({
 			where: { ownerId: userId },
-			create: { ownerId: userId, systemPrompt, temperature },
-			update: { systemPrompt, temperature },
+			create: { ownerId: userId, systemPrompt, temperature, memoryEnabled: data.memoryEnabled },
+			update: {
+				systemPrompt,
+				temperature,
+				...(data.memoryEnabled !== undefined && { memoryEnabled: data.memoryEnabled }),
+			},
 		});
 		return {
 			systemPrompt: settings.systemPrompt,
 			temperature: settings.temperature ?? 0.7,
+			memoryEnabled: settings.memoryEnabled,
 		};
 	});
 
