@@ -60,7 +60,7 @@ export function SkillEditor({
 					value={draft.content}
 					onChange={(e) => onChange({ content: e.target.value })}
 					placeholder="Describe the procedure, steps, or instructions for this skill…"
-					className="min-h-[300px] flex-1 resize-none"
+					className="min-h-75 flex-1 resize-none"
 				/>
 			</div>
 

@@ -1,5 +1,5 @@
 import { ToggleGroup, ToggleGroupItem } from "#/components/ui/toggle-group";
-import { useFieldContext } from "../app-form-context";
+import { useFieldContext } from "../context";
 import { FieldShell } from "./FieldShell";
 import type { ComponentFieldProps, FieldOption } from "./types";
 
@@ -19,20 +19,18 @@ export function ToggleGroupField({
 	return (
 		<FieldShell label={label} description={description} orientation={orientation}>
 			<ToggleGroup
+				id={field.name}
 				type="single"
 				value={field.state.value}
 				onValueChange={(value) => {
 					if (value) field.handleChange(value);
 				}}
 				onBlur={field.handleBlur}
+				aria-invalid={!field.state.meta.isValid}
 				{...props}
 			>
 				{options.map((option) => (
-					<ToggleGroupItem
-						key={option.value}
-						value={option.value}
-						aria-invalid={!field.state.meta.isValid}
-					>
+					<ToggleGroupItem key={option.value} value={option.value}>
 						{option.label}
 					</ToggleGroupItem>
 				))}

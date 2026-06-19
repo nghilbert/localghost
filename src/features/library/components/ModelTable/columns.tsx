@@ -1,10 +1,13 @@
 import type { ColumnDef } from "@tanstack/react-table";
-import { CheckCircle2Icon } from "lucide-react";
 import { DataTableColumnHeader } from "#/components/DataTable/DataTableColumnHeader";
 import { Badge } from "#/components/ui/badge";
-import { FitBadge } from "#/features/library/components/ModelTable/FitBadge";
 import { ModelActionsCell } from "#/features/library/components/ModelTable/ModelActionsCell";
-import { formatBytes } from "#/features/library/lib/format";
+import {
+	FamilyCell,
+	FitCell,
+	InstalledCheck,
+	SizeCell,
+} from "#/features/library/components/modelCells";
 import type {
 	CatalogModel,
 	FitScore,
@@ -46,7 +49,7 @@ export function createModelColumns({
 						<div className="flex items-center gap-1.5">
 							<span className="font-medium text-sm">{model.name}</span>
 							<span className="text-xs text-muted-foreground">{model.paramB}B</span>
-							{installed && <CheckCircle2Icon size={12} className="shrink-0 text-success" />}
+							{installed && <InstalledCheck />}
 						</div>
 						<p className="text-xs text-muted-foreground truncate max-w-xs">{model.description}</p>
 						<div className="mt-1 flex flex-wrap gap-0.5">
@@ -64,11 +67,7 @@ export function createModelColumns({
 			id: "family",
 			accessorFn: (row) => row.model.family,
 			header: "By",
-			cell: ({ row }) => (
-				<span className="text-xs text-muted-foreground whitespace-nowrap">
-					{row.original.model.family}
-				</span>
-			),
+			cell: ({ row }) => <FamilyCell family={row.original.model.family} />,
 		},
 		{
 			id: "params",
@@ -108,25 +107,13 @@ export function createModelColumns({
 			id: "overall",
 			accessorFn: (row) => row.fit.overall,
 			header: ({ column }) => <DataTableColumnHeader column={column} title="Fit" />,
-			cell: ({ row }) => {
-				const { fit } = row.original;
-				if (!hasHardware) return <span className="text-xs text-muted-foreground">—</span>;
-				return <FitBadge tier={fit.tier} overall={fit.overall} />;
-			},
+			cell: ({ row }) => <FitCell fit={row.original.fit} hasHardware={hasHardware} />,
 		},
 		{
 			id: "size",
 			accessorFn: (row) => row.installed?.sizeBytes ?? 0,
 			header: "Size",
-			cell: ({ row }) => {
-				const { installed } = row.original;
-				if (!installed) return <span className="text-xs text-muted-foreground">—</span>;
-				return (
-					<span className="text-xs tabular-nums text-muted-foreground">
-						{formatBytes(installed.sizeBytes)}
-					</span>
-				);
-			},
+			cell: ({ row }) => <SizeCell installed={row.original.installed} />,
 		},
 		{
 			id: "actions",

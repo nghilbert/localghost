@@ -1,50 +1,45 @@
+import { useMutation } from "@tanstack/react-query";
 import { DownloadIcon, UploadIcon } from "lucide-react";
-import { useRef, useState } from "react";
+import { useRef } from "react";
+import { toast } from "sonner";
+import { z } from "zod/v4";
 import { Button } from "#/components/ui/button";
 import { downloadUrl } from "#/lib/download";
 
+const ImportResult = z.object({
+	ok: z.boolean(),
+	imported: z.record(z.string(), z.number()),
+});
+
 export function DataTab() {
-	const [isImporting, setIsImporting] = useState(false);
-	const [importResult, setImportResult] = useState<string | null>(null);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
-	function handleExport() {
-		downloadUrl("/api/backup/export");
-	}
-
-	async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
-		const file = e.target.files?.[0];
-		if (!file) return;
-		setIsImporting(true);
-		setImportResult(null);
-		try {
-			const text = await file.text();
-			const payload = JSON.parse(text) as unknown;
+	const importBackup = useMutation({
+		mutationFn: async (file: File) => {
 			const res = await fetch("/api/backup/import", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(payload),
+				body: await file.text(),
 			});
-			const data = (await res.json()) as {
-				ok?: boolean;
-				imported?: Record<string, number>;
-				error?: string;
-			};
-			if (!res.ok || !data.ok) {
-				setImportResult(`Import failed: ${data.error ?? res.statusText}`);
-			} else {
-				const counts = Object.entries(data.imported ?? {})
-					.filter(([, v]) => v > 0)
-					.map(([k, v]) => `${v} ${k}`)
-					.join(", ");
-				setImportResult(counts ? `Imported: ${counts}` : "Nothing new to import.");
-			}
-		} catch (err) {
-			setImportResult(`Error: ${(err as Error).message}`);
-		} finally {
-			setIsImporting(false);
+			if (!res.ok) throw new Error((await res.text()) || res.statusText);
+			return ImportResult.parse(await res.json());
+		},
+		onSuccess: ({ imported }) => {
+			const counts = Object.entries(imported)
+				.filter(([, count]) => count > 0)
+				.map(([key, count]) => `${count} ${key}`)
+				.join(", ");
+			toast.success(counts ? `Imported: ${counts}` : "Nothing new to import.");
+		},
+		onError: (error) => toast.error(`Import failed: ${error.message}`),
+		onSettled: () => {
 			if (fileInputRef.current) fileInputRef.current.value = "";
-		}
+		},
+	});
+
+	function handleImport(event: React.ChangeEvent<HTMLInputElement>) {
+		const file = event.target.files?.[0];
+		if (file) importBackup.mutate(file);
 	}
 
 	return (
@@ -54,7 +49,7 @@ export function DataTab() {
 				<p className="mb-3 text-xs text-muted-foreground">
 					Download all your memories, skills, and recent conversations as a single JSON file.
 				</p>
-				<Button size="sm" variant="outline" onClick={handleExport}>
+				<Button size="sm" variant="outline" onClick={() => downloadUrl("/api/backup/export")}>
 					<DownloadIcon size={13} className="mr-1.5" />
 					Export backup
 				</Button>
@@ -69,21 +64,20 @@ export function DataTab() {
 				<Button
 					size="sm"
 					variant="outline"
-					disabled={isImporting}
+					disabled={importBackup.isPending}
 					onClick={() => fileInputRef.current?.click()}
 				>
 					<UploadIcon size={13} className="mr-1.5" />
-					{isImporting ? "Importing…" : "Choose backup file"}
+					{importBackup.isPending ? "Importing…" : "Choose backup file"}
 				</Button>
 				<input
 					ref={fileInputRef}
 					type="file"
 					accept=".json,application/json"
 					className="sr-only"
-					disabled={isImporting}
+					disabled={importBackup.isPending}
 					onChange={handleImport}
 				/>
-				{importResult && <p className="mt-2 text-xs text-muted-foreground">{importResult}</p>}
 			</section>
 		</div>
 	);

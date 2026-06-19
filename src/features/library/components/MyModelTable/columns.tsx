@@ -1,9 +1,12 @@
 import type { ColumnDef } from "@tanstack/react-table";
-import { CheckCircle2Icon } from "lucide-react";
 import { DataTableColumnHeader } from "#/components/DataTable/DataTableColumnHeader";
-import { FitBadge } from "#/features/library/components/ModelTable/FitBadge";
 import { ModelActionsCell } from "#/features/library/components/ModelTable/ModelActionsCell";
-import { formatBytes } from "#/features/library/lib/format";
+import {
+	FamilyCell,
+	FitCell,
+	InstalledCheck,
+	SizeCell,
+} from "#/features/library/components/modelCells";
 import type {
 	CatalogModel,
 	FitScore,
@@ -43,9 +46,7 @@ export function createMyModelColumns({
 					<div className="min-w-0">
 						<div className="flex items-center gap-1.5">
 							<span className="font-medium text-sm">{name}</span>
-							{installed && !pullState && (
-								<CheckCircle2Icon size={12} className="shrink-0 text-success" />
-							)}
+							{installed && !pullState && <InstalledCheck />}
 							{pullState && !pullState.error && (
 								<span className="text-[10px] text-muted-foreground">installing</span>
 							)}
@@ -59,13 +60,9 @@ export function createMyModelColumns({
 			id: "family",
 			accessorFn: (row) => row.catalog?.family ?? row.installed?.family ?? "",
 			header: "By",
-			cell: ({ row }) => {
-				const { catalog, installed } = row.original;
-				const family = catalog?.family ?? installed?.family;
-				return (
-					<span className="text-xs text-muted-foreground whitespace-nowrap">{family ?? "—"}</span>
-				);
-			},
+			cell: ({ row }) => (
+				<FamilyCell family={row.original.catalog?.family ?? row.original.installed?.family} />
+			),
 		},
 		{
 			id: "params",
@@ -81,25 +78,13 @@ export function createMyModelColumns({
 			id: "size",
 			accessorFn: (row) => row.installed?.sizeBytes ?? 0,
 			header: ({ column }) => <DataTableColumnHeader column={column} title="Size" />,
-			cell: ({ row }) => {
-				const { installed } = row.original;
-				if (!installed) return <span className="text-xs text-muted-foreground">—</span>;
-				return (
-					<span className="text-xs tabular-nums text-muted-foreground">
-						{formatBytes(installed.sizeBytes)}
-					</span>
-				);
-			},
+			cell: ({ row }) => <SizeCell installed={row.original.installed} />,
 		},
 		{
 			id: "fit",
 			accessorFn: (row) => row.fit?.overall ?? 0,
 			header: ({ column }) => <DataTableColumnHeader column={column} title="Fit" />,
-			cell: ({ row }) => {
-				const { fit } = row.original;
-				if (!hasHardware || !fit) return <span className="text-xs text-muted-foreground">—</span>;
-				return <FitBadge tier={fit.tier} overall={fit.overall} />;
-			},
+			cell: ({ row }) => <FitCell fit={row.original.fit} hasHardware={hasHardware} />,
 		},
 		{
 			id: "actions",
