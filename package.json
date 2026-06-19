@@ -63,11 +63,11 @@
 		"zod": "^4.4.3"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "^2.5.0",
+		"@biomejs/biome": "2.5.0",
 		"@faker-js/faker": "^10.5.0",
-		"@tanstack/devtools-vite": "^0.7.0",
+		"@tanstack/devtools-vite": "^0.7.2",
 		"@tanstack/react-ai-devtools": "latest",
-		"@tanstack/react-devtools": "^0.10.5",
+		"@tanstack/react-devtools": "^0.10.7",
 		"@tanstack/react-query-devtools": "^5.101.0",
 		"@tanstack/react-router-devtools": "^1.167.0",
 		"@testing-library/jest-dom": "^6.9.1",
