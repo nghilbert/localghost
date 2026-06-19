@@ -14,10 +14,6 @@ model Conversation {
   createdAt  DateTime       @default(now()) @map("created_at")
   updatedAt  DateTime       @updatedAt @map("updated_at")
 
-  // A `content_text` generated column (Postgres derives it from `messages`)
-  // lives outside this schema — like `memory.embedding` — and powers text
-  // search via raw queries. See the conversation_text migration.
-
   @@index([ownerId, archived])
   @@map("conversation")
 }

@@ -1,3 +1,4 @@
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { SearchIcon, XIcon } from "lucide-react";
 import { useState } from "react";
@@ -19,13 +20,6 @@ import { ScrollArea } from "#/components/ui/scroll-area";
 import { Spinner } from "#/components/ui/spinner";
 import { searchConversations } from "#/features/chat/lib/conversation.functions";
 
-type SearchResult = {
-	id: string;
-	title: string;
-	snippet: string;
-	updatedAt: Date | string;
-};
-
 type SearchDialogProps = {
 	open: boolean;
 	onClose: () => void;
@@ -34,25 +28,14 @@ type SearchDialogProps = {
 export function SearchDialog({ open, onClose }: SearchDialogProps) {
 	const navigate = useNavigate();
 	const [query, setQuery] = useState("");
-	const [results, setResults] = useState<SearchResult[]>([]);
-	const [isSearching, setIsSearching] = useState(false);
 
-	async function handleSearch(nextQuery: string) {
-		setQuery(nextQuery);
-		if (!nextQuery.trim()) {
-			setResults([]);
-			return;
-		}
-		setIsSearching(true);
-		try {
-			const res = await searchConversations({ data: { query: nextQuery } });
-			setResults(res);
-		} catch {
-			setResults([]);
-		} finally {
-			setIsSearching(false);
-		}
-	}
+	const trimmed = query.trim();
+	const { data: results = [], isFetching } = useQuery({
+		queryKey: ["conversation-search", trimmed],
+		queryFn: () => searchConversations({ data: { query: trimmed } }),
+		enabled: trimmed.length > 0,
+		placeholderData: keepPreviousData,
+	});
 
 	function handleOpenConversation(conversationId: string) {
 		navigate({ to: "/chat/$conversationId", params: { conversationId } });
@@ -72,7 +55,7 @@ export function SearchDialog({ open, onClose }: SearchDialogProps) {
 					</InputGroupAddon>
 					<InputGroupInput
 						value={query}
-						onChange={(e) => handleSearch(e.target.value)}
+						onChange={(e) => setQuery(e.target.value)}
 						placeholder="Search messages…"
 					/>
 					{query && (
@@ -80,10 +63,7 @@ export function SearchDialog({ open, onClose }: SearchDialogProps) {
 							<InputGroupButton
 								size="icon-xs"
 								aria-label="Clear search"
-								onClick={() => {
-									setQuery("");
-									setResults([]);
-								}}
+								onClick={() => setQuery("")}
 							>
 								<XIcon size={13} />
 							</InputGroupButton>
@@ -92,13 +72,13 @@ export function SearchDialog({ open, onClose }: SearchDialogProps) {
 				</InputGroup>
 				<ScrollArea className="max-h-80">
 					<div className="space-y-1">
-						{isSearching && (
+						{isFetching && (
 							<p className="flex items-center justify-center gap-1.5 py-4 text-xs text-muted-foreground">
 								<Spinner className="size-3" />
 								Searching…
 							</p>
 						)}
-						{!isSearching && results.length === 0 && query && (
+						{!isFetching && results.length === 0 && trimmed && (
 							<p className="py-4 text-center text-xs text-muted-foreground">No results</p>
 						)}
 						{results.map((result) => (

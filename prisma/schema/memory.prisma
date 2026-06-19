@@ -1,12 +1,12 @@
 model Memory {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id        String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   text      String
-  category  String   @default("fact")
-  /// Where this memory came from: "user" (manually added), "agent" (extracted during a chat), etc.
-  source    String   @default("user")
-  ownerId   String   @map("owner_id") @db.Uuid
-  owner     User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now()) @map("created_at")
+  embedding Unsupported("vector")? /// Unsized pgvector embedding for semantic recall, read/written via raw SQL.
+  category  String                 @default("fact")
+  source    String                 @default("user") /// Where this memory came from: "user" (manually added), "agent" (extracted during a chat), etc.
+  ownerId   String                 @map("owner_id") @db.Uuid
+  owner     User                   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  createdAt DateTime               @default(now()) @map("created_at")
 
   @@index([ownerId])
   @@map("memory")

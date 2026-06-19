@@ -37,14 +37,15 @@ async function addMemory(args: ManageMemoryArgs, ownerId: string): Promise<strin
 
 	const embedding = await embed(args.text, ownerId);
 
-	await prisma.$executeRawUnsafe(
-		`INSERT INTO memory (text, category, source, owner_id, embedding)
-         VALUES ($1, $2, 'agent', $3, $4::vector)`,
-		args.text,
-		args.category ?? "fact",
-		ownerId,
-		embedding ? toVectorLiteral(embedding) : null,
-	);
+	await prisma.$executeRaw`
+		INSERT INTO memory (text, category, source, owner_id, embedding)
+		VALUES (
+			${args.text},
+			${args.category ?? "fact"},
+			'agent',
+			${ownerId}::uuid,
+			${embedding ? toVectorLiteral(embedding) : null}::vector
+		)`;
 
 	return `Memory saved: "${args.text.slice(0, 80)}${args.text.length > 80 ? "…" : ""}"`;
 }
@@ -69,23 +70,19 @@ export async function recallMemories(
 
 	if (embedding) {
 		// Vector similarity search when embeddings are available.
-		return prisma.$queryRawUnsafe<RecalledMemory[]>(
-			`SELECT text, category
-             FROM memory WHERE owner_id = $2 AND embedding IS NOT NULL
-             ORDER BY embedding <=> $1::vector LIMIT $3`,
-			toVectorLiteral(embedding),
-			ownerId,
-			capped,
-		);
+		return prisma.$queryRaw<RecalledMemory[]>`
+			SELECT text, category
+			FROM memory
+			WHERE owner_id = ${ownerId}::uuid AND embedding IS NOT NULL
+			ORDER BY embedding <=> ${toVectorLiteral(embedding)}::vector
+			LIMIT ${capped}`;
 	}
 	// Full-text keyword fallback when no embedding endpoint is configured.
-	return prisma.$queryRawUnsafe<RecalledMemory[]>(
-		`SELECT text, category FROM memory WHERE owner_id = $1
-         AND lower(text) LIKE lower($2) LIMIT $3`,
-		ownerId,
-		`%${trimmed}%`,
-		capped,
-	);
+	return prisma.$queryRaw<RecalledMemory[]>`
+		SELECT text, category
+		FROM memory
+		WHERE owner_id = ${ownerId}::uuid AND lower(text) LIKE lower(${`%${trimmed}%`})
+		LIMIT ${capped}`;
 }
 
 async function searchMemory(args: ManageMemoryArgs, ownerId: string): Promise<string> {

@@ -1,3 +1,6 @@
+-- CreateExtension
+CREATE EXTENSION IF NOT EXISTS "vector";
+
 -- CreateTable
 CREATE TABLE "account" (
     "id" UUID NOT NULL,
@@ -50,6 +53,7 @@ CREATE TABLE "mcp_server" (
 CREATE TABLE "memory" (
     "id" UUID NOT NULL DEFAULT gen_random_uuid(),
     "text" TEXT NOT NULL,
+    "embedding" vector,
     "category" TEXT NOT NULL DEFAULT 'fact',
     "source" TEXT NOT NULL DEFAULT 'user',
     "owner_id" UUID NOT NULL,
