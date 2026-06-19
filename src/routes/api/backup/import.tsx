@@ -4,6 +4,7 @@ import { prisma } from "#/lib/db.server";
 
 type ImportPayload = {
 	version?: number;
+	userSettings?: { systemPrompt?: string | null; temperature?: number | null } | null;
 	memories?: Array<{ text: string; category?: string | null; source?: string }>;
 	notes?: Array<{
 		title?: string;
@@ -19,7 +20,6 @@ type ImportPayload = {
 		title?: string;
 		model?: string | null;
 		mode?: string | null;
-		systemPrompt?: string | null;
 		messages?: unknown;
 	}>;
 };
@@ -49,6 +49,19 @@ export const Route = createFileRoute("/api/backup/import")({
 					skills: 0,
 					conversations: 0,
 				};
+
+				// Global chat defaults — non-destructively merged: only fill fields the
+				// user hasn't already set, so an import never clobbers existing settings.
+				if (payload.userSettings) {
+					const existing = await prisma.userSettings.findUnique({ where: { ownerId: userId } });
+					const systemPrompt = existing?.systemPrompt ?? payload.userSettings.systemPrompt ?? null;
+					const temperature = existing?.temperature ?? payload.userSettings.temperature ?? null;
+					await prisma.userSettings.upsert({
+						where: { ownerId: userId },
+						create: { ownerId: userId, systemPrompt, temperature },
+						update: { systemPrompt, temperature },
+					});
+				}
 
 				if (Array.isArray(payload.memories)) {
 					for (const m of payload.memories) {
@@ -110,7 +123,6 @@ export const Route = createFileRoute("/api/backup/import")({
 								title: c.title ?? "Imported chat",
 								model: c.model ?? "",
 								mode: c.mode ?? "chat",
-								systemPrompt: c.systemPrompt ?? null,
 								messages,
 								ownerId: userId,
 							},

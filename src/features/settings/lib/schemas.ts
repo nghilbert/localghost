@@ -2,6 +2,7 @@ import { z } from "zod/v4";
 
 export const TAB_VALUES = [
 	"account",
+	"chat",
 	"setup",
 	"providers",
 	"theme",
@@ -16,4 +17,9 @@ export const SettingsSearchSchema = z.object({
 
 export const ProfileFormSchema = z.object({
 	name: z.string().trim().min(1, "Name is required"),
+});
+
+export const ChatSettingsFormSchema = z.object({
+	systemPrompt: z.string().max(10000),
+	temperature: z.number().min(0).max(2),
 });

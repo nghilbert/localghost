@@ -25,8 +25,6 @@ CREATE TABLE "conversation" (
     "endpoint_id" UUID,
     "model" TEXT NOT NULL DEFAULT '',
     "mode" TEXT NOT NULL DEFAULT 'chat',
-    "system_prompt" TEXT,
-    "temperature" DOUBLE PRECISION,
     "archived" BOOLEAN NOT NULL DEFAULT false,
     "messages" JSONB NOT NULL DEFAULT '[]',
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -170,6 +168,18 @@ CREATE TABLE "user" (
 );
 
 -- CreateTable
+CREATE TABLE "user_settings" (
+    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+    "owner_id" UUID NOT NULL,
+    "system_prompt" TEXT,
+    "temperature" DOUBLE PRECISION,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "user_settings_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "verification" (
     "id" UUID NOT NULL,
     "identifier" TEXT NOT NULL,
@@ -239,6 +249,9 @@ CREATE INDEX "skill_owner_id_idx" ON "skill"("owner_id");
 CREATE UNIQUE INDEX "user_email_key" ON "user"("email");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "user_settings_owner_id_key" ON "user_settings"("owner_id");
+
+-- CreateIndex
 CREATE INDEX "verification_identifier_idx" ON "verification"("identifier");
 
 -- CreateIndex
@@ -276,6 +289,9 @@ ALTER TABLE "session" ADD CONSTRAINT "session_user_id_fkey" FOREIGN KEY ("user_i
 
 -- AddForeignKey
 ALTER TABLE "skill" ADD CONSTRAINT "skill_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "user_settings" ADD CONSTRAINT "user_settings_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "webhook" ADD CONSTRAINT "webhook_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;

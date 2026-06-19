@@ -79,8 +79,6 @@ export const updateConversation = createServerFn({ method: "POST" })
 				...(patch.model !== undefined && { model: patch.model }),
 				...(patch.endpointId !== undefined && { endpointId: patch.endpointId }),
 				...(patch.mode !== undefined && { mode: patch.mode }),
-				...(patch.systemPrompt !== undefined && { systemPrompt: patch.systemPrompt }),
-				...(patch.temperature !== undefined && { temperature: patch.temperature }),
 				...(patch.archived !== undefined && { archived: patch.archived }),
 			},
 		});

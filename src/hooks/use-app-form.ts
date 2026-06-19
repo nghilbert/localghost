@@ -8,6 +8,7 @@ import { MultiToggleField } from "#/components/appForm/MultiToggleField";
 import { PasswordField } from "#/components/appForm/PasswordField";
 import { Section } from "#/components/appForm/Section";
 import { SelectField } from "#/components/appForm/SelectField";
+import { SliderField } from "#/components/appForm/SliderField";
 import { SubmitButton } from "#/components/appForm/SubmitButton";
 import { SubmitForm } from "#/components/appForm/SubmitForm";
 import { SwatchField } from "#/components/appForm/SwatchField";
@@ -23,6 +24,7 @@ export const { useAppForm, withForm } = createFormHook({
 		InputField,
 		PasswordField,
 		SelectField,
+		SliderField,
 		TextareaField,
 		ToggleGroupField,
 		MultiToggleField,

@@ -16,6 +16,7 @@ model User {
     notes          Note[]
     webhooks       Webhook[]
     mcpServers     McpServer[]
+    settings       UserSettings?
 
     @@unique([email])
     @@map("user")
