@@ -7,11 +7,7 @@ import { SpeakButton } from "#/features/chat/components/ChatMessage/SpeakButton"
 import { partsText } from "#/features/chat/lib/message-text";
 import { cn } from "#/lib/utils";
 
-type Props = {
-	message: UIMessage;
-	isStreaming?: boolean;
-};
-
+type Props = { message: UIMessage; isStreaming?: boolean };
 export function ChatMessage({ message, isStreaming }: Props) {
 	const content = partsText(message.parts);
 
@@ -58,7 +54,7 @@ export function ChatMessage({ message, isStreaming }: Props) {
 				content={content}
 				className={cn(
 					isStreaming &&
-						"after:ml-0.5 after:animate-pulse after:content-['▋'] after:text-muted-foreground",
+						"after:ml-0.5 after:animate-pulse after:content-['|'] after:text-muted-foreground",
 				)}
 			/>
 

@@ -3,7 +3,7 @@ import { prisma } from "#/lib/db.server";
 
 export const searchChatsArgsSchema = z.object({
 	query: z.string().optional(),
-	limit: z.number().optional(),
+	limit: z.coerce.number().optional(),
 });
 
 export async function searchChats(query: string, ownerId: string, limit = 10): Promise<string> {

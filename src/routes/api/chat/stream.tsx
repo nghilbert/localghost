@@ -16,30 +16,19 @@ import { decrypt } from "#/lib/crypto.server";
 import { prisma } from "#/lib/db.server";
 import { streamLLMEvents } from "#/lib/llm.server";
 import { MCP_TOOL_PREFIX } from "#/lib/tools/catalog";
-import { recallMemories } from "#/lib/tools/manage_memory";
 
 const MAX_HISTORY_MESSAGES = 40;
-const MEMORY_RECALL_LIMIT = 5;
+
+const MEMORY_GUIDANCE =
+	"## Memory\n" +
+	"You have long-term memory via the manage_memory tool. Recall (search) only when the user " +
+	"refers to something from a past conversation or asks what you remember. Save (add) only " +
+	"durable facts the user clearly wants remembered across sessions — never ephemeral chit-chat.";
 
 /** Caps history to the most recent N turns before compaction. */
 function trimHistory(messages: ModelMessage[]): ModelMessage[] {
 	if (messages.length <= MAX_HISTORY_MESSAGES) return messages;
 	return messages.slice(-MAX_HISTORY_MESSAGES);
-}
-
-/** The text of the most recent user message — the query for automatic memory recall. */
-function latestUserText(messages: ModelMessage[]): string {
-	for (let i = messages.length - 1; i >= 0; i--) {
-		const message = messages[i];
-		if (message?.role !== "user") continue;
-		const { content } = message;
-		if (typeof content === "string") return content;
-		if (Array.isArray(content)) {
-			return content.flatMap((part) => (part.type === "text" ? [part.content] : [])).join(" ");
-		}
-		return "";
-	}
-	return "";
 }
 
 /**
@@ -98,20 +87,11 @@ export const Route = createFileRoute("/api/chat/stream")({
 					systemPrompt = systemPrompt ? `${systemPrompt}\n\n${skillBlock}` : skillBlock;
 				}
 
-				// Automatic memory: recall the most relevant memories for this turn and
-				// inject them so the model has long-term context without an explicit tool call.
+				// Memory is fully manual: the model recalls/saves via the manage_memory tool
+				// only when relevant. Inject a brief guidance hint so it knows the capability
+				// exists without surfacing memories on every turn.
 				if (memoryEnabled) {
-					const recalled = await recallMemories(
-						userId,
-						latestUserText(modelMessages),
-						MEMORY_RECALL_LIMIT,
-					);
-					if (recalled.length > 0) {
-						const memoryBlock =
-							"## Remembered about the user\n" +
-							recalled.map((m) => `- (${m.category}) ${m.text}`).join("\n");
-						systemPrompt = systemPrompt ? `${systemPrompt}\n\n${memoryBlock}` : memoryBlock;
-					}
+					systemPrompt = systemPrompt ? `${systemPrompt}\n\n${MEMORY_GUIDANCE}` : MEMORY_GUIDANCE;
 				}
 
 				// Tools: always-on (search_chats, manage_skills, manage_memory unless
