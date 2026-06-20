@@ -74,7 +74,7 @@ export function HardwareCard({ hardware, isLoading }: HardwareCardProps) {
 								{gb(bestGpu.totalVramMb / 1024)} VRAM · {gb(bestGpu.freeVramMb / 1024)} free
 							</p>
 							{hardware.gpus && hardware.gpus.length > 1 && (
-								<Badge variant="secondary" className="mt-1 text-[10px]">
+								<Badge variant="secondary" className="mt-1 text-xs">
 									+{hardware.gpus.length - 1} more
 								</Badge>
 							)}

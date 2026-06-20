@@ -54,7 +54,7 @@ export function createModelColumns({
 						<p className="text-xs text-muted-foreground truncate max-w-xs">{model.description}</p>
 						<div className="mt-1 flex flex-wrap gap-0.5">
 							{model.tags.map((tag) => (
-								<Badge key={tag} variant="secondary" className="text-[10px] px-1 py-0 h-auto">
+								<Badge key={tag} variant="secondary" className="text-xs px-1 py-0 h-auto">
 									{tag}
 								</Badge>
 							))}

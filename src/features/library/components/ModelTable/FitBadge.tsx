@@ -24,7 +24,7 @@ export function FitBadge({ tier, overall }: FitBadgeProps) {
 			<Badge
 				variant={TIER_VARIANTS[tier]}
 				className={cn(
-					"text-[10px]",
+					"text-xs",
 					tier === "too-large" && "text-muted-foreground",
 					tier === "gpu-optimal" && "bg-success/10 text-success hover:bg-success/20",
 					tier === "gpu-tight" && "text-warning",

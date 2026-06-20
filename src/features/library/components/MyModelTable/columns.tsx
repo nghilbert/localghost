@@ -48,7 +48,7 @@ export function createMyModelColumns({
 							<span className="font-medium text-sm">{name}</span>
 							{installed && !pullState && <InstalledCheck />}
 							{pullState && !pullState.error && (
-								<span className="text-[10px] text-muted-foreground">installing</span>
+								<span className="text-xs text-muted-foreground">installing</span>
 							)}
 						</div>
 						<p className="text-xs text-muted-foreground truncate max-w-xs">{id}</p>

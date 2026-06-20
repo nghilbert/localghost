@@ -35,15 +35,13 @@ export function ModelActionsCell({
 				<div className="flex min-w-0 flex-1 flex-col gap-1">
 					<div className="flex items-center gap-1.5">
 						<Loader2Icon size={11} className="animate-spin text-muted-foreground" />
-						<span className="truncate text-[10px] text-muted-foreground">
+						<span className="truncate text-xs text-muted-foreground">
 							{pullState.error ? `Error: ${pullState.error}` : (pullState.status ?? "…")}
 						</span>
 					</div>
 					{pct !== null && <Progress value={pct} className="h-1" />}
 					{detail && (
-						<span className="truncate text-[10px] text-muted-foreground tabular-nums">
-							{detail}
-						</span>
+						<span className="truncate text-xs text-muted-foreground tabular-nums">{detail}</span>
 					)}
 				</div>
 				{!pullState.error && (
