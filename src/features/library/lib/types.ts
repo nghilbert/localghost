@@ -53,4 +53,5 @@ export type PullProgress = {
 	completed?: number;
 	total?: number;
 	error?: string;
+	bytesPerSec?: number;
 };

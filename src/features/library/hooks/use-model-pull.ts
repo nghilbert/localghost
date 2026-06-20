@@ -49,6 +49,7 @@ export function useModelPull() {
 			completed: pull.completed,
 			total: pull.total,
 			error: pull.error,
+			bytesPerSec: pull.bytesPerSec,
 		};
 	}
 

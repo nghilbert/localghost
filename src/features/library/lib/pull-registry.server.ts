@@ -15,6 +15,8 @@ export type PullSnapshot = {
 	completed?: number;
 	total?: number;
 	error?: string;
+	/** Smoothed download throughput in bytes per second, while bytes are flowing. */
+	bytesPerSec?: number;
 	/** True once the pull reached a terminal state (success or error). */
 	done: boolean;
 };
@@ -24,9 +26,15 @@ type PullEntry = {
 	completed?: number;
 	total?: number;
 	error?: string;
+	bytesPerSec?: number;
 	done: boolean;
 	doneAt?: number;
 	controller: AbortController;
+	/** Start of the current averaging window — Ollama reports `completed` per layer,
+	 *  so the window restarts whenever a new layer begins. */
+	windowAt?: number;
+	windowCompleted?: number;
+	lastCompleted?: number;
 };
 
 /** A single line of Ollama's NDJSON `/api/pull` stream. */
@@ -86,6 +94,7 @@ export function getActivePulls(userId: string): PullSnapshot[] {
 			completed: entry.completed,
 			total: entry.total,
 			error: entry.error,
+			bytesPerSec: entry.bytesPerSec,
 			done: entry.done,
 		});
 	}
@@ -136,6 +145,7 @@ async function drivePull(
 				entry.status = parsed.status ?? "Downloading…";
 				entry.completed = parsed.completed;
 				entry.total = parsed.total;
+				updateRate(entry, parsed.completed);
 			}
 		}
 		finish(entry, { status: "success" });
@@ -146,6 +156,24 @@ async function drivePull(
 		}
 		finish(entry, { status: "Error", error: err instanceof Error ? err.message : "Pull failed" });
 	}
+}
+
+/**
+ * Throughput as the average over the current layer: bytes downloaded since the
+ * window opened ÷ elapsed time. Naturally smooth, so no extra dampening is needed.
+ * Ollama reports `completed` per layer, so a decrease means a new layer started and
+ * the window restarts there.
+ */
+function updateRate(entry: PullEntry, completed: number | undefined): void {
+	if (completed === undefined) return;
+	const now = Date.now();
+	if (entry.windowAt === undefined || completed < (entry.lastCompleted ?? 0)) {
+		entry.windowAt = now;
+		entry.windowCompleted = completed;
+	}
+	entry.lastCompleted = completed;
+	const secs = (now - entry.windowAt) / 1000;
+	if (secs > 0) entry.bytesPerSec = (completed - (entry.windowCompleted ?? 0)) / secs;
 }
 
 function finish(entry: PullEntry, terminal: { status: string; error?: string }): void {

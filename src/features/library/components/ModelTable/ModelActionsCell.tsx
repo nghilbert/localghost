@@ -2,6 +2,7 @@ import { DownloadIcon, Loader2Icon, SquareIcon, Trash2Icon } from "lucide-react"
 import { Button } from "#/components/ui/button";
 import { Progress } from "#/components/ui/progress";
 import { Tooltip, TooltipContent, TooltipTrigger } from "#/components/ui/tooltip";
+import { formatBytes, formatBytesPerSec, formatDuration } from "#/features/library/lib/format";
 import type { OllamaInstalledModel, PullProgress } from "#/features/library/lib/types";
 
 type ModelActionsCellProps = {
@@ -28,6 +29,7 @@ export function ModelActionsCell({
 			pullState.total && pullState.completed
 				? Math.round((pullState.completed / pullState.total) * 100)
 				: null;
+		const detail = !pullState.error ? formatPullDetail(pullState) : null;
 		return (
 			<div className="flex min-w-32 items-center gap-2">
 				<div className="flex min-w-0 flex-1 flex-col gap-1">
@@ -38,6 +40,11 @@ export function ModelActionsCell({
 						</span>
 					</div>
 					{pct !== null && <Progress value={pct} className="h-1" />}
+					{detail && (
+						<span className="truncate text-[10px] text-muted-foreground tabular-nums">
+							{detail}
+						</span>
+					)}
 				</div>
 				{!pullState.error && (
 					<Tooltip>
@@ -84,4 +91,18 @@ export function ModelActionsCell({
 			Pull
 		</Button>
 	);
+}
+
+/** One-line `<done> / <total> · <rate> · ETA <Xm Xs>`, omitting parts we can't compute yet. */
+function formatPullDetail({ completed, total, bytesPerSec }: PullProgress): string | null {
+	const parts: string[] = [];
+	if (completed !== undefined && total)
+		parts.push(`${formatBytes(completed)} / ${formatBytes(total)}`);
+	if (bytesPerSec) {
+		parts.push(formatBytesPerSec(bytesPerSec));
+		if (completed !== undefined && total && bytesPerSec > 0) {
+			parts.push(`ETA ${formatDuration((total - completed) / bytesPerSec)}`);
+		}
+	}
+	return parts.length > 0 ? parts.join(" · ") : null;
 }
