@@ -72,9 +72,7 @@ describe("buildChatTools", () => {
 			expect(tool.__toolSide).toBe("server");
 			expect(tool.name).toBeTruthy();
 			expect(tool.description).toBeTruthy();
-			const schema = tool.inputSchema as { type: string; required: string[] };
-			expect(schema.type).toBe("object");
-			expect(Array.isArray(schema.required)).toBe(true);
+			expect(tool.inputSchema).toMatchObject({ type: "object", required: expect.any(Array) });
 		}
 	});
 });
