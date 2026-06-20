@@ -20,7 +20,7 @@ import { SetupTab } from "#/features/settings/components/SetupTab";
 import { savedMemoriesQueryOptions } from "#/features/settings/lib/memory.functions";
 import { SettingsSearchSchema } from "#/features/settings/lib/schemas";
 import { userSettingsQueryOptions } from "#/features/settings/lib/user-settings.functions";
-import { AppearanceSettings } from "#/features/theme/AppearanceSettings";
+import { AppearanceSettings } from "#/features/theme/components/AppearanceSettings";
 
 export const Route = createFileRoute("/_authenticated/settings")({
 	component: SettingsPage,

@@ -1,5 +1,5 @@
 import { Link, useParams } from "@tanstack/react-router";
-import { ArchiveIcon, MoreHorizontalIcon, PlusIcon, SearchIcon, Trash2Icon } from "lucide-react";
+import { ArchiveIcon, MoreHorizontalIcon, SearchIcon, Trash2Icon } from "lucide-react";
 import { useState } from "react";
 import { Button } from "#/components/ui/button";
 import {
@@ -22,13 +22,8 @@ import { SearchDialog } from "#/features/chat/components/ConversationList/Search
 import { useConversations } from "#/features/chat/hooks/use-conversations";
 
 export function ConversationList() {
-	const {
-		conversations,
-		createConversation,
-		renameConversation,
-		archiveConversation,
-		deleteConversation,
-	} = useConversations();
+	const { conversations, renameConversation, archiveConversation, deleteConversation } =
+		useConversations();
 	const [renamingId, setRenamingId] = useState<string | null>(null);
 	const [searchOpen, setSearchOpen] = useState(false);
 
@@ -40,21 +35,10 @@ export function ConversationList() {
 			<SidebarGroup>
 				<SidebarGroupLabel className="flex items-center justify-between pr-1">
 					Chats
-					<div className="flex items-center gap-0.5">
-						<Button variant="ghost" size="icon-sm" onClick={() => setSearchOpen(true)}>
-							<SearchIcon size={13} />
-							<span className="sr-only">Search chats</span>
-						</Button>
-						<Button
-							variant="ghost"
-							size="icon-sm"
-							onClick={() => createConversation.mutate()}
-							disabled={createConversation.isPending}
-						>
-							<PlusIcon size={14} />
-							<span className="sr-only">New chat</span>
-						</Button>
-					</div>
+					<Button variant="ghost" size="icon-sm" onClick={() => setSearchOpen(true)}>
+						<SearchIcon size={13} />
+						<span className="sr-only">Search chats</span>
+					</Button>
 				</SidebarGroupLabel>
 				<SidebarGroupContent>
 					<SidebarMenu>
