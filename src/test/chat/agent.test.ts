@@ -9,50 +9,33 @@ function names(tools: ReturnType<typeof buildChatTools>) {
 }
 
 describe("buildChatTools", () => {
-	it("always includes search_chats and manage_skills", () => {
+	it("includes no tools when nothing is selected", () => {
+		const tools = buildChatTools({ ownerId: OWNER, enabledTools: [], mcpTools: [] });
+		expect(names(tools)).toEqual([]);
+	});
+
+	it("adds web_search and read_url for the web_search selection", () => {
 		const tools = buildChatTools({
-			ownerId: OWNER,
-			enabledTools: [],
-			mcpTools: [],
-			memoryEnabled: false,
-		});
-		expect(names(tools)).toEqual(["search_chats", "manage_skills"]);
-	});
-
-	it("adds manage_memory only when memory is enabled", () => {
-		const enabled = buildChatTools({
-			ownerId: OWNER,
-			enabledTools: [],
-			mcpTools: [],
-			memoryEnabled: true,
-		});
-		expect(names(enabled)).toContain("manage_memory");
-
-		const disabled = buildChatTools({
-			ownerId: OWNER,
-			enabledTools: [],
-			mcpTools: [],
-			memoryEnabled: false,
-		});
-		expect(names(disabled)).not.toContain("manage_memory");
-	});
-
-	it("adds a catalog tool when its id is in enabledTools", () => {
-		const without = buildChatTools({
-			ownerId: OWNER,
-			enabledTools: [],
-			mcpTools: [],
-			memoryEnabled: true,
-		});
-		expect(names(without)).not.toContain("web_search");
-
-		const withTool = buildChatTools({
 			ownerId: OWNER,
 			enabledTools: ["web_search"],
 			mcpTools: [],
-			memoryEnabled: true,
 		});
-		expect(names(withTool)).toContain("web_search");
+		expect(names(tools)).toEqual(["web_search", "read_url"]);
+	});
+
+	it("maps catalog ids to their built-in tools", () => {
+		const memory = buildChatTools({ ownerId: OWNER, enabledTools: ["memory"], mcpTools: [] });
+		expect(names(memory)).toEqual(["manage_memory"]);
+
+		const chats = buildChatTools({ ownerId: OWNER, enabledTools: ["search_chats"], mcpTools: [] });
+		expect(names(chats)).toEqual(["search_chats"]);
+
+		const skills = buildChatTools({
+			ownerId: OWNER,
+			enabledTools: ["manage_skills"],
+			mcpTools: [],
+		});
+		expect(names(skills)).toEqual(["manage_skills"]);
 	});
 
 	it("includes MCP tools only for enabled `mcp:<serverId>` selections", () => {
@@ -68,14 +51,13 @@ describe("buildChatTools", () => {
 			},
 		];
 
-		const off = buildChatTools({ ownerId: OWNER, enabledTools: [], mcpTools, memoryEnabled: true });
+		const off = buildChatTools({ ownerId: OWNER, enabledTools: [], mcpTools });
 		expect(names(off)).not.toContain("mcp__weather__get");
 
 		const on = buildChatTools({
 			ownerId: OWNER,
 			enabledTools: ["mcp:server-1"],
 			mcpTools,
-			memoryEnabled: true,
 		});
 		expect(names(on)).toContain("mcp__weather__get");
 	});
@@ -83,9 +65,8 @@ describe("buildChatTools", () => {
 	it("every tool is a server tool with name, description, and object inputSchema", () => {
 		const tools = buildChatTools({
 			ownerId: OWNER,
-			enabledTools: ["web_search"],
+			enabledTools: ["web_search", "memory", "search_chats", "manage_skills"],
 			mcpTools: [],
-			memoryEnabled: true,
 		});
 		for (const tool of tools) {
 			expect(tool.__toolSide).toBe("server");

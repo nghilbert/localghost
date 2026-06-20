@@ -143,8 +143,11 @@ function mcpTool(t: McpToolDef): ServerTool {
 }
 
 /** Builders for the user-toggleable catalog tools, keyed by their catalog id. */
-const CATALOG_BUILDERS: Record<ToolCatalogId, () => ServerTool[]> = {
+const CATALOG_BUILDERS: Record<ToolCatalogId, (ownerId: string) => ServerTool[]> = {
 	web_search: () => [webSearchTool(), readUrlTool()],
+	memory: (ownerId) => [manageMemoryTool(ownerId)],
+	search_chats: (ownerId) => [searchChatsTool(ownerId)],
+	manage_skills: (ownerId) => [manageSkillsTool(ownerId)],
 };
 
 export type BuildChatToolsOptions = {
@@ -153,28 +156,24 @@ export type BuildChatToolsOptions = {
 	enabledTools: string[];
 	/** Tools discovered from the user's enabled MCP servers. */
 	mcpTools: McpToolDef[];
-	/** Whether automatic memory is active (gives the model the manage_memory tool). */
-	memoryEnabled: boolean;
 };
 
 /**
- * Assembles the `ServerTool[]` for one chat run from three tiers: always-on
- * tools (search_chats, manage_skills, and manage_memory unless opted out), the
- * user-toggled catalog tools, and the tools of any user-toggled MCP servers.
- * `chat()` auto-executes whatever is returned.
+ * Assembles the `ServerTool[]` for one chat run from the user's per-send
+ * selection: the toggled catalog tools plus the tools of any toggled MCP
+ * servers. Nothing is always-on — an untouched send hands the model no tools,
+ * which keeps small models reliable. `chat()` auto-executes whatever is returned.
  */
 export function buildChatTools({
 	ownerId,
 	enabledTools,
 	mcpTools,
-	memoryEnabled,
 }: BuildChatToolsOptions): ServerTool[] {
-	const tools: ServerTool[] = [searchChatsTool(ownerId), manageSkillsTool(ownerId)];
-	if (memoryEnabled) tools.push(manageMemoryTool(ownerId));
+	const tools: ServerTool[] = [];
 
 	const selected = new Set(enabledTools);
 	for (const id of Object.keys(CATALOG_BUILDERS) as ToolCatalogId[]) {
-		if (selected.has(id)) tools.push(...CATALOG_BUILDERS[id]());
+		if (selected.has(id)) tools.push(...CATALOG_BUILDERS[id](ownerId));
 	}
 
 	const enabledServers = new Set(

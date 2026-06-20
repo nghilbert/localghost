@@ -2,7 +2,6 @@ import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-q
 import { TrashIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "#/components/ui/button";
-import { Field, FieldContent, FieldDescription, FieldTitle } from "#/components/ui/field";
 import {
 	Item,
 	ItemActions,
@@ -11,15 +10,12 @@ import {
 	ItemGroup,
 	ItemTitle,
 } from "#/components/ui/item";
-import { Switch } from "#/components/ui/switch";
-import { useUserSettings } from "#/features/settings/hooks/use-user-settings";
 import {
 	deleteSavedMemory,
 	savedMemoriesQueryOptions,
 } from "#/features/settings/lib/memory.functions";
 
 export function MemoryTab() {
-	const { settings, update } = useUserSettings();
 	const queryClient = useQueryClient();
 	const { data: memories } = useSuspenseQuery(savedMemoriesQueryOptions());
 
@@ -34,19 +30,9 @@ export function MemoryTab() {
 
 	return (
 		<div className="space-y-6">
-			<Field orientation="horizontal">
-				<FieldContent>
-					<FieldTitle>Memory</FieldTitle>
-					<FieldDescription>
-						Let the assistant save and recall long-term memories with the memory tool when relevant.
-						Turn off to disable memory entirely.
-					</FieldDescription>
-				</FieldContent>
-				<Switch
-					checked={settings.memoryEnabled}
-					onCheckedChange={(checked) => update.mutate({ memoryEnabled: checked })}
-				/>
-			</Field>
+			<p className="text-sm text-muted-foreground">
+				The assistant saves and recalls these when you enable Memory in a chat's tools.
+			</p>
 
 			<section className="space-y-3">
 				<h2 className="text-sm font-medium">Saved memories</h2>

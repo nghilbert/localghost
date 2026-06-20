@@ -122,7 +122,6 @@ CREATE TABLE "user_settings" (
     "owner_id" UUID NOT NULL,
     "system_prompt" TEXT,
     "temperature" DOUBLE PRECISION,
-    "memory_enabled" BOOLEAN NOT NULL DEFAULT true,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
 

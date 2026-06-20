@@ -19,7 +19,7 @@ Guidance for Claude Code working in this repository.
 
 ## Project Purpose
 
-A modern, local-first AI chat app: install whatever model you want (local via Ollama, or bring-your-own cloud endpoint) and chat with it — as simple and polished as the big brands, but yours. The **Library** is the core surface (browse and install models, then chat). Capabilities are **inline tools, never tabs**: web search, MCP servers, and an automatic long-term **Memory** all live inside chat. Keep it simple and powerful; cut anything that doesn't serve that loop.
+A modern, local-first AI chat app: install whatever model you want (local via Ollama, or bring-your-own cloud endpoint) and chat with it — as simple and polished as the big brands, but yours. The **Library** is the core surface (browse and install models, then chat). Capabilities are **inline tools, never tabs**: web search, MCP servers, and a long-term **Memory** all live inside chat, toggled per message. Keep it simple and powerful; cut anything that doesn't serve that loop.
 
 ## Commands
 
@@ -39,7 +39,7 @@ npm run prisma -- generate
 
 ## Environment
 
-Copy `.env.example` to `.env`. Required: `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `ENCRYPTION_KEY` (64-char hex). Optional: `SEARXNG_URL` (falls back to DuckDuckGo).
+Copy `.env.example` to `.env`. Required: `POSTGRES_PASSWORD`, `BETTER_AUTH_SECRET`, `ENCRYPTION_KEY` (64-char hex). `DATABASE_URL` is a single `.env` line interpolated from `POSTGRES_*` by dotenvx; DB-touching scripts run through `dotenvx run`. Optional: `SEARXNG_URL` (falls back to DuckDuckGo).
 
 ## Architecture
 
@@ -50,7 +50,7 @@ Copy `.env.example` to `.env`. Required: `DATABASE_URL`, `BETTER_AUTH_SECRET`, `
 - **Database:** Prisma 7 + `@prisma/adapter-pg`. Multi-file schema in `prisma/schema/`. Generated client in `src/generated/prisma/`. Import `prisma` — never alias.
 - **Styling:** Tailwind v4. `src/lib/globals.css` is the single CSS entry. Light/dark via `.dark` on `<html>`. `cn()` in `src/lib/utils.ts`.
 - **LLM:** `src/lib/llm.server.ts` — `streamLLMEvents()` → `AsyncIterable<StreamChunk>` (pass a `ServerTool[]` to enable the agent loop), `callLLM()` non-streaming. A data-driven `PROVIDERS` registry handles per-provider URL/header/model-list/options quirks; provider auto-detected from URL. All wrap `@tanstack/ai`'s `chat()` with native adapters.
-- **Tools:** `src/features/chat/lib/agent.server.ts` — `buildAgentTools()` assembles the built-in `ServerTool[]` (web search, memory, skills, search chats) plus MCP server tools; `chat()` auto-executes them. There is **one** chat — no separate "agent mode". Which tools are offered is an **ephemeral per-request choice** the client sends via `forwardedProps` (not persisted); memory tools are always on unless opted out in Settings.
+- **Tools:** `src/features/chat/lib/agent.server.ts` — `buildChatTools()` assembles the built-in `ServerTool[]` (web search, memory, skills, search chats) plus MCP server tools; `chat()` auto-executes them. There is **one** chat — no separate "agent mode". Every tool is **opt-in per request**: the client sends the selection via `forwardedProps` (not persisted), so an untouched send hands the model no tools — keeping small models reliable.
 - **Chat persistence:** one `Conversation` row = one `UIMessage[]` blob (`messages` JSONB). The **client** owns persistence via `ChatClientPersistence` (`src/features/chat/lib/chat-persistence.ts`), so `/api/chat/stream` performs **zero DB writes**.
 
 ## Forms
@@ -85,7 +85,7 @@ src/features/<name>/
 | Chat + streaming | `src/features/chat/` (`conversation.functions.ts`, `chat-persistence.ts`), `src/routes/api/chat/stream.tsx` |
 | Library (core) | `src/features/library/`, `src/routes/api/library/pull.tsx`, `src/features/library/lib/hardware.server.ts` — browse/install local models (My Models, Browse) |
 | Endpoints / providers | `src/features/endpoints/` — shared `ModelEndpoint` table |
-| Memory (pgvector, automatic) | `src/lib/tools/manage_memory.ts`, `src/lib/tools/embeddings.server.ts` — recall injected into context; opt out in Settings |
+| Memory (pgvector) | `src/lib/tools/manage_memory.ts`, `src/lib/tools/embeddings.server.ts` — opt-in per-message tool; browse/delete saved memories in Settings |
 | Skills | `src/features/skills/` |
 | MCP servers | `src/features/mcp/lib/tools.server.ts`, `src/features/mcp/` |
 | Settings | `src/features/settings/components/` |

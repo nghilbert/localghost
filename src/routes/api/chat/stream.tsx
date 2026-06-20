@@ -19,12 +19,6 @@ import { MCP_TOOL_PREFIX } from "#/lib/tools/catalog";
 
 const MAX_HISTORY_MESSAGES = 40;
 
-const MEMORY_GUIDANCE =
-	"## Memory\n" +
-	"You have long-term memory via the manage_memory tool. Recall (search) only when the user " +
-	"refers to something from a past conversation or asks what you remember. Save (add) only " +
-	"durable facts the user clearly wants remembered across sessions — never ephemeral chit-chat.";
-
 /** Caps history to the most recent N turns before compaction. */
 function trimHistory(messages: ModelMessage[]): ModelMessage[] {
 	if (messages.length <= MAX_HISTORY_MESSAGES) return messages;
@@ -67,7 +61,6 @@ export const Route = createFileRoute("/api/chat/stream")({
 					where: { ownerId: userId },
 				});
 				const temperature = userSettings?.temperature ?? undefined;
-				const memoryEnabled = userSettings?.memoryEnabled ?? true;
 
 				const modelMessages = convertMessagesToModelMessages(params.messages);
 
@@ -87,16 +80,9 @@ export const Route = createFileRoute("/api/chat/stream")({
 					systemPrompt = systemPrompt ? `${systemPrompt}\n\n${skillBlock}` : skillBlock;
 				}
 
-				// Memory is fully manual: the model recalls/saves via the manage_memory tool
-				// only when relevant. Inject a brief guidance hint so it knows the capability
-				// exists without surfacing memories on every turn.
-				if (memoryEnabled) {
-					systemPrompt = systemPrompt ? `${systemPrompt}\n\n${MEMORY_GUIDANCE}` : MEMORY_GUIDANCE;
-				}
-
-				// Tools: always-on (search_chats, manage_skills, manage_memory unless
-				// opted out) plus the user's ephemeral per-send selection. MCP servers are
-				// only enumerated when the user actually toggled one this send.
+				// Tools are entirely opt-in per send: the user's catalog selection (web
+				// search, memory, search chats, skills) plus any toggled MCP servers. MCP
+				// servers are only enumerated when the user actually toggled one this send.
 				const wantsMcp = enabledTools.some((id) => id.startsWith(MCP_TOOL_PREFIX));
 				const mcpServers = wantsMcp
 					? await prisma.mcpServer.findMany({ where: { ownerId: userId, enabled: true } })
@@ -104,7 +90,7 @@ export const Route = createFileRoute("/api/chat/stream")({
 				const mcpTools = await listAllMcpTools(
 					mcpServers.map((s) => ({ id: s.id, name: s.name, url: s.url, type: s.type })),
 				);
-				const tools = buildChatTools({ ownerId: userId, enabledTools, mcpTools, memoryEnabled });
+				const tools = buildChatTools({ ownerId: userId, enabledTools, mcpTools });
 
 				// Auto-compact when approaching the model's context-window limit.
 				const { messages: compactedHistory, systemPrompt: effectiveSystemPrompt } =
