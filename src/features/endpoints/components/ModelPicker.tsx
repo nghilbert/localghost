@@ -13,22 +13,24 @@ import {
 import { Spinner } from "#/components/ui/spinner";
 import { useEndpoints } from "#/features/endpoints/hooks/use-endpoints";
 import { endpointModelsQueryOptions } from "#/features/endpoints/lib/endpoint.functions";
+import { cn } from "#/lib/utils";
 
 type Props = {
 	currentModel: string;
 	currentEndpointId?: string | null;
 	onSelect: (endpointId: string, model: string) => void;
+	className?: string;
 };
 
 /** Endpoint + model dropdown. Presentational: the caller decides what `onSelect` does. */
-export function ModelPicker({ currentModel, currentEndpointId, onSelect }: Props) {
+export function ModelPicker({ currentModel, currentEndpointId, onSelect, className }: Props) {
 	const { endpoints } = useEndpoints();
 	const label = currentModel || "Select model";
 
 	return (
 		<DropdownMenu>
 			<DropdownMenuTrigger asChild>
-				<Button variant="outline" size="sm" className="max-w-50 gap-1 truncate">
+				<Button variant="outline" size="sm" className={cn("gap-1 truncate", className)}>
 					<span className="truncate">{label}</span>
 					<ChevronDownIcon size={14} className="shrink-0" />
 				</Button>

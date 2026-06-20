@@ -56,7 +56,12 @@ export function ChatInput({
 
 			<CardFooter className="justify-between gap-2">
 				<CardAction className="flex items-center gap-2">
-					<ModelPicker currentModel={model} currentEndpointId={endpointId} onSelect={setModel} />
+					<ModelPicker
+						currentModel={model}
+						currentEndpointId={endpointId}
+						onSelect={setModel}
+						className="max-w-50"
+					/>
 					<ToolsPicker enabledTools={enabledTools} onChange={onEnabledToolsChange} />
 				</CardAction>
 				<CardAction>
