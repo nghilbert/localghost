@@ -79,6 +79,7 @@ export function SkillsManager() {
 					isNew={isNew}
 					onSelect={handleSelectSkill}
 					onNew={handleNew}
+					className="w-64 shrink-0"
 				/>
 				<div className="flex min-w-0 flex-1 flex-col">
 					{!selected && !isNew ? (
