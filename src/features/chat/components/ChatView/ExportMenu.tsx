@@ -10,13 +10,15 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "#/components/ui/tooltip";
 import { partsText } from "#/features/chat/lib/message-text";
 import { downloadBlob } from "#/lib/download";
+import { cn } from "#/lib/utils";
 
 type ExportMenuProps = {
 	conversation: { id: string; title: string; model: string };
 	messages: UIMessage[];
+	className?: string;
 };
 
-export function ExportMenu({ conversation, messages }: ExportMenuProps) {
+export function ExportMenu({ conversation, messages, className }: ExportMenuProps) {
 	function exportAs(format: "md" | "json") {
 		const filename = `${conversation.title.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.${format === "md" ? "md" : "json"}`;
 		const flattened = messages.map((message) => ({
@@ -55,7 +57,7 @@ export function ExportMenu({ conversation, messages }: ExportMenuProps) {
 					<DropdownMenuTrigger asChild>
 						<Button
 							variant="ghost"
-							className="h-7 gap-1 px-2 text-xs text-muted-foreground"
+							className={cn("h-7 gap-1 px-2 text-xs text-muted-foreground", className)}
 							aria-label="Export conversation"
 						>
 							<DownloadIcon size={13} />

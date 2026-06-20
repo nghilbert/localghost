@@ -13,5 +13,7 @@ export const Route = createFileRoute("/_authenticated/chat/$conversationId")({
 function ConversationPage() {
 	const { conversationId } = Route.useParams();
 	const { data: conversation } = useSuspenseQuery(conversationQueryOptions(conversationId));
-	return <ChatView key={conversation.id} conversation={conversation} />;
+	return (
+		<ChatView key={conversation.id} conversation={conversation} className="mx-auto max-w-4xl" />
+	);
 }

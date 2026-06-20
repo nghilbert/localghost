@@ -6,12 +6,13 @@ import { useChatAutoRename } from "#/features/chat/hooks/use-chat-auto-rename";
 import { useConversationSettings } from "#/features/chat/hooks/use-conversation-settings";
 import { chatClientOptions } from "#/features/chat/lib/chat-client-options";
 import type { getConversation } from "#/features/chat/lib/conversation.functions";
+import { cn } from "#/lib/utils";
 import { ExportMenu } from "./ExportMenu";
 
 type Conversation = Awaited<ReturnType<typeof getConversation>>;
 
-type ChatViewProps = { conversation: Conversation };
-export function ChatView({ conversation }: ChatViewProps) {
+type ChatViewProps = { conversation: Conversation; className?: string };
+export function ChatView({ conversation, className }: ChatViewProps) {
 	const { isReady } = useConversationSettings(conversation.id);
 
 	// Ephemeral per-conversation tool selection — sent with each message via
@@ -34,10 +35,8 @@ export function ChatView({ conversation }: ChatViewProps) {
 	const isStreaming = status === "submitted" || status === "streaming";
 
 	return (
-		<div className="mx-auto flex h-full w-full max-w-3xl flex-col min-h-0">
-			<div className="flex justify-end px-4 pt-2">
-				<ExportMenu conversation={conversation} messages={messages} />
-			</div>
+		<div className={cn("flex h-full w-full flex-col min-h-0", className)}>
+			<ExportMenu conversation={conversation} messages={messages} className="mt-2 mr-2 self-end" />
 
 			<ChatWindow
 				messages={messages}
