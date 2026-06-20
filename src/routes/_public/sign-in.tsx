@@ -1,25 +1,32 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "#/components/ui/card";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardFooter,
+	CardHeader,
+	CardTitle,
+} from "#/components/ui/card";
 import { SignInForm } from "#/features/auth/components/SignInForm";
 
-export const Route = createFileRoute("/_public/sign-in")({ component: SignInCard });
+export const Route = createFileRoute("/_public/sign-in")({ component: SignInPage });
 
-function SignInCard() {
+function SignInPage() {
 	return (
-		<Card className="w-full max-w-sm">
+		<Card>
 			<CardHeader>
 				<CardTitle>Welcome back</CardTitle>
 				<CardDescription>Sign in to your account to continue.</CardDescription>
 			</CardHeader>
-			<CardContent className="space-y-6">
+			<CardContent>
 				<SignInForm />
-				<p className="text-center text-sm text-muted-foreground">
-					No account?{" "}
-					<Link to="/sign-up" className="font-medium text-foreground underline underline-offset-4">
-						Create one
-					</Link>
-				</p>
 			</CardContent>
+			<CardFooter className="justify-center gap-1 text-muted-foreground">
+				No account?
+				<Link to="/sign-up" className="font-medium text-foreground underline underline-offset-4">
+					Create one
+				</Link>
+			</CardFooter>
 		</Card>
 	);
 }

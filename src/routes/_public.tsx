@@ -7,11 +7,14 @@ export const Route = createFileRoute("/_public")({
 	},
 	component: () => (
 		<div className="flex h-dvh flex-col items-center justify-center gap-8 px-4">
-			<div className="text-center">
+			<header className="text-center">
 				<h1 className="text-2xl font-bold tracking-tight">{APP_NAME}</h1>
 				<p className="mt-1 text-sm text-muted-foreground">Your self-hosted AI workspace</p>
-			</div>
-			<Outlet />
+			</header>
+			{/* The active public page (sign-in/sign-up) renders into this <main /> */}
+			<main className="w-full max-w-sm">
+				<Outlet />
+			</main>
 		</div>
 	),
 });

@@ -44,7 +44,7 @@ Copy `.env.example` to `.env`. Required: `POSTGRES_PASSWORD`, `BETTER_AUTH_SECRE
 ## Architecture
 
 - **Framework:** TanStack Start (SSR React, Vite + Hono); file-based routing. `src/routeTree.gen.ts` is generated — never edit. Import alias `#/` → `src/`.
-- **Routes:** `_authenticated.tsx` guards auth and renders the `AppSidebar` shell. Route files under `_authenticated/` are thin — `Route` export + one page component, no inline sub-components.
+- **Routes:** `_authenticated.tsx` guards auth and renders the `AppSidebar` shell. Route files under `_authenticated/` are thin — `Route` export + one page component, no inline sub-components. The component a route binds to is named `<RouteSubject>Page` (`LibraryPage`, `SettingsPage`, `ConversationPage`) — the subject is what the route renders, which equals the feature name only for single-route features. Sub-components the page composes keep their own descriptive names (`SignInForm`, `AccountTab`, `ChatView`).
 - **Auth:** better-auth (email/password). Session resolved at root `beforeLoad`.
 - **Data:** TanStack Query + `createServerFn` in co-located `*.functions.ts`. Call as `fn({ data: { ... } })`.
 - **Database:** Prisma 7 + `@prisma/adapter-pg`. Multi-file schema in `prisma/schema/`. Generated client in `src/generated/prisma/`. Import `prisma` — never alias.
