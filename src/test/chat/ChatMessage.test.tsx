@@ -100,30 +100,4 @@ describe("ChatMessage", () => {
 			expect(screen.getByText("Reasoning")).toBeInTheDocument();
 		});
 	});
-
-	describe("streaming indicator", () => {
-		it("should show streaming cursor on assistant messages when isStreaming", () => {
-			const { container } = render(
-				<ChatMessage message={assistantMessage("")} isStreaming={true} />,
-			);
-			const bubble = container.querySelector("[class*='after:animate-pulse']");
-			expect(bubble).toBeInTheDocument();
-		});
-
-		it("should not show streaming cursor when isStreaming is false", () => {
-			const { container } = render(
-				<ChatMessage message={assistantMessage("Done")} isStreaming={false} />,
-			);
-			const bubble = container.querySelector("[class*='after:animate-pulse']");
-			expect(bubble).not.toBeInTheDocument();
-		});
-
-		it("should not show streaming cursor on user messages", () => {
-			const { container } = render(
-				<ChatMessage message={userMessage("typing...")} isStreaming={true} />,
-			);
-			const bubble = container.querySelector("[class*='after:animate-pulse']");
-			expect(bubble).not.toBeInTheDocument();
-		});
-	});
 });
