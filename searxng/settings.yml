@@ -1,10 +1,11 @@
-use_default_settings: true
+# Drop ahmia/torch: Tor-only engines that error without a Tor proxy.
+use_default_settings:
+  engines:
+    remove:
+      - ahmia
+      - torch
 
-# The app calls SearXNG's JSON API, which the stock image ships disabled: enable
-# the json format and drop the bot limiter so programmatic requests get through.
-server:
-  secret_key: "localghost-dev" # unused while limiter is off; local instance only
-  limiter: false
+# Enable the JSON API (stock image is html-only). Limiter/secret are env-driven.
 search:
   formats:
     - html

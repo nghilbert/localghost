@@ -64,6 +64,9 @@ services:
       - ./searxng:/etc/searxng:rw
     environment:
       SEARXNG_BASE_URL: http://localhost:8080/
+      # Limiter off by default: this instance is app-only (unpublished), not public.
+      SEARXNG_LIMITER: ${SEARXNG_LIMITER:-false}
+      SEARXNG_SECRET: ${SEARXNG_SECRET:-localghost-dev}
     restart: unless-stopped
 
   # Bundled Ollama, reachable by the app at http://ollama:11434. CPU-only here; a

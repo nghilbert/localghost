@@ -5,3 +5,6 @@ services:
   ollama:
     devices:
       - /dev/dri
+    # Ollama skips integrated GPUs by default; opt the iGPU (e.g. AMD Renoir) in.
+    environment:
+      OLLAMA_IGPU_ENABLE: "1"
