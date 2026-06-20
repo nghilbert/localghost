@@ -24,7 +24,7 @@ export function ChatView({ conversation }: ChatViewProps) {
 	);
 
 	const { onFinish, messagesRef } = useChatAutoRename(conversation.id);
-	const { messages, sendMessage, stop, status } = useChat({
+	const { messages, sendMessage, stop, status, error, reload } = useChat({
 		...chatClientOptions,
 		id: conversation.id,
 		forwardedProps,
@@ -39,7 +39,13 @@ export function ChatView({ conversation }: ChatViewProps) {
 				<ExportMenu conversation={conversation} messages={messages} />
 			</div>
 
-			<ChatWindow messages={messages} isStreaming={isStreaming} isReady={isReady} />
+			<ChatWindow
+				messages={messages}
+				status={status}
+				error={error}
+				isReady={isReady}
+				onRetry={reload}
+			/>
 
 			<div className="px-4 pb-4 pt-2">
 				<ChatInput

@@ -1,4 +1,4 @@
-import type { UIMessage } from "@tanstack/ai-client";
+import type { ChatClientState, UIMessage } from "@tanstack/ai-client";
 import { Link } from "@tanstack/react-router";
 import { BookOpenIcon } from "lucide-react";
 import { Button } from "#/components/ui/button";
@@ -10,14 +10,18 @@ import {
 	EmptyTitle,
 } from "#/components/ui/empty";
 import { ChatMessage } from "#/features/chat/components/ChatMessage";
+import { ChatStatus } from "#/features/chat/components/ChatView/ChatStatus";
 
 type Props = {
 	messages: UIMessage[];
-	isStreaming: boolean;
+	status: ChatClientState;
+	error: Error | undefined;
 	isReady: boolean;
+	onRetry: () => void;
 };
 
-export function ChatWindow({ messages, isStreaming, isReady }: Props) {
+export function ChatWindow({ messages, status, error, isReady, onRetry }: Props) {
+	const isStreaming = status === "submitted" || status === "streaming";
 	return (
 		<section
 			aria-label="Conversation"
@@ -56,6 +60,7 @@ export function ChatWindow({ messages, isStreaming, isReady }: Props) {
 				const isStreamingMessage = isStreaming && isLast && msg.role === "assistant";
 				return <ChatMessage key={msg.id} message={msg} isStreaming={isStreamingMessage} />;
 			})}
+			<ChatStatus status={status} error={error} onRetry={onRetry} />
 		</section>
 	);
 }

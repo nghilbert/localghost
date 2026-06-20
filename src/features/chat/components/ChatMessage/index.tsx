@@ -1,11 +1,11 @@
+import { code } from "@streamdown/code";
 import type { UIMessage } from "@tanstack/ai-client";
 import { BrainIcon, ChevronRightIcon, TerminalIcon } from "lucide-react";
-import { Markdown } from "#/components/Markdown";
+import { Streamdown } from "streamdown";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "#/components/ui/collapsible";
 import { ScrollArea } from "#/components/ui/scroll-area";
 import { SpeakButton } from "#/features/chat/components/ChatMessage/SpeakButton";
 import { partsText } from "#/features/chat/lib/message-text";
-import { cn } from "#/lib/utils";
 
 type Props = { message: UIMessage; isStreaming?: boolean };
 export function ChatMessage({ message, isStreaming }: Props) {
@@ -50,13 +50,17 @@ export function ChatMessage({ message, isStreaming }: Props) {
 				</Collapsible>
 			)}
 
-			<Markdown
-				content={content}
-				className={cn(
-					isStreaming &&
-						"after:ml-0.5 after:animate-pulse after:content-['|'] after:text-muted-foreground",
-				)}
-			/>
+			{content && (
+				<Streamdown
+					plugins={{ code }}
+					linkSafety={{ enabled: false }}
+					caret="block"
+					isAnimating={isStreaming}
+					className="w-fit max-w-[85%] rounded-2xl rounded-bl-sm bg-muted px-4 py-2.5 text-sm"
+				>
+					{content}
+				</Streamdown>
+			)}
 
 			{toolCalls.length > 0 && (
 				<div className="space-y-1.5">
