@@ -46,7 +46,7 @@ export async function listMcpTools(server: McpServerConfig): Promise<McpToolDef[
 			name: `mcp__${serverSlug}__${t.name}`,
 			originalName: t.name,
 			description: t.description ?? "",
-			inputSchema: t.inputSchema as Record<string, unknown>,
+			inputSchema: t.inputSchema,
 			serverId: server.id,
 			serverUrl: server.url,
 			serverType: server.type,

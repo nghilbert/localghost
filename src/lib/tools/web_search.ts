@@ -4,6 +4,18 @@ export const webSearchArgsSchema = z.object({
 	query: z.string().optional(),
 });
 
+const searxResponseSchema = z.object({
+	results: z
+		.array(
+			z.object({
+				title: z.string().optional(),
+				url: z.string().optional(),
+				content: z.string().optional(),
+			}),
+		)
+		.optional(),
+});
+
 export type SearchResult = {
 	title: string;
 	url: string;
@@ -47,9 +59,7 @@ async function searchSearXNG(
 
 	if (!res.ok) throw new Error(`SearXNG HTTP ${res.status}`);
 
-	const data = (await res.json()) as {
-		results?: Array<{ title?: string; url?: string; content?: string }>;
-	};
+	const data = searxResponseSchema.parse(await res.json());
 
 	return (data.results ?? []).slice(0, limit).map((r) => ({
 		title: r.title ?? "",

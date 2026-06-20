@@ -1,18 +1,31 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { z } from "zod/v4";
 import { auth } from "#/features/auth/lib/auth.server";
 import { prisma } from "#/lib/db.server";
 
-type ImportPayload = {
-	version?: number;
-	userSettings?: { systemPrompt?: string | null; temperature?: number | null } | null;
-	memories?: Array<{ text: string; category?: string | null; source?: string }>;
-	skills?: Array<{ name: string; description?: string; content: string }>;
-	conversations?: Array<{
-		title?: string;
-		model?: string | null;
-		messages?: unknown;
-	}>;
-};
+const importPayloadSchema = z.object({
+	version: z.number().optional(),
+	userSettings: z
+		.object({ systemPrompt: z.string().nullish(), temperature: z.number().nullish() })
+		.nullish(),
+	memories: z
+		.array(
+			z.object({ text: z.string(), category: z.string().nullish(), source: z.string().optional() }),
+		)
+		.optional(),
+	skills: z
+		.array(z.object({ name: z.string(), description: z.string().optional(), content: z.string() }))
+		.optional(),
+	conversations: z
+		.array(
+			z.object({
+				title: z.string().optional(),
+				model: z.string().nullish(),
+				messages: z.unknown(),
+			}),
+		)
+		.optional(),
+});
 
 export const Route = createFileRoute("/api/backup/import")({
 	server: {
@@ -22,16 +35,18 @@ export const Route = createFileRoute("/api/backup/import")({
 				if (!session) return new Response("Unauthorized", { status: 401 });
 				const userId = session.user.id;
 
-				let payload: ImportPayload;
+				let raw: unknown;
 				try {
-					payload = (await request.json()) as ImportPayload;
+					raw = await request.json();
 				} catch {
 					return new Response("Invalid JSON", { status: 400 });
 				}
 
-				if (!payload || typeof payload !== "object") {
+				const parsed = importPayloadSchema.safeParse(raw);
+				if (!parsed.success) {
 					return new Response("Invalid backup format", { status: 400 });
 				}
+				const payload = parsed.data;
 
 				const results = {
 					memories: 0,

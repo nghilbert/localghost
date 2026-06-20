@@ -18,7 +18,7 @@ describe("toVectorLiteral", () => {
 		const v = [1.234567890123456, -0.000001, 0.9999999];
 		const literal = toVectorLiteral(v);
 		expect(literal).toMatch(/^\[[\d.,e+-]+\]$/);
-		const parsed = JSON.parse(literal) as number[];
+		const parsed: number[] = JSON.parse(literal);
 		expect(parsed).toHaveLength(3);
 	});
 });

@@ -1,6 +1,9 @@
 import { execSync } from "node:child_process";
 import os from "node:os";
+import { z } from "zod/v4";
 import type { GpuInfo, HardwareInfo } from "#/features/library/lib/types";
+
+const rocmMemInfoSchema = z.record(z.string(), z.record(z.string(), z.number()));
 
 /** Queries `nvidia-smi` for installed NVIDIA GPUs, or `null` if the tool is absent or returns nothing. */
 function detectNvidiaGpus(): GpuInfo[] | null {
@@ -35,7 +38,7 @@ function detectAmdGpus(): GpuInfo[] | null {
 		})
 			.toString()
 			.trim();
-		const data = JSON.parse(out) as Record<string, Record<string, number>>;
+		const data = rocmMemInfoSchema.parse(JSON.parse(out));
 		const entries = Object.entries(data);
 		if (!entries.length) return null;
 		return entries.map(

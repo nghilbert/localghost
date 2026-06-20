@@ -26,9 +26,9 @@ export function HardwareCard({ hardware, isLoading }: HardwareCardProps) {
 
 	if (!hardware) return null;
 
-	const bestGpu = hardware.gpus?.reduce(
+	const bestGpu = hardware.gpus?.reduce<NonNullable<typeof hardware.gpus>[number] | null>(
 		(best, g) => (g.totalVramMb > (best?.totalVramMb ?? 0) ? g : best),
-		null as (typeof hardware.gpus)[0] | null,
+		null,
 	);
 
 	return (

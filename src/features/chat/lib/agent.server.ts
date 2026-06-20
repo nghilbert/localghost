@@ -2,7 +2,7 @@ import type { ServerTool } from "@tanstack/ai";
 import { toolDefinition } from "@tanstack/ai";
 import { z } from "zod/v4";
 import { callMcpTool, type McpToolDef } from "#/features/mcp/lib/tools.server";
-import { MCP_TOOL_PREFIX, type ToolCatalogId } from "#/lib/tools/catalog";
+import { MCP_TOOL_PREFIX, TOOL_CATALOG, type ToolCatalogId } from "#/lib/tools/catalog";
 import { manageMemory, manageMemoryArgsSchema } from "#/lib/tools/manage_memory";
 import { manageSkills, manageSkillsArgsSchema } from "#/lib/tools/manage_skills";
 import { readUrl, readUrlArgsSchema } from "#/lib/tools/read_url";
@@ -172,7 +172,7 @@ export function buildChatTools({
 	const tools: ServerTool[] = [];
 
 	const selected = new Set(enabledTools);
-	for (const id of Object.keys(CATALOG_BUILDERS) as ToolCatalogId[]) {
+	for (const { id } of TOOL_CATALOG) {
 		if (selected.has(id)) tools.push(...CATALOG_BUILDERS[id](ownerId));
 	}
 

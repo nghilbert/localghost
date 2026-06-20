@@ -1,5 +1,10 @@
+import { z } from "zod/v4";
 import { decrypt } from "#/lib/crypto.server";
 import { prisma } from "#/lib/db.server";
+
+const embeddingResponseSchema = z.object({
+	data: z.array(z.object({ embedding: z.array(z.number()) })).optional(),
+});
 
 /**
  * Fetches a text embedding from the user's first endpoint that supports
@@ -34,12 +39,11 @@ export async function embed(text: string, ownerId: string): Promise<number[] | n
 
 			if (!res.ok) continue;
 
-			const json = (await res.json()) as {
-				data?: Array<{ embedding: number[] }>;
-			};
+			const parsed = embeddingResponseSchema.safeParse(await res.json());
+			if (!parsed.success) continue;
 
-			const embedding = json.data?.[0]?.embedding;
-			if (Array.isArray(embedding) && embedding.length > 0) {
+			const embedding = parsed.data.data?.[0]?.embedding;
+			if (embedding && embedding.length > 0) {
 				return embedding;
 			}
 		} catch {
