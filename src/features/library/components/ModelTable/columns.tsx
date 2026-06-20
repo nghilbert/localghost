@@ -1,13 +1,13 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import { DataTableColumnHeader } from "#/components/DataTable/DataTableColumnHeader";
 import { Badge } from "#/components/ui/badge";
-import { ModelActionsCell } from "#/features/library/components/ModelTable/ModelActionsCell";
 import {
 	FamilyCell,
 	FitCell,
 	InstalledCheck,
 	SizeCell,
-} from "#/features/library/components/modelCells";
+} from "#/features/library/components/ModelCells";
+import { ModelActionsCell } from "#/features/library/components/ModelTable/ModelActionsCell";
 import type {
 	CatalogModel,
 	FitScore,
