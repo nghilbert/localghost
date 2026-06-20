@@ -14,7 +14,7 @@ export function ChatMessage({ message, isStreaming }: Props) {
 	if (message.role === "user") {
 		return (
 			<article aria-label="Your message" className="flex justify-end px-4 py-2">
-				<div className="max-w-[75%] rounded-2xl rounded-br-sm bg-primary px-4 py-2.5 text-sm text-primary-foreground">
+				<div className="max-w-[75%] rounded-2xl rounded-br-xs bg-primary px-4 py-2.5 text-sm text-primary-foreground">
 					<p className="whitespace-pre-wrap wrap-break-word leading-relaxed">{content}</p>
 				</div>
 			</article>
@@ -56,7 +56,7 @@ export function ChatMessage({ message, isStreaming }: Props) {
 					linkSafety={{ enabled: false }}
 					caret="block"
 					isAnimating={isStreaming}
-					className="w-fit max-w-[85%] rounded-2xl rounded-bl-sm bg-muted px-4 py-2.5 text-sm"
+					className="w-fit max-w-[85%] rounded-2xl rounded-bl-xs bg-muted px-4 py-2.5 text-sm"
 				>
 					{content}
 				</Streamdown>
