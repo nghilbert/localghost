@@ -1,17 +1,38 @@
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod/v4";
 import { getCurrentUserId } from "#/features/auth/lib/session.server";
-import { decrypt } from "#/lib/crypto.server";
 import { prisma } from "#/lib/db.server";
-import { callLLM } from "#/lib/llm.server";
 import {
 	conversationIdInput,
 	createConversationSchema,
-	renameConversationInput,
 	saveMessagesInput,
 	searchConversationsInput,
 	updateConversationInput,
 } from "./schemas";
+
+/** Default title a conversation keeps until its first message names it. */
+const DEFAULT_TITLE = "New Chat";
+
+const textPartSchema = z.object({ type: z.literal("text"), content: z.string() });
+
+/**
+ * Derives a chat title from the leading words of the first user message, or
+ * `null` when there's no usable text yet. Deterministic and model-free — used to
+ * name a brand-new conversation on its first save.
+ */
+function deriveTitle(messages: Array<Record<string, unknown>>): string | null {
+	const firstUser = messages.find((m) => m.role === "user");
+	const parts = z.array(z.unknown()).safeParse(firstUser?.parts);
+	if (!parts.success) return null;
+	const text = parts.data
+		.map((part) => textPartSchema.safeParse(part))
+		.flatMap((result) => (result.success ? [result.data.content] : []))
+		.join("")
+		.trim();
+	if (!text) return null;
+	return text.split(/\s+/).slice(0, 6).join(" ").slice(0, 80);
+}
 
 /** Sidebar list — only the fields needed to render and order conversation links. */
 export const listConversations = createServerFn({ method: "GET" }).handler(async () => {
@@ -63,6 +84,15 @@ export const saveConversationMessages = createServerFn({ method: "POST" })
 			where: { id, ownerId: userId },
 			data: { messages: JSON.parse(JSON.stringify(messages)) },
 		});
+		// Name the conversation from its first message while it's still untitled; the
+		// guarded `where` makes this a no-op once a title exists (manual rename wins).
+		const title = deriveTitle(messages);
+		if (title) {
+			await prisma.conversation.updateMany({
+				where: { id, ownerId: userId, title: DEFAULT_TITLE },
+				data: { title },
+			});
+		}
 	});
 
 export const updateConversation = createServerFn({ method: "POST" })
@@ -130,75 +160,6 @@ export const searchConversations = createServerFn({ method: "POST" })
 			snippet: (r.snippet ?? "").slice(0, 200),
 			updatedAt: r.updatedAt,
 		}));
-	});
-
-/** Phrases a weak model emits instead of a title — refusals, meta, or filler. */
-const BAD_TITLE =
-	/^(i\s|i'm|sorry|as an ai|no conversation|here('s| is)|sure[,!]|title:|untitled)/i;
-
-/**
- * Validates a model-generated chat title, returning a clean title or `null` when
- * the output is unusable (empty, a refusal/meta sentence, or too long to be a
- * title) so the caller can fall back to the user's own words. Weak local models
- * routinely emit refusals like "No conversation to summarize yet" — those must
- * never be stored as titles.
- */
-export function sanitizeTitle(raw: string): string | null {
-	const firstLine = raw.split("\n")[0]?.trim() ?? "";
-	const cleaned = firstLine.replace(/^["']|["'.!?]+$/g, "").trim();
-	if (!cleaned) return null;
-	if (BAD_TITLE.test(cleaned)) return null;
-	if (cleaned.split(/\s+/).length > 8) return null;
-	return cleaned.slice(0, 80);
-}
-
-/**
- * Auto-name a brand-new conversation from its first exchange. No-ops unless the
- * title is still the default, so it is safe to call on every first `onFinish`.
- * Falls back to the leading words of the user's message if the model call fails
- * or returns an unusable title.
- */
-export const renameConversation = createServerFn({ method: "POST" })
-	.validator(renameConversationInput)
-	.handler(async ({ data: { id, userText, assistantText } }) => {
-		const userId = await getCurrentUserId();
-		const conversation = await prisma.conversation.findFirst({
-			where: { id, ownerId: userId },
-			include: { endpoint: true },
-		});
-		if (!conversation) return null;
-		if (conversation.title !== "New Chat") return null;
-		if (!conversation.endpoint || !userText.trim()) return null;
-
-		const apiKey = conversation.endpoint.apiKeyEncrypted
-			? decrypt(conversation.endpoint.apiKeyEncrypted)
-			: undefined;
-
-		const fallbackTitle = userText.split(/\s+/).slice(0, 6).join(" ").slice(0, 80);
-
-		let title = fallbackTitle;
-		try {
-			const generated = await callLLM({
-				url: conversation.endpoint.url,
-				apiKey,
-				model: conversation.model,
-				messages: [
-					{
-						role: "user",
-						content: `Summarize this conversation in 4-6 words as a chat title. No quotes, no punctuation at the end.\n\nUser: ${userText.slice(0, 500)}\nAssistant: ${assistantText.slice(0, 500)}`,
-					},
-				],
-				temperature: 0.3,
-				maxTokens: 20,
-			});
-			title = sanitizeTitle(generated) ?? fallbackTitle;
-		} catch {
-			title = fallbackTitle;
-		}
-
-		if (!title) return null;
-		await prisma.conversation.update({ where: { id }, data: { title } });
-		return { title };
 	});
 
 // ── Query options (for TanStack Query) ───────────────────────

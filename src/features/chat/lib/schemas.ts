@@ -24,11 +24,6 @@ export const saveMessagesInput = z.object({
 	messages: z.array(z.record(z.string(), z.unknown())),
 });
 export const searchConversationsInput = z.object({ query: z.string().min(1).max(200) });
-export const renameConversationInput = z.object({
-	id: uuid,
-	userText: z.string().max(2000).default(""),
-	assistantText: z.string().max(2000).default(""),
-});
 
 /**
  * The `forwardedProps` the chat stream route reads from the AG-UI request body.

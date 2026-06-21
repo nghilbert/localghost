@@ -9,7 +9,6 @@ import { EventType } from "@tanstack/ai/client";
 import { createFileRoute } from "@tanstack/react-router";
 import { auth } from "#/features/auth/lib/auth.server";
 import { buildChatTools } from "#/features/chat/lib/agent.server";
-import { maybeCompact } from "#/features/chat/lib/compactor.server";
 import { chatStreamForwardedPropsSchema } from "#/features/chat/lib/schemas";
 import { listAllMcpTools } from "#/features/mcp/lib/tools.server";
 import { decrypt } from "#/lib/crypto.server";
@@ -97,23 +96,13 @@ export const Route = createFileRoute("/api/chat/stream")({
 					mcpTools,
 				});
 
-				// Auto-compact when approaching the model's context-window limit.
-				const { messages: compactedHistory, systemPrompt: effectiveSystemPrompt } =
-					await maybeCompact(
-						trimHistory(modelMessages),
-						systemPrompt,
-						conversation.model,
-						endpoint.url,
-						apiKey,
-					);
-
 				const source = streamLLMEvents(
 					{
 						url: endpoint.url,
 						apiKey,
 						model: conversation.model,
-						messages: compactedHistory,
-						systemPrompt: effectiveSystemPrompt,
+						messages: trimHistory(modelMessages),
+						systemPrompt,
 						temperature,
 					},
 					tools,

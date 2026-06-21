@@ -4,7 +4,6 @@ import { BrainIcon, TerminalIcon } from "lucide-react";
 import { Streamdown } from "streamdown";
 import { ChatBubble } from "#/features/chat/components/ChatBubble";
 import { MessageCollapsible } from "#/features/chat/components/ChatMessage/CollapsibleDetails";
-import { SpeakButton } from "#/features/chat/components/ChatMessage/SpeakButton";
 import { useElapsedSeconds } from "#/features/chat/hooks/use-elapsed-seconds";
 import { partsText } from "#/features/chat/lib/message-text";
 
@@ -41,7 +40,7 @@ export function ChatMessage({ message, isStreaming }: ChatMessageProps) {
 			)}
 
 			{content && (
-				<ChatBubble side="assistant" asChild>
+				<ChatBubble side="assistant">
 					<Streamdown
 						plugins={{ code }}
 						linkSafety={{ enabled: false }}
@@ -72,12 +71,6 @@ export function ChatMessage({ message, isStreaming }: ChatMessageProps) {
 							</MessageCollapsible>
 						),
 					)}
-				</div>
-			)}
-
-			{!isStreaming && content && (
-				<div className="flex items-center gap-1">
-					<SpeakButton text={content} />
 				</div>
 			)}
 		</article>
