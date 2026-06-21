@@ -14,7 +14,7 @@ import {
  * connected, or guidance to the Library when none is. `isReady` is whether the
  * conversation has both an endpoint and a model selected.
  */
-export function ChatEmptyState({ isReady }: { isReady: boolean }) {
+export function ChatEmpty({ isReady }: { isReady: boolean }) {
 	if (isReady) {
 		return (
 			<Empty className="h-full">

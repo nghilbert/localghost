@@ -2,7 +2,7 @@ import type { ChatClientState, UIMessage } from "@tanstack/ai-client";
 import { ArrowDownIcon } from "lucide-react";
 import { Button } from "#/components/ui/button";
 import { ChatMessage } from "#/features/chat/components/ChatMessage";
-import { ChatEmptyState } from "#/features/chat/components/ChatView/ChatEmptyState";
+import { ChatEmpty } from "#/features/chat/components/ChatView/ChatEmpty";
 import { ChatStatus } from "#/features/chat/components/ChatView/ChatStatus";
 import { StatusIndicator } from "#/features/chat/components/ChatView/StatusIndicator";
 import { useStickToBottom } from "#/features/chat/hooks/use-stick-to-bottom";
@@ -39,7 +39,7 @@ export function ChatWindow({
 				className="flex flex-1 flex-col overflow-y-auto px-4"
 			>
 				{messages.length === 0 ? (
-					<ChatEmptyState isReady={isReady} />
+					<ChatEmpty isReady={isReady} />
 				) : (
 					messages.map((msg, idx) => {
 						const isLast = idx === messages.length - 1;
