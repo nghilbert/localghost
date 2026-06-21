@@ -19,18 +19,34 @@ type Props = {
 	currentModel: string;
 	currentEndpointId?: string | null;
 	onSelect: (endpointId: string, model: string) => void;
+	/** Ring the trigger to draw the eye when no model is chosen yet. */
+	needsAttention?: boolean;
 	className?: string;
 };
 
 /** Endpoint + model dropdown. Presentational: the caller decides what `onSelect` does. */
-export function ModelPicker({ currentModel, currentEndpointId, onSelect, className }: Props) {
+export function ModelPicker({
+	currentModel,
+	currentEndpointId,
+	onSelect,
+	needsAttention,
+	className,
+}: Props) {
 	const { endpoints } = useEndpoints();
 	const label = currentModel || "Select model";
 
 	return (
 		<DropdownMenu>
 			<DropdownMenuTrigger asChild>
-				<Button variant="outline" size="sm" className={cn("gap-1 truncate", className)}>
+				<Button
+					variant="outline"
+					size="sm"
+					className={cn(
+						"gap-1 truncate",
+						needsAttention && "ring-2 ring-primary ring-offset-1",
+						className,
+					)}
+				>
 					<span className="truncate">{label}</span>
 					<ChevronDownIcon size={14} className="shrink-0" />
 				</Button>

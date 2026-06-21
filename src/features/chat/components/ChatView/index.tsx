@@ -1,6 +1,7 @@
 import { useChat } from "@tanstack/ai-react";
 import { useMemo, useState } from "react";
 import { ChatInput } from "#/features/chat/components/ChatView/ChatInput";
+import { ChatStatus } from "#/features/chat/components/ChatView/ChatStatus";
 import { ChatWindow } from "#/features/chat/components/ChatView/ChatWindow";
 import { useChatAutoRename } from "#/features/chat/hooks/use-chat-auto-rename";
 import { useConversationSettings } from "#/features/chat/hooks/use-conversation-settings";
@@ -40,15 +41,15 @@ export function ChatView({ conversation, className }: ChatViewProps) {
 		<div className={cn("flex h-full w-full flex-col min-h-0", className)}>
 			<ExportMenu conversation={conversation} messages={messages} className="mt-2 mr-2 self-end" />
 
-			<ChatWindow
-				messages={messages}
-				status={status}
-				error={error}
-				isReady={isReady}
-				isWarming={isWarming}
-				warmSeconds={warmSeconds}
-				onRetry={reload}
-			/>
+			<ChatWindow messages={messages} isStreaming={isStreaming} isReady={isReady}>
+				<ChatStatus
+					status={status}
+					error={error}
+					isWarming={isWarming}
+					warmSeconds={warmSeconds}
+					onRetry={reload}
+				/>
+			</ChatWindow>
 
 			<div className="px-4 pb-4 pt-2">
 				<ChatInput

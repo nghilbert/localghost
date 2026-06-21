@@ -5,7 +5,6 @@ import { Streamdown } from "streamdown";
 import { ChatBubble } from "#/features/chat/components/ChatBubble";
 import { MessageCollapsible } from "#/features/chat/components/ChatMessage/CollapsibleDetails";
 import { SpeakButton } from "#/features/chat/components/ChatMessage/SpeakButton";
-import { StatusIndicator } from "#/features/chat/components/ChatView/StatusIndicator";
 import { useElapsedSeconds } from "#/features/chat/hooks/use-elapsed-seconds";
 import { partsText } from "#/features/chat/lib/message-text";
 
@@ -19,7 +18,7 @@ export function ChatMessage({ message, isStreaming }: Props) {
 	if (message.role === "user") {
 		return (
 			<article aria-label="Your message" className="flex justify-end px-4 py-2">
-				<ChatBubble side="user" className="max-w-[75%]">
+				<ChatBubble side="user">
 					<p className="whitespace-pre-wrap wrap-break-word leading-relaxed">{content}</p>
 				</ChatBubble>
 			</article>
@@ -42,7 +41,7 @@ export function ChatMessage({ message, isStreaming }: Props) {
 			)}
 
 			{content && (
-				<ChatBubble side="assistant" asChild className="max-w-[85%]">
+				<ChatBubble side="assistant" asChild>
 					<Streamdown
 						plugins={{ code }}
 						linkSafety={{ enabled: false }}
@@ -58,7 +57,9 @@ export function ChatMessage({ message, isStreaming }: Props) {
 				<div className="space-y-1.5">
 					{toolCalls.map((tc) =>
 						isStreaming && tc.output === undefined ? (
-							<StatusIndicator key={tc.id} label={`Running ${tc.name}`} seconds={toolSeconds} />
+							<ChatBubble key={tc.id} side="assistant" pending seconds={toolSeconds}>
+								Running {tc.name}
+							</ChatBubble>
 						) : (
 							<MessageCollapsible key={tc.id} icon={TerminalIcon} label={tc.name}>
 								<pre className="whitespace-pre-wrap wrap-break-word px-3 py-2.5 font-mono leading-relaxed text-muted-foreground">

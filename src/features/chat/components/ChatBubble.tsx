@@ -1,30 +1,51 @@
 import { Slot } from "radix-ui";
-import type { ComponentProps } from "react";
+import type { ReactNode } from "react";
+import { Spinner } from "#/components/ui/spinner";
 import { cn } from "#/lib/utils";
 
 const sideClasses = {
-	user: "rounded-br-xs bg-primary text-primary-foreground",
-	assistant: "rounded-bl-xs bg-muted",
+	user: "max-w-[75%] rounded-br-xs bg-primary text-primary-foreground",
+	assistant: "max-w-[85%] rounded-bl-xs bg-muted",
 } as const;
 
-type Props = ComponentProps<"div"> & {
+type Props = {
 	side: keyof typeof sideClasses;
+	children: ReactNode;
+	/** Render an existing element (e.g. Streamdown) as the bubble, no wrapper. */
 	asChild?: boolean;
+	/** Show a spinner with the children as its label — a wait/status bubble. */
+	pending?: boolean;
+	/** Elapsed seconds appended to a `pending` bubble; hidden when falsy. */
+	seconds?: number;
 };
 
 /**
- * The chat surface primitive: a rounded message bubble whose tail corner and
- * colors follow `side`. Reused by user/assistant messages and the wait
- * indicator so every bubble shares one shape. Pass `asChild` to style an
- * existing element (e.g. Streamdown) as the bubble without an extra wrapper.
- * Layout-agnostic — the parent owns max-width and margins via `className`.
+ * The chat surface primitive: a rounded message bubble that owns its shape,
+ * color, padding, and width entirely from `side`. Reused by user/assistant
+ * messages and every wait so all bubbles share one shape. `pending` turns it
+ * into a status bubble (spinner + label + optional `seconds`); `asChild` styles
+ * a child element as the bubble instead of wrapping it.
  */
-export function ChatBubble({ side, asChild, className, ...props }: Props) {
-	const Comp = asChild ? Slot.Root : "div";
+export function ChatBubble({ side, children, asChild, pending, seconds }: Props) {
+	const Comp = !pending && asChild ? Slot.Root : "div";
 	return (
 		<Comp
-			className={cn("w-fit rounded-2xl px-4 py-2.5 text-sm", sideClasses[side], className)}
-			{...props}
-		/>
+			role={pending ? "status" : undefined}
+			className={cn(
+				"w-fit rounded-2xl px-4 py-2.5 text-sm",
+				sideClasses[side],
+				pending && "flex items-center gap-2 text-muted-foreground",
+			)}
+		>
+			{pending ? (
+				<>
+					<Spinner aria-hidden className="size-4" />
+					<span>{children}</span>
+					{seconds ? <span className="tabular-nums opacity-70">· {seconds}s</span> : null}
+				</>
+			) : (
+				children
+			)}
+		</Comp>
 	);
 }

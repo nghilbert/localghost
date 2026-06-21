@@ -1,32 +1,19 @@
-import type { ChatClientState, UIMessage } from "@tanstack/ai-client";
+import type { UIMessage } from "@tanstack/ai-client";
 import { ArrowDownIcon } from "lucide-react";
+import type { ReactNode } from "react";
 import { Button } from "#/components/ui/button";
 import { ChatMessage } from "#/features/chat/components/ChatMessage";
 import { ChatEmpty } from "#/features/chat/components/ChatView/ChatEmpty";
-import { ChatStatus } from "#/features/chat/components/ChatView/ChatStatus";
-import { StatusIndicator } from "#/features/chat/components/ChatView/StatusIndicator";
 import { useStickToBottom } from "#/features/chat/hooks/use-stick-to-bottom";
 
 type Props = {
 	messages: UIMessage[];
-	status: ChatClientState;
-	error: Error | undefined;
+	isStreaming: boolean;
 	isReady: boolean;
-	isWarming: boolean;
-	warmSeconds: number;
-	onRetry: () => void;
+	children: ReactNode;
 };
 
-export function ChatWindow({
-	messages,
-	status,
-	error,
-	isReady,
-	isWarming,
-	warmSeconds,
-	onRetry,
-}: Props) {
-	const isStreaming = status === "submitted" || status === "streaming";
+export function ChatWindow({ messages, isStreaming, isReady, children }: Props) {
 	const { scrollRef, showButton, scrollToBottom, handleScroll } = useStickToBottom();
 	return (
 		<div className="relative flex min-h-0 flex-1 flex-col">
@@ -47,12 +34,7 @@ export function ChatWindow({
 						return <ChatMessage key={msg.id} message={msg} isStreaming={isStreamingMessage} />;
 					})
 				)}
-				{isWarming && !isStreaming && (
-					<div className="px-4 py-3">
-						<StatusIndicator label="Warming up the model" seconds={warmSeconds} />
-					</div>
-				)}
-				<ChatStatus status={status} error={error} onRetry={onRetry} />
+				{children}
 			</section>
 			{showButton && (
 				<Button

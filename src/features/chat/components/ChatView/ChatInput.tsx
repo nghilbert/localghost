@@ -8,7 +8,6 @@ import { ToolsPicker } from "#/features/chat/components/ChatView/ToolsPicker";
 import { useConversationSettings } from "#/features/chat/hooks/use-conversation-settings";
 import { ModelPicker } from "#/features/endpoints/components/ModelPicker";
 import { modelCapabilitiesQueryOptions } from "#/features/endpoints/lib/endpoint.functions";
-import { cn } from "#/lib/utils";
 
 type Props = {
 	conversationId: string;
@@ -74,7 +73,8 @@ export function ChatInput({
 						currentModel={model}
 						currentEndpointId={endpointId}
 						onSelect={setModel}
-						className={cn("max-w-50", !isReady && "ring-2 ring-primary ring-offset-1")}
+						needsAttention={!isReady}
+						className="max-w-50"
 					/>
 					<ToolsPicker
 						enabledTools={enabledTools}
