@@ -109,6 +109,7 @@ export const updateConversation = createServerFn({ method: "POST" })
 				...(patch.endpointId !== undefined && { endpointId: patch.endpointId }),
 				...(patch.archived !== undefined && { archived: patch.archived }),
 			},
+			include: { endpoint: { select: { id: true, name: true, url: true, provider: true } } },
 		});
 	});
 

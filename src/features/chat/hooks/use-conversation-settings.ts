@@ -2,6 +2,7 @@ import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-q
 import { toast } from "sonner";
 import {
 	conversationQueryOptions,
+	conversationsQueryOptions,
 	updateConversation,
 } from "#/features/chat/lib/conversation.functions";
 
@@ -20,10 +21,11 @@ export function useConversationSettings(conversationId: string) {
 	const patch = useMutation({
 		mutationFn: (data: ConversationPatch) =>
 			updateConversation({ data: { id: conversationId, data } }),
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["conversation", conversationId] });
-			queryClient.invalidateQueries({ queryKey: ["conversations"] });
-			toast.success("Settings saved");
+		onSuccess: (updated) => {
+			// Write the fresh row straight into the cache (no refetch); the sidebar
+			// list still refetches so its model label stays in step.
+			queryClient.setQueryData(conversationQueryOptions(conversationId).queryKey, updated);
+			queryClient.invalidateQueries({ queryKey: conversationsQueryOptions().queryKey });
 		},
 		onError: () => toast.error("Failed to save settings"),
 	});

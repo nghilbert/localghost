@@ -1,8 +1,9 @@
 import { useChat } from "@tanstack/ai-react";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { ChatInput } from "#/features/chat/components/ChatView/ChatInput";
 import { ChatStatus } from "#/features/chat/components/ChatView/ChatStatus";
 import { ChatWindow } from "#/features/chat/components/ChatView/ChatWindow";
+import { useChatTools } from "#/features/chat/hooks/use-chat-tools";
 import { useConversationSettings } from "#/features/chat/hooks/use-conversation-settings";
 import { useModelWarmup } from "#/features/chat/hooks/use-model-warmup";
 import { chatClientOptions } from "#/features/chat/lib/chat-client-options";
@@ -10,16 +11,21 @@ import type { getConversation } from "#/features/chat/lib/conversation.functions
 
 type ChatViewProps = { conversation: Awaited<ReturnType<typeof getConversation>> };
 export function ChatView({ conversation }: ChatViewProps) {
-	const { isReady, model, endpointId, provider } = useConversationSettings(conversation.id);
+	const { isReady, model, endpointId, provider, setModel } = useConversationSettings(
+		conversation.id,
+	);
 	const { isWarming, seconds: warmSeconds } = useModelWarmup({ endpointId, model, provider });
+	const { enabledTools, setEnabledTools, supportsTools, toolsToSend } = useChatTools(
+		endpointId,
+		model,
+	);
 
 	// Ephemeral per-conversation tool selection — sent with each message via
 	// `forwardedProps`, never persisted. `useChat` re-reads `forwardedProps` on
 	// every send, so a fresh object here means the latest choice rides along.
-	const [enabledTools, setEnabledTools] = useState<string[]>([]);
 	const forwardedProps = useMemo(
-		() => ({ conversationId: conversation.id, enabledTools }),
-		[conversation.id, enabledTools],
+		() => ({ conversationId: conversation.id, enabledTools: toolsToSend }),
+		[conversation.id, toolsToSend],
 	);
 
 	const { messages, sendMessage, stop, status, error, reload } = useChat({
@@ -42,9 +48,13 @@ export function ChatView({ conversation }: ChatViewProps) {
 			</ChatWindow>
 
 			<ChatInput
-				conversationId={conversation.id}
+				model={model}
+				endpointId={endpointId}
+				isReady={isReady}
+				onModelSelect={setModel}
 				isStreaming={isStreaming}
 				enabledTools={enabledTools}
+				supportsTools={supportsTools}
 				onEnabledToolsChange={setEnabledTools}
 				sendMessage={sendMessage}
 				stop={stop}

@@ -1,7 +1,8 @@
 import type { ServerTool } from "@tanstack/ai";
 import { toolDefinition } from "@tanstack/ai";
 import { z } from "zod/v4";
-import { callMcpTool, type McpToolDef } from "#/features/mcp/lib/tools.server";
+import { callMcpTool, listAllMcpTools, type McpToolDef } from "#/features/mcp/lib/tools.server";
+import { prisma } from "#/lib/db.server";
 import { MCP_TOOL_PREFIX, TOOL_CATALOG, type ToolCatalogId } from "#/lib/tools/catalog";
 import { manageMemory, manageMemoryArgsSchema } from "#/lib/tools/manage_memory";
 import { manageSkills, manageSkillsArgsSchema } from "#/lib/tools/manage_skills";
@@ -193,4 +194,31 @@ export function buildChatTools({
 	}
 
 	return tools;
+}
+
+type ResolveChatToolsOptions = {
+	userId: string;
+	conversationId: string;
+	/** The user's ephemeral per-send selection: catalog ids and `mcp:<serverId>`. */
+	enabledTools: string[];
+};
+
+/**
+ * Resolves the per-send tool selection into an executable `ServerTool[]`,
+ * enumerating the user's enabled MCP servers only when they actually toggled one
+ * this send (so a tool-less or catalog-only send never hits the MCP transport).
+ */
+export async function resolveChatTools({
+	userId,
+	conversationId,
+	enabledTools,
+}: ResolveChatToolsOptions): Promise<ServerTool[]> {
+	const wantsMcp = enabledTools.some((id) => id.startsWith(MCP_TOOL_PREFIX));
+	const mcpServers = wantsMcp
+		? await prisma.mcpServer.findMany({ where: { ownerId: userId, enabled: true } })
+		: [];
+	const mcpTools = await listAllMcpTools(
+		mcpServers.map((s) => ({ id: s.id, name: s.name, url: s.url, type: s.type })),
+	);
+	return buildChatTools({ ownerId: userId, conversationId, enabledTools, mcpTools });
 }
