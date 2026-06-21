@@ -13,7 +13,7 @@ Guidance for Claude Code working in this repository.
 - **Comments:** only for non-obvious behavior; JSDoc on exported functions when the signature isn't self-explanatory. Describe what the code is and does — never narrate PR or changelog history.
 - **No `as` casts:** type correctly via generics, annotations, or Prisma model types.
 - **No dead code:** delete unused code; no re-exports, no `// removed` comments.
-- **Components own their styling.** `<div className="rounded-lg border bg-card p-4">` is always wrong — that's `<Card>`. Use sub-components. Reach for `className` only for layout the component can't do itself.
+- **Components own their styling.** An ad-hoc `<div className="rounded-lg border bg-card p-4">` card surface in feature code is wrong — that's `<Card>` and its sub-components. Reach for `className` only for layout the component can't do itself.
 - **Layout-agnostic components:** reusable components never set their own width, max-width, or margins — the parent owns layout.
 - **Post-action toasts:** after user-awaited mutations, fire `toast.success` / `toast.error` from `sonner`.
 

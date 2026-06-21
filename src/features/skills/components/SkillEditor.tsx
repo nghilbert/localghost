@@ -64,14 +64,18 @@ export function SkillEditor({
 				/>
 			</div>
 
-			<div className="flex items-center justify-between">
-				{skill && !isNew ? (
-					<Button variant="destructive" size="sm" onClick={onDelete} disabled={isDeletePending}>
+			<div className="flex items-center justify-end">
+				{skill && !isNew && (
+					<Button
+						variant="destructive"
+						size="sm"
+						className="mr-auto"
+						onClick={onDelete}
+						disabled={isDeletePending}
+					>
 						<Trash2Icon size={14} className="mr-1.5" />
 						Delete
 					</Button>
-				) : (
-					<div />
 				)}
 				<Button size="sm" disabled={!canSave || isSavePending} onClick={onSave}>
 					{isNew ? "Create skill" : "Save changes"}
