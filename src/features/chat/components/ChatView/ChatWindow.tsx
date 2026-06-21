@@ -1,10 +1,10 @@
 import type { UIMessage } from "@tanstack/ai-client";
 import { ArrowDownIcon } from "lucide-react";
 import type { PropsWithChildren } from "react";
+import { useStickToBottom } from "use-stick-to-bottom";
 import { Button } from "#/components/ui/button";
 import { ChatMessage } from "#/features/chat/components/ChatMessage";
 import { ChatEmpty } from "#/features/chat/components/ChatView/ChatEmpty";
-import { useStickToBottom } from "#/features/chat/hooks/use-stick-to-bottom";
 
 type ChatWindowProps = PropsWithChildren<{
 	messages: UIMessage[];
@@ -13,29 +13,30 @@ type ChatWindowProps = PropsWithChildren<{
 }>;
 
 export function ChatWindow({ messages, isStreaming, isReady, children }: ChatWindowProps) {
-	const { scrollRef, showButton, scrollToBottom, handleScroll } = useStickToBottom();
+	const { scrollRef, contentRef, isAtBottom, scrollToBottom } = useStickToBottom();
 	return (
 		<div className="relative flex min-h-0 flex-1 flex-col">
 			<section
 				ref={scrollRef}
-				onScroll={handleScroll}
 				aria-label="Conversation"
 				aria-live="polite"
 				aria-relevant="additions"
 				className="flex flex-1 flex-col overflow-y-auto px-4"
 			>
-				{messages.length === 0 ? (
-					<ChatEmpty isReady={isReady} />
-				) : (
-					messages.map((msg, idx) => {
-						const isLast = idx === messages.length - 1;
-						const isStreamingMessage = isStreaming && isLast && msg.role === "assistant";
-						return <ChatMessage key={msg.id} message={msg} isStreaming={isStreamingMessage} />;
-					})
-				)}
-				{children}
+				<div ref={contentRef} className="flex flex-col">
+					{messages.length === 0 ? (
+						<ChatEmpty isReady={isReady} />
+					) : (
+						messages.map((msg, idx) => {
+							const isLast = idx === messages.length - 1;
+							const isStreamingMessage = isStreaming && isLast && msg.role === "assistant";
+							return <ChatMessage key={msg.id} message={msg} isStreaming={isStreamingMessage} />;
+						})
+					)}
+					{children}
+				</div>
 			</section>
-			{showButton && (
+			{!isAtBottom && messages.length > 0 && (
 				<Button
 					type="button"
 					size="icon"

@@ -1,26 +1,8 @@
-import { z } from "zod/v4";
+import { ollamaClient } from "#/features/library/lib/ollama-client.server";
 import type { OllamaInstalledModel } from "#/features/library/lib/types";
 import { prisma } from "#/lib/db.server";
 
 const DEFAULT_OLLAMA_URL = "http://localhost:11434";
-
-const ollamaTagsSchema = z.object({
-	models: z
-		.array(
-			z.object({
-				name: z.string(),
-				size: z.number(),
-				details: z
-					.object({
-						family: z.string().optional(),
-						parameter_size: z.string().optional(),
-						quantization_level: z.string().optional(),
-					})
-					.optional(),
-			}),
-		)
-		.optional(),
-});
 
 const WELL_KNOWN_URLS = [
 	DEFAULT_OLLAMA_URL,
@@ -61,19 +43,14 @@ export type OllamaProbeResult = {
 /** Checks whether an Ollama instance answers at the given base URL and lists its models. */
 export async function probeOllama(url: string, timeoutMs = 2500): Promise<OllamaProbeResult> {
 	try {
-		const res = await fetch(`${url}/api/tags`, { signal: AbortSignal.timeout(timeoutMs) });
-		if (!res.ok) return { reachable: false, installedModels: [] };
-
-		const data = ollamaTagsSchema.parse(await res.json());
-
-		const installedModels = (data.models ?? []).map((m) => ({
+		const { models } = await ollamaClient(url, timeoutMs).list();
+		const installedModels = models.map((m) => ({
 			name: m.name,
 			sizeBytes: m.size,
-			family: m.details?.family ?? "",
-			parameterSize: m.details?.parameter_size ?? "",
-			quantizationLevel: m.details?.quantization_level ?? "",
+			family: m.details.family,
+			parameterSize: m.details.parameter_size,
+			quantizationLevel: m.details.quantization_level,
 		}));
-
 		return { reachable: true, installedModels };
 	} catch {
 		return { reachable: false, installedModels: [] };

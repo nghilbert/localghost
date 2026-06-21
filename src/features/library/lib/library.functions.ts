@@ -9,6 +9,7 @@ import {
 	scanForOllama,
 	upsertOllamaEndpoint,
 } from "#/features/library/lib/ollama.server";
+import { ollamaClient } from "#/features/library/lib/ollama-client.server";
 import { OllamaUrlSchema } from "#/features/library/lib/ollama-url";
 import {
 	cancelPull,
@@ -39,12 +40,7 @@ export const deleteModel = createServerFn({ method: "POST" })
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		const ollamaUrl = await getOllamaUrl(userId);
-		const res = await fetch(`${ollamaUrl}/api/delete`, {
-			method: "DELETE",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ name: data.model }),
-		});
-		if (!res.ok) throw new Error(`Failed to delete model: ${res.statusText}`);
+		await ollamaClient(ollamaUrl).delete({ model: data.model });
 	});
 
 /**
@@ -63,13 +59,13 @@ export const warmModel = createServerFn({ method: "POST" })
 
 		const url = endpoint.url.replace(/\/+$/, "");
 		try {
-			const res = await fetch(`${url}/api/generate`, {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ model: data.model, keep_alive: "10m" }),
-				signal: AbortSignal.timeout(60_000),
+			// Empty prompt + keep_alive loads the model into memory without generating.
+			await ollamaClient(url, 60_000).generate({
+				model: data.model,
+				prompt: "",
+				keep_alive: "10m",
 			});
-			return { warmed: res.ok };
+			return { warmed: true };
 		} catch {
 			return { warmed: false };
 		}

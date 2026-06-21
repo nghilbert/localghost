@@ -8,6 +8,8 @@
  * `docker compose up` runs one server instance (see memory `compose-is-prod`).
  */
 
+import { ollamaClient } from "#/features/library/lib/ollama-client.server";
+
 /** Live progress for one model pull, as exposed to clients. */
 export type PullSnapshot = {
 	model: string;
@@ -29,21 +31,15 @@ type PullEntry = {
 	bytesPerSec?: number;
 	done: boolean;
 	doneAt?: number;
-	controller: AbortController;
+	/** Stops the in-flight pull stream; a no-op until the stream exists. */
+	abort: () => void;
+	/** True once cancellation was requested, so the driver tears down instead of reporting an error. */
+	canceled: boolean;
 	/** Start of the current averaging window — Ollama reports `completed` per layer,
 	 *  so the window restarts whenever a new layer begins. */
 	windowAt?: number;
 	windowCompleted?: number;
 	lastCompleted?: number;
-};
-
-/** A single line of Ollama's NDJSON `/api/pull` stream. */
-type OllamaPullLine = {
-	status?: string;
-	digest?: string;
-	total?: number;
-	completed?: number;
-	error?: string;
 };
 
 /** How long a finished pull lingers so a client can observe its terminal state. */
@@ -62,7 +58,7 @@ export function startPull(userId: string, model: string, ollamaUrl: string): voi
 	const existing = pulls.get(key);
 	if (existing && !existing.done) return;
 
-	const entry: PullEntry = { status: "Starting…", done: false, controller: new AbortController() };
+	const entry: PullEntry = { status: "Starting…", done: false, abort: () => {}, canceled: false };
 	pulls.set(key, entry);
 	void drivePull(key, entry, model, ollamaUrl);
 }
@@ -70,7 +66,10 @@ export function startPull(userId: string, model: string, ollamaUrl: string): voi
 /** Abort an in-flight pull; the download stops and the entry is dropped. */
 export function cancelPull(userId: string, model: string): void {
 	const entry = pulls.get(keyFor(userId, model));
-	if (entry && !entry.done) entry.controller.abort();
+	if (entry && !entry.done) {
+		entry.canceled = true;
+		entry.abort();
+	}
 }
 
 /**
@@ -102,7 +101,7 @@ export function getActivePulls(userId: string): PullSnapshot[] {
 	return snapshots;
 }
 
-/** Streams Ollama's NDJSON pull progress into the registry entry until it ends. */
+/** Streams the SDK's pull progress into the registry entry until it ends. */
 async function drivePull(
 	key: string,
 	entry: PullEntry,
@@ -110,47 +109,25 @@ async function drivePull(
 	ollamaUrl: string,
 ): Promise<void> {
 	try {
-		const res = await fetch(`${ollamaUrl}/api/pull`, {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ name: model, stream: true }),
-			signal: entry.controller.signal,
-		});
-		if (!res.ok || !res.body) {
-			throw new Error(`Ollama responded ${res.status} ${res.statusText}`);
+		const stream = await ollamaClient(ollamaUrl).pull({ model, stream: true });
+		// Cancellation may arrive before the stream resolves; honor it, then wire it up.
+		if (entry.canceled) {
+			stream.abort();
+			pulls.delete(key);
+			return;
 		}
+		entry.abort = () => stream.abort();
 
-		const reader = res.body.getReader();
-		const decoder = new TextDecoder();
-		let buffer = "";
-
-		while (true) {
-			const { done, value } = await reader.read();
-			if (done) break;
-			buffer += decoder.decode(value, { stream: true });
-			const lines = buffer.split("\n");
-			buffer = lines.pop() ?? "";
-
-			for (const line of lines) {
-				const trimmed = line.trim();
-				if (!trimmed) continue;
-				let parsed: OllamaPullLine;
-				try {
-					parsed = JSON.parse(trimmed);
-				} catch {
-					continue; // skip malformed NDJSON lines
-				}
-				if (parsed.error) return finish(entry, { status: "Error", error: parsed.error });
-				if (parsed.status === "success") return finish(entry, { status: "success" });
-				entry.status = parsed.status ?? "Downloading…";
-				entry.completed = parsed.completed;
-				entry.total = parsed.total;
-				updateRate(entry, parsed.completed);
-			}
+		for await (const part of stream) {
+			if (part.status === "success") return finish(entry, { status: "success" });
+			entry.status = part.status || "Downloading…";
+			entry.completed = part.completed;
+			entry.total = part.total;
+			updateRate(entry, part.completed);
 		}
 		finish(entry, { status: "success" });
 	} catch (err) {
-		if (entry.controller.signal.aborted) {
+		if (entry.canceled) {
 			pulls.delete(key); // user stopped — drop immediately, nothing to report
 			return;
 		}
