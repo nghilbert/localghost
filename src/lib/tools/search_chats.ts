@@ -6,39 +6,86 @@ export const searchChatsArgsSchema = z.object({
 	limit: z.coerce.number().optional(),
 });
 
-export async function searchChats(query: string, ownerId: string, limit = 10): Promise<string> {
-	if (!query.trim()) return "query is required";
+type ChatRow = { title: string; snippet: string | null };
 
-	// Substring search over each conversation's `messages` blob, matching the text
-	// content of any message part via a read-time JSONB traversal.
-	const results = await prisma.$queryRaw<Array<{ title: string; snippet: string | null }>>`
-		SELECT c.title AS "title",
-		       (
-		         SELECT part->>'content'
-		         FROM jsonb_array_elements(c.messages) AS msg,
-		              jsonb_array_elements(msg->'parts') AS part
-		         WHERE part->>'type' = 'text'
-		           AND part->>'content' ILIKE ${`%${query}%`}
-		         LIMIT 1
-		       ) AS snippet
-		FROM conversation c
-		WHERE c.owner_id = ${ownerId}::uuid
-		  AND EXISTS (
-		    SELECT 1
-		    FROM jsonb_array_elements(c.messages) AS msg,
-		         jsonb_array_elements(msg->'parts') AS part
-		    WHERE part->>'type' = 'text'
-		      AND part->>'content' ILIKE ${`%${query}%`}
-		  )
-		ORDER BY c.updated_at DESC
-		LIMIT ${Math.min(limit, 30)}
-	`;
+/**
+ * Lists or searches the user's *saved* past conversations — excluding the
+ * current chat and unnamed ("New Chat") drafts, preferring the assistant's reply
+ * as the snippet rather than echoing the user's own words. With no query it
+ * returns the most recent saved chats, so open-ended "what did we talk about?"
+ * works; with a query it filters by keyword.
+ */
+export async function searchChats(
+	query: string,
+	ownerId: string,
+	currentConversationId: string,
+	limit = 10,
+): Promise<string> {
+	const cap = Math.min(limit, 30);
+	const trimmed = query.trim();
+	const like = `%${trimmed}%`;
 
-	if (results.length === 0) return `No messages found matching "${query}".`;
+	const rows = trimmed
+		? await prisma.$queryRaw<ChatRow[]>`
+			SELECT c.title AS "title",
+			       COALESCE(
+			         (SELECT part->>'content'
+			          FROM jsonb_array_elements(c.messages) AS msg,
+			               jsonb_array_elements(msg->'parts') AS part
+			          WHERE part->>'type' = 'text' AND msg->>'role' = 'assistant'
+			            AND part->>'content' ILIKE ${like}
+			          LIMIT 1),
+			         (SELECT part->>'content'
+			          FROM jsonb_array_elements(c.messages) AS msg,
+			               jsonb_array_elements(msg->'parts') AS part
+			          WHERE part->>'type' = 'text' AND part->>'content' ILIKE ${like}
+			          LIMIT 1)
+			       ) AS snippet
+			FROM conversation c
+			WHERE c.owner_id = ${ownerId}::uuid
+			  AND c.archived = false
+			  AND c.id <> ${currentConversationId}::uuid
+			  AND c.title <> 'New Chat'
+			  AND EXISTS (
+			    SELECT 1 FROM jsonb_array_elements(c.messages) AS msg,
+			                  jsonb_array_elements(msg->'parts') AS part
+			    WHERE part->>'type' = 'text' AND part->>'content' ILIKE ${like}
+			  )
+			ORDER BY c.updated_at DESC
+			LIMIT ${cap}
+		`
+		: await prisma.$queryRaw<ChatRow[]>`
+			SELECT c.title AS "title",
+			       COALESCE(
+			         (SELECT part->>'content'
+			          FROM jsonb_array_elements(c.messages) AS msg,
+			               jsonb_array_elements(msg->'parts') AS part
+			          WHERE part->>'type' = 'text' AND msg->>'role' = 'assistant'
+			          LIMIT 1),
+			         (SELECT part->>'content'
+			          FROM jsonb_array_elements(c.messages) AS msg,
+			               jsonb_array_elements(msg->'parts') AS part
+			          WHERE part->>'type' = 'text'
+			          LIMIT 1)
+			       ) AS snippet
+			FROM conversation c
+			WHERE c.owner_id = ${ownerId}::uuid
+			  AND c.archived = false
+			  AND c.id <> ${currentConversationId}::uuid
+			  AND c.title <> 'New Chat'
+			ORDER BY c.updated_at DESC
+			LIMIT ${cap}
+		`;
 
-	return results
+	if (rows.length === 0) {
+		return trimmed
+			? `No saved conversations mention "${trimmed}".`
+			: "You don't have any saved past conversations yet.";
+	}
+
+	return rows
 		.map((m) => {
-			const snippet = (m.snippet ?? "").slice(0, 150).replace(/\n/g, " ");
+			const snippet = (m.snippet ?? "").slice(0, 150).replace(/\s+/g, " ").trim();
 			return `[${m.title}]: ${snippet}…`;
 		})
 		.join("\n\n");

@@ -15,6 +15,7 @@ export const updateEndpointSchema = createEndpointSchema.partial();
 
 export const endpointIdInput = z.object({ id: uuid });
 export const getEndpointModelsInput = z.object({ endpointId: uuid });
+export const modelCapabilitiesInput = z.object({ endpointId: uuid, model: z.string().min(1) });
 export const testEndpointInput = z.object({
 	url: z.url().max(2048),
 	apiKey: z.string().max(4096).optional(),

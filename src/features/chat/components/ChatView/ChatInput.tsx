@@ -1,11 +1,14 @@
+import { useQuery } from "@tanstack/react-query";
 import { ArrowUpIcon, SquareIcon } from "lucide-react";
-import { type KeyboardEvent, useRef } from "react";
+import { type KeyboardEvent, useEffect, useRef } from "react";
 import { Button } from "#/components/ui/button";
 import { Card, CardAction, CardContent, CardFooter } from "#/components/ui/card";
 import { Textarea } from "#/components/ui/textarea";
 import { ToolsPicker } from "#/features/chat/components/ChatView/ToolsPicker";
 import { useConversationSettings } from "#/features/chat/hooks/use-conversation-settings";
 import { ModelPicker } from "#/features/endpoints/components/ModelPicker";
+import { modelCapabilitiesQueryOptions } from "#/features/endpoints/lib/endpoint.functions";
+import { cn } from "#/lib/utils";
 
 type Props = {
 	conversationId: string;
@@ -26,6 +29,17 @@ export function ChatInput({
 }: Props) {
 	const { model, endpointId, isReady, setModel } = useConversationSettings(conversationId);
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+	const { data: capabilities } = useQuery({
+		...modelCapabilitiesQueryOptions(endpointId ?? "", model),
+		enabled: Boolean(endpointId && model),
+	});
+	const supportsTools = capabilities?.supportsTools ?? true;
+
+	// A model that can't use tools must never carry a stale selection into a send.
+	useEffect(() => {
+		if (!supportsTools && enabledTools.length > 0) onEnabledToolsChange([]);
+	}, [supportsTools, enabledTools.length, onEnabledToolsChange]);
 
 	function submit() {
 		const value = textareaRef.current?.value.trim();
@@ -60,9 +74,13 @@ export function ChatInput({
 						currentModel={model}
 						currentEndpointId={endpointId}
 						onSelect={setModel}
-						className="max-w-50"
+						className={cn("max-w-50", !isReady && "ring-2 ring-primary ring-offset-1")}
 					/>
-					<ToolsPicker enabledTools={enabledTools} onChange={onEnabledToolsChange} />
+					<ToolsPicker
+						enabledTools={enabledTools}
+						supportsTools={supportsTools}
+						onChange={onEnabledToolsChange}
+					/>
 				</CardAction>
 				<CardAction>
 					{isStreaming ? (

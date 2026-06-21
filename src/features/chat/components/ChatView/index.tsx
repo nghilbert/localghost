@@ -4,6 +4,7 @@ import { ChatInput } from "#/features/chat/components/ChatView/ChatInput";
 import { ChatWindow } from "#/features/chat/components/ChatView/ChatWindow";
 import { useChatAutoRename } from "#/features/chat/hooks/use-chat-auto-rename";
 import { useConversationSettings } from "#/features/chat/hooks/use-conversation-settings";
+import { useModelWarmup } from "#/features/chat/hooks/use-model-warmup";
 import { chatClientOptions } from "#/features/chat/lib/chat-client-options";
 import type { getConversation } from "#/features/chat/lib/conversation.functions";
 import { cn } from "#/lib/utils";
@@ -13,7 +14,8 @@ type Conversation = Awaited<ReturnType<typeof getConversation>>;
 
 type ChatViewProps = { conversation: Conversation; className?: string };
 export function ChatView({ conversation, className }: ChatViewProps) {
-	const { isReady } = useConversationSettings(conversation.id);
+	const { isReady, model, endpointId, provider } = useConversationSettings(conversation.id);
+	const { isWarming, seconds: warmSeconds } = useModelWarmup({ endpointId, model, provider });
 
 	// Ephemeral per-conversation tool selection — sent with each message via
 	// `forwardedProps`, never persisted. `useChat` re-reads `forwardedProps` on
@@ -43,6 +45,8 @@ export function ChatView({ conversation, className }: ChatViewProps) {
 				status={status}
 				error={error}
 				isReady={isReady}
+				isWarming={isWarming}
+				warmSeconds={warmSeconds}
 				onRetry={reload}
 			/>
 

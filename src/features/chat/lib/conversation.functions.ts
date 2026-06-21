@@ -132,10 +132,31 @@ export const searchConversations = createServerFn({ method: "POST" })
 		}));
 	});
 
+/** Phrases a weak model emits instead of a title — refusals, meta, or filler. */
+const BAD_TITLE =
+	/^(i\s|i'm|sorry|as an ai|no conversation|here('s| is)|sure[,!]|title:|untitled)/i;
+
+/**
+ * Validates a model-generated chat title, returning a clean title or `null` when
+ * the output is unusable (empty, a refusal/meta sentence, or too long to be a
+ * title) so the caller can fall back to the user's own words. Weak local models
+ * routinely emit refusals like "No conversation to summarize yet" — those must
+ * never be stored as titles.
+ */
+export function sanitizeTitle(raw: string): string | null {
+	const firstLine = raw.split("\n")[0]?.trim() ?? "";
+	const cleaned = firstLine.replace(/^["']|["'.!?]+$/g, "").trim();
+	if (!cleaned) return null;
+	if (BAD_TITLE.test(cleaned)) return null;
+	if (cleaned.split(/\s+/).length > 8) return null;
+	return cleaned.slice(0, 80);
+}
+
 /**
  * Auto-name a brand-new conversation from its first exchange. No-ops unless the
  * title is still the default, so it is safe to call on every first `onFinish`.
- * Falls back to the leading words of the user's message if the model call fails.
+ * Falls back to the leading words of the user's message if the model call fails
+ * or returns an unusable title.
  */
 export const renameConversation = createServerFn({ method: "POST" })
 	.validator(renameConversationInput)
@@ -153,7 +174,9 @@ export const renameConversation = createServerFn({ method: "POST" })
 			? decrypt(conversation.endpoint.apiKeyEncrypted)
 			: undefined;
 
-		let title: string;
+		const fallbackTitle = userText.split(/\s+/).slice(0, 6).join(" ").slice(0, 80);
+
+		let title = fallbackTitle;
 		try {
 			const generated = await callLLM({
 				url: conversation.endpoint.url,
@@ -168,12 +191,9 @@ export const renameConversation = createServerFn({ method: "POST" })
 				temperature: 0.3,
 				maxTokens: 20,
 			});
-			title = generated
-				.replace(/["'.!?]+$/, "")
-				.trim()
-				.slice(0, 80);
+			title = sanitizeTitle(generated) ?? fallbackTitle;
 		} catch {
-			title = userText.split(/\s+/).slice(0, 5).join(" ").slice(0, 80);
+			title = fallbackTitle;
 		}
 
 		if (!title) return null;

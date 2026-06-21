@@ -90,7 +90,12 @@ export const Route = createFileRoute("/api/chat/stream")({
 				const mcpTools = await listAllMcpTools(
 					mcpServers.map((s) => ({ id: s.id, name: s.name, url: s.url, type: s.type })),
 				);
-				const tools = buildChatTools({ ownerId: userId, enabledTools, mcpTools });
+				const tools = buildChatTools({
+					ownerId: userId,
+					conversationId,
+					enabledTools,
+					mcpTools,
+				});
 
 				// Auto-compact when approaching the model's context-window limit.
 				const { messages: compactedHistory, systemPrompt: effectiveSystemPrompt } =
