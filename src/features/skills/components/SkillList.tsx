@@ -11,19 +11,11 @@ type SkillListProps = {
 	isNew: boolean;
 	onSelect: (skill: Skill) => void;
 	onNew: () => void;
-	className?: string;
 };
 
-export function SkillList({
-	skills,
-	selectedId,
-	isNew,
-	onSelect,
-	onNew,
-	className,
-}: SkillListProps) {
+export function SkillList({ skills, selectedId, isNew, onSelect, onNew }: SkillListProps) {
 	return (
-		<div className={cn("flex flex-col border-r", className)}>
+		<div className="flex flex-col border-r">
 			<div className="border-b p-3">
 				<Button size="sm" className="w-full gap-1.5" onClick={onNew}>
 					<PlusIcon size={14} />

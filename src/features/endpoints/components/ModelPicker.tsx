@@ -21,7 +21,6 @@ type ModelPickerProps = {
 	onSelect: (endpointId: string, model: string) => void;
 	/** Ring the trigger to draw the eye when no model is chosen yet. */
 	needsAttention?: boolean;
-	className?: string;
 };
 
 /** Endpoint + model dropdown. Presentational: the caller decides what `onSelect` does. */
@@ -30,7 +29,6 @@ export function ModelPicker({
 	currentEndpointId,
 	onSelect,
 	needsAttention,
-	className,
 }: ModelPickerProps) {
 	const { endpoints } = useEndpoints();
 	const label = currentModel || "Select model";
@@ -41,11 +39,7 @@ export function ModelPicker({
 				<Button
 					variant="outline"
 					size="sm"
-					className={cn(
-						"gap-1 truncate",
-						needsAttention && "ring-2 ring-primary ring-offset-1",
-						className,
-					)}
+					className={cn("gap-1 truncate", needsAttention && "ring-2 ring-primary ring-offset-1")}
 				>
 					<span className="truncate">{label}</span>
 					<ChevronDownIcon size={14} className="shrink-0" />

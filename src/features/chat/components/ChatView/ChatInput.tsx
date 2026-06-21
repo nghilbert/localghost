@@ -74,7 +74,6 @@ export function ChatInput({
 						currentEndpointId={endpointId}
 						onSelect={setModel}
 						needsAttention={!isReady}
-						className="max-w-50"
 					/>
 					<ToolsPicker
 						enabledTools={enabledTools}
