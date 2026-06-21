@@ -2,6 +2,8 @@ import type { ChatClientState } from "@tanstack/ai-client";
 import { RefreshCwIcon, TriangleAlertIcon } from "lucide-react";
 import { Alert, AlertAction, AlertDescription, AlertTitle } from "#/components/ui/alert";
 import { Button } from "#/components/ui/button";
+import { StatusIndicator } from "#/features/chat/components/ChatView/StatusIndicator";
+import { useElapsedSeconds } from "#/features/chat/hooks/use-elapsed-seconds";
 
 type Props = {
 	status: ChatClientState;
@@ -32,11 +34,12 @@ function humanizeError(message: string): { title: string; description: string } 
 }
 
 /**
- * Inline conversation status: an animated thinking indicator while the model
- * warms up (request sent, no tokens yet) and a recoverable error alert when a
- * run fails.
+ * Inline conversation status: a thinking indicator while the request is in
+ * flight with no tokens yet, and a recoverable error alert when a run fails.
  */
 export function ChatStatus({ status, error, onRetry }: Props) {
+	const seconds = useElapsedSeconds(status === "submitted");
+
 	if (status === "error") {
 		const { title, description } = humanizeError(error?.message ?? "");
 		return (
@@ -59,15 +62,7 @@ export function ChatStatus({ status, error, onRetry }: Props) {
 	if (status === "submitted") {
 		return (
 			<div className="px-4 py-3">
-				<div
-					role="status"
-					aria-label="Assistant is thinking"
-					className="flex w-fit items-center gap-1.5 rounded-2xl rounded-bl-sm bg-muted px-4 py-3"
-				>
-					<span className="size-2 animate-bounce rounded-full bg-muted-foreground/40 [animation-delay:-0.3s]" />
-					<span className="size-2 animate-bounce rounded-full bg-muted-foreground/40 [animation-delay:-0.15s]" />
-					<span className="size-2 animate-bounce rounded-full bg-muted-foreground/40" />
-				</div>
+				<StatusIndicator label="Thinking" seconds={seconds} />
 			</div>
 		);
 	}
