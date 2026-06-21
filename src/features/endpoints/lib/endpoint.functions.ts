@@ -8,6 +8,7 @@ import {
 	createEndpointSchema,
 	endpointIdInput,
 	getEndpointModelsInput,
+	modelCapabilitiesInput,
 	testEndpointInput,
 	updateEndpointInput,
 } from "./schemas";
@@ -87,6 +88,38 @@ export const testEndpoint = createServerFn({ method: "POST" })
 		return probeEndpoint(data.url, data.apiKey);
 	});
 
+/**
+ * Reports whether a model can use tools, so the chat UI can disable the tool
+ * picker for models that can't. Only local Ollama models are checked (via
+ * `/api/show` capabilities); cloud providers support tools, and any unknown or
+ * unreachable case is assumed capable so a working model is never wrongly blocked.
+ */
+export const getModelCapabilities = createServerFn({ method: "POST" })
+	.validator(modelCapabilitiesInput)
+	.handler(async ({ data }): Promise<{ supportsTools: boolean }> => {
+		const userId = await getCurrentUserId();
+		const endpoint = await prisma.modelEndpoint.findFirst({
+			where: { id: data.endpointId, ownerId: userId },
+		});
+		if (endpoint?.provider !== "ollama") return { supportsTools: true };
+
+		const url = endpoint.url.replace(/\/+$/, "");
+		try {
+			const res = await fetch(`${url}/api/show`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ model: data.model }),
+				signal: AbortSignal.timeout(5000),
+			});
+			if (!res.ok) return { supportsTools: true };
+			const json: { capabilities?: string[] } = await res.json();
+			if (!json.capabilities) return { supportsTools: true };
+			return { supportsTools: json.capabilities.includes("tools") };
+		} catch {
+			return { supportsTools: true };
+		}
+	});
+
 // ── Query options (for TanStack Query) ───────────────────────
 
 export const endpointsQueryOptions = () =>
@@ -97,4 +130,11 @@ export const endpointModelsQueryOptions = (endpointId: string) =>
 		queryKey: ["endpoint-models", endpointId],
 		queryFn: () => getEndpointModels({ data: { endpointId } }),
 		staleTime: 30_000,
+	});
+
+export const modelCapabilitiesQueryOptions = (endpointId: string, model: string) =>
+	queryOptions({
+		queryKey: ["model-capabilities", endpointId, model],
+		queryFn: () => getModelCapabilities({ data: { endpointId, model } }),
+		staleTime: 5 * 60_000,
 	});
