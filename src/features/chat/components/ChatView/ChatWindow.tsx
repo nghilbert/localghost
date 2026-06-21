@@ -1,19 +1,18 @@
 import type { UIMessage } from "@tanstack/ai-client";
 import { ArrowDownIcon } from "lucide-react";
-import type { ReactNode } from "react";
+import type { PropsWithChildren } from "react";
 import { Button } from "#/components/ui/button";
 import { ChatMessage } from "#/features/chat/components/ChatMessage";
 import { ChatEmpty } from "#/features/chat/components/ChatView/ChatEmpty";
 import { useStickToBottom } from "#/features/chat/hooks/use-stick-to-bottom";
 
-type Props = {
+type ChatWindowProps = PropsWithChildren<{
 	messages: UIMessage[];
 	isStreaming: boolean;
 	isReady: boolean;
-	children: ReactNode;
-};
+}>;
 
-export function ChatWindow({ messages, isStreaming, isReady, children }: Props) {
+export function ChatWindow({ messages, isStreaming, isReady, children }: ChatWindowProps) {
 	const { scrollRef, showButton, scrollToBottom, handleScroll } = useStickToBottom();
 	return (
 		<div className="relative flex min-h-0 flex-1 flex-col">

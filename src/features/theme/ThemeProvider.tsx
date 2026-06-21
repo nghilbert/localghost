@@ -1,4 +1,4 @@
-import { createContext, type ReactNode, useContext, useEffect, useState } from "react";
+import { createContext, type PropsWithChildren, useContext, useEffect, useState } from "react";
 
 export type Theme = "default" | "ocean-breeze" | "nature" | "quantum-rose" | "midnight-bloom";
 export type ThemeMode = "light" | "dark" | "system";
@@ -41,7 +41,7 @@ const Ctx = createContext<ThemeCtx>({
 	setMode: () => {},
 });
 
-export function ThemeProvider({ children }: { children: ReactNode }) {
+export function ThemeProvider({ children }: PropsWithChildren) {
 	const [theme, setThemeState] = useState<Theme>(() => {
 		if (typeof window === "undefined") return "default";
 		const stored = localStorage.getItem(THEME_STORAGE_KEY);

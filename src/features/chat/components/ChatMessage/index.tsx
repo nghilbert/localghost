@@ -8,8 +8,8 @@ import { SpeakButton } from "#/features/chat/components/ChatMessage/SpeakButton"
 import { useElapsedSeconds } from "#/features/chat/hooks/use-elapsed-seconds";
 import { partsText } from "#/features/chat/lib/message-text";
 
-type Props = { message: UIMessage; isStreaming?: boolean };
-export function ChatMessage({ message, isStreaming }: Props) {
+type ChatMessageProps = { message: UIMessage; isStreaming?: boolean };
+export function ChatMessage({ message, isStreaming }: ChatMessageProps) {
 	const content = partsText(message.parts);
 	const toolCalls = message.parts.filter((p) => p.type === "tool-call");
 	const toolRunning = Boolean(isStreaming && toolCalls.some((tc) => tc.output === undefined));

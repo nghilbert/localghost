@@ -5,7 +5,7 @@ import { Button } from "#/components/ui/button";
 import { ChatBubble } from "#/features/chat/components/ChatBubble";
 import { useElapsedSeconds } from "#/features/chat/hooks/use-elapsed-seconds";
 
-type Props = {
+type ChatStatusProps = {
 	status: ChatClientState;
 	error: Error | undefined;
 	isWarming: boolean;
@@ -13,11 +13,7 @@ type Props = {
 	onRetry: () => void;
 };
 
-/**
- * Turns a raw runner/provider error into a short, human explanation. Local
- * runners (e.g. an iGPU Vulkan crash) surface as `unexpected EOF` once the
- * llama-server process aborts mid-stream — which is recoverable on a retry.
- */
+/** Turns a raw runner/provider error into a short, human explanation; a crashed local runner surfaces as `unexpected EOF` and is recoverable on retry. */
 function humanizeError(message: string): { title: string; description: string } {
 	if (/unexpected eof|device.?lost|core dumped|aborted|econnreset|fetch failed/i.test(message)) {
 		return {
@@ -35,13 +31,8 @@ function humanizeError(message: string): { title: string; description: string } 
 	return { title: "Something went wrong", description: message };
 }
 
-/**
- * The conversation's single transient status row, rendered at the end of the
- * message list: a recoverable error alert, a "Thinking" bubble while a request
- * is in flight with no tokens yet, or a "Warming up" bubble while a local model
- * loads before the first send. Nothing once the model is streaming or idle.
- */
-export function ChatStatus({ status, error, isWarming, warmSeconds, onRetry }: Props) {
+/** The conversation's single transient status row: a recoverable error alert, a "Thinking" bubble, or a "Warming up" bubble — nothing once streaming or idle. */
+export function ChatStatus({ status, error, isWarming, warmSeconds, onRetry }: ChatStatusProps) {
 	const seconds = useElapsedSeconds(status === "submitted");
 	const failure = status === "error" ? humanizeError(error?.message ?? "") : null;
 

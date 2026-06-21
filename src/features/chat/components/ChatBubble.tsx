@@ -1,5 +1,5 @@
 import { Slot } from "radix-ui";
-import type { ReactNode } from "react";
+import type { PropsWithChildren } from "react";
 import { Spinner } from "#/components/ui/spinner";
 import { cn } from "#/lib/utils";
 
@@ -8,25 +8,18 @@ const sideClasses = {
 	assistant: "max-w-[85%] rounded-bl-xs bg-muted",
 } as const;
 
-type Props = {
+type ChatBubbleProps = PropsWithChildren<{
 	side: keyof typeof sideClasses;
-	children: ReactNode;
 	/** Render an existing element (e.g. Streamdown) as the bubble, no wrapper. */
 	asChild?: boolean;
 	/** Show a spinner with the children as its label — a wait/status bubble. */
 	pending?: boolean;
 	/** Elapsed seconds appended to a `pending` bubble; hidden when falsy. */
 	seconds?: number;
-};
+}>;
 
-/**
- * The chat surface primitive: a rounded message bubble that owns its shape,
- * color, padding, and width entirely from `side`. Reused by user/assistant
- * messages and every wait so all bubbles share one shape. `pending` turns it
- * into a status bubble (spinner + label + optional `seconds`); `asChild` styles
- * a child element as the bubble instead of wrapping it.
- */
-export function ChatBubble({ side, children, asChild, pending, seconds }: Props) {
+/** The rounded message bubble shared by user/assistant messages and waits; owns its shape, color, padding, and width from `side`. */
+export function ChatBubble({ side, children, asChild, pending, seconds }: ChatBubbleProps) {
 	const Comp = !pending && asChild ? Slot.Root : "div";
 	return (
 		<Comp

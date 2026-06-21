@@ -4,11 +4,11 @@ import { Button } from "#/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "#/components/ui/tooltip";
 import { cn } from "#/lib/utils";
 
-type Props = {
+type SpeakButtonProps = {
 	text: string;
 };
 
-export function SpeakButton({ text }: Props) {
+export function SpeakButton({ text }: SpeakButtonProps) {
 	const [speaking, setSpeaking] = useState(false);
 	const supported = typeof window !== "undefined" && "speechSynthesis" in window;
 

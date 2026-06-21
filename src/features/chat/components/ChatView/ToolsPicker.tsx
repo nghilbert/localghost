@@ -13,19 +13,14 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "#/components/ui/tooltip
 import { mcpServersQueryOptions } from "#/features/mcp/lib/mcp.functions";
 import { MCP_TOOL_PREFIX, TOOL_CATALOG } from "#/lib/tools/catalog";
 
-type Props = {
+type ToolsPickerProps = {
 	enabledTools: string[];
 	supportsTools: boolean;
 	onChange: (enabledTools: string[]) => void;
 };
 
-/**
- * Inline, ephemeral tool selector for a single send: built-in catalog tools plus
- * the user's enabled MCP servers (`mcp:<id>`). The selection lives in component
- * state and rides along each message via `forwardedProps` — it is never persisted.
- * Disabled when the selected model can't use tools.
- */
-export function ToolsPicker({ enabledTools, supportsTools, onChange }: Props) {
+/** Inline, ephemeral per-send tool selector (catalog tools + enabled MCP servers); the selection rides each message via `forwardedProps` and is never persisted. */
+export function ToolsPicker({ enabledTools, supportsTools, onChange }: ToolsPickerProps) {
 	const { data: servers = [] } = useQuery(mcpServersQueryOptions());
 	const mcpServers = servers.filter((server) => server.enabled);
 

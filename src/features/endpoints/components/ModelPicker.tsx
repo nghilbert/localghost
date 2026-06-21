@@ -15,7 +15,7 @@ import { useEndpoints } from "#/features/endpoints/hooks/use-endpoints";
 import { endpointModelsQueryOptions } from "#/features/endpoints/lib/endpoint.functions";
 import { cn } from "#/lib/utils";
 
-type Props = {
+type ModelPickerProps = {
 	currentModel: string;
 	currentEndpointId?: string | null;
 	onSelect: (endpointId: string, model: string) => void;
@@ -31,7 +31,7 @@ export function ModelPicker({
 	onSelect,
 	needsAttention,
 	className,
-}: Props) {
+}: ModelPickerProps) {
 	const { endpoints } = useEndpoints();
 	const label = currentModel || "Select model";
 

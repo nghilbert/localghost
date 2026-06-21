@@ -9,7 +9,7 @@ import { useConversationSettings } from "#/features/chat/hooks/use-conversation-
 import { ModelPicker } from "#/features/endpoints/components/ModelPicker";
 import { modelCapabilitiesQueryOptions } from "#/features/endpoints/lib/endpoint.functions";
 
-type Props = {
+type ChatInputProps = {
 	conversationId: string;
 	isStreaming: boolean;
 	enabledTools: string[];
@@ -25,7 +25,7 @@ export function ChatInput({
 	onEnabledToolsChange,
 	sendMessage,
 	stop,
-}: Props) {
+}: ChatInputProps) {
 	const { model, endpointId, isReady, setModel } = useConversationSettings(conversationId);
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 
