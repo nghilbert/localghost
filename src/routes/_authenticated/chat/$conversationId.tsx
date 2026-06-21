@@ -14,6 +14,8 @@ function ConversationPage() {
 	const { conversationId } = Route.useParams();
 	const { data: conversation } = useSuspenseQuery(conversationQueryOptions(conversationId));
 	return (
-		<ChatView key={conversation.id} conversation={conversation} className="mx-auto max-w-4xl" />
+		<div className="w-full h-full min-y-0 mx-auto max-w-4xl">
+			<ChatView key={conversation.id} conversation={conversation} />
+		</div>
 	);
 }

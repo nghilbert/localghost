@@ -1,5 +1,7 @@
 import { useChat } from "@tanstack/ai-react";
+import { DownloadIcon } from "lucide-react";
 import { useMemo, useState } from "react";
+import { Button } from "#/components/ui/button";
 import { ChatInput } from "#/features/chat/components/ChatView/ChatInput";
 import { ChatStatus } from "#/features/chat/components/ChatView/ChatStatus";
 import { ChatWindow } from "#/features/chat/components/ChatView/ChatWindow";
@@ -8,13 +10,10 @@ import { useConversationSettings } from "#/features/chat/hooks/use-conversation-
 import { useModelWarmup } from "#/features/chat/hooks/use-model-warmup";
 import { chatClientOptions } from "#/features/chat/lib/chat-client-options";
 import type { getConversation } from "#/features/chat/lib/conversation.functions";
-import { cn } from "#/lib/utils";
-import { ExportMenu } from "./ExportMenu";
+import { ExportMenuTrigger } from "./ExportMenuTrigger";
 
-type Conversation = Awaited<ReturnType<typeof getConversation>>;
-
-type ChatViewProps = { conversation: Conversation; className?: string };
-export function ChatView({ conversation, className }: ChatViewProps) {
+type ChatViewProps = { conversation: Awaited<ReturnType<typeof getConversation>> };
+export function ChatView({ conversation }: ChatViewProps) {
 	const { isReady, model, endpointId, provider } = useConversationSettings(conversation.id);
 	const { isWarming, seconds: warmSeconds } = useModelWarmup({ endpointId, model, provider });
 
@@ -38,8 +37,16 @@ export function ChatView({ conversation, className }: ChatViewProps) {
 	const isStreaming = status === "submitted" || status === "streaming";
 
 	return (
-		<div className={cn("flex h-full w-full flex-col min-h-0", className)}>
-			<ExportMenu conversation={conversation} messages={messages} className="mt-2 mr-2 self-end" />
+		<div className="flex h-full w-full flex-col min-h-0 gap-1 pb-6">
+			<ExportMenuTrigger conversation={conversation} messages={messages}>
+				<Button
+					variant="ghost"
+					className="h-7 gap-1 px-2 text-xs text-muted-foreground mt-2 mr-2 self-end"
+					aria-label="Export conversation"
+				>
+					<DownloadIcon size={13} />
+				</Button>
+			</ExportMenuTrigger>
 
 			<ChatWindow messages={messages} isStreaming={isStreaming} isReady={isReady}>
 				<ChatStatus
@@ -51,16 +58,14 @@ export function ChatView({ conversation, className }: ChatViewProps) {
 				/>
 			</ChatWindow>
 
-			<div className="px-4 pb-4 pt-2">
-				<ChatInput
-					conversationId={conversation.id}
-					isStreaming={isStreaming}
-					enabledTools={enabledTools}
-					onEnabledToolsChange={setEnabledTools}
-					sendMessage={sendMessage}
-					stop={stop}
-				/>
-			</div>
+			<ChatInput
+				conversationId={conversation.id}
+				isStreaming={isStreaming}
+				enabledTools={enabledTools}
+				onEnabledToolsChange={setEnabledTools}
+				sendMessage={sendMessage}
+				stop={stop}
+			/>
 		</div>
 	);
 }

@@ -34,30 +34,36 @@ function humanizeError(message: string): { title: string; description: string } 
 /** The conversation's single transient status row: a recoverable error alert, a "Thinking" bubble, or a "Warming up" bubble — nothing once streaming or idle. */
 export function ChatStatus({ status, error, isWarming, warmSeconds, onRetry }: ChatStatusProps) {
 	const seconds = useElapsedSeconds(status === "submitted");
-	const failure = status === "error" ? humanizeError(error?.message ?? "") : null;
 
-	const content = failure ? (
-		<Alert variant="destructive">
-			<TriangleAlertIcon />
-			<AlertTitle>{failure.title}</AlertTitle>
-			<AlertDescription>{failure.description}</AlertDescription>
-			<AlertAction>
-				<Button size="sm" variant="outline" onClick={onRetry}>
-					<RefreshCwIcon />
-					Try again
-				</Button>
-			</AlertAction>
-		</Alert>
-	) : status === "submitted" ? (
-		<ChatBubble side="assistant" pending seconds={seconds}>
-			Thinking
-		</ChatBubble>
-	) : isWarming ? (
-		<ChatBubble side="assistant" pending seconds={warmSeconds}>
-			Warming up the model
-		</ChatBubble>
-	) : null;
-
-	if (!content) return null;
-	return <div className="px-4 py-3">{content}</div>;
+	switch (status) {
+		case "error": {
+			const failure = humanizeError(error?.message ?? "");
+			return (
+				<Alert variant="destructive">
+					<TriangleAlertIcon />
+					<AlertTitle>{failure.title}</AlertTitle>
+					<AlertDescription>{failure.description}</AlertDescription>
+					<AlertAction>
+						<Button size="sm" variant="outline" onClick={onRetry}>
+							<RefreshCwIcon />
+							Try again
+						</Button>
+					</AlertAction>
+				</Alert>
+			);
+		}
+		case "submitted":
+			return (
+				<ChatBubble side="assistant" pending seconds={seconds}>
+					Thinking
+				</ChatBubble>
+			);
+		default:
+			if (!isWarming) return null;
+			return (
+				<ChatBubble side="assistant" pending seconds={warmSeconds}>
+					Warming up the model
+				</ChatBubble>
+			);
+	}
 }

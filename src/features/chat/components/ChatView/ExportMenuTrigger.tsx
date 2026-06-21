@@ -1,6 +1,5 @@
 import type { UIMessage } from "@tanstack/ai-client";
-import { DownloadIcon } from "lucide-react";
-import { Button } from "#/components/ui/button";
+import type { PropsWithChildren } from "react";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -10,15 +9,13 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "#/components/ui/tooltip";
 import { partsText } from "#/features/chat/lib/message-text";
 import { downloadBlob } from "#/lib/download";
-import { cn } from "#/lib/utils";
 
-type ExportMenuProps = {
+type ExportMenuTriggerProps = PropsWithChildren<{
 	conversation: { id: string; title: string; model: string };
 	messages: UIMessage[];
-	className?: string;
-};
+}>;
 
-export function ExportMenu({ conversation, messages, className }: ExportMenuProps) {
+export function ExportMenuTrigger({ conversation, messages, children }: ExportMenuTriggerProps) {
 	function exportAs(format: "md" | "json") {
 		const filename = `${conversation.title.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.${format === "md" ? "md" : "json"}`;
 		const flattened = messages.map((message) => ({
@@ -54,15 +51,7 @@ export function ExportMenu({ conversation, messages, className }: ExportMenuProp
 		<DropdownMenu>
 			<Tooltip>
 				<TooltipTrigger asChild>
-					<DropdownMenuTrigger asChild>
-						<Button
-							variant="ghost"
-							className={cn("h-7 gap-1 px-2 text-xs text-muted-foreground", className)}
-							aria-label="Export conversation"
-						>
-							<DownloadIcon size={13} />
-						</Button>
-					</DropdownMenuTrigger>
+					<DropdownMenuTrigger asChild>{children}</DropdownMenuTrigger>
 				</TooltipTrigger>
 				<TooltipContent>Export conversation</TooltipContent>
 			</Tooltip>
