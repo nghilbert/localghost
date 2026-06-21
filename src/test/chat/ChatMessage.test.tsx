@@ -82,6 +82,24 @@ describe("ChatMessage", () => {
 			// so the tool-name trigger is what proves the block rendered.
 			expect(screen.getByText("web_search")).toBeInTheDocument();
 		});
+
+		it("should show a running indicator for an in-flight tool call while streaming", () => {
+			const message: UIMessage = {
+				id: "a1",
+				role: "assistant",
+				parts: [
+					{
+						type: "tool-call",
+						id: "c1",
+						name: "web_search",
+						arguments: "{}",
+						state: "input-complete",
+					},
+				],
+			};
+			render(<ChatMessage message={message} isStreaming />);
+			expect(screen.getByRole("status")).toHaveTextContent("web_search");
+		});
 	});
 
 	describe("reasoning", () => {

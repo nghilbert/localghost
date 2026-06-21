@@ -1,6 +1,6 @@
 import { code } from "@streamdown/code";
 import type { UIMessage } from "@tanstack/ai-client";
-import { BrainIcon, TerminalIcon } from "lucide-react";
+import { BrainIcon, Loader2Icon, TerminalIcon } from "lucide-react";
 import { Streamdown } from "streamdown";
 import { MessageCollapsible } from "#/features/chat/components/ChatMessage/CollapsibleDetails";
 import { SpeakButton } from "#/features/chat/components/ChatMessage/SpeakButton";
@@ -51,17 +51,28 @@ export function ChatMessage({ message, isStreaming }: Props) {
 
 			{toolCalls.length > 0 && (
 				<div className="space-y-1.5">
-					{toolCalls.map((tc) => (
-						<MessageCollapsible key={tc.id} icon={TerminalIcon} label={tc.name}>
-							<pre className="whitespace-pre-wrap wrap-break-word px-3 py-2.5 font-mono leading-relaxed text-muted-foreground">
-								{tc.output == null
-									? ""
-									: typeof tc.output === "string"
-										? tc.output
-										: JSON.stringify(tc.output, null, 2)}
-							</pre>
-						</MessageCollapsible>
-					))}
+					{toolCalls.map((tc) =>
+						isStreaming && tc.output === undefined ? (
+							<div
+								key={tc.id}
+								role="status"
+								className="flex items-center gap-2 rounded-lg border bg-muted/30 px-3 py-2 font-medium text-muted-foreground text-xs"
+							>
+								<Loader2Icon size={12} className="shrink-0 animate-spin" />
+								<span>{tc.name}</span>
+							</div>
+						) : (
+							<MessageCollapsible key={tc.id} icon={TerminalIcon} label={tc.name}>
+								<pre className="whitespace-pre-wrap wrap-break-word px-3 py-2.5 font-mono leading-relaxed text-muted-foreground">
+									{tc.output == null
+										? ""
+										: typeof tc.output === "string"
+											? tc.output
+											: JSON.stringify(tc.output, null, 2)}
+								</pre>
+							</MessageCollapsible>
+						),
+					)}
 				</div>
 			)}
 

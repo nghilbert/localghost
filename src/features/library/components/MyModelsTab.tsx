@@ -1,5 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
 import { BoxesIcon } from "lucide-react";
+import { useState } from "react";
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "#/components/ui/alert-dialog";
 import { Button } from "#/components/ui/button";
 import {
 	Empty,
@@ -31,6 +42,7 @@ export function MyModelsTab({ onBrowse }: MyModelsTabProps) {
 
 	const { pulling, stop } = useModelPull();
 	const { deleteModel } = useOllama();
+	const [pendingDelete, setPendingDelete] = useState<string | null>(null);
 
 	const installedModels = ollamaStatus?.installedModels ?? [];
 	const hasModels = installedModels.length > 0 || Object.keys(pulling).length > 0;
@@ -63,8 +75,36 @@ export function MyModelsTab({ onBrowse }: MyModelsTabProps) {
 				installedModels={installedModels}
 				pulling={pulling}
 				onStop={stop}
-				onDelete={(model) => deleteModel.mutate(model)}
+				onDelete={(model) => setPendingDelete(model)}
 			/>
+			<AlertDialog
+				open={pendingDelete !== null}
+				onOpenChange={(open) => {
+					if (!open) setPendingDelete(null);
+				}}
+			>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>Delete this model?</AlertDialogTitle>
+						<AlertDialogDescription>
+							{pendingDelete} will be removed from this machine. You'll need to download it again to
+							use it.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel>Cancel</AlertDialogCancel>
+						<AlertDialogAction
+							variant="destructive"
+							onClick={() => {
+								if (pendingDelete) deleteModel.mutate(pendingDelete);
+								setPendingDelete(null);
+							}}
+						>
+							Delete
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
 		</div>
 	);
 }
