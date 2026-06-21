@@ -1,4 +1,4 @@
-import { ollamaClient } from "#/features/library/lib/ollama-client.server";
+import { ollamaClient } from "#/features/library/lib/ollama/client.server";
 import type { OllamaInstalledModel } from "#/features/library/lib/types";
 import { prisma } from "#/lib/db.server";
 

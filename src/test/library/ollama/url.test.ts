@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { OllamaUrlSchema } from "#/features/library/lib/ollama-url";
+import { OllamaUrlSchema } from "#/features/library/lib/ollama/url";
 
 describe("OllamaUrlSchema", () => {
 	it.each([

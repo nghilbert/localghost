@@ -1,6 +1,7 @@
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 import { getCurrentUserId } from "#/features/auth/lib/session.server";
+import { ollamaClient } from "#/features/library/lib/ollama/client.server";
 import { decrypt, encrypt } from "#/lib/crypto.server";
 import { prisma } from "#/lib/db.server";
 import { listModels, probeEndpoint } from "#/lib/llm.server";
@@ -103,18 +104,11 @@ export const getModelCapabilities = createServerFn({ method: "POST" })
 		});
 		if (endpoint?.provider !== "ollama") return { supportsTools: true };
 
-		const url = endpoint.url.replace(/\/+$/, "");
 		try {
-			const res = await fetch(`${url}/api/show`, {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ model: data.model }),
-				signal: AbortSignal.timeout(5000),
+			const { capabilities } = await ollamaClient(endpoint.url, 5000).show({
+				model: data.model,
 			});
-			if (!res.ok) return { supportsTools: true };
-			const json: { capabilities?: string[] } = await res.json();
-			if (!json.capabilities) return { supportsTools: true };
-			return { supportsTools: json.capabilities.includes("tools") };
+			return { supportsTools: capabilities.includes("tools") };
 		} catch {
 			return { supportsTools: true };
 		}

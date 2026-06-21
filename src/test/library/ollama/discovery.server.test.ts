@@ -3,7 +3,7 @@ import {
 	buildOllamaCandidateUrls,
 	getOllamaUrl,
 	upsertOllamaEndpoint,
-} from "#/features/library/lib/ollama.server";
+} from "#/features/library/lib/ollama/discovery.server";
 
 const { findFirst, findMany, create, update } = vi.hoisted(() => ({
 	findFirst: vi.fn(),

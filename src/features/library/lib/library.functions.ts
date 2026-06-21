@@ -3,19 +3,19 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod/v4";
 import { getCurrentUserId } from "#/features/auth/lib/session.server";
 import { getHardwareInfo } from "#/features/library/lib/hardware.server";
+import { ollamaClient } from "#/features/library/lib/ollama/client.server";
 import {
 	getOllamaUrl,
 	probeOllama,
 	scanForOllama,
 	upsertOllamaEndpoint,
-} from "#/features/library/lib/ollama.server";
-import { ollamaClient } from "#/features/library/lib/ollama-client.server";
-import { OllamaUrlSchema } from "#/features/library/lib/ollama-url";
+} from "#/features/library/lib/ollama/discovery.server";
 import {
 	cancelPull,
 	getActivePulls as readActivePulls,
 	startPull,
-} from "#/features/library/lib/pull-registry.server";
+} from "#/features/library/lib/ollama/pull-registry.server";
+import { OllamaUrlSchema } from "#/features/library/lib/ollama/url";
 import type { OllamaStatus } from "#/features/library/lib/types";
 import { prisma } from "#/lib/db.server";
 
@@ -57,10 +57,9 @@ export const warmModel = createServerFn({ method: "POST" })
 		});
 		if (endpoint?.provider !== "ollama") return { warmed: false };
 
-		const url = endpoint.url.replace(/\/+$/, "");
 		try {
 			// Empty prompt + keep_alive loads the model into memory without generating.
-			await ollamaClient(url, 60_000).generate({
+			await ollamaClient(endpoint.url, 60_000).generate({
 				model: data.model,
 				prompt: "",
 				keep_alive: "10m",

@@ -4,7 +4,7 @@ import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "#/components/ui/card";
 import { Field } from "#/components/ui/field";
 import { useOllama } from "#/features/library/hooks/use-ollama";
-import { OllamaUrlSchema } from "#/features/library/lib/ollama-url";
+import { OllamaUrlSchema } from "#/features/library/lib/ollama/url";
 import { useAppForm } from "#/hooks/use-app-form";
 
 export function RemoteOllamaForm({ onBack }: { onBack: () => void }) {

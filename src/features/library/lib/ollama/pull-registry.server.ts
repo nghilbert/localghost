@@ -8,7 +8,7 @@
  * `docker compose up` runs one server instance (see memory `compose-is-prod`).
  */
 
-import { ollamaClient } from "#/features/library/lib/ollama-client.server";
+import { ollamaClient } from "#/features/library/lib/ollama/client.server";
 
 /** Live progress for one model pull, as exposed to clients. */
 export type PullSnapshot = {
