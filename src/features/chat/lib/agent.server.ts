@@ -77,26 +77,27 @@ function manageMemoryTool(ownerId: string): ServerTool {
 	}).server(async (args) => manageMemory(manageMemoryArgsSchema.parse(args), ownerId));
 }
 
-function searchChatsTool(ownerId: string): ServerTool {
+function searchChatsTool(ownerId: string, conversationId: string): ServerTool {
 	return toolDefinition({
 		name: "search_chats",
 		description:
-			"Search the user's past chat conversations by keyword. " +
-			"Use when the user asks about previous chats or wants to find a past discussion.",
+			"Look through the user's saved past conversations (never the current one). " +
+			"Omit the query to list their most recent saved chats — use this when the user asks " +
+			"what you've talked about before. Pass a keyword query to find a specific past discussion.",
 		inputSchema: {
 			type: "object",
 			properties: {
 				query: {
 					type: "string",
-					description: "Keyword(s) to search for in past conversations",
+					description: "Optional keyword(s); omit to list the most recent saved chats",
 				},
 				limit: { type: "number", description: "Max results (default 10)" },
 			},
-			required: ["query"],
+			required: [],
 		},
 	}).server(async (args) => {
 		const { query, limit } = searchChatsArgsSchema.parse(args);
-		return searchChats(query ?? "", ownerId, limit ?? 10);
+		return searchChats(query ?? "", ownerId, conversationId, limit ?? 10);
 	});
 }
 
@@ -142,16 +143,21 @@ function mcpTool(t: McpToolDef): ServerTool {
 	}).server(async (args) => callMcpTool(t, z.record(z.string(), z.unknown()).parse(args)));
 }
 
+/** Context every catalog-tool builder receives for the current chat run. */
+type ToolContext = { ownerId: string; conversationId: string };
+
 /** Builders for the user-toggleable catalog tools, keyed by their catalog id. */
-const CATALOG_BUILDERS: Record<ToolCatalogId, (ownerId: string) => ServerTool[]> = {
+const CATALOG_BUILDERS: Record<ToolCatalogId, (ctx: ToolContext) => ServerTool[]> = {
 	web_search: () => [webSearchTool(), readUrlTool()],
-	memory: (ownerId) => [manageMemoryTool(ownerId)],
-	search_chats: (ownerId) => [searchChatsTool(ownerId)],
-	manage_skills: (ownerId) => [manageSkillsTool(ownerId)],
+	memory: ({ ownerId }) => [manageMemoryTool(ownerId)],
+	search_chats: ({ ownerId, conversationId }) => [searchChatsTool(ownerId, conversationId)],
+	manage_skills: ({ ownerId }) => [manageSkillsTool(ownerId)],
 };
 
 export type BuildChatToolsOptions = {
 	ownerId: string;
+	/** The current conversation's id, so tools can exclude it (e.g. search_chats). */
+	conversationId: string;
 	/** The user's ephemeral per-send selection: catalog ids and `mcp:<serverId>`. */
 	enabledTools: string[];
 	/** Tools discovered from the user's enabled MCP servers. */
@@ -166,6 +172,7 @@ export type BuildChatToolsOptions = {
  */
 export function buildChatTools({
 	ownerId,
+	conversationId,
 	enabledTools,
 	mcpTools,
 }: BuildChatToolsOptions): ServerTool[] {
@@ -173,7 +180,7 @@ export function buildChatTools({
 
 	const selected = new Set(enabledTools);
 	for (const { id } of TOOL_CATALOG) {
-		if (selected.has(id)) tools.push(...CATALOG_BUILDERS[id](ownerId));
+		if (selected.has(id)) tools.push(...CATALOG_BUILDERS[id]({ ownerId, conversationId }));
 	}
 
 	const enabledServers = new Set(
