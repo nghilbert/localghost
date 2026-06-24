@@ -12,6 +12,7 @@ import {
 	Scripts,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
+import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { useEffect } from "react";
 import { Button } from "#/components/ui/button";
 import {
@@ -24,7 +25,6 @@ import {
 import { Toaster } from "#/components/ui/sonner";
 import { TooltipProvider } from "#/components/ui/tooltip";
 import { getAuthSession } from "#/features/auth/lib/auth.functions";
-import { ThemeProvider } from "#/features/theme/ThemeProvider";
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
 	beforeLoad: async () => ({ auth: await getAuthSession() }),
@@ -43,7 +43,7 @@ function RootDocument() {
 	const { queryClient } = Route.useRouteContext();
 
 	return (
-		<html lang="en">
+		<html lang="en" suppressHydrationWarning>
 			<head>
 				<HeadContent />
 				<meta charSet="UTF-8" />
@@ -52,7 +52,7 @@ function RootDocument() {
 
 			<body className="h-dvh overflow-hidden flex flex-col bg-background text-foreground">
 				<QueryClientProvider client={queryClient}>
-					<ThemeProvider>
+					<NextThemesProvider attribute="class" defaultTheme="system" disableTransitionOnChange>
 						<TooltipProvider>
 							<Outlet />
 							<Toaster richColors position="bottom-right" />
@@ -66,7 +66,7 @@ function RootDocument() {
 								eventBusConfig={{ connectToServerBus: true }}
 							/>
 						</TooltipProvider>
-					</ThemeProvider>
+					</NextThemesProvider>
 				</QueryClientProvider>
 
 				<Scripts />

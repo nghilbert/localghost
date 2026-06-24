@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "#/components/ui/tabs";
 import { AccountTab } from "#/features/settings/components/AccountTab";
+import { AppearanceTab } from "#/features/settings/components/AppearanceTab";
 import { ChatTab } from "#/features/settings/components/ChatTab";
 import { DataTab } from "#/features/settings/components/DataTab";
 import { McpTab } from "#/features/settings/components/McpTab";
@@ -18,7 +19,6 @@ import { MemoryTab } from "#/features/settings/components/MemoryTab";
 import { ProvidersTab } from "#/features/settings/components/ProvidersTab";
 import { SetupTab } from "#/features/settings/components/SetupTab";
 import { TAB_VALUES } from "#/features/settings/lib/schemas";
-import { AppearanceSettings } from "#/features/theme/components/AppearanceSettings";
 
 const routeApi = getRouteApi("/_authenticated/settings");
 
@@ -92,7 +92,7 @@ export function SettingsPage() {
 					<ProvidersTab />
 				</TabsContent>
 				<TabsContent value="appearance">
-					<AppearanceSettings />
+					<AppearanceTab />
 				</TabsContent>
 				<TabsContent value="data">
 					<DataTab />
