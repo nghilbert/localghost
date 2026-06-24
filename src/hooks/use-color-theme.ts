@@ -22,8 +22,8 @@ export function useColorTheme() {
 		}
 	}, [colorTheme]);
 
-	function setColorTheme(value: ColorTheme | "default") {
-		setColorThemeState(value === "default" ? null : value);
+	function setColorTheme(value: ColorTheme | null) {
+		setColorThemeState(value);
 	}
 
 	return { colorTheme, setColorTheme };

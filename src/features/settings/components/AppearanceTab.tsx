@@ -3,8 +3,7 @@ import { Field, FieldDescription, FieldLabel, FieldTitle } from "#/components/ui
 import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
 import { ToggleGroup, ToggleGroupItem } from "#/components/ui/toggle-group";
 import { useColorTheme } from "#/hooks/use-color-theme";
-import type { ColorTheme } from "#/lib/theme";
-import { COLOR_THEME_LABELS, MODE_OPTIONS } from "#/lib/theme";
+import { COLOR_THEME_LABELS, COLOR_THEMES, MODE_OPTIONS } from "#/lib/theme";
 import { cn } from "#/lib/utils";
 
 export function AppearanceTab() {
@@ -34,38 +33,39 @@ export function AppearanceTab() {
 					Full color presets — every preset adapts to light and dark mode.
 				</FieldDescription>
 				<RadioGroup
-					value={colorTheme ?? "default"}
-					onValueChange={(value) => setColorTheme(value as ColorTheme | "default")}
+					value={colorTheme ?? "none"}
 					className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3"
 				>
-					<FieldLabel htmlFor="theme-default">
+					<FieldLabel htmlFor="theme-none">
 						<Field orientation="horizontal">
 							<div
 								aria-hidden
 								className="h-8 w-14 shrink-0 overflow-hidden rounded border flex items-center justify-center text-xs text-muted-foreground"
-							>
-								None
-							</div>
-							<FieldTitle className="flex-1">Default</FieldTitle>
-							<RadioGroupItem value="default" id="theme-default" />
+							/>
+							<FieldTitle className="flex-1">None</FieldTitle>
+							<RadioGroupItem value="none" id="theme-none" onClick={() => setColorTheme(null)} />
 						</Field>
 					</FieldLabel>
-					{Object.entries(COLOR_THEME_LABELS).map(([themeName, label]) => (
-						<FieldLabel key={themeName} htmlFor={`theme-${themeName}`}>
+					{COLOR_THEMES.map((theme) => (
+						<FieldLabel key={theme} htmlFor={`theme-${theme}`}>
 							<Field orientation="horizontal">
 								<div
 									aria-hidden
 									className={cn(
 										"h-8 w-14 shrink-0 overflow-hidden rounded border flex flex-col gap-0.5 p-1 bg-background",
-										`theme-${themeName}`,
+										`theme-${theme}`,
 									)}
 								>
 									<div className="h-1.5 w-8 rounded-full bg-foreground opacity-60" />
 									<div className="h-1.5 w-5 rounded-full bg-foreground opacity-30" />
 									<div className="mt-auto h-2 w-6 rounded-sm bg-primary" />
 								</div>
-								<FieldTitle className="flex-1">{label}</FieldTitle>
-								<RadioGroupItem value={themeName} id={`theme-${themeName}`} />
+								<FieldTitle className="flex-1">{COLOR_THEME_LABELS[theme]}</FieldTitle>
+								<RadioGroupItem
+									value={theme}
+									id={`theme-${theme}`}
+									onClick={() => setColorTheme(theme)}
+								/>
 							</Field>
 						</FieldLabel>
 					))}
