@@ -15,7 +15,7 @@ x-app: &app
     db:
       condition: service_healthy
     searxng:
-      condition: service_started
+      condition: service_healthy
 
 services:
   db:
@@ -55,18 +55,25 @@ services:
       <<: *app-env
       CHOKIDAR_USEPOLLING: "true"  # reliable file watching over the bind mount
 
-  # Bundled keyless web search, reachable by the app at http://searxng:8080. The
-  # JSON API the app calls is disabled in the stock image, so ./searxng/settings.yml
-  # enables the `json` format and a secret key.
+  # Bundled keyless web search, reachable by the app at http://searxng:8080.
+  # ./searxng/settings.yml enables the JSON API and disables the limiter (neither
+  # is settable via env). Pinned + health-checked so the app waits for it to be
+  # ready instead of racing it. Config is mounted read-only and FORCE_OWNERSHIP
+  # is off so the container never rewrites ownership of the host repo files.
   searxng:
-    image: searxng/searxng
+    image: searxng/searxng:2026.6.20-fd42d4fda
     volumes:
-      - ./searxng:/etc/searxng:rw
+      - ./searxng:/etc/searxng:ro
     environment:
       SEARXNG_BASE_URL: http://localhost:8080/
-      # Limiter off by default: this instance is app-only (unpublished), not public.
-      SEARXNG_LIMITER: ${SEARXNG_LIMITER:-false}
-      SEARXNG_SECRET: ${SEARXNG_SECRET:-localghost-dev}
+      FORCE_OWNERSHIP: "false"
+    healthcheck:
+      test:
+        ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/healthz')"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
     restart: unless-stopped
 
   # Bundled Ollama, reachable by the app at http://ollama:11434. CPU-only here; a
