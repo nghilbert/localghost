@@ -10,6 +10,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { auth } from "#/features/auth/lib/auth.server";
 import { buildChatTools } from "#/features/chat/lib/agent.server";
 import { chatStreamForwardedPropsSchema } from "#/features/chat/lib/schemas";
+import { ollamaOptionsSchema } from "#/features/endpoints/lib/schemas";
 import { decrypt } from "#/lib/crypto.server";
 import { prisma } from "#/lib/db.server";
 import { streamLLMEvents } from "#/lib/llm.server";
@@ -53,9 +54,11 @@ export const Route = createFileRoute("/api/chat/stream")({
 				const endpoint = conversation.endpoint;
 				const apiKey = endpoint.apiKeyEncrypted ? decrypt(endpoint.apiKeyEncrypted) : undefined;
 
-				// System prompt + temperature are global per-user chat defaults.
+				// System prompt + temperature are global per-user chat defaults; per-endpoint
+				// generation options (Ollama) override them where set.
 				const userSettings = await prisma.userSettings.findUnique({ where: { ownerId: userId } });
 				const tools = buildChatTools({ ownerId: userId, enabledTools });
+				const endpointOptions = ollamaOptionsSchema.safeParse(endpoint.options);
 
 				const source = streamLLMEvents(
 					{
@@ -65,6 +68,7 @@ export const Route = createFileRoute("/api/chat/stream")({
 						messages: trimHistory(convertMessagesToModelMessages(params.messages)),
 						systemPrompt: userSettings?.systemPrompt ?? undefined,
 						temperature: userSettings?.temperature ?? undefined,
+						options: endpointOptions.success ? endpointOptions.data : undefined,
 					},
 					tools,
 				);

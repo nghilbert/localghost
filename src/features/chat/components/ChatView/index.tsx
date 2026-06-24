@@ -11,7 +11,7 @@ import type { getConversation } from "#/features/chat/lib/conversation.functions
 type ChatViewProps = { conversation: Awaited<ReturnType<typeof getConversation>> };
 export function ChatView({ conversation }: ChatViewProps) {
 	const { isReady, model, endpointId, setModel } = useConversationSettings(conversation.id);
-	const { enabledTools, setEnabledTools, supportsTools, toolsToSend } = useChatTools(
+	const { enabledTools, setEnabledTools, resetTools, supportsTools, toolsToSend } = useChatTools(
 		endpointId,
 		model,
 	);
@@ -31,6 +31,12 @@ export function ChatView({ conversation }: ChatViewProps) {
 	});
 	const isStreaming = status === "submitted" || status === "streaming";
 
+	/** Sends, then resets the picker to defaults so a manual toggle lasts one message. */
+	async function handleSend(content: string) {
+		await sendMessage(content);
+		resetTools();
+	}
+
 	return (
 		<div className="flex h-full w-full flex-col min-h-0 gap-1 pb-6">
 			<ChatWindow messages={messages} isStreaming={isStreaming} isReady={isReady}>
@@ -46,7 +52,7 @@ export function ChatView({ conversation }: ChatViewProps) {
 				enabledTools={enabledTools}
 				supportsTools={supportsTools}
 				onEnabledToolsChange={setEnabledTools}
-				sendMessage={sendMessage}
+				sendMessage={handleSend}
 				stop={stop}
 			/>
 		</div>
