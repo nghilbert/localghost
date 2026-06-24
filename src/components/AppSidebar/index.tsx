@@ -8,7 +8,6 @@ import {
 	SidebarMenuItem,
 	SidebarTrigger,
 } from "#/components/ui/sidebar";
-import { ModeToggle } from "#/features/theme/components/ModeToggle";
 import { APP_NAME } from "#/lib/constants";
 import { AuthMenu } from "./AuthMenu";
 import { PageNav } from "./PageNav";
@@ -33,11 +32,6 @@ export function AppSidebar() {
 			</SidebarContent>
 
 			<SidebarFooter>
-				<SidebarMenu>
-					<SidebarMenuItem>
-						<ModeToggle />
-					</SidebarMenuItem>
-				</SidebarMenu>
 				<AuthMenu />
 			</SidebarFooter>
 		</Sidebar>

@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouteContext } from "@tanstack/react-router";
-import { LogOutIcon, SettingsIcon } from "lucide-react";
+import { LogOutIcon, PaletteIcon, SettingsIcon } from "lucide-react";
 import { Avatar, AvatarFallback } from "#/components/ui/avatar";
 import {
 	DropdownMenu,
@@ -55,6 +55,12 @@ export function AuthMenu() {
 							</div>
 						</DropdownMenuLabel>
 						<DropdownMenuSeparator />
+						<DropdownMenuItem asChild>
+							<Link to="/settings/appearance">
+								<PaletteIcon />
+								Appearance
+							</Link>
+						</DropdownMenuItem>
 						<DropdownMenuItem asChild>
 							<Link to="/settings">
 								<SettingsIcon />

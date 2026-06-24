@@ -1,21 +1,9 @@
-import { MonitorIcon, MoonIcon, SunIcon } from "lucide-react";
 import { Field, FieldDescription, FieldLabel, FieldTitle } from "#/components/ui/field";
 import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
 import { ToggleGroup, ToggleGroupItem } from "#/components/ui/toggle-group";
-import {
-	isTheme,
-	isThemeMode,
-	THEME_LABELS,
-	type ThemeMode,
-	useTheme,
-} from "#/features/theme/ThemeProvider";
 import { cn } from "#/lib/utils";
-
-const MODE_OPTIONS: { value: ThemeMode; label: string; icon: typeof SunIcon }[] = [
-	{ value: "light", label: "Light", icon: SunIcon },
-	{ value: "dark", label: "Dark", icon: MoonIcon },
-	{ value: "system", label: "System", icon: MonitorIcon },
-];
+import { isTheme, isThemeMode, MODE_OPTIONS, THEME_LABELS } from "../lib/constants";
+import { useTheme } from "../ThemeProvider";
 
 export function AppearanceSettings() {
 	const { theme, setTheme, themes, mode, setMode } = useTheme();
@@ -35,9 +23,9 @@ export function AppearanceSettings() {
 						if (isThemeMode(value)) setMode(value);
 					}}
 				>
-					{MODE_OPTIONS.map(({ value, label, icon: Icon }) => (
+					{MODE_OPTIONS.map(({ label, value, ModeIcon }) => (
 						<ToggleGroupItem key={value} value={value} aria-label={label}>
-							<Icon size={14} />
+							<ModeIcon />
 							{label}
 						</ToggleGroupItem>
 					))}

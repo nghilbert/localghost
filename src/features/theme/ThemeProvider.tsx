@@ -1,31 +1,8 @@
 import { createContext, type PropsWithChildren, useContext, useEffect, useState } from "react";
+import { isTheme, isThemeMode, MODE_STORAGE_KEY, THEME_STORAGE_KEY, THEMES } from "./lib/constants";
+import type { Theme, ThemeMode } from "./lib/types";
 
-export type Theme = "default" | "ocean-breeze" | "nature" | "quantum-rose" | "midnight-bloom";
-export type ThemeMode = "light" | "dark" | "system";
-
-const THEMES: Theme[] = ["default", "ocean-breeze", "nature", "quantum-rose", "midnight-bloom"];
-const MODES: ThemeMode[] = ["light", "dark", "system"];
-
-export const THEME_LABELS: Record<Theme, string> = {
-	default: "Default",
-	"ocean-breeze": "Ocean Breeze",
-	nature: "Nature",
-	"quantum-rose": "Quantum Rose",
-	"midnight-bloom": "Midnight Bloom",
-};
-
-const THEME_STORAGE_KEY = "localghost-theme";
-const MODE_STORAGE_KEY = "localghost-mode";
-
-export function isTheme(value: string | null): value is Theme {
-	return THEMES.some((theme) => theme === value);
-}
-
-export function isThemeMode(value: string | null): value is ThemeMode {
-	return MODES.some((mode) => mode === value);
-}
-
-type ThemeCtx = {
+type ThemeContextValue = {
 	theme: Theme;
 	setTheme: (theme: Theme) => void;
 	themes: Theme[];
@@ -33,7 +10,7 @@ type ThemeCtx = {
 	setMode: (mode: ThemeMode) => void;
 };
 
-const Ctx = createContext<ThemeCtx>({
+const ThemeContext = createContext<ThemeContextValue>({
 	theme: "default",
 	setTheme: () => {},
 	themes: THEMES,
@@ -75,12 +52,14 @@ export function ThemeProvider({ children }: PropsWithChildren) {
 	}, [mode]);
 
 	return (
-		<Ctx value={{ theme, setTheme: setThemeState, themes: THEMES, mode, setMode: setModeState }}>
+		<ThemeContext.Provider
+			value={{ theme, setTheme: setThemeState, themes: THEMES, mode, setMode: setModeState }}
+		>
 			{children}
-		</Ctx>
+		</ThemeContext.Provider>
 	);
 }
 
 export function useTheme() {
-	return useContext(Ctx);
+	return useContext(ThemeContext);
 }

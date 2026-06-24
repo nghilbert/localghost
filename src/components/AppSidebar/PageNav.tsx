@@ -1,11 +1,5 @@
 import { Link, type LinkProps, useRouterState } from "@tanstack/react-router";
-import {
-	BookOpenIcon,
-	LibraryIcon,
-	type LucideIcon,
-	MessageSquarePlusIcon,
-	SettingsIcon,
-} from "lucide-react";
+import { BookOpenIcon, LibraryIcon, type LucideIcon, MessageSquarePlusIcon } from "lucide-react";
 import { useConversations } from "#/features/chat/hooks/use-conversations";
 import {
 	SidebarGroup,
@@ -19,7 +13,6 @@ type NavItem = { label: string; to: LinkProps["to"]; NavIcon: LucideIcon };
 const NAV_ITEMS = [
 	{ label: "Library", to: "/library", NavIcon: LibraryIcon },
 	{ label: "Skills", to: "/skills", NavIcon: BookOpenIcon },
-	{ label: "Settings", to: "/settings", NavIcon: SettingsIcon },
 ] as const satisfies NavItem[];
 
 export function PageNav() {
