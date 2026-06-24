@@ -17,7 +17,6 @@ import {
 } from "#/features/library/lib/ollama/pull-registry.server";
 import { OllamaUrlSchema } from "#/features/library/lib/ollama/url";
 import type { OllamaStatus } from "#/features/library/lib/types";
-import { prisma } from "#/lib/db.server";
 
 export const getHardware = createServerFn({ method: "GET" }).handler(async () => {
 	await getCurrentUserId();
@@ -41,33 +40,6 @@ export const deleteModel = createServerFn({ method: "POST" })
 		const userId = await getCurrentUserId();
 		const ollamaUrl = await getOllamaUrl(userId);
 		await ollamaClient(ollamaUrl).delete({ model: data.model });
-	});
-
-/**
- * Loads a local Ollama model into memory ahead of the first message so the user
- * doesn't pay the multi-second cold start mid-conversation. Only acts on Ollama
- * endpoints (cloud models are always warm); any failure resolves as a no-op.
- */
-export const warmModel = createServerFn({ method: "POST" })
-	.validator(z.object({ endpointId: z.uuid(), model: z.string().min(1) }))
-	.handler(async ({ data }): Promise<{ warmed: boolean }> => {
-		const userId = await getCurrentUserId();
-		const endpoint = await prisma.modelEndpoint.findFirst({
-			where: { id: data.endpointId, ownerId: userId },
-		});
-		if (endpoint?.provider !== "ollama") return { warmed: false };
-
-		try {
-			// Empty prompt + keep_alive loads the model into memory without generating.
-			await ollamaClient(endpoint.url, 60_000).generate({
-				model: data.model,
-				prompt: "",
-				keep_alive: "10m",
-			});
-			return { warmed: true };
-		} catch {
-			return { warmed: false };
-		}
 	});
 
 export const testRemoteOllama = createServerFn({ method: "POST" })
@@ -128,17 +100,4 @@ export const hardwareQueryOptions = () =>
 		queryKey: ["library-hardware"],
 		queryFn: () => getHardware(),
 		staleTime: 60_000,
-	});
-
-/**
- * Fires a one-shot model load, keyed by endpoint + model so it runs once per
- * selection per session. `isFetching` doubles as the "warming up" signal.
- */
-export const modelWarmupQueryOptions = (endpointId: string, model: string) =>
-	queryOptions({
-		queryKey: ["model-warmup", endpointId, model],
-		queryFn: () => warmModel({ data: { endpointId, model } }),
-		staleTime: Number.POSITIVE_INFINITY,
-		gcTime: Number.POSITIVE_INFINITY,
-		retry: false,
 	});

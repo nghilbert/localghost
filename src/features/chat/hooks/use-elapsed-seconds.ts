@@ -2,8 +2,7 @@ import { useEffect, useState } from "react";
 
 /**
  * Whole seconds elapsed since `active` last became true, resetting to 0 whenever
- * it goes inactive. Drives the "Thinking… Ns" / "Warming up… Ns" wait labels so a
- * long wait reads as measured progress rather than a frozen spinner.
+ * it goes inactive. Drives the "Thinking… Ns" wait labels.
  */
 export function useElapsedSeconds(active: boolean): number {
 	const [seconds, setSeconds] = useState(0);

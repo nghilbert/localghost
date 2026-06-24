@@ -8,8 +8,6 @@ import { useElapsedSeconds } from "#/features/chat/hooks/use-elapsed-seconds";
 type ChatStatusProps = {
 	status: ChatClientState;
 	error: Error | undefined;
-	isWarming: boolean;
-	warmSeconds: number;
 	onRetry: () => void;
 };
 
@@ -31,39 +29,36 @@ function humanizeError(message: string): { title: string; description: string } 
 	return { title: "Something went wrong", description: message };
 }
 
-/** The conversation's single transient status row: a recoverable error alert, a "Thinking" bubble, or a "Warming up" bubble — nothing once streaming or idle. */
-export function ChatStatus({ status, error, isWarming, warmSeconds, onRetry }: ChatStatusProps) {
+/** The conversation's single transient status row: a recoverable error alert, or a "Thinking" bubble — nothing once streaming or idle. */
+export function ChatStatus({ status, error, onRetry }: ChatStatusProps) {
 	const seconds = useElapsedSeconds(status === "submitted");
 
-	switch (status) {
-		case "error": {
-			const failure = humanizeError(error?.message ?? "");
-			return (
-				<Alert variant="destructive">
-					<TriangleAlertIcon />
-					<AlertTitle>{failure.title}</AlertTitle>
-					<AlertDescription>{failure.description}</AlertDescription>
-					<AlertAction>
-						<Button size="sm" variant="outline" onClick={onRetry}>
-							<RefreshCwIcon />
-							Try again
-						</Button>
-					</AlertAction>
-				</Alert>
-			);
-		}
-		case "submitted":
-			return (
-				<ChatBubble side="assistant" pending seconds={seconds}>
-					Thinking
-				</ChatBubble>
-			);
-		default:
-			if (!isWarming) return null;
-			return (
-				<ChatBubble side="assistant" pending seconds={warmSeconds}>
-					Warming up the model
-				</ChatBubble>
-			);
+	if (status === "submitted") {
+		return (
+			<ChatBubble side="assistant" pending seconds={seconds}>
+				Thinking
+			</ChatBubble>
+		);
+	}
+
+	if (status === "error") {
+		const failure = humanizeError(error?.message ?? "");
+		return (
+			<Alert variant="destructive">
+				<TriangleAlertIcon />
+				<AlertTitle>{failure.title}</AlertTitle>
+				<AlertDescription>{failure.description}</AlertDescription>
+				<AlertAction>
+					<Button size="sm" variant="outline" onClick={onRetry}>
+						<RefreshCwIcon />
+						Try again
+					</Button>
+				</AlertAction>
+			</Alert>
+		);
+	}
+
+	if (status === "ready" || status === "streaming") {
+		return null;
 	}
 }

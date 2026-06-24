@@ -33,7 +33,6 @@ export function useConversationSettings(conversationId: string) {
 	return {
 		model: conversation.model,
 		endpointId: conversation.endpointId,
-		provider: conversation.endpoint?.provider,
 		isReady: Boolean(conversation.model && conversation.endpointId),
 		setModel: (endpointId: string, model: string) => patch.mutate({ endpointId, model }),
 	};

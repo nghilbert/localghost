@@ -19,7 +19,7 @@ export function ChatBubble({ side, pending, seconds, children }: ChatBubbleProps
 		<div
 			role={pending ? "status" : undefined}
 			className={cn(
-				"w-fit rounded-2xl px-4 py-2.5 text-sm",
+				"w-fit max-w-[75%] rounded-2xl px-4 py-2.5 text-sm",
 				sideClassNames[side],
 				pending && "flex items-center gap-2 text-muted-foreground",
 			)}

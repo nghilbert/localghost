@@ -9,7 +9,7 @@ function timeoutFetch(ms: number): Fetch {
 
 /**
  * An Ollama SDK client pointed at `host`. Pass `timeoutMs` for one-shot calls
- * (probe, warmup) that should fail fast; omit it for long-lived streams like
+ * (probe) that should fail fast; omit it for long-lived streams like
  * `pull`, whose own `AbortableAsyncIterator.abort()` handles cancellation.
  */
 export function ollamaClient(host: string, timeoutMs?: number): Ollama {

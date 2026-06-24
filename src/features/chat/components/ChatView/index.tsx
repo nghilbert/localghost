@@ -5,16 +5,12 @@ import { ChatStatus } from "#/features/chat/components/ChatView/ChatStatus";
 import { ChatWindow } from "#/features/chat/components/ChatView/ChatWindow";
 import { useChatTools } from "#/features/chat/hooks/use-chat-tools";
 import { useConversationSettings } from "#/features/chat/hooks/use-conversation-settings";
-import { useModelWarmup } from "#/features/chat/hooks/use-model-warmup";
 import { chatClientOptions } from "#/features/chat/lib/chat-client-options";
 import type { getConversation } from "#/features/chat/lib/conversation.functions";
 
 type ChatViewProps = { conversation: Awaited<ReturnType<typeof getConversation>> };
 export function ChatView({ conversation }: ChatViewProps) {
-	const { isReady, model, endpointId, provider, setModel } = useConversationSettings(
-		conversation.id,
-	);
-	const { isWarming, seconds: warmSeconds } = useModelWarmup({ endpointId, model, provider });
+	const { isReady, model, endpointId, setModel } = useConversationSettings(conversation.id);
 	const { enabledTools, setEnabledTools, supportsTools, toolsToSend } = useChatTools(
 		endpointId,
 		model,
@@ -38,13 +34,7 @@ export function ChatView({ conversation }: ChatViewProps) {
 	return (
 		<div className="flex h-full w-full flex-col min-h-0 gap-1 pb-6">
 			<ChatWindow messages={messages} isStreaming={isStreaming} isReady={isReady}>
-				<ChatStatus
-					status={status}
-					error={error}
-					isWarming={isWarming}
-					warmSeconds={warmSeconds}
-					onRetry={reload}
-				/>
+				<ChatStatus status={status} error={error} onRetry={reload} />
 			</ChatWindow>
 
 			<ChatInput
