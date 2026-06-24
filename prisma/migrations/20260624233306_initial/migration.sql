@@ -55,6 +55,7 @@ CREATE TABLE "model_endpoint" (
     "url" TEXT NOT NULL,
     "api_key_encrypted" TEXT,
     "provider" TEXT NOT NULL DEFAULT 'openai',
+    "options" JSONB,
     "owner_id" UUID NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
