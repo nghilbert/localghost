@@ -1,4 +1,4 @@
-import { ChatList } from "#/components/AppSidebar/ChatList";
+import { RecentChatList } from "#/components/AppSidebar/RecentChatList";
 import {
 	Sidebar,
 	SidebarContent,
@@ -28,7 +28,7 @@ export function AppSidebar() {
 
 			<SidebarContent>
 				<PageNav />
-				<ChatList />
+				<RecentChatList />
 			</SidebarContent>
 
 			<SidebarFooter>

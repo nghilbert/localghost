@@ -19,7 +19,7 @@ import {
 } from "#/components/ui/sidebar";
 import { useConversations } from "#/features/chat/hooks/use-conversations";
 
-export function ChatList() {
+export function RecentChatList() {
 	const { conversations, renameConversation, archiveConversation, deleteConversation } =
 		useConversations();
 	const [renamingId, setRenamingId] = useState<string | null>(null);
@@ -29,7 +29,7 @@ export function ChatList() {
 	return (
 		<SidebarGroup>
 			<SidebarGroupLabel className="flex items-center justify-between pr-1">
-				Chats
+				Recent Chats
 			</SidebarGroupLabel>
 			<SidebarGroupContent>
 				<SidebarMenu>
