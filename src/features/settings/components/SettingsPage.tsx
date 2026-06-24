@@ -1,4 +1,4 @@
-import { getRouteApi } from "@tanstack/react-router";
+import { getRouteApi, useNavigate } from "@tanstack/react-router";
 import {
 	BrainIcon,
 	DatabaseIcon,
@@ -17,15 +17,28 @@ import { McpTab } from "#/features/settings/components/McpTab";
 import { MemoryTab } from "#/features/settings/components/MemoryTab";
 import { ProvidersTab } from "#/features/settings/components/ProvidersTab";
 import { SetupTab } from "#/features/settings/components/SetupTab";
+import { TAB_VALUES } from "#/features/settings/lib/schemas";
 import { AppearanceSettings } from "#/features/theme/components/AppearanceSettings";
 
 const routeApi = getRouteApi("/_authenticated/settings");
 
 export function SettingsPage() {
 	const { tab } = routeApi.useSearch();
+	const navigate = useNavigate();
+	const activeTab = tab ?? "account";
+
+	function handleTabChange(value: string) {
+		if (TAB_VALUES.includes(value as (typeof TAB_VALUES)[number])) {
+			navigate({ to: "/settings", search: { tab: value as (typeof TAB_VALUES)[number] } });
+		}
+	}
 
 	return (
-		<Tabs defaultValue={tab ?? "account"} className="flex h-full flex-col overflow-hidden">
+		<Tabs
+			value={activeTab}
+			onValueChange={handleTabChange}
+			className="flex h-full flex-col overflow-hidden"
+		>
 			<div className="shrink-0 border-b px-4 py-2">
 				<TabsList variant="line">
 					<TabsTrigger value="account" className="gap-1.5">
@@ -48,9 +61,9 @@ export function SettingsPage() {
 						<PlugIcon size={13} />
 						Providers
 					</TabsTrigger>
-					<TabsTrigger value="theme" className="gap-1.5">
+					<TabsTrigger value="appearance" className="gap-1.5">
 						<PaletteIcon size={13} />
-						Theme
+						Appearance
 					</TabsTrigger>
 					<TabsTrigger value="data" className="gap-1.5">
 						<DatabaseIcon size={13} />
@@ -78,7 +91,7 @@ export function SettingsPage() {
 				<TabsContent value="providers">
 					<ProvidersTab />
 				</TabsContent>
-				<TabsContent value="theme">
+				<TabsContent value="appearance">
 					<AppearanceSettings />
 				</TabsContent>
 				<TabsContent value="data">

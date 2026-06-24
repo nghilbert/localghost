@@ -56,7 +56,7 @@ export function AuthMenu() {
 						</DropdownMenuLabel>
 						<DropdownMenuSeparator />
 						<DropdownMenuItem asChild>
-							<Link to="/settings/appearance">
+							<Link to="/settings" search={{ tab: "appearance" }}>
 								<PaletteIcon />
 								Appearance
 							</Link>

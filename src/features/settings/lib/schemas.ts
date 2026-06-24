@@ -6,7 +6,7 @@ export const TAB_VALUES = [
 	"memory",
 	"setup",
 	"providers",
-	"theme",
+	"appearance",
 	"data",
 	"mcp",
 ] as const;
