@@ -1,6 +1,7 @@
 import "#/lib/globals.css";
 import { aiDevtoolsPlugin } from "@tanstack/react-ai-devtools";
 import { TanStackDevtools } from "@tanstack/react-devtools";
+import { formDevtoolsPlugin } from "@tanstack/react-form-devtools";
 import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtoolsPanel } from "@tanstack/react-query-devtools";
 import {
@@ -42,7 +43,7 @@ function RootDocument() {
 	const { queryClient } = Route.useRouteContext();
 
 	return (
-		<html lang="en" suppressHydrationWarning>
+		<html lang="en">
 			<head>
 				<HeadContent />
 				<meta charSet="UTF-8" />
@@ -60,6 +61,7 @@ function RootDocument() {
 									{ name: "TanStack Query", render: <ReactQueryDevtoolsPanel /> },
 									{ name: "TanStack Router", render: <TanStackRouterDevtoolsPanel /> },
 									aiDevtoolsPlugin(),
+									formDevtoolsPlugin(),
 								]}
 								eventBusConfig={{ connectToServerBus: true }}
 							/>
@@ -76,16 +78,14 @@ function RootDocument() {
 
 function ServiceWorkerRegistrar() {
 	useEffect(() => {
-		if ("serviceWorker" in navigator) {
-			navigator.serviceWorker.register("/sw.js").catch(() => {});
-		}
+		if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});
 	}, []);
 	return null;
 }
 
 function NotFound() {
 	return (
-		<Empty className="min-h-dvh">
+		<Empty className="h-full">
 			<EmptyHeader>
 				<EmptyTitle>404: Not found</EmptyTitle>
 				<EmptyDescription>The page you're looking for does not exist.</EmptyDescription>
