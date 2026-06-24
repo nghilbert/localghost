@@ -1,22 +1,30 @@
 import { useEffect, useState } from "react";
 import type { ColorTheme } from "#/lib/theme";
-import { COLOR_THEME_LABELS, isColorTheme } from "#/lib/theme";
+import { COLOR_THEMES, isColorTheme } from "#/lib/theme";
 
 const STORAGE_KEY = "localghost-color-theme";
 
 export function useColorTheme() {
-	const [colorTheme, setColorThemeState] = useState<ColorTheme>(() => {
-		if (typeof window === "undefined") return "default";
+	const [colorTheme, setColorThemeState] = useState<ColorTheme | null>(() => {
+		if (typeof window === "undefined") return null;
 		const stored = localStorage.getItem(STORAGE_KEY);
-		return isColorTheme(stored) ? stored : "default";
+		return isColorTheme(stored) ? stored : null;
 	});
 
 	useEffect(() => {
 		const root = document.documentElement;
-		for (const t in COLOR_THEME_LABELS) root.classList.remove(`theme-${t}`);
-		if (colorTheme !== "default") root.classList.add(`theme-${colorTheme}`);
-		localStorage.setItem(STORAGE_KEY, colorTheme);
+		for (const themeName of COLOR_THEMES) root.classList.remove(`theme-${themeName}`);
+		if (colorTheme) {
+			root.classList.add(`theme-${colorTheme}`);
+			localStorage.setItem(STORAGE_KEY, colorTheme);
+		} else {
+			localStorage.removeItem(STORAGE_KEY);
+		}
 	}, [colorTheme]);
 
-	return { colorTheme, setColorTheme: setColorThemeState };
+	function setColorTheme(value: ColorTheme | "default") {
+		setColorThemeState(value === "default" ? null : value);
+	}
+
+	return { colorTheme, setColorTheme };
 }

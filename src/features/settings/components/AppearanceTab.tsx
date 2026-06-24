@@ -3,7 +3,8 @@ import { Field, FieldDescription, FieldLabel, FieldTitle } from "#/components/ui
 import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
 import { ToggleGroup, ToggleGroupItem } from "#/components/ui/toggle-group";
 import { useColorTheme } from "#/hooks/use-color-theme";
-import { COLOR_THEME_LABELS, isColorTheme, MODE_OPTIONS } from "#/lib/theme";
+import type { ColorTheme } from "#/lib/theme";
+import { COLOR_THEME_LABELS, MODE_OPTIONS } from "#/lib/theme";
 import { cn } from "#/lib/utils";
 
 export function AppearanceTab() {
@@ -33,20 +34,30 @@ export function AppearanceTab() {
 					Full color presets — every preset adapts to light and dark mode.
 				</FieldDescription>
 				<RadioGroup
-					value={colorTheme}
-					onValueChange={(value) => {
-						if (isColorTheme(value)) setColorTheme(value);
-					}}
+					value={colorTheme ?? "default"}
+					onValueChange={(value) => setColorTheme(value as ColorTheme | "default")}
 					className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3"
 				>
-					{Object.entries(COLOR_THEME_LABELS).map(([presetTheme, label]) => (
-						<FieldLabel key={presetTheme} htmlFor={`theme-${presetTheme}`}>
+					<FieldLabel htmlFor="theme-default">
+						<Field orientation="horizontal">
+							<div
+								aria-hidden
+								className="h-8 w-14 shrink-0 overflow-hidden rounded border flex items-center justify-center text-xs text-muted-foreground"
+							>
+								None
+							</div>
+							<FieldTitle className="flex-1">Default</FieldTitle>
+							<RadioGroupItem value="default" id="theme-default" />
+						</Field>
+					</FieldLabel>
+					{Object.entries(COLOR_THEME_LABELS).map(([themeName, label]) => (
+						<FieldLabel key={themeName} htmlFor={`theme-${themeName}`}>
 							<Field orientation="horizontal">
 								<div
 									aria-hidden
 									className={cn(
 										"h-8 w-14 shrink-0 overflow-hidden rounded border flex flex-col gap-0.5 p-1 bg-background",
-										`theme-${presetTheme}`,
+										`theme-${themeName}`,
 									)}
 								>
 									<div className="h-1.5 w-8 rounded-full bg-foreground opacity-60" />
@@ -54,7 +65,7 @@ export function AppearanceTab() {
 									<div className="mt-auto h-2 w-6 rounded-sm bg-primary" />
 								</div>
 								<FieldTitle className="flex-1">{label}</FieldTitle>
-								<RadioGroupItem value={presetTheme} id={`theme-${presetTheme}`} />
+								<RadioGroupItem value={themeName} id={`theme-${themeName}`} />
 							</Field>
 						</FieldLabel>
 					))}

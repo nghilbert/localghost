@@ -1,7 +1,6 @@
 import { type LucideIcon, MonitorIcon, MoonIcon, SunIcon } from "lucide-react";
 
 export const COLOR_THEMES = [
-	"default",
 	"modern-minimal",
 	"clean-slate",
 	"bold-tech",
@@ -21,7 +20,6 @@ export const COLOR_THEMES = [
 export type ColorTheme = (typeof COLOR_THEMES)[number];
 
 export const COLOR_THEME_LABELS: Record<ColorTheme, string> = {
-	default: "Default",
 	"modern-minimal": "Modern Minimal",
 	"clean-slate": "Clean Slate",
 	"bold-tech": "Bold Tech",
