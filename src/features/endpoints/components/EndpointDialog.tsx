@@ -1,4 +1,4 @@
-import { ServerIcon, Trash2Icon } from "lucide-react";
+import { ServerIcon } from "lucide-react";
 import { useState } from "react";
 import { Button } from "#/components/ui/button";
 import {
@@ -10,15 +10,9 @@ import {
 	DialogTrigger,
 } from "#/components/ui/dialog";
 import { FieldLegend, FieldSet } from "#/components/ui/field";
-import {
-	Item,
-	ItemActions,
-	ItemContent,
-	ItemDescription,
-	ItemGroup,
-	ItemTitle,
-} from "#/components/ui/item";
+import { ItemGroup } from "#/components/ui/item";
 import { Separator } from "#/components/ui/separator";
+import { EndpointItem } from "#/features/endpoints/components/EndpointItem";
 import { ProviderSetupForm } from "#/features/endpoints/components/ProviderSetupForm";
 import { useEndpoints } from "#/features/endpoints/hooks/use-endpoints";
 
@@ -46,22 +40,11 @@ export function EndpointDialog() {
 					{endpoints.length > 0 && (
 						<ItemGroup>
 							{endpoints.map((ep) => (
-								<Item key={ep.id} variant="outline">
-									<ItemContent>
-										<ItemTitle>{ep.name}</ItemTitle>
-										<ItemDescription>{ep.url}</ItemDescription>
-									</ItemContent>
-									<ItemActions>
-										<Button
-											variant="ghost"
-											size="icon-sm"
-											onClick={() => deleteEndpoint.mutate(ep.id)}
-											aria-label="Delete provider"
-										>
-											<Trash2Icon size={14} />
-										</Button>
-									</ItemActions>
-								</Item>
+								<EndpointItem
+									key={ep.id}
+									endpoint={ep}
+									onDelete={() => deleteEndpoint.mutate(ep.id)}
+								/>
 							))}
 						</ItemGroup>
 					)}

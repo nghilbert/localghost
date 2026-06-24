@@ -16,6 +16,8 @@ export type StreamLLMOptions = {
 	systemPrompt?: string;
 	temperature?: number;
 	maxTokens?: number;
+	/** Validated per-endpoint native sampling options (Ollama). Each present field overrides the default. */
+	options?: Record<string, unknown>;
 };
 
 const OPENROUTER_REFERER = "https://localghost.app";
@@ -40,8 +42,17 @@ type ProviderConfig = {
 	chatBaseUrl: (url: string) => string;
 	/** Builds the `@tanstack/ai` text adapter for a model against the normalized base URL. */
 	buildAdapter: (model: string, apiKey: string, baseUrl: string) => AnyTextAdapter;
-	/** The provider-specific `modelOptions` payload for a `chat()` call. */
-	modelOptions: (model: string, temperature: number, maxTokens: number) => Record<string, unknown>;
+	/**
+	 * The provider-specific `modelOptions` payload for a `chat()` call. `options` carries the
+	 * validated per-endpoint native sampling settings; providers that support them spread them
+	 * over the defaults so a present field wins, and the rest ignore the blob.
+	 */
+	modelOptions: (
+		model: string,
+		temperature: number,
+		maxTokens: number,
+		options: Record<string, unknown>,
+	) => Record<string, unknown>;
 	/** Headers for the model-list fetch (auth lives here for header-auth providers). */
 	modelsHeaders: (apiKey?: string) => Record<string, string>;
 	/** The model-list endpoint URL, given a trailing-slash-stripped base. */
@@ -77,7 +88,10 @@ const OPENAI_COMPATIBLE: ProviderConfig = {
 		return base.endsWith("/v1") ? base : `${base}/v1`;
 	},
 	buildAdapter: (model, apiKey, baseURL) => openaiAdapter(model, apiKey, baseURL),
-	modelOptions: (_model, temperature, maxTokens) => ({ temperature, max_tokens: maxTokens }),
+	modelOptions: (_model, temperature, maxTokens, _options) => ({
+		temperature,
+		max_tokens: maxTokens,
+	}),
 	modelsHeaders: (apiKey) => ({
 		"Content-Type": "application/json",
 		...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
@@ -133,9 +147,9 @@ const PROVIDERS: Record<LLMProvider, ProviderConfig> = {
 		// Reduce to the host root; the SDK appends `/api/chat`.
 		chatBaseUrl: (url) => url.replace(/\/+$/, "").replace(/\/api$/, ""),
 		buildAdapter: (model, _apiKey, host) => createOllamaChat(model, host),
-		modelOptions: (model, temperature, maxTokens) => ({
+		modelOptions: (model, temperature, maxTokens, options) => ({
 			model,
-			options: { temperature, num_predict: maxTokens },
+			options: { temperature, num_predict: maxTokens, ...options },
 		}),
 		modelsHeaders: () => ({ "Content-Type": "application/json" }),
 		modelsUrl: (base) => `${base}/api/tags`,
@@ -186,7 +200,7 @@ function chatEvents(
 		messages: opts.messages,
 		systemPrompts: opts.systemPrompt ? [opts.systemPrompt] : [],
 		stream: true as const,
-		modelOptions: config.modelOptions(opts.model, temperature, maxTokens),
+		modelOptions: config.modelOptions(opts.model, temperature, maxTokens, opts.options ?? {}),
 		...(tools ? { tools, agentLoopStrategy: maxIterations(MAX_AGENT_ROUNDS) } : {}),
 	});
 }

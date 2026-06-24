@@ -38,6 +38,7 @@ export const createEndpoint = createServerFn({ method: "POST" })
 				apiKeyEncrypted: data.apiKey ? encrypt(data.apiKey) : null,
 				provider: data.provider,
 				ownerId: userId,
+				...(data.options && { options: data.options }),
 			},
 		});
 		return { ...endpoint, apiKeyEncrypted: undefined, hasApiKey: !!endpoint.apiKeyEncrypted };
@@ -58,6 +59,7 @@ export const updateEndpoint = createServerFn({ method: "POST" })
 				...(patch.apiKey !== undefined && {
 					apiKeyEncrypted: patch.apiKey ? encrypt(patch.apiKey) : null,
 				}),
+				...(patch.options !== undefined && { options: patch.options }),
 			},
 		});
 		return { ...endpoint, apiKeyEncrypted: undefined, hasApiKey: !!endpoint.apiKeyEncrypted };

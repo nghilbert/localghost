@@ -6,8 +6,13 @@ import {
 	deleteEndpoint,
 	endpointsQueryOptions,
 	testEndpoint,
+	updateEndpoint,
 } from "#/features/endpoints/lib/endpoint.functions";
-import type { createEndpointSchema, testEndpointInput } from "#/features/endpoints/lib/schemas";
+import type {
+	createEndpointSchema,
+	testEndpointInput,
+	updateEndpointSchema,
+} from "#/features/endpoints/lib/schemas";
 
 export function useEndpoints() {
 	const queryClient = useQueryClient();
@@ -20,6 +25,16 @@ export function useEndpoints() {
 			invalidate();
 			toast.success("Provider added");
 		},
+	});
+
+	const updateEndpointMutation = useMutation({
+		mutationFn: (vars: { id: string; data: z.input<typeof updateEndpointSchema> }) =>
+			updateEndpoint({ data: vars }),
+		onSuccess: () => {
+			invalidate();
+			toast.success("Provider updated");
+		},
+		onError: (error) => toast.error(`Failed to update provider: ${error.message}`),
 	});
 
 	const deleteEndpointMutation = useMutation({
@@ -38,6 +53,7 @@ export function useEndpoints() {
 	return {
 		endpoints,
 		createEndpoint: createEndpointMutation,
+		updateEndpoint: updateEndpointMutation,
 		deleteEndpoint: deleteEndpointMutation,
 		testEndpoint: testEndpointMutation,
 	};
