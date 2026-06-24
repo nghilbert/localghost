@@ -42,13 +42,17 @@ export function AppearanceTab() {
 					{Object.entries(COLOR_THEME_LABELS).map(([presetTheme, label]) => (
 						<FieldLabel key={presetTheme} htmlFor={`theme-${presetTheme}`}>
 							<Field orientation="horizontal">
-								<span
+								<div
 									aria-hidden
 									className={cn(
-										"size-5 shrink-0 rounded-full border bg-primary",
+										"h-8 w-14 shrink-0 overflow-hidden rounded border flex flex-col gap-0.5 p-1 bg-background",
 										`theme-${presetTheme}`,
 									)}
-								/>
+								>
+									<div className="h-1.5 w-8 rounded-full bg-foreground opacity-60" />
+									<div className="h-1.5 w-5 rounded-full bg-foreground opacity-30" />
+									<div className="mt-auto h-2 w-6 rounded-sm bg-primary" />
+								</div>
 								<FieldTitle className="flex-1">{label}</FieldTitle>
 								<RadioGroupItem value={presetTheme} id={`theme-${presetTheme}`} />
 							</Field>
