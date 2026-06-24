@@ -14,6 +14,7 @@ type ChatWindowProps = PropsWithChildren<{
 
 export function ChatWindow({ messages, isStreaming, isReady, children }: ChatWindowProps) {
 	const { scrollRef, contentRef, isAtBottom, scrollToBottom } = useStickToBottom();
+
 	return (
 		<div className="relative flex min-h-0 flex-1 flex-col">
 			<section
@@ -23,7 +24,7 @@ export function ChatWindow({ messages, isStreaming, isReady, children }: ChatWin
 				aria-relevant="additions"
 				className="flex flex-1 flex-col overflow-y-auto px-4"
 			>
-				<div ref={contentRef} className="flex flex-col">
+				<div ref={contentRef} className="flex flex-1 flex-col">
 					{messages.length === 0 ? (
 						<ChatEmpty isReady={isReady} />
 					) : (
