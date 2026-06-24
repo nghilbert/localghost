@@ -8,8 +8,7 @@ import {
 import { EventType } from "@tanstack/ai/client";
 import { createFileRoute } from "@tanstack/react-router";
 import { auth } from "#/features/auth/lib/auth.server";
-import { resolveChatTools } from "#/features/chat/lib/agent.server";
-import { buildSystemPrompt } from "#/features/chat/lib/prompt.server";
+import { buildChatTools } from "#/features/chat/lib/agent.server";
 import { chatStreamForwardedPropsSchema } from "#/features/chat/lib/schemas";
 import { decrypt } from "#/lib/crypto.server";
 import { prisma } from "#/lib/db.server";
@@ -56,11 +55,7 @@ export const Route = createFileRoute("/api/chat/stream")({
 
 				// System prompt + temperature are global per-user chat defaults.
 				const userSettings = await prisma.userSettings.findUnique({ where: { ownerId: userId } });
-				const systemPrompt = await buildSystemPrompt(
-					userId,
-					userSettings?.systemPrompt ?? undefined,
-				);
-				const tools = await resolveChatTools({ userId, conversationId, enabledTools });
+				const tools = buildChatTools({ ownerId: userId, enabledTools });
 
 				const source = streamLLMEvents(
 					{
@@ -68,7 +63,7 @@ export const Route = createFileRoute("/api/chat/stream")({
 						apiKey,
 						model: conversation.model,
 						messages: trimHistory(convertMessagesToModelMessages(params.messages)),
-						systemPrompt,
+						systemPrompt: userSettings?.systemPrompt ?? undefined,
 						temperature: userSettings?.temperature ?? undefined,
 					},
 					tools,

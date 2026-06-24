@@ -10,9 +10,8 @@ export const Route = createFileRoute("/api/backup/export")({
 				if (!session) return new Response("Unauthorized", { status: 401 });
 				const userId = session.user.id;
 
-				const [memories, skills, conversations, userSettings] = await Promise.all([
+				const [memories, conversations, userSettings] = await Promise.all([
 					prisma.memory.findMany({ where: { ownerId: userId }, orderBy: { createdAt: "asc" } }),
-					prisma.skill.findMany({ where: { ownerId: userId }, orderBy: { name: "asc" } }),
 					prisma.conversation.findMany({
 						where: { ownerId: userId, archived: false },
 						orderBy: { updatedAt: "desc" },
@@ -33,11 +32,6 @@ export const Route = createFileRoute("/api/backup/export")({
 						text: m.text,
 						category: m.category,
 						source: m.source,
-					})),
-					skills: skills.map((s) => ({
-						name: s.name,
-						description: s.description,
-						content: s.content,
 					})),
 					conversations: conversations.map((c) => ({
 						title: c.title,

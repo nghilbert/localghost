@@ -5,7 +5,6 @@ import {
 	MessageSquareIcon,
 	PaletteIcon,
 	PlugIcon,
-	ServerIcon,
 	UserIcon,
 	WrenchIcon,
 } from "lucide-react";
@@ -14,7 +13,6 @@ import { AccountTab } from "#/features/settings/components/AccountTab";
 import { AppearanceTab } from "#/features/settings/components/AppearanceTab";
 import { ChatTab } from "#/features/settings/components/ChatTab";
 import { DataTab } from "#/features/settings/components/DataTab";
-import { McpTab } from "#/features/settings/components/McpTab";
 import { MemoryTab } from "#/features/settings/components/MemoryTab";
 import { ProvidersTab } from "#/features/settings/components/ProvidersTab";
 import { SetupTab } from "#/features/settings/components/SetupTab";
@@ -69,10 +67,6 @@ export function SettingsPage() {
 						<DatabaseIcon size={13} />
 						Data
 					</TabsTrigger>
-					<TabsTrigger value="mcp" className="gap-1.5">
-						<ServerIcon size={13} />
-						MCP
-					</TabsTrigger>
 				</TabsList>
 			</div>
 			<div className="mx-auto w-full max-w-2xl overflow-auto p-6">
@@ -96,9 +90,6 @@ export function SettingsPage() {
 				</TabsContent>
 				<TabsContent value="data">
 					<DataTab />
-				</TabsContent>
-				<TabsContent value="mcp">
-					<McpTab />
 				</TabsContent>
 			</div>
 		</Tabs>

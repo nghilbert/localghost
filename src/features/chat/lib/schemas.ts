@@ -29,7 +29,7 @@ export const searchConversationsInput = z.object({ query: z.string().min(1).max(
  * The `forwardedProps` the chat stream route reads from the AG-UI request body.
  * `conversationId` resolves the row whose model/endpoint config is the server's
  * source of truth; `enabledTools` is the user's ephemeral per-send tool choice
- * (catalog tool ids and `mcp:<serverId>`), never persisted.
+ * (catalog tool ids), never persisted.
  */
 export const chatStreamForwardedPropsSchema = z.object({
 	conversationId: uuid,

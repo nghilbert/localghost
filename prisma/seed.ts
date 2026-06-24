@@ -3,7 +3,7 @@ import { auth } from "#/features/auth/lib/auth.server";
 import { prisma } from "#/lib/db.server";
 
 /**
- * Dev-only seed: provisions a known login plus a spread of realistic skills and chat
+ * Dev-only seed: provisions a known login plus a spread of realistic chat
  * sessions so the app has something to render on a fresh database. Never run against production.
  *
  * Login: dev@example.com / password123
@@ -24,15 +24,6 @@ async function main() {
 	});
 	const user = await prisma.user.findFirstOrThrow({ where: { email: DEV_EMAIL } });
 
-	await prisma.skill.createMany({
-		data: Array.from({ length: 4 }, () => ({
-			ownerId: user.id,
-			name: faker.person.jobTitle(),
-			description: faker.lorem.sentence(),
-			content: faker.lorem.paragraphs(2),
-		})),
-	});
-
 	for (let i = 0; i < 5; i++) {
 		const messageCount = faker.number.int({ min: 2, max: 6 });
 		// One conversation row holds the whole transcript as a `@tanstack/ai`
@@ -51,7 +42,7 @@ async function main() {
 		});
 	}
 
-	console.log(`Seeded ${DEV_EMAIL} with skills and chats.`);
+	console.log(`Seeded ${DEV_EMAIL} with chats.`);
 }
 
 main()

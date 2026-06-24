@@ -36,20 +36,6 @@ CREATE TABLE "conversation" (
 );
 
 -- CreateTable
-CREATE TABLE "mcp_server" (
-    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
-    "name" TEXT NOT NULL,
-    "url" TEXT NOT NULL,
-    "type" TEXT NOT NULL DEFAULT 'streamable-http',
-    "enabled" BOOLEAN NOT NULL DEFAULT true,
-    "owner_id" UUID NOT NULL,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "mcp_server_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
 CREATE TABLE "memory" (
     "id" UUID NOT NULL DEFAULT gen_random_uuid(),
     "text" TEXT NOT NULL,
@@ -88,19 +74,6 @@ CREATE TABLE "session" (
     "user_id" UUID NOT NULL,
 
     CONSTRAINT "session_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "skill" (
-    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
-    "name" TEXT NOT NULL,
-    "description" TEXT NOT NULL,
-    "content" TEXT NOT NULL,
-    "owner_id" UUID NOT NULL,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "skill_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -147,9 +120,6 @@ CREATE INDEX "account_user_id_idx" ON "account"("user_id");
 CREATE INDEX "conversation_owner_id_archived_idx" ON "conversation"("owner_id", "archived");
 
 -- CreateIndex
-CREATE INDEX "mcp_server_owner_id_idx" ON "mcp_server"("owner_id");
-
--- CreateIndex
 CREATE INDEX "memory_owner_id_idx" ON "memory"("owner_id");
 
 -- CreateIndex
@@ -160,9 +130,6 @@ CREATE INDEX "session_user_id_idx" ON "session"("user_id");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "session_token_key" ON "session"("token");
-
--- CreateIndex
-CREATE INDEX "skill_owner_id_idx" ON "skill"("owner_id");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "user_email_key" ON "user"("email");
@@ -183,9 +150,6 @@ ALTER TABLE "conversation" ADD CONSTRAINT "conversation_owner_id_fkey" FOREIGN K
 ALTER TABLE "conversation" ADD CONSTRAINT "conversation_endpoint_id_fkey" FOREIGN KEY ("endpoint_id") REFERENCES "model_endpoint"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "mcp_server" ADD CONSTRAINT "mcp_server_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE "memory" ADD CONSTRAINT "memory_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -193,9 +157,6 @@ ALTER TABLE "model_endpoint" ADD CONSTRAINT "model_endpoint_owner_id_fkey" FOREI
 
 -- AddForeignKey
 ALTER TABLE "session" ADD CONSTRAINT "session_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "skill" ADD CONSTRAINT "skill_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "user_settings" ADD CONSTRAINT "user_settings_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;

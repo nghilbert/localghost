@@ -8,7 +8,6 @@ export const TAB_VALUES = [
 	"providers",
 	"appearance",
 	"data",
-	"mcp",
 ] as const;
 
 export const SettingsSearchSchema = z.object({

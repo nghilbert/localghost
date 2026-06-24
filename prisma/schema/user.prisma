@@ -11,8 +11,6 @@ model User {
   modelEndpoints ModelEndpoint[]
   conversations  Conversation[]
   memories       Memory[]
-  skills         Skill[]
-  mcpServers     McpServer[]
   settings       UserSettings?
 
   @@unique([email])

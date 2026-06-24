@@ -13,9 +13,6 @@ const importPayloadSchema = z.object({
 			z.object({ text: z.string(), category: z.string().nullish(), source: z.string().optional() }),
 		)
 		.optional(),
-	skills: z
-		.array(z.object({ name: z.string(), description: z.string().optional(), content: z.string() }))
-		.optional(),
 	conversations: z
 		.array(
 			z.object({
@@ -50,7 +47,6 @@ export const Route = createFileRoute("/api/backup/import")({
 
 				const results = {
 					memories: 0,
-					skills: 0,
 					conversations: 0,
 				};
 
@@ -79,21 +75,6 @@ export const Route = createFileRoute("/api/backup/import")({
 							},
 						});
 						results.memories++;
-					}
-				}
-
-				if (Array.isArray(payload.skills)) {
-					for (const s of payload.skills) {
-						if (!s?.name || !s?.content) continue;
-						await prisma.skill.create({
-							data: {
-								name: s.name,
-								description: s.description ?? "",
-								content: s.content,
-								ownerId: userId,
-							},
-						});
-						results.skills++;
 					}
 				}
 

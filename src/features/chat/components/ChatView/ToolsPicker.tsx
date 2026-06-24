@@ -1,4 +1,3 @@
-import { useQuery } from "@tanstack/react-query";
 import { WrenchIcon } from "lucide-react";
 import { Button } from "#/components/ui/button";
 import {
@@ -6,12 +5,10 @@ import {
 	DropdownMenuCheckboxItem,
 	DropdownMenuContent,
 	DropdownMenuLabel,
-	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "#/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "#/components/ui/tooltip";
-import { mcpServersQueryOptions } from "#/features/mcp/lib/mcp.functions";
-import { MCP_TOOL_PREFIX, TOOL_CATALOG } from "#/lib/tools/catalog";
+import { TOOL_CATALOG } from "#/lib/tools/catalog";
 
 type ToolsPickerProps = {
 	enabledTools: string[];
@@ -19,11 +16,8 @@ type ToolsPickerProps = {
 	onChange: (enabledTools: string[]) => void;
 };
 
-/** Inline, ephemeral per-send tool selector (catalog tools + enabled MCP servers); the selection rides each message via `forwardedProps` and is never persisted. */
+/** Inline, ephemeral per-send tool selector; the selection rides each message via `forwardedProps` and is never persisted. */
 export function ToolsPicker({ enabledTools, supportsTools, onChange }: ToolsPickerProps) {
-	const { data: servers = [] } = useQuery(mcpServersQueryOptions());
-	const mcpServers = servers.filter((server) => server.enabled);
-
 	function toggle(id: string, checked: boolean) {
 		onChange(checked ? [...enabledTools, id] : enabledTools.filter((tool) => tool !== id));
 	}
@@ -64,25 +58,6 @@ export function ToolsPicker({ enabledTools, supportsTools, onChange }: ToolsPick
 						{tool.label}
 					</DropdownMenuCheckboxItem>
 				))}
-				{mcpServers.length > 0 && (
-					<>
-						<DropdownMenuSeparator />
-						<DropdownMenuLabel>MCP servers</DropdownMenuLabel>
-						{mcpServers.map((server) => {
-							const id = `${MCP_TOOL_PREFIX}${server.id}`;
-							return (
-								<DropdownMenuCheckboxItem
-									key={server.id}
-									checked={enabledTools.includes(id)}
-									onCheckedChange={(checked) => toggle(id, checked)}
-									onSelect={(e) => e.preventDefault()}
-								>
-									{server.name}
-								</DropdownMenuCheckboxItem>
-							);
-						})}
-					</>
-				)}
 			</DropdownMenuContent>
 		</DropdownMenu>
 	);
