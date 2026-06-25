@@ -5,8 +5,8 @@ import { prisma } from "#/lib/db.server";
 
 export const auth = betterAuth({
 	database: prismaAdapter(prisma, { provider: "postgresql" }),
+	advanced: { database: { generateId: "uuid" } }, // Better Auth allows Postgres to generates the UUID
 	secret: process.env.BETTER_AUTH_SECRET,
 	emailAndPassword: { enabled: true },
 	plugins: [tanstackStartCookies()],
-	advanced: { database: { generateId: () => crypto.randomUUID() } },
 });
