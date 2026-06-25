@@ -14,14 +14,14 @@ import type { ComponentFieldProps } from "./types";
 export function PasswordField({
 	label,
 	description,
-	orientation,
+	fieldOrientation,
 	...props
 }: Omit<ComponentFieldProps<typeof InputGroupInput>, "type">) {
 	const field = useFieldContext<string>();
 	const [show, setShow] = useState(false);
 
 	return (
-		<FieldShell label={label} description={description} orientation={orientation}>
+		<FieldShell label={label} description={description} orientation={fieldOrientation}>
 			<InputGroup>
 				<InputGroupInput
 					id={field.name}

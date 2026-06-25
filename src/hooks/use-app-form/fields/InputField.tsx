@@ -6,13 +6,13 @@ import type { ComponentFieldProps } from "./types";
 export function InputField({
 	label,
 	description,
-	orientation,
+	fieldOrientation,
 	...props
 }: ComponentFieldProps<typeof Input>) {
 	const field = useFieldContext<string>();
 
 	return (
-		<FieldShell label={label} description={description} orientation={orientation}>
+		<FieldShell label={label} description={description} orientation={fieldOrientation}>
 			<Input
 				id={field.name}
 				value={field.state.value}

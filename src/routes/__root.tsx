@@ -1,4 +1,3 @@
-import "#/lib/globals.css";
 import { aiDevtoolsPlugin } from "@tanstack/react-ai-devtools";
 import { TanStackDevtools } from "@tanstack/react-devtools";
 import { formDevtoolsPlugin } from "@tanstack/react-form-devtools";
@@ -25,6 +24,7 @@ import {
 import { Toaster } from "#/components/ui/sonner";
 import { TooltipProvider } from "#/components/ui/tooltip";
 import { getAuthSession } from "#/features/auth/lib/auth.functions";
+import globalCss from "#/lib/globals.css?url";
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
 	beforeLoad: async () => ({ auth: await getAuthSession() }),
@@ -35,6 +35,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 		links: [
 			{ rel: "icon", href: "/favicon.ico" },
 			{ rel: "manifest", href: "/manifest.json" },
+			{ rel: "stylesheet", href: globalCss },
 		],
 	}),
 });

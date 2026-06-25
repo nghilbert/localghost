@@ -6,13 +6,13 @@ import type { ComponentFieldProps } from "./types";
 export function TextareaField({
 	label,
 	description,
-	orientation,
+	fieldOrientation,
 	...props
 }: ComponentFieldProps<typeof Textarea>) {
 	const field = useFieldContext<string>();
 
 	return (
-		<FieldShell label={label} description={description} orientation={orientation}>
+		<FieldShell label={label} description={description} orientation={fieldOrientation}>
 			<Textarea
 				id={field.name}
 				value={field.state.value}

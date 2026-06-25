@@ -11,13 +11,13 @@ import type { ComponentFieldProps } from "./types";
 export function NumberField({
 	label,
 	description,
-	orientation,
+	fieldOrientation,
 	...props
 }: ComponentFieldProps<typeof Input>) {
 	const field = useFieldContext<number | undefined>();
 
 	return (
-		<FieldShell label={label} description={description} orientation={orientation}>
+		<FieldShell label={label} description={description} orientation={fieldOrientation}>
 			<Input
 				id={field.name}
 				type="number"

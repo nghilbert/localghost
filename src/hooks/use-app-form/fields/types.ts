@@ -4,7 +4,7 @@ import type { Field } from "#/components/ui/field";
 export type BaseFieldProps = {
 	label: string;
 	description?: string;
-	orientation?: ComponentProps<typeof Field>["orientation"];
+	fieldOrientation?: ComponentProps<typeof Field>["orientation"];
 };
 export type FieldOption = { label: string; value: string };
 

@@ -10,14 +10,14 @@ export type ToggleGroupFieldProps = Omit<ComponentFieldProps<typeof ToggleGroup>
 export function ToggleGroupField({
 	label,
 	description,
-	orientation,
+	fieldOrientation,
 	options,
 	...props
 }: ToggleGroupFieldProps) {
 	const field = useFieldContext<string>();
 
 	return (
-		<FieldShell label={label} description={description} orientation={orientation}>
+		<FieldShell label={label} description={description} orientation={fieldOrientation}>
 			<ToggleGroup
 				id={field.name}
 				type="single"
