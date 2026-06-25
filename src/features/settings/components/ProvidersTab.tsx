@@ -1,59 +1,41 @@
-import { Button } from "#/components/ui/button";
-import {
-	Item,
-	ItemActions,
-	ItemContent,
-	ItemDescription,
-	ItemGroup,
-	ItemTitle,
-} from "#/components/ui/item";
-import { EndpointDialog } from "#/features/endpoints/components/EndpointDialog";
+import { CheckCircle2Icon, CircleAlertIcon } from "lucide-react";
+import { Badge } from "#/components/ui/badge";
+import { FieldDescription, FieldLegend, FieldSet } from "#/components/ui/field";
+import { ItemGroup } from "#/components/ui/item";
+import { EndpointItem } from "#/features/endpoints/components/EndpointItem";
+import { ProviderSetupForm } from "#/features/endpoints/components/ProviderSetupForm";
 import { useEndpoints } from "#/features/endpoints/hooks/use-endpoints";
 
 export function ProvidersTab() {
 	const { endpoints, deleteEndpoint } = useEndpoints();
 
 	return (
-		<div className="space-y-3">
-			<div className="flex items-center justify-between">
-				<p className="text-sm text-muted-foreground">
-					Configure LLM provider endpoints. API keys are encrypted at rest.
-				</p>
-				<EndpointDialog />
-			</div>
-
-			{endpoints.length === 0 && (
-				<p className="py-8 text-center text-sm text-muted-foreground">
-					No providers configured yet
-				</p>
-			)}
-
+		<FieldSet>
+			<FieldLegend className="flex items-center gap-2">
+				LLM providers
+				{endpoints.length > 0 ? (
+					<Badge variant="secondary" className="bg-success/10 text-success">
+						<CheckCircle2Icon />
+						{endpoints.length} configured
+					</Badge>
+				) : (
+					<Badge variant="secondary" className="bg-warning/10 text-warning">
+						<CircleAlertIcon />
+						None configured
+					</Badge>
+				)}
+			</FieldLegend>
+			<FieldDescription>
+				Required for chat. Local Ollama or any hosted API; keys are encrypted at rest.
+			</FieldDescription>
 			{endpoints.length > 0 && (
 				<ItemGroup>
 					{endpoints.map((ep) => (
-						<Item key={ep.id} variant="outline">
-							<ItemContent>
-								<ItemTitle>{ep.name}</ItemTitle>
-								<ItemDescription>{ep.url}</ItemDescription>
-								<ItemDescription>
-									{ep.provider} {ep.hasApiKey ? "· API key set" : "· No API key"}
-								</ItemDescription>
-							</ItemContent>
-							<ItemActions>
-								<Button
-									variant="ghost"
-									size="sm"
-									className="text-destructive hover:text-destructive"
-									onClick={() => deleteEndpoint.mutate(ep.id)}
-									disabled={deleteEndpoint.isPending}
-								>
-									Remove
-								</Button>
-							</ItemActions>
-						</Item>
+						<EndpointItem key={ep.id} endpoint={ep} onDelete={() => deleteEndpoint.mutate(ep.id)} />
 					))}
 				</ItemGroup>
 			)}
-		</div>
+			<ProviderSetupForm />
+		</FieldSet>
 	);
 }

@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { authClient } from "#/features/auth/lib/auth-client";
 
-export function useUpdateProfile() {
+export function useUpdateAccount() {
 	const queryClient = useQueryClient();
 	return useMutation({
 		mutationFn: async (name: string) => {
