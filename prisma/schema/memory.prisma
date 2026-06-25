@@ -1,5 +1,5 @@
 model Memory {
-  id        String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id        String                 @id @default(dbgenerated("uuidv7()")) @db.Uuid
   text      String
   embedding Unsupported("vector")? /// Unsized pgvector embedding for semantic recall, read/written via raw SQL.
   category  String                 @default("fact")

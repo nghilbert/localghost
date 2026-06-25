@@ -2,7 +2,7 @@
 /// The client owns persistence via the framework's ChatClientPersistence
 /// adapter (getItem/setItem/removeItem), so the stream route never writes here.
 model Conversation {
-  id         String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id         String         @id @default(dbgenerated("uuidv7()")) @db.Uuid
   ownerId    String         @map("owner_id") @db.Uuid
   owner      User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   title      String         @default("New Chat")

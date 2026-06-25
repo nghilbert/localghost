@@ -1,5 +1,5 @@
 model Verification {
-  id         String   @id @db.Uuid
+  id         String   @id @default(dbgenerated("uuidv7()")) @db.Uuid
   identifier String
   value      String
   expiresAt  DateTime @map("expires_at")

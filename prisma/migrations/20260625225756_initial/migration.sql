@@ -3,7 +3,7 @@ CREATE EXTENSION IF NOT EXISTS "vector";
 
 -- CreateTable
 CREATE TABLE "account" (
-    "id" UUID NOT NULL,
+    "id" UUID NOT NULL DEFAULT uuidv7(),
     "account_id" TEXT NOT NULL,
     "provider_id" TEXT NOT NULL,
     "user_id" UUID NOT NULL,
@@ -22,7 +22,7 @@ CREATE TABLE "account" (
 
 -- CreateTable
 CREATE TABLE "conversation" (
-    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+    "id" UUID NOT NULL DEFAULT uuidv7(),
     "owner_id" UUID NOT NULL,
     "title" TEXT NOT NULL DEFAULT 'New Chat',
     "endpoint_id" UUID,
@@ -37,7 +37,7 @@ CREATE TABLE "conversation" (
 
 -- CreateTable
 CREATE TABLE "memory" (
-    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+    "id" UUID NOT NULL DEFAULT uuidv7(),
     "text" TEXT NOT NULL,
     "embedding" vector,
     "category" TEXT NOT NULL DEFAULT 'fact',
@@ -50,7 +50,7 @@ CREATE TABLE "memory" (
 
 -- CreateTable
 CREATE TABLE "model_endpoint" (
-    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+    "id" UUID NOT NULL DEFAULT uuidv7(),
     "name" TEXT NOT NULL,
     "url" TEXT NOT NULL,
     "api_key_encrypted" TEXT,
@@ -65,7 +65,7 @@ CREATE TABLE "model_endpoint" (
 
 -- CreateTable
 CREATE TABLE "session" (
-    "id" UUID NOT NULL,
+    "id" UUID NOT NULL DEFAULT uuidv7(),
     "expires_at" TIMESTAMP(3) NOT NULL,
     "token" TEXT NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -79,7 +79,7 @@ CREATE TABLE "session" (
 
 -- CreateTable
 CREATE TABLE "user" (
-    "id" UUID NOT NULL,
+    "id" UUID NOT NULL DEFAULT uuidv7(),
     "name" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "email_verified" BOOLEAN NOT NULL DEFAULT false,
@@ -92,7 +92,7 @@ CREATE TABLE "user" (
 
 -- CreateTable
 CREATE TABLE "user_settings" (
-    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+    "id" UUID NOT NULL DEFAULT uuidv7(),
     "owner_id" UUID NOT NULL,
     "system_prompt" TEXT,
     "temperature" DOUBLE PRECISION,
@@ -104,7 +104,7 @@ CREATE TABLE "user_settings" (
 
 -- CreateTable
 CREATE TABLE "verification" (
-    "id" UUID NOT NULL,
+    "id" UUID NOT NULL DEFAULT uuidv7(),
     "identifier" TEXT NOT NULL,
     "value" TEXT NOT NULL,
     "expires_at" TIMESTAMP(3) NOT NULL,

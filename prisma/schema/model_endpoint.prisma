@@ -1,5 +1,5 @@
 model ModelEndpoint {
-  id              String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id              String         @id @default(dbgenerated("uuidv7()")) @db.Uuid
   name            String
   url             String
   apiKeyEncrypted String?        @map("api_key_encrypted")

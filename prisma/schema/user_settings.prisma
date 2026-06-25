@@ -1,13 +1,13 @@
 /// Per-user global preferences. Currently the chat defaults (system prompt +
 /// temperature) applied to every conversation and model. One row per user.
 model UserSettings {
-  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  ownerId       String   @unique @map("owner_id") @db.Uuid
-  owner         User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  systemPrompt  String?  @map("system_prompt")
-  temperature   Float?
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  id           String   @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  ownerId      String   @unique @map("owner_id") @db.Uuid
+  owner        User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  systemPrompt String?  @map("system_prompt")
+  temperature  Float?
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
   @@map("user_settings")
 }

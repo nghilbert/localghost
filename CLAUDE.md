@@ -7,7 +7,7 @@ Guidance for Claude Code working in this repository.
 - **Simplicity is the fix, NOT more complexity:** when you feel friction creating a function or component, you are thinking too hard. Remove divs and unnecessary nesting. Reduce complexity — the problem will disappear or become obvious. Adding more always makes things more complicated.
 - **Do it right, WORK WITH THE FRAMEWORK:** never hand-roll what a modern dependency already does. Never build a parallel/"better" implementation, bridge, or shim. Adopt the library's native model end-to-end (its types, persistence shape, helpers) even when that means a larger diff — the file count is irrelevant. Doing it right almost always simplifies.
 - **shadcn-first:** before building UI, find the shadcn component that fits (consult the MCP registry). Compose primitives; never raw HTML where a shadcn equivalent exists. The UI must stay themeable via CSS variables only — no hardcoded colors.
-- **Prisma:** app model IDs `@default(dbgenerated("gen_random_uuid()")) @db.Uuid`; auth-table IDs `@id @db.Uuid` with no `@default`; all FKs `@db.Uuid`; all camelCase fields `@map("snake_case")`.
+- **Prisma:** app model IDs `@default(dbgenerated("uuidv7()")) @db.Uuid`; auth-table IDs `@id @db.Uuid` with no `@default`; all FKs `@db.Uuid`; all camelCase fields `@map("snake_case")`.
 - **Biome:** tabs, 100-char width; fix all warnings, never `biome-ignore`.
 - **Server-only:** never import `.server.ts` from client code.
 - **Comments:** only for non-obvious behavior; JSDoc on exported functions when the signature isn't self-explanatory. Describe what the code is and does — never narrate PR or changelog history.
