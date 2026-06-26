@@ -1,10 +1,11 @@
 import { revalidateLogic } from "@tanstack/react-form";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import { useNavigate, useRouteContext } from "@tanstack/react-router";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import { Field, FieldLabel } from "#/components/ui/field";
 import { authClient } from "#/features/auth/lib/auth-client";
+import { userSettingsQueryOptions } from "#/features/settings/lib/user-settings.functions";
 import { useAppForm } from "#/hooks/use-app-form";
 import { useUpdateAccount } from "../hooks/use-update-account";
 import { AccountFormSchema } from "../lib/schemas";
@@ -14,15 +15,20 @@ export function AccountTab() {
 	const {
 		auth: { user },
 	} = useRouteContext({ from: "/_authenticated" });
+	const { data: settings } = useSuspenseQuery(userSettingsQueryOptions());
 
 	const updateMutation = useUpdateAccount();
 
 	const form = useAppForm({
-		defaultValues: { name: user?.name ?? "" },
+		defaultValues: { name: user?.name ?? "", systemPrompt: settings.systemPrompt ?? "" },
 		validators: { onDynamic: AccountFormSchema },
 		validationLogic: revalidateLogic(),
 		onSubmit: async ({ value }) => {
-			await updateMutation.mutate(value.name.trim());
+			await updateMutation.mutate({
+				name: value.name.trim(),
+				systemPrompt: value.systemPrompt,
+				temperature: settings.temperature,
+			});
 		},
 	});
 
@@ -43,9 +49,8 @@ export function AccountTab() {
 							<form.AppField name="name">
 								{(field) => <field.InputField label="Name" />}
 							</form.AppField>
-							<form.FormError>{updateMutation.error?.message}</form.FormError>
 
-							{/* <form.AppField name="systemPrompt">
+							<form.AppField name="systemPrompt">
 								{(field) => (
 									<field.TextareaField
 										label="System prompt"
@@ -54,7 +59,7 @@ export function AccountTab() {
 										rows={4}
 									/>
 								)}
-							</form.AppField> */}
+							</form.AppField>
 
 							<form.SubmitButton size="sm">Save</form.SubmitButton>
 						</form.SubmitForm>

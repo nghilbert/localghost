@@ -25,6 +25,7 @@ export function useEndpoints() {
 			invalidate();
 			toast.success("Provider added");
 		},
+		onError: (error) => toast.error(`Failed to add provider: ${error.message}`),
 	});
 
 	const updateEndpointMutation = useMutation({

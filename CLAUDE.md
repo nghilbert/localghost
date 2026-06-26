@@ -57,6 +57,8 @@ Copy `.env.example` to `.env`. Required: `POSTGRES_PASSWORD`, `BETTER_AUTH_SECRE
 
 `useAppForm` (TanStack Form) in `src/hooks/use-app-form.ts`. Field components in `src/components/appForm/` — never hand-wire `useState`-per-field + `Input` for submit forms. Validate with Zod v4 via `validators: { onDynamic: Schema }`. Submit via `form.handleSubmit()`. Need a new field type? Add a field component — don't hand-wire.
 
+**Submitting:** a form's `onSubmit` awaits a regular `mutation.mutate(value)` — never `mutateAsync`. The mutation owns its feedback: define both `onSuccess` and `onError` on the `useMutation` (firing `toast.success` / `toast.error` there), so submit handlers stay a one-line `await xMutation.mutate(value)` and nothing is wired per-call. Don't surface the same submit error twice — the mutation's `onError` toast is the error channel; reserve inline `FormError` for inline affordances (e.g. a "Test connection" result), not for re-printing the submit mutation's error.
+
 ## Code Organization
 
 ```

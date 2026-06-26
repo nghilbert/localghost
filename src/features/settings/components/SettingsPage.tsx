@@ -1,5 +1,5 @@
 import { getRouteApi, useNavigate } from "@tanstack/react-router";
-import { BrainIcon, MessageSquareIcon, PaletteIcon, PlugIcon, UserIcon } from "lucide-react";
+import { BrainIcon, PaletteIcon, PlugIcon, UserIcon } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "#/components/ui/tabs";
 import { AccountTab } from "#/features/settings/components/AccountTab";
 import { AppearanceTab } from "#/features/settings/components/AppearanceTab";

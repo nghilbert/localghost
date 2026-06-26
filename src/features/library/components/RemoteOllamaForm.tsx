@@ -58,10 +58,9 @@ export function RemoteOllamaForm({ onBack }: { onBack: () => void }) {
 						</form.AppField>
 
 						<form.FormError>
-							{connectRemote.error?.message ??
-								(testRemote.data && !testRemote.data.reachable
-									? `No Ollama instance is responding at ${form.state.values.url}`
-									: undefined)}
+							{testRemote.data && !testRemote.data.reachable
+								? `No Ollama instance is responding at ${form.state.values.url}`
+								: undefined}
 						</form.FormError>
 
 						<Field orientation="horizontal">

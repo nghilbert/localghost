@@ -120,8 +120,7 @@ export function AddProviderForm({ definition, onCreated }: AddProviderFormProps)
 				)}
 
 				<form.FormError>
-					{createEndpoint.error?.message ??
-						(testEndpoint.data && !testEndpoint.data.ok ? testEndpoint.data.error : undefined)}
+					{testEndpoint.data && !testEndpoint.data.ok ? testEndpoint.data.error : undefined}
 				</form.FormError>
 
 				<Field orientation="horizontal">
