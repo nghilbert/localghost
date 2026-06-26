@@ -3,7 +3,7 @@ import { type KeyboardEvent, useRef } from "react";
 import { Button } from "#/components/ui/button";
 import { Card, CardAction, CardContent, CardFooter } from "#/components/ui/card";
 import { Textarea } from "#/components/ui/textarea";
-import { ToolsPicker } from "#/features/chat/components/ChatView/ToolsPicker";
+import { type ToolControls, ToolToggles } from "#/features/chat/components/ChatView/ToolToggles";
 import { ModelPicker } from "#/features/endpoints/components/ModelPicker";
 
 type ChatInputProps = {
@@ -12,9 +12,8 @@ type ChatInputProps = {
 	isReady: boolean;
 	onModelSelect: (endpointId: string, model: string) => void;
 	isStreaming: boolean;
-	enabledTools: string[];
-	supportsTools: boolean;
-	onEnabledToolsChange: (enabledTools: string[]) => void;
+	/** Tool toggles, shown only inside a conversation; omitted on the `/new` composer. */
+	tools?: ToolControls;
 	sendMessage: (content: string) => Promise<void>;
 	stop: () => void;
 };
@@ -25,9 +24,7 @@ export function ChatInput({
 	isReady,
 	onModelSelect,
 	isStreaming,
-	enabledTools,
-	supportsTools,
-	onEnabledToolsChange,
+	tools,
 	sendMessage,
 	stop,
 }: ChatInputProps) {
@@ -68,11 +65,7 @@ export function ChatInput({
 						onSelect={onModelSelect}
 						needsAttention={!isReady}
 					/>
-					<ToolsPicker
-						enabledTools={enabledTools}
-						supportsTools={supportsTools}
-						onChange={onEnabledToolsChange}
-					/>
+					{tools && <ToolToggles {...tools} />}
 				</CardAction>
 				<CardAction>
 					{isStreaming ? (

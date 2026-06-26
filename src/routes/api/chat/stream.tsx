@@ -41,7 +41,7 @@ export const Route = createFileRoute("/api/chat/stream")({
 				const params = await chatParamsFromRequestBody(await request.json());
 				const forwarded = chatStreamForwardedPropsSchema.safeParse(params.forwardedProps);
 				if (!forwarded.success) return new Response("Bad request", { status: 400 });
-				const { conversationId, enabledTools } = forwarded.data;
+				const { conversationId, enabledTools, forceWebSearch } = forwarded.data;
 
 				const conversation = await prisma.conversation.findFirst({
 					where: { id: conversationId, ownerId: userId },
@@ -60,13 +60,24 @@ export const Route = createFileRoute("/api/chat/stream")({
 				const tools = buildChatTools({ ownerId: userId, enabledTools });
 				const endpointOptions = ollamaOptionsSchema.safeParse(endpoint.options);
 
+				// When the user forces web search, prepend a directive to the user's system
+				// prompt; otherwise the model decides whether to reach for the tool itself.
+				const systemPrompt =
+					[
+						userSettings?.systemPrompt?.trim(),
+						forceWebSearch &&
+							"Use the web_search tool to look up current information before answering this message.",
+					]
+						.filter(Boolean)
+						.join("\n\n") || undefined;
+
 				const source = streamLLMEvents(
 					{
 						url: endpoint.url,
 						apiKey,
 						model: conversation.model,
 						messages: trimHistory(convertMessagesToModelMessages(params.messages)),
-						systemPrompt: userSettings?.systemPrompt ?? undefined,
+						systemPrompt,
 						temperature: userSettings?.temperature ?? undefined,
 						options: endpointOptions.success ? endpointOptions.data : undefined,
 					},

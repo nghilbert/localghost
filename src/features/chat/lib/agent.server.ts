@@ -1,6 +1,5 @@
 import type { ServerTool } from "@tanstack/ai";
 import { toolDefinition } from "@tanstack/ai";
-import { TOOL_CATALOG, type ToolCatalogId } from "#/lib/tools/catalog";
 import { manageMemory, manageMemoryArgsSchema } from "#/lib/tools/manage_memory";
 import { readUrl, readUrlArgsSchema } from "#/lib/tools/read_url";
 import { webSearch, webSearchArgsSchema } from "#/lib/tools/web_search";
@@ -91,28 +90,27 @@ function manageMemoryTool(ownerId: string): ServerTool {
 	}).server(async (args) => manageMemory(manageMemoryArgsSchema.parse(args), ownerId));
 }
 
-/** Builders for the user-toggleable catalog tools, keyed by their catalog id. */
-const CATALOG_BUILDERS: Record<ToolCatalogId, (ownerId: string) => ServerTool[]> = {
+/**
+ * Builders for every buildable tool, keyed by the id the client sends. The
+ * source of truth for what can be turned on per request; `web_search` is offered
+ * to capable models automatically (see `useChatTools`) while the rest are opt-in.
+ */
+const TOOL_BUILDERS: Record<string, (ownerId: string) => ServerTool[]> = {
 	web_search: () => [webSearchTool(), readUrlTool()],
 	memory: (ownerId) => [manageMemoryTool(ownerId)],
 };
 
 type BuildChatToolsOptions = {
 	ownerId: string;
-	/** The user's ephemeral per-send selection of catalog tool ids. */
+	/** The ephemeral per-send tool ids the client opted into. */
 	enabledTools: string[];
 };
 
 /**
- * Assembles the `ServerTool[]` for one chat run from the user's per-send catalog
- * selection. Nothing is always-on — an untouched send hands the model no tools,
- * which keeps small models reliable. `chat()` auto-executes whatever is returned.
+ * Assembles the `ServerTool[]` for one chat run from the per-send selection,
+ * skipping any unknown ids. Nothing is always-on — an untouched send hands the
+ * model no tools, which keeps small models reliable. `chat()` auto-executes them.
  */
 export function buildChatTools({ ownerId, enabledTools }: BuildChatToolsOptions): ServerTool[] {
-	const selected = new Set(enabledTools);
-	const tools: ServerTool[] = [];
-	for (const { id } of TOOL_CATALOG) {
-		if (selected.has(id)) tools.push(...CATALOG_BUILDERS[id](ownerId));
-	}
-	return tools;
+	return enabledTools.flatMap((id) => TOOL_BUILDERS[id]?.(ownerId) ?? []);
 }

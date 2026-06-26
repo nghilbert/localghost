@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { CheckIcon, ChevronDownIcon } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { BookOpenIcon, CheckIcon, ChevronDownIcon } from "lucide-react";
 import { Button } from "#/components/ui/button";
 import {
 	DropdownMenu,
@@ -47,9 +48,15 @@ export function ModelPicker({
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="start" className="w-64">
 				{endpoints.length === 0 && (
-					<DropdownMenuLabel className="text-muted-foreground">
-						No endpoints configured
-					</DropdownMenuLabel>
+					<>
+						<DropdownMenuLabel className="text-muted-foreground">No models yet</DropdownMenuLabel>
+						<DropdownMenuItem asChild>
+							<Link to="/library">
+								<BookOpenIcon />
+								Browse the Library
+							</Link>
+						</DropdownMenuItem>
+					</>
 				)}
 				{endpoints.map((ep) => (
 					<EndpointGroup

@@ -4,15 +4,13 @@ import type { PropsWithChildren } from "react";
 import { useStickToBottom } from "use-stick-to-bottom";
 import { Button } from "#/components/ui/button";
 import { ChatMessage } from "#/features/chat/components/ChatMessage";
-import { ChatEmpty } from "#/features/chat/components/ChatView/ChatEmpty";
 
 type ChatWindowProps = PropsWithChildren<{
 	messages: UIMessage[];
 	isStreaming: boolean;
-	isReady: boolean;
 }>;
 
-export function ChatWindow({ messages, isStreaming, isReady, children }: ChatWindowProps) {
+export function ChatWindow({ messages, isStreaming, children }: ChatWindowProps) {
 	const { scrollRef, contentRef, isAtBottom, scrollToBottom } = useStickToBottom();
 
 	return (
@@ -25,15 +23,11 @@ export function ChatWindow({ messages, isStreaming, isReady, children }: ChatWin
 				className="flex flex-1 flex-col overflow-y-auto px-4"
 			>
 				<div ref={contentRef} className="flex flex-1 flex-col">
-					{messages.length === 0 ? (
-						<ChatEmpty isReady={isReady} />
-					) : (
-						messages.map((msg, idx) => {
-							const isLast = idx === messages.length - 1;
-							const isStreamingMessage = isStreaming && isLast && msg.role === "assistant";
-							return <ChatMessage key={msg.id} message={msg} isStreaming={isStreamingMessage} />;
-						})
-					)}
+					{messages.map((msg, idx) => {
+						const isLast = idx === messages.length - 1;
+						const isStreamingMessage = isStreaming && isLast && msg.role === "assistant";
+						return <ChatMessage key={msg.id} message={msg} isStreaming={isStreamingMessage} />;
+					})}
 					{children}
 				</div>
 			</section>

@@ -67,7 +67,7 @@ describe("ChatMessage", () => {
 	});
 
 	describe("tool calls", () => {
-		it("should render a tool-call/result pair as a collapsible labelled by tool name", () => {
+		it("should render a tool-call/result pair as a collapsible with a friendly label", () => {
 			const message: UIMessage = {
 				id: "a1",
 				role: "assistant",
@@ -79,8 +79,8 @@ describe("ChatMessage", () => {
 			};
 			render(<ChatMessage message={message} />);
 			// The result lives in a collapsed Collapsible (unmounted until opened),
-			// so the tool-name trigger is what proves the block rendered.
-			expect(screen.getByText("web_search")).toBeInTheDocument();
+			// so the friendly-labelled trigger is what proves the block rendered.
+			expect(screen.getByText("Searched the web")).toBeInTheDocument();
 		});
 
 		it("should show a running indicator for an in-flight tool call while streaming", () => {
@@ -98,7 +98,7 @@ describe("ChatMessage", () => {
 				],
 			};
 			render(<ChatMessage message={message} isStreaming />);
-			expect(screen.getByRole("status")).toHaveTextContent("web_search");
+			expect(screen.getByRole("status")).toHaveTextContent("Searching the web");
 		});
 	});
 

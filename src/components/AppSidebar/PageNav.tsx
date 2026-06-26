@@ -1,6 +1,5 @@
 import { Link, type LinkProps, useRouterState } from "@tanstack/react-router";
-import { LibraryIcon, type LucideIcon, MessageSquarePlusIcon } from "lucide-react";
-import { useConversations } from "#/features/chat/hooks/use-conversations";
+import { LibraryIcon, type LucideIcon, MessageCirclePlusIcon } from "lucide-react";
 import {
 	SidebarGroup,
 	SidebarGroupContent,
@@ -11,27 +10,17 @@ import {
 
 type NavItem = { label: string; to: LinkProps["to"]; NavIcon: LucideIcon };
 const NAV_ITEMS = [
+	{ label: "Chat", to: "/new", NavIcon: MessageCirclePlusIcon },
 	{ label: "Library", to: "/library", NavIcon: LibraryIcon },
 ] as const satisfies NavItem[];
 
 export function PageNav() {
 	const location = useRouterState({ select: (s) => s.location.pathname });
-	const { createConversation } = useConversations();
 
 	return (
 		<SidebarGroup>
 			<SidebarGroupContent>
 				<SidebarMenu>
-					<SidebarMenuItem>
-						<SidebarMenuButton
-							tooltip="New chat"
-							onClick={() => createConversation.mutate()}
-							disabled={createConversation.isPending}
-						>
-							<MessageSquarePlusIcon size={15} />
-							<span>Chat</span>
-						</SidebarMenuButton>
-					</SidebarMenuItem>
 					{NAV_ITEMS.map(({ to, label, NavIcon }) => (
 						<SidebarMenuItem key={to}>
 							<SidebarMenuButton asChild isActive={location.startsWith(to)} tooltip={label}>

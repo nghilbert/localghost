@@ -40,7 +40,7 @@ export const listConversations = createServerFn({ method: "GET" }).handler(async
 	return prisma.conversation.findMany({
 		where: { ownerId: userId, archived: false },
 		orderBy: { updatedAt: "desc" },
-		select: { id: true, title: true, model: true, updatedAt: true },
+		select: { id: true, title: true, model: true, endpointId: true, updatedAt: true },
 	});
 });
 

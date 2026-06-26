@@ -1,27 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import {
 	conversationsQueryOptions,
-	createConversation,
 	deleteConversation,
 	updateConversation,
 } from "#/features/chat/lib/conversation.functions";
 
-/** Conversation list plus the create / rename / archive / delete mutations. */
+/** Conversation list plus the rename / archive / delete mutations. */
 export function useConversations() {
 	const queryClient = useQueryClient();
-	const navigate = useNavigate();
 	const invalidate = () => queryClient.invalidateQueries({ queryKey: ["conversations"] });
 	const { data: conversations = [] } = useQuery(conversationsQueryOptions());
-
-	const createConversationMutation = useMutation({
-		mutationFn: () => createConversation({ data: { title: "New Chat" } }),
-		onSuccess: (conversation) => {
-			invalidate();
-			navigate({ to: "/chat/$conversationId", params: { conversationId: conversation.id } });
-		},
-	});
 
 	const renameConversationMutation = useMutation({
 		mutationFn: ({ id, title }: { id: string; title: string }) =>
@@ -49,7 +38,6 @@ export function useConversations() {
 
 	return {
 		conversations,
-		createConversation: createConversationMutation,
 		renameConversation: renameConversationMutation,
 		archiveConversation: archiveConversationMutation,
 		deleteConversation: deleteConversationMutation,
