@@ -18,7 +18,7 @@ export const getEndpoints = createServerFn({ method: "GET" }).handler(async () =
 	const userId = await getCurrentUserId();
 	const endpoints = await prisma.modelEndpoint.findMany({
 		where: { ownerId: userId },
-		orderBy: { createdAt: "asc" },
+		orderBy: { id: "asc" },
 	});
 	return endpoints.map((e) => ({
 		...e,

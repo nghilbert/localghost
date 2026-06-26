@@ -19,7 +19,7 @@ const WELL_KNOWN_URLS = [
 export async function getOllamaUrl(userId: string): Promise<string> {
 	const endpoint = await prisma.modelEndpoint.findFirst({
 		where: { ownerId: userId, provider: "ollama" },
-		orderBy: { createdAt: "asc" },
+		orderBy: { id: "asc" },
 	});
 	return (endpoint?.url ?? DEFAULT_OLLAMA_URL).replace(/\/+$/, "");
 }
@@ -71,7 +71,7 @@ export type OllamaScanResult = {
 export async function scanForOllama(userId: string): Promise<OllamaScanResult | null> {
 	const saved = await prisma.modelEndpoint.findMany({
 		where: { ownerId: userId, provider: "ollama" },
-		orderBy: { createdAt: "asc" },
+		orderBy: { id: "asc" },
 		select: { id: true, url: true },
 	});
 	const candidates = buildOllamaCandidateUrls({ savedUrls: saved.map((endpoint) => endpoint.url) });
@@ -106,7 +106,7 @@ export async function upsertOllamaEndpoint(
 			? existing
 			: await prisma.modelEndpoint.findFirst({
 					where: { ownerId: userId, provider: "ollama" },
-					orderBy: { createdAt: "asc" },
+					orderBy: { id: "asc" },
 					select: { id: true, url: true },
 				});
 

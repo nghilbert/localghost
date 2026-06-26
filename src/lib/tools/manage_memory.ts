@@ -98,9 +98,9 @@ async function listMemories(args: ManageMemoryArgs, ownerId: string): Promise<st
 	const limit = Math.min(args.limit ?? 10, 50);
 	const memories = await prisma.memory.findMany({
 		where: { ownerId },
-		orderBy: { createdAt: "desc" },
+		orderBy: { id: "desc" },
 		take: limit,
-		select: { id: true, text: true, category: true, createdAt: true },
+		select: { id: true, text: true, category: true },
 	});
 
 	if (memories.length === 0) return "No memories saved yet.";

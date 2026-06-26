@@ -18,7 +18,7 @@ const embeddingResponseSchema = z.object({
 export async function embed(text: string, ownerId: string): Promise<number[] | null> {
 	const endpoints = await prisma.modelEndpoint.findMany({
 		where: { ownerId },
-		orderBy: { createdAt: "asc" },
+		orderBy: { id: "asc" },
 	});
 
 	for (const ep of endpoints) {

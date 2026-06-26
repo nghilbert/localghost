@@ -6,7 +6,6 @@ model Memory {
   source    String                 @default("user") /// Where this memory came from: "user" (manually added), "agent" (extracted during a chat), etc.
   ownerId   String                 @map("owner_id") @db.Uuid
   owner     User                   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  createdAt DateTime               @default(now()) @map("created_at")
 
   @@index([ownerId])
   @@map("memory")

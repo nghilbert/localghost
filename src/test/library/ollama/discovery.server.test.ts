@@ -41,7 +41,7 @@ describe("getOllamaUrl", () => {
 		await getOllamaUrl("user-42");
 		expect(findFirst).toHaveBeenCalledWith({
 			where: { ownerId: "user-42", provider: "ollama" },
-			orderBy: { createdAt: "asc" },
+			orderBy: { id: "asc" },
 		});
 	});
 });

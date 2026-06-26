@@ -29,7 +29,6 @@ CREATE TABLE "conversation" (
     "model" TEXT NOT NULL DEFAULT '',
     "archived" BOOLEAN NOT NULL DEFAULT false,
     "messages" JSONB NOT NULL DEFAULT '[]',
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "conversation_pkey" PRIMARY KEY ("id")
@@ -43,7 +42,6 @@ CREATE TABLE "memory" (
     "category" TEXT NOT NULL DEFAULT 'fact',
     "source" TEXT NOT NULL DEFAULT 'user',
     "owner_id" UUID NOT NULL,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "memory_pkey" PRIMARY KEY ("id")
 );
@@ -57,7 +55,6 @@ CREATE TABLE "model_endpoint" (
     "provider" TEXT NOT NULL DEFAULT 'openai',
     "options" JSONB,
     "owner_id" UUID NOT NULL,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "model_endpoint_pkey" PRIMARY KEY ("id")
@@ -96,7 +93,6 @@ CREATE TABLE "user_settings" (
     "owner_id" UUID NOT NULL,
     "system_prompt" TEXT,
     "temperature" DOUBLE PRECISION,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "user_settings_pkey" PRIMARY KEY ("id")

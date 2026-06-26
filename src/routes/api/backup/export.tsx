@@ -11,7 +11,7 @@ export const Route = createFileRoute("/api/backup/export")({
 				const userId = session.user.id;
 
 				const [memories, conversations, userSettings] = await Promise.all([
-					prisma.memory.findMany({ where: { ownerId: userId }, orderBy: { createdAt: "asc" } }),
+					prisma.memory.findMany({ where: { ownerId: userId }, orderBy: { id: "asc" } }),
 					prisma.conversation.findMany({
 						where: { ownerId: userId, archived: false },
 						orderBy: { updatedAt: "desc" },

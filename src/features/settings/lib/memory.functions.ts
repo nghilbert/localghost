@@ -11,8 +11,8 @@ export const listSavedMemories = createServerFn({ method: "GET" }).handler(async
 	const userId = await getCurrentUserId();
 	return prisma.memory.findMany({
 		where: { ownerId: userId },
-		orderBy: { createdAt: "desc" },
-		select: { id: true, text: true, category: true, source: true, createdAt: true },
+		orderBy: { id: "desc" },
+		select: { id: true, text: true, category: true, source: true },
 	});
 });
 
