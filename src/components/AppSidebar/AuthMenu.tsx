@@ -1,4 +1,4 @@
-import { Link, useNavigate, useRouteContext } from "@tanstack/react-router";
+import { Link, useRouteContext } from "@tanstack/react-router";
 import { LogOutIcon, PaletteIcon, SettingsIcon } from "lucide-react";
 import { Avatar, AvatarFallback } from "#/components/ui/avatar";
 import {
@@ -10,7 +10,7 @@ import {
 	DropdownMenuTrigger,
 } from "#/components/ui/dropdown-menu";
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "#/components/ui/sidebar";
-import { authClient } from "#/features/auth/lib/auth-client";
+import { useSignOut } from "#/features/auth/hooks/use-sign-out";
 
 function getFirstTwoInitials(fullName: string) {
 	return fullName
@@ -22,15 +22,10 @@ function getFirstTwoInitials(fullName: string) {
 }
 
 export function AuthMenu() {
-	const navigate = useNavigate();
 	const {
 		auth: { user },
 	} = useRouteContext({ from: "/_authenticated" });
-
-	async function handleSignOut() {
-		await authClient.signOut();
-		navigate({ to: "/sign-in" });
-	}
+	const signOut = useSignOut();
 
 	return (
 		<SidebarMenu>
@@ -67,7 +62,7 @@ export function AuthMenu() {
 								Settings
 							</Link>
 						</DropdownMenuItem>
-						<DropdownMenuItem onClick={handleSignOut}>
+						<DropdownMenuItem onClick={() => signOut.mutate()}>
 							<LogOutIcon />
 							Sign out
 						</DropdownMenuItem>
