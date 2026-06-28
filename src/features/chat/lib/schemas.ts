@@ -4,14 +4,13 @@ const uuid = z.uuid();
 
 export const createConversationSchema = z.object({
 	title: z.string().default("New Chat"),
-	endpointId: uuid.optional(),
-	model: z.string().default(""),
+	endpointId: uuid,
+	model: z.string().min(1),
 });
 
 export const updateConversationSchema = z.object({
 	title: z.string().min(1).optional(),
-	model: z.string().optional(),
-	endpointId: uuid.nullish(),
+	selection: z.object({ endpointId: uuid, model: z.string().min(1) }).optional(),
 	archived: z.boolean().optional(),
 });
 
@@ -23,7 +22,6 @@ export const saveMessagesInput = z.object({
 	id: uuid,
 	messages: z.array(z.record(z.string(), z.unknown())),
 });
-export const searchConversationsInput = z.object({ query: z.string().min(1).max(200) });
 
 /**
  * The `forwardedProps` the chat stream route reads from the AG-UI request body.

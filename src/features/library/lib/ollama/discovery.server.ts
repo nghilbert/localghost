@@ -1,3 +1,4 @@
+import { trimPathRight } from "@tanstack/react-router";
 import { ollamaClient } from "#/features/library/lib/ollama/client.server";
 import type { OllamaInstalledModel } from "#/features/library/lib/types";
 import { prisma } from "#/lib/db.server";
@@ -21,7 +22,7 @@ export async function getOllamaUrl(userId: string): Promise<string> {
 		where: { ownerId: userId, provider: "ollama" },
 		orderBy: { id: "asc" },
 	});
-	return (endpoint?.url ?? DEFAULT_OLLAMA_URL).replace(/\/+$/, "");
+	return trimPathRight(endpoint?.url ?? DEFAULT_OLLAMA_URL);
 }
 
 /**
@@ -30,7 +31,7 @@ export async function getOllamaUrl(userId: string): Promise<string> {
  */
 export function buildOllamaCandidateUrls(opts: { savedUrls: string[] }): string[] {
 	const candidates = [...opts.savedUrls, ...WELL_KNOWN_URLS]
-		.map((url) => url.trim().replace(/\/+$/, ""))
+		.map((url) => trimPathRight(url.trim()))
 		.filter((url) => url.length > 0);
 	return [...new Set(candidates)];
 }
@@ -110,7 +111,7 @@ export async function upsertOllamaEndpoint({
 	url: string;
 	existing?: { id: string; url: string } | null;
 }): Promise<void> {
-	const normalizedUrl = url.replace(/\/+$/, "");
+	const normalizedUrl = trimPathRight(url);
 	const resolved =
 		existing !== undefined
 			? existing

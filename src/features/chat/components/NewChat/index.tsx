@@ -1,11 +1,7 @@
 import { ChatInput } from "#/features/chat/components/ChatInput";
 import { useCreateConversation } from "#/features/chat/hooks/use-create-conversation";
 
-/**
- * The landing composer. A new chat inherits your most recent model, so the row is
- * created on send by useCreateConversation, which then hands the first message to the
- * conversation view to stream. You switch models inside the chat.
- */
+/** The landing composer. Creates the conversation row on first send. */
 export function NewChat() {
 	const createConversation = useCreateConversation();
 
@@ -22,6 +18,8 @@ export function NewChat() {
 				<ChatInput
 					disabled={!createConversation.isReady}
 					isStreaming={createConversation.isPending}
+					selection={createConversation.selection}
+					onSelect={createConversation.setSelection}
 					sendMessage={createConversation.mutate}
 				/>
 			</div>

@@ -4,6 +4,7 @@ import { createAnthropicChat } from "@tanstack/ai-anthropic";
 import { createGeminiChat } from "@tanstack/ai-gemini";
 import { createOllamaChat } from "@tanstack/ai-ollama";
 import { openaiCompatibleText } from "@tanstack/ai-openai/compatible";
+import { trimPathRight } from "@tanstack/react-router";
 
 export type LLMProvider = "anthropic" | "ollama" | "openai" | "openrouter" | "groq" | "gemini";
 
@@ -89,7 +90,7 @@ function openaiAdapter({
 const OPENAI_COMPATIBLE: ProviderConfig = {
 	// Normalize to end at `/v1`; the SDK appends `/chat/completions`.
 	chatBaseUrl: (url) => {
-		const base = url.replace(/\/+$/, "").replace(/\/chat\/completions$/, "");
+		const base = trimPathRight(url).replace(/\/chat\/completions$/, "");
 		return base.endsWith("/v1") ? base : `${base}/v1`;
 	},
 	buildAdapter: (args) => openaiAdapter(args),
@@ -108,7 +109,7 @@ const OPENAI_COMPATIBLE: ProviderConfig = {
 const PROVIDERS: Record<LLMProvider, ProviderConfig> = {
 	anthropic: {
 		// Strip a trailing slash and a redundant `/v1` so the SDK appends its own path.
-		chatBaseUrl: (url) => url.replace(/\/+$/, "").replace(/\/v1$/, ""),
+		chatBaseUrl: (url) => trimPathRight(url).replace(/\/v1$/, ""),
 		buildAdapter: ({ model, apiKey, baseUrl }) => {
 			// `createAnthropicChat` type-constrains the model to a fixed list; widen it with a
 			// runtime model definition so any bring-your-own Claude model name is accepted.
@@ -130,7 +131,7 @@ const PROVIDERS: Record<LLMProvider, ProviderConfig> = {
 		parseModels: (json) => (json.data ?? []).map((m) => m.id),
 	},
 	gemini: {
-		chatBaseUrl: (url) => url.replace(/\/+$/, ""),
+		chatBaseUrl: (url) => trimPathRight(url),
 		buildAdapter: ({ model, apiKey, baseUrl }) => {
 			// `createGeminiChat` type-constrains the model to a fixed list; widen it with a
 			// runtime model definition so any bring-your-own Gemini model name is accepted.
@@ -150,7 +151,7 @@ const PROVIDERS: Record<LLMProvider, ProviderConfig> = {
 	},
 	ollama: {
 		// Reduce to the host root; the SDK appends `/api/chat`.
-		chatBaseUrl: (url) => url.replace(/\/+$/, "").replace(/\/api$/, ""),
+		chatBaseUrl: (url) => trimPathRight(url).replace(/\/api$/, ""),
 		buildAdapter: ({ model, baseUrl }) => createOllamaChat(model, baseUrl),
 		modelOptions: ({ model, temperature, maxTokens, options }) => ({
 			model,
@@ -255,52 +256,17 @@ export async function callLLM(opts: StreamLLMOptions): Promise<string> {
 	return text;
 }
 
-export type EndpointProbeResult = {
-	ok: boolean;
-	status?: number;
-	modelCount?: number;
-	error?: string;
-};
+export type EndpointProbeResult = { ok: true; modelCount: number } | { ok: false; error: string };
 
 /**
- * Probes a provider's model-list endpoint with real auth so failures are
- * distinguishable — unlike {@link listModels}, which collapses errors into `[]`.
+ * Lists the model ids advertised by an endpoint. Throws on transport or HTTP
+ * failure (with a reason) so callers can tell an unreachable or rejected endpoint
+ * from one that simply has no models yet. An empty array means the endpoint
+ * responded OK with no models.
  *
  * @param url - The endpoint base URL.
  * @param apiKey - Optional API key for authenticated providers.
- * @returns Whether the endpoint responded, its status, and a model count when available.
- */
-export async function probeEndpoint({
-	url,
-	apiKey,
-}: {
-	url: string;
-	apiKey?: string;
-}): Promise<EndpointProbeResult> {
-	const config = PROVIDERS[detectProvider(url)];
-	const base = url.replace(/\/+$/, "");
-	try {
-		const res = await fetch(config.modelsUrl({ base, apiKey }), {
-			headers: config.modelsHeaders(apiKey),
-			signal: AbortSignal.timeout(8000),
-		});
-		if (!res.ok) {
-			const reason = res.status === 401 || res.status === 403 ? "API key rejected" : res.statusText;
-			return { ok: false, status: res.status, error: `${reason} (HTTP ${res.status})` };
-		}
-		const data: ModelsResponse = await res.json();
-		return { ok: true, status: res.status, modelCount: config.parseModels(data).length };
-	} catch (err) {
-		return { ok: false, error: err instanceof Error ? err.message : "Request failed" };
-	}
-}
-
-/**
- * Lists the model ids advertised by an endpoint, collapsing any error to `[]`.
- *
- * @param url - The endpoint base URL.
- * @param apiKey - Optional API key for authenticated providers.
- * @returns The available model ids, or `[]` on any failure.
+ * @returns The available model ids.
  */
 export async function listModels({
 	url,
@@ -310,15 +276,37 @@ export async function listModels({
 	apiKey?: string;
 }): Promise<string[]> {
 	const config = PROVIDERS[detectProvider(url)];
-	const base = url.replace(/\/+$/, "");
+	const base = trimPathRight(url);
+	const res = await fetch(config.modelsUrl({ base, apiKey }), {
+		headers: config.modelsHeaders(apiKey),
+		signal: AbortSignal.timeout(8000),
+	});
+	if (!res.ok) {
+		const reason = res.status === 401 || res.status === 403 ? "API key rejected" : res.statusText;
+		throw new Error(`${reason} (HTTP ${res.status})`);
+	}
+	const data: ModelsResponse = await res.json();
+	return config.parseModels(data);
+}
+
+/**
+ * Probes a provider's model-list endpoint with real auth so the test-connection
+ * UI can report success with a model count or the precise failure reason.
+ *
+ * @param url - The endpoint base URL.
+ * @param apiKey - Optional API key for authenticated providers.
+ */
+export async function probeEndpoint({
+	url,
+	apiKey,
+}: {
+	url: string;
+	apiKey?: string;
+}): Promise<EndpointProbeResult> {
 	try {
-		const res = await fetch(config.modelsUrl({ base, apiKey }), {
-			headers: config.modelsHeaders(apiKey),
-		});
-		if (!res.ok) return [];
-		const data: ModelsResponse = await res.json();
-		return config.parseModels(data);
-	} catch {
-		return [];
+		const models = await listModels({ url, apiKey });
+		return { ok: true, modelCount: models.length };
+	} catch (err) {
+		return { ok: false, error: err instanceof Error ? err.message : "Request failed" };
 	}
 }

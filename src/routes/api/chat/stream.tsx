@@ -48,7 +48,7 @@ export const Route = createFileRoute("/api/chat/stream")({
 					include: { endpoint: true },
 				});
 				if (!conversation) return new Response("Conversation not found", { status: 404 });
-				if (!conversation.endpoint)
+				if (!conversation.endpoint || !conversation.model)
 					return new Response("No model endpoint configured", { status: 400 });
 
 				const endpoint = conversation.endpoint;

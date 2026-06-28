@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import { toast } from "sonner";
 import {
 	conversationsQueryOptions,
@@ -32,22 +33,24 @@ export function useCreateConversation() {
 	const navigate = useNavigate();
 	const queryClient = useQueryClient();
 	const { endpoints } = useEndpoints();
+	const [overrideSelection, setOverrideSelection] = useState<ModelSelection | null>(null);
 
 	const firstEndpoint = endpoints[0];
 	const { data: firstModels = [] } = useQuery({
 		...endpointModelsQueryOptions(firstEndpoint?.id ?? ""),
 		enabled: Boolean(firstEndpoint),
 	});
-	const selection: ModelSelection | null =
+	const defaultSelection: ModelSelection | null =
 		firstEndpoint && firstModels[0]
 			? { endpointId: firstEndpoint.id, model: firstModels[0] }
 			: null;
+	const selection = overrideSelection ?? defaultSelection;
 
 	const mutation = useMutation({
-		mutationFn: (_content: string) =>
-			createConversation({
-				data: { endpointId: selection?.endpointId, model: selection?.model ?? "" },
-			}),
+		mutationFn: (_content: string) => {
+			if (!selection) throw new Error("No model selected");
+			return createConversation({ data: selection });
+		},
 		onSuccess: (conversation, content) => {
 			pendingMessages.set(conversation.id, content);
 			queryClient.invalidateQueries({ queryKey: conversationsQueryOptions().queryKey });
@@ -55,5 +58,10 @@ export function useCreateConversation() {
 		},
 		onError: () => toast.error("Failed to start chat"),
 	});
-	return { ...mutation, isReady: Boolean(selection) };
+	return {
+		...mutation,
+		isReady: Boolean(selection),
+		selection,
+		setSelection: setOverrideSelection,
+	};
 }

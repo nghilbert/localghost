@@ -7,7 +7,6 @@ import {
 	conversationIdInput,
 	createConversationSchema,
 	saveMessagesInput,
-	searchConversationsInput,
 	updateConversationInput,
 } from "./schemas";
 
@@ -64,7 +63,7 @@ export const createConversation = createServerFn({ method: "POST" })
 		return prisma.conversation.create({
 			data: {
 				title: data.title,
-				endpointId: data.endpointId ?? null,
+				endpointId: data.endpointId,
 				model: data.model,
 				ownerId: userId,
 			},
@@ -105,9 +104,11 @@ export const updateConversation = createServerFn({ method: "POST" })
 			where: { id },
 			data: {
 				...(patch.title !== undefined && { title: patch.title }),
-				...(patch.model !== undefined && { model: patch.model }),
-				...(patch.endpointId !== undefined && { endpointId: patch.endpointId }),
 				...(patch.archived !== undefined && { archived: patch.archived }),
+				...(patch.selection !== undefined && {
+					endpointId: patch.selection.endpointId,
+					model: patch.selection.model,
+				}),
 			},
 			include: { endpoint: { select: { id: true, name: true, url: true, provider: true } } },
 		});
@@ -118,49 +119,6 @@ export const deleteConversation = createServerFn({ method: "POST" })
 	.handler(async ({ data: { id } }) => {
 		const userId = await getCurrentUserId();
 		await prisma.conversation.deleteMany({ where: { id, ownerId: userId } });
-	});
-
-/**
- * Substring search across every conversation's `messages` blob, matching the
- * text content of any message part via a read-time JSONB traversal (no generated
- * column, so migrations stay Prisma-generated). Per-user chat volume is small,
- * so the sequential scan is acceptable.
- */
-export const searchConversations = createServerFn({ method: "POST" })
-	.validator(searchConversationsInput)
-	.handler(async ({ data: { query } }) => {
-		const userId = await getCurrentUserId();
-		const rows = await prisma.$queryRaw<
-			Array<{ id: string; title: string; snippet: string | null; updatedAt: Date }>
-		>`
-			SELECT c.id, c.title, c.updated_at AS "updatedAt",
-			       (
-			         SELECT part->>'content'
-			         FROM jsonb_array_elements(c.messages) AS msg,
-			              jsonb_array_elements(msg->'parts') AS part
-			         WHERE part->>'type' = 'text'
-			           AND part->>'content' ILIKE ${`%${query}%`}
-			         LIMIT 1
-			       ) AS snippet
-			FROM conversation c
-			WHERE c.owner_id = ${userId}::uuid
-			  AND c.archived = false
-			  AND EXISTS (
-			    SELECT 1
-			    FROM jsonb_array_elements(c.messages) AS msg,
-			         jsonb_array_elements(msg->'parts') AS part
-			    WHERE part->>'type' = 'text'
-			      AND part->>'content' ILIKE ${`%${query}%`}
-			  )
-			ORDER BY c.updated_at DESC
-			LIMIT 30
-		`;
-		return rows.map((r) => ({
-			id: r.id,
-			title: r.title,
-			snippet: (r.snippet ?? "").slice(0, 200),
-			updatedAt: r.updatedAt,
-		}));
 	});
 
 // ── Query options (for TanStack Query) ───────────────────────

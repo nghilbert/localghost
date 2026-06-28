@@ -8,7 +8,7 @@ model Conversation {
   title      String         @default("New Chat")
   endpointId String?        @map("endpoint_id") @db.Uuid
   endpoint   ModelEndpoint? @relation(fields: [endpointId], references: [id], onDelete: SetNull)
-  model      String         @default("")
+  model      String?
   archived   Boolean        @default(false)
   messages   Json           @default("[]") /// @tanstack/ai UIMessage[] — the full conversation transcript.
   updatedAt  DateTime       @updatedAt @map("updated_at")

@@ -16,8 +16,8 @@ export function useConversationModel(conversationId: string) {
 	const { data: conversation } = useSuspenseQuery(conversationQueryOptions(conversationId));
 
 	const patch = useMutation({
-		mutationFn: (data: ModelSelection) =>
-			updateConversation({ data: { id: conversationId, data } }),
+		mutationFn: (selection: ModelSelection) =>
+			updateConversation({ data: { id: conversationId, data: { selection } } }),
 		onSuccess: (updated) => {
 			queryClient.setQueryData(conversationQueryOptions(conversationId).queryKey, updated);
 			queryClient.invalidateQueries({ queryKey: conversationsQueryOptions().queryKey });

@@ -1,4 +1,5 @@
 import { queryOptions } from "@tanstack/react-query";
+import { trimPathRight } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod/v4";
 import { getCurrentUserId } from "#/features/auth/lib/session.server";
@@ -65,7 +66,7 @@ export const startModelPull = createServerFn({ method: "POST" })
 	.validator(z.object({ model: z.string().min(1), ollamaUrl: z.string().optional() }))
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
-		const ollamaUrl = data.ollamaUrl?.replace(/\/+$/, "") ?? (await getOllamaUrl(userId));
+		const ollamaUrl = data.ollamaUrl ? trimPathRight(data.ollamaUrl) : await getOllamaUrl(userId);
 		startPull({ userId, model: data.model, ollamaUrl });
 	});
 

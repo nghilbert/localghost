@@ -1,3 +1,4 @@
+import { trimPathRight } from "@tanstack/react-router";
 import { z } from "zod/v4";
 import { decrypt } from "#/lib/crypto.server";
 import { prisma } from "#/lib/db.server";
@@ -29,7 +30,7 @@ export async function embed({
 
 	for (const ep of endpoints) {
 		const apiKey = ep.apiKeyEncrypted ? decrypt(ep.apiKeyEncrypted) : undefined;
-		const base = ep.url.replace(/\/$/, "").replace(/\/v1\/?$/, "");
+		const base = trimPathRight(ep.url).replace(/\/v1$/, "");
 		const embeddingUrl = `${base}/v1/embeddings`;
 
 		try {

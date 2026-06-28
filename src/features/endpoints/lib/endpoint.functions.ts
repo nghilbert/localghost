@@ -70,6 +70,13 @@ export const deleteEndpoint = createServerFn({ method: "POST" })
 	.validator(endpointIdInput)
 	.handler(async ({ data: { id } }) => {
 		const userId = await getCurrentUserId();
+		// Clear the model on conversations using this endpoint so the (endpointId, model)
+		// pair goes null together — the FK's SetNull only nulls endpointId. Keeps history,
+		// reopening the chat to a fresh model pick instead of an orphaned model string.
+		await prisma.conversation.updateMany({
+			where: { endpointId: id, ownerId: userId },
+			data: { model: null },
+		});
 		await prisma.modelEndpoint.deleteMany({ where: { id, ownerId: userId } });
 	});
 

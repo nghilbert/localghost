@@ -1,6 +1,6 @@
 import { useQueries } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { BookOpenIcon, CheckIcon, ChevronDownIcon } from "lucide-react";
+import { CheckIcon, ChevronDownIcon, LibraryIcon, TriangleAlertIcon } from "lucide-react";
 import { useState } from "react";
 import { Button } from "#/components/ui/button";
 import {
@@ -13,20 +13,19 @@ import {
 	DropdownMenuTrigger,
 } from "#/components/ui/dropdown-menu";
 import { Spinner } from "#/components/ui/spinner";
-import { useConversationModel } from "#/features/chat/hooks/use-conversation-model";
 import { useEndpoints } from "#/features/endpoints/hooks/use-endpoints";
 import { endpointModelsQueryOptions } from "#/features/endpoints/lib/endpoint.functions";
+import type { ModelSelection } from "#/features/endpoints/lib/types";
 
 type ModelPickerProps = {
-	/** The conversation whose model the picker reads and writes. */
-	conversationId: string;
+	selection: ModelSelection | null;
+	onSelect: (selection: ModelSelection) => void;
 };
 
-/** Endpoint and model dropdown. Reads and writes the selection through its owner hook. */
-export function ModelPicker({ conversationId }: ModelPickerProps) {
+/** Endpoint and model dropdown. Reads and writes the selection through its owner. */
+export function ModelPicker({ selection, onSelect }: ModelPickerProps) {
 	const [open, setOpen] = useState(false);
 	const { endpoints } = useEndpoints();
-	const { selection, setSelection } = useConversationModel(conversationId);
 	const label = selection?.model ?? "Select model";
 
 	// Resolve every endpoint's models in one place, fetched only while the menu is
@@ -41,6 +40,7 @@ export function ModelPicker({ conversationId }: ModelPickerProps) {
 		.map((endpoint, i) => ({ endpoint, models: results[i]?.data ?? [] }))
 		.filter((group) => group.models.length > 0);
 	const isLoading = results.some((result) => result.isLoading);
+	const isError = results.some((result) => result.isError);
 
 	return (
 		<DropdownMenu open={open} onOpenChange={setOpen}>
@@ -56,10 +56,17 @@ export function ModelPicker({ conversationId }: ModelPickerProps) {
 						<Spinner className="size-3" />
 						<span className="text-muted-foreground">Loading models…</span>
 					</DropdownMenuItem>
+				) : isError ? (
+					<DropdownMenuItem asChild>
+						<Link to="/settings">
+							<TriangleAlertIcon />
+							Couldn't reach endpoint, check Settings
+						</Link>
+					</DropdownMenuItem>
 				) : groups.length === 0 ? (
 					<DropdownMenuItem asChild>
 						<Link to="/library">
-							<BookOpenIcon />
+							<LibraryIcon />
 							No models yet, browse the Library
 						</Link>
 					</DropdownMenuItem>
@@ -73,7 +80,7 @@ export function ModelPicker({ conversationId }: ModelPickerProps) {
 								return (
 									<DropdownMenuItem
 										key={model}
-										onClick={() => setSelection({ endpointId: endpoint.id, model })}
+										onClick={() => onSelect({ endpointId: endpoint.id, model })}
 									>
 										<span className="truncate">{model}</span>
 										{isSelected && <CheckIcon size={13} className="ml-auto shrink-0" />}

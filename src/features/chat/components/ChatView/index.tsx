@@ -11,6 +11,8 @@ import type { getConversation } from "#/features/chat/lib/conversation.functions
 type ChatViewProps = { conversation: Awaited<ReturnType<typeof getConversation>> };
 export function ChatView({ conversation }: ChatViewProps) {
 	const {
+		selection,
+		setSelection,
 		isReady,
 		enabledTools,
 		setEnabledTools,
@@ -60,9 +62,10 @@ export function ChatView({ conversation }: ChatViewProps) {
 			</ChatWindow>
 
 			<ChatInput
-				conversationId={conversation.id}
 				disabled={!isReady}
 				isStreaming={isStreaming}
+				selection={selection}
+				onSelect={setSelection}
 				tools={{
 					enabledTools,
 					forceWebSearch,

@@ -1,19 +1,17 @@
-import { Link } from "@tanstack/react-router";
-import { ArrowUpIcon, BookOpenIcon, SquareIcon } from "lucide-react";
+import { ArrowUpIcon, SquareIcon } from "lucide-react";
 import { type KeyboardEvent, useRef } from "react";
 import { Button } from "#/components/ui/button";
 import { Card, CardAction, CardContent, CardFooter } from "#/components/ui/card";
 import { Textarea } from "#/components/ui/textarea";
 import { ModelPicker } from "#/features/chat/components/ChatInput/ModelPicker";
 import { type ToolControls, ToolToggles } from "#/features/chat/components/ChatInput/ToolToggles";
-import { useEndpoints } from "#/features/endpoints/hooks/use-endpoints";
+import type { ModelSelection } from "#/features/endpoints/lib/types";
 
 type ChatInputProps = {
-	/** The conversation being composed in; the model picker shows only here, not on `/new`. */
-	conversationId?: string;
-	/** Blocks sending while the conversation has no model chosen. */
 	disabled?: boolean;
 	isStreaming: boolean;
+	selection: ModelSelection | null;
+	onSelect: (selection: ModelSelection) => void;
 	/** Tool toggles, shown only inside a conversation; omitted on the `/new` composer. */
 	tools?: ToolControls;
 	sendMessage: (content: string) => void;
@@ -21,15 +19,15 @@ type ChatInputProps = {
 };
 
 export function ChatInput({
-	conversationId,
 	disabled = false,
 	isStreaming,
+	selection,
+	onSelect,
 	tools,
 	sendMessage,
 	stop,
 }: ChatInputProps) {
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
-	const { endpoints } = useEndpoints();
 
 	function submit() {
 		const value = textareaRef.current?.value.trim();
@@ -60,16 +58,7 @@ export function ChatInput({
 
 			<CardFooter className="justify-between gap-2">
 				<CardAction className="flex items-center gap-2">
-					{conversationId ? (
-						<ModelPicker conversationId={conversationId} />
-					) : !endpoints.length ? (
-						<Button variant="outline" size="sm" asChild>
-							<Link to="/library">
-								<BookOpenIcon size={14} />
-								No models — browse Library
-							</Link>
-						</Button>
-					) : null}
+					<ModelPicker selection={selection} onSelect={onSelect} />
 					{tools && <ToolToggles {...tools} />}
 				</CardAction>
 
