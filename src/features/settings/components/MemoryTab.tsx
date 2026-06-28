@@ -1,6 +1,5 @@
-import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { TrashIcon } from "lucide-react";
-import { toast } from "sonner";
 import { Button } from "#/components/ui/button";
 import {
 	Item,
@@ -10,23 +9,12 @@ import {
 	ItemGroup,
 	ItemTitle,
 } from "#/components/ui/item";
-import {
-	deleteSavedMemory,
-	savedMemoriesQueryOptions,
-} from "#/features/settings/lib/memory.functions";
+import { useMemories } from "#/features/settings/hooks/use-memories";
+import { savedMemoriesQueryOptions } from "#/features/settings/lib/memory.functions";
 
 export function MemoryTab() {
-	const queryClient = useQueryClient();
 	const { data: memories } = useSuspenseQuery(savedMemoriesQueryOptions());
-
-	const remove = useMutation({
-		mutationFn: (id: string) => deleteSavedMemory({ data: { id } }),
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["saved-memories"] });
-			toast.success("Memory deleted");
-		},
-		onError: () => toast.error("Failed to delete memory"),
-	});
+	const { deleteMemory } = useMemories();
 
 	return (
 		<div className="space-y-6">
@@ -53,7 +41,7 @@ export function MemoryTab() {
 										variant="ghost"
 										size="icon"
 										className="h-6 w-6 text-destructive hover:text-destructive"
-										onClick={() => remove.mutate(memory.id)}
+										onClick={() => deleteMemory.mutate(memory.id)}
 										aria-label="Delete memory"
 									>
 										<TrashIcon size={13} />
