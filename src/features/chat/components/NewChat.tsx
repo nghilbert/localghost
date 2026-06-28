@@ -1,3 +1,10 @@
+import {
+	Empty,
+	EmptyContent,
+	EmptyDescription,
+	EmptyHeader,
+	EmptyTitle,
+} from "#/components/ui/empty";
 import { ChatInput } from "#/features/chat/components/ChatInput";
 import { useCreateConversation } from "#/features/chat/hooks/use-create-conversation";
 
@@ -6,15 +13,13 @@ export function NewChat() {
 	const createConversation = useCreateConversation();
 
 	return (
-		<div className="mx-auto flex h-full w-full max-w-2xl flex-col items-center justify-center gap-4 px-4">
-			<div className="space-y-1 text-center">
-				<h1 className="font-semibold text-2xl">What can I help with?</h1>
-				<p className="text-muted-foreground text-sm">
-					Start typing. Your chat begins with your first message.
-				</p>
-			</div>
+		<Empty className="mx-auto h-full max-w-2xl px-4">
+			<EmptyHeader>
+				<EmptyTitle className="text-2xl">What can I help with?</EmptyTitle>
+				<EmptyDescription>Start typing. Your chat begins with your first message.</EmptyDescription>
+			</EmptyHeader>
 
-			<div className="w-full">
+			<EmptyContent className="w-full max-w-none">
 				<ChatInput
 					disabled={!createConversation.isReady}
 					isStreaming={createConversation.isPending}
@@ -22,7 +27,7 @@ export function NewChat() {
 					onSelect={createConversation.setSelection}
 					sendMessage={createConversation.mutate}
 				/>
-			</div>
-		</div>
+			</EmptyContent>
+		</Empty>
 	);
 }

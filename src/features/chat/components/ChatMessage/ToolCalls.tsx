@@ -1,6 +1,7 @@
 import type { UIMessage } from "@tanstack/ai-client";
 import { BrainIcon, GlobeIcon, LinkIcon, type LucideIcon, TerminalIcon } from "lucide-react";
-import { ChatBubble } from "#/features/chat/components/ChatBubble";
+import { Marker, MarkerContent, MarkerIcon } from "#/components/ui/marker";
+import { Spinner } from "#/components/ui/spinner";
 import { MessageCollapsible } from "#/features/chat/components/ChatMessage/MessageCollapsible";
 import { useElapsedSeconds } from "#/features/chat/hooks/use-elapsed-seconds";
 
@@ -40,9 +41,15 @@ export function ToolCalls({ toolCalls, isStreaming }: ToolCallsProps) {
 			{toolCalls.map((tc) => {
 				const { icon, running, done } = display(tc.name);
 				return isStreaming && tc.output === undefined ? (
-					<ChatBubble key={tc.id} side="assistant" pending seconds={seconds}>
-						{running}
-					</ChatBubble>
+					<Marker key={tc.id} role="status">
+						<MarkerIcon>
+							<Spinner />
+						</MarkerIcon>
+						<MarkerContent>
+							{running}
+							{seconds ? <span className="tabular-nums opacity-70"> · {seconds}s</span> : null}
+						</MarkerContent>
+					</Marker>
 				) : (
 					<MessageCollapsible key={tc.id} icon={icon} label={done}>
 						<pre className="whitespace-pre-wrap wrap-break-word px-3 py-2.5 font-mono leading-relaxed text-muted-foreground">

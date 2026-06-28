@@ -2,7 +2,8 @@ import type { ChatClientState } from "@tanstack/ai-client";
 import { RefreshCwIcon, TriangleAlertIcon } from "lucide-react";
 import { Alert, AlertAction, AlertDescription, AlertTitle } from "#/components/ui/alert";
 import { Button } from "#/components/ui/button";
-import { ChatBubble } from "#/features/chat/components/ChatBubble";
+import { Marker, MarkerContent, MarkerIcon } from "#/components/ui/marker";
+import { Spinner } from "#/components/ui/spinner";
 import { useElapsedSeconds } from "#/features/chat/hooks/use-elapsed-seconds";
 
 type ChatStatusProps = {
@@ -29,15 +30,21 @@ function humanizeError(message: string): { title: string; description: string } 
 	return { title: "Something went wrong", description: message };
 }
 
-/** The conversation's single transient status row: a recoverable error alert, or a "Thinking" bubble — nothing once streaming or idle. */
+/** The conversation's single transient status row: a recoverable error alert, or a "Thinking" marker — nothing once streaming or idle. */
 export function ChatStatus({ status, error, onRetry }: ChatStatusProps) {
 	const seconds = useElapsedSeconds(status === "submitted");
 
 	if (status === "submitted") {
 		return (
-			<ChatBubble side="assistant" pending seconds={seconds}>
-				Thinking
-			</ChatBubble>
+			<Marker role="status">
+				<MarkerIcon>
+					<Spinner />
+				</MarkerIcon>
+				<MarkerContent>
+					Thinking
+					{seconds ? <span className="tabular-nums opacity-70"> · {seconds}s</span> : null}
+				</MarkerContent>
+			</Marker>
 		);
 	}
 
