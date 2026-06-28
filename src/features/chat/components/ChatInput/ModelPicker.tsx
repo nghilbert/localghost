@@ -18,17 +18,12 @@ import { useEndpoints } from "#/features/endpoints/hooks/use-endpoints";
 import { endpointModelsQueryOptions } from "#/features/endpoints/lib/endpoint.functions";
 
 type ModelPickerProps = {
-	/** The conversation whose model the picker reads and writes. Omit on /new. */
-	conversationId?: string;
+	/** The conversation whose model the picker reads and writes. */
+	conversationId: string;
 };
 
 /** Endpoint and model dropdown. Reads and writes the selection through its owner hook. */
 export function ModelPicker({ conversationId }: ModelPickerProps) {
-	if (!conversationId) return null;
-	return <ModelPickerInner conversationId={conversationId} />;
-}
-
-function ModelPickerInner({ conversationId }: { conversationId: string }) {
 	const [open, setOpen] = useState(false);
 	const { endpoints } = useEndpoints();
 	const { selection, setSelection } = useConversationModel(conversationId);

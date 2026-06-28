@@ -43,7 +43,7 @@ export function useCreateConversation() {
 			? { endpointId: firstEndpoint.id, model: firstModels[0] }
 			: null;
 
-	return useMutation({
+	const mutation = useMutation({
 		mutationFn: (_content: string) =>
 			createConversation({
 				data: { endpointId: selection?.endpointId, model: selection?.model ?? "" },
@@ -55,4 +55,5 @@ export function useCreateConversation() {
 		},
 		onError: () => toast.error("Failed to start chat"),
 	});
+	return { ...mutation, isReady: Boolean(selection) };
 }

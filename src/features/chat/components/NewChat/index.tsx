@@ -7,7 +7,7 @@ import { useCreateConversation } from "#/features/chat/hooks/use-create-conversa
  * conversation view to stream. You switch models inside the chat.
  */
 export function NewChat() {
-	const start = useCreateConversation();
+	const createConversation = useCreateConversation();
 
 	return (
 		<div className="mx-auto flex h-full w-full max-w-2xl flex-col items-center justify-center gap-4 px-4">
@@ -20,9 +20,9 @@ export function NewChat() {
 
 			<div className="w-full">
 				<ChatInput
-					isStreaming={start.isPending}
-					sendMessage={start.mutate}
-					stop={() => undefined}
+					disabled={!createConversation.isReady}
+					isStreaming={createConversation.isPending}
+					sendMessage={createConversation.mutate}
 				/>
 			</div>
 		</div>
