@@ -3,26 +3,24 @@ import { type KeyboardEvent, useRef } from "react";
 import { Button } from "#/components/ui/button";
 import { Card, CardAction, CardContent, CardFooter } from "#/components/ui/card";
 import { Textarea } from "#/components/ui/textarea";
-import { type ToolControls, ToolToggles } from "#/features/chat/components/ChatView/ToolToggles";
-import { ModelPicker } from "#/features/endpoints/components/ModelPicker";
+import { ModelPicker } from "#/features/chat/components/ChatInput/ModelPicker";
+import { type ToolControls, ToolToggles } from "#/features/chat/components/ChatInput/ToolToggles";
 
 type ChatInputProps = {
-	model: string;
-	endpointId: string | null | undefined;
-	isReady: boolean;
-	onModelSelect: (endpointId: string, model: string) => void;
+	/** The conversation being composed in; the model picker shows only here, not on `/new`. */
+	conversationId?: string;
+	/** Blocks sending while the conversation has no model chosen. */
+	disabled?: boolean;
 	isStreaming: boolean;
 	/** Tool toggles, shown only inside a conversation; omitted on the `/new` composer. */
 	tools?: ToolControls;
-	sendMessage: (content: string) => Promise<void>;
+	sendMessage: (content: string) => void;
 	stop: () => void;
 };
 
 export function ChatInput({
-	model,
-	endpointId,
-	isReady,
-	onModelSelect,
+	conversationId,
+	disabled = false,
 	isStreaming,
 	tools,
 	sendMessage,
@@ -32,7 +30,7 @@ export function ChatInput({
 
 	function submit() {
 		const value = textareaRef.current?.value.trim();
-		if (!value || isStreaming || !isReady) return;
+		if (!value || isStreaming || disabled) return;
 		sendMessage(value);
 		if (textareaRef.current) textareaRef.current.value = "";
 	}
@@ -53,20 +51,16 @@ export function ChatInput({
 					placeholder="Message…"
 					className="max-h-50 field-sizing-content resize-none"
 					onKeyDown={handleKeyDown}
-					disabled={!isReady}
+					disabled={disabled}
 				/>
 			</CardContent>
 
 			<CardFooter className="justify-between gap-2">
 				<CardAction className="flex items-center gap-2">
-					<ModelPicker
-						currentModel={model}
-						currentEndpointId={endpointId}
-						onSelect={onModelSelect}
-						needsAttention={!isReady}
-					/>
+					<ModelPicker conversationId={conversationId} />
 					{tools && <ToolToggles {...tools} />}
 				</CardAction>
+
 				<CardAction>
 					{isStreaming ? (
 						<Button
@@ -83,7 +77,7 @@ export function ChatInput({
 							size="icon"
 							className="h-8 w-8 shrink-0 rounded-full"
 							onClick={submit}
-							disabled={!isReady}
+							disabled={disabled}
 						>
 							<ArrowUpIcon size={14} />
 							<span className="sr-only">Send</span>
