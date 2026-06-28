@@ -1,12 +1,11 @@
 import { cva, type VariantProps } from "class-variance-authority";
 import { Slot } from "radix-ui";
-import type * as React from "react";
+import * as React from "react";
 import { Separator } from "#/components/ui/separator.tsx";
 import { cn } from "#/lib/utils.ts";
 
 function ItemGroup({ className, ...props }: React.ComponentProps<"div">) {
 	return (
-		// biome-ignore lint/a11y/useSemanticElements: <ul> would work, but VoiceOver on Safari strips list semantics when list-style is removed via CSS (a known quirk), making role="list" on a <div> more reliable for AT cross-browser. The component is also a generic card-item container, not a semantic list of enumerable data.
 		<div
 			role="list"
 			data-slot="item-group"

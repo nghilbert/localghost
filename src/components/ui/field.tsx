@@ -1,5 +1,3 @@
-"use client";
-
 import { cva, type VariantProps } from "class-variance-authority";
 import { useMemo } from "react";
 import { Label } from "#/components/ui/label.tsx";
@@ -71,7 +69,6 @@ function Field({
 	...props
 }: React.ComponentProps<"div"> & VariantProps<typeof fieldVariants>) {
 	return (
-		// biome-ignore lint/a11y/useSemanticElements: <fieldset> imposes UA styles (border, min-inline-size: min-content, padding) that require explicit resets and break orientation-based layout. role="group" on a <div> communicates the same grouping semantics without visual side effects.
 		<div
 			role="group"
 			data-slot="field"
@@ -183,13 +180,12 @@ function FieldError({
 
 		const uniqueErrors = [...new Map(errors.map((error) => [error?.message, error])).values()];
 
-		if (uniqueErrors?.length === 1) {
+		if (uniqueErrors?.length == 1) {
 			return uniqueErrors[0]?.message;
 		}
 
 		return (
 			<ul className="ml-4 flex list-disc flex-col gap-1">
-				{/* biome-ignore lint/suspicious/noArrayIndexKey: These <li> items are display-only text with no local state, so key instability cannot cause incorrect renders. Using error.message as key is not safe because the optional chain allows undefined, which could produce duplicate keys. */}
 				{uniqueErrors.map((error, index) => error?.message && <li key={index}>{error.message}</li>)}
 			</ul>
 		);

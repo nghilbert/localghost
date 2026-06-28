@@ -1,6 +1,6 @@
 import { ChevronRightIcon, MoreHorizontalIcon } from "lucide-react";
 import { Slot } from "radix-ui";
-import type * as React from "react";
+import * as React from "react";
 import { cn } from "#/lib/utils.ts";
 
 function Breadcrumb({ className, ...props }: React.ComponentProps<"nav">) {
@@ -52,8 +52,6 @@ function BreadcrumbLink({
 
 function BreadcrumbPage({ className, ...props }: React.ComponentProps<"span">) {
 	return (
-		// biome-ignore lint/a11y/useSemanticElements: This is the current, non-navigable page, so <a> would be wrong here. role="link" + aria-disabled="true" is the WAI-ARIA pattern for communicating link identity to AT while keeping the element inert.
-		// biome-ignore lint/a11y/useFocusableInteractive: Intentionally non-focusable. aria-disabled="true" marks it as inert, and WCAG excludes disabled interactive elements from the tab order so keyboard/AT users naturally skip over it.
 		<span
 			data-slot="breadcrumb-page"
 			role="link"

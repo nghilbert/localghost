@@ -75,14 +75,12 @@ function SidebarProvider({
 			}
 
 			// This sets the cookie to keep the sidebar state.
-			// biome-ignore lint/suspicious/noDocumentCookie: Non-sensitive UI-preference cookie. The Cookie Store API is async and adds unnecessary complexity for a simple sidebar-open/closed flag that carries no auth tokens or PII.
 			document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`;
 		},
 		[setOpenProp, open],
 	);
 
 	// Helper to toggle the sidebar.
-	// biome-ignore lint/correctness/useExhaustiveDependencies: setOpenMobile is a useState setter, so React guarantees its reference is stable forever. Listing it here follows an explicit convention of declaring all closed-over values; it causes no extra re-renders.
 	const toggleSidebar = React.useCallback(() => {
 		return isMobile ? setOpenMobile((open) => !open) : setOpen((open) => !open);
 	}, [isMobile, setOpen, setOpenMobile]);
@@ -104,7 +102,6 @@ function SidebarProvider({
 	// This makes it easier to style the sidebar with Tailwind classes.
 	const state = open ? "expanded" : "collapsed";
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: setOpenMobile is a useState setter with a guaranteed-stable reference. It is listed here alongside openMobile for symmetry and to make the full context shape visible at a glance.
 	const contextValue = React.useMemo<SidebarContextProps>(
 		() => ({
 			state,

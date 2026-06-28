@@ -26,7 +26,6 @@ function ButtonGroup({
 	...props
 }: React.ComponentProps<"div"> & VariantProps<typeof buttonGroupVariants>) {
 	return (
-		// biome-ignore lint/a11y/useSemanticElements: ButtonGroup groups action buttons, not form controls, so <fieldset> semantics are wrong. <fieldset> also carries UA styles (border, padding, min-inline-size) that would break the layout. role="group" on <div> correctly communicates the grouping to AT without those side effects.
 		<div
 			role="group"
 			data-slot="button-group"

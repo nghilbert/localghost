@@ -12,5 +12,6 @@
 		"includes": ["**", "!**/routeTree.gen.ts"],
 		"ignoreUnknown": true
 	},
+	"overrides": [{ "linter": { "enabled": false }, "includes": ["**/src/components/ui/**"] }],
 	"vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true }
 }

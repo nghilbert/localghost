@@ -41,7 +41,6 @@ function Slider({
 			{Array.from({ length: _values.length }, (_, index) => (
 				<SliderPrimitive.Thumb
 					data-slot="slider-thumb"
-					// biome-ignore lint/suspicious/noArrayIndexKey: Radix thumbs are positional: thumb 0 = value[0], thumb 1 = value[1]. Using _values[index] risks duplicate keys when two thumbs share the same value (e.g. a collapsed range). Index is the only stable, non-duplicate identity here.
 					key={index}
 					className="relative block size-3 shrink-0 rounded-full border border-ring bg-white ring-ring/50 transition-[color,box-shadow] select-none after:absolute after:-inset-2 hover:ring-3 focus-visible:ring-3 focus-visible:outline-hidden active:ring-3 disabled:pointer-events-none disabled:opacity-50"
 				/>

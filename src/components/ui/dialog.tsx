@@ -1,8 +1,6 @@
-"use client";
-
 import { XIcon } from "lucide-react";
 import { Dialog as DialogPrimitive } from "radix-ui";
-import type * as React from "react";
+import * as React from "react";
 import { Button } from "#/components/ui/button.tsx";
 import { cn } from "#/lib/utils.ts";
 

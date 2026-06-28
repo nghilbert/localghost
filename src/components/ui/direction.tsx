@@ -1,5 +1,5 @@
 import { Direction } from "radix-ui";
-import type * as React from "react";
+import * as React from "react";
 
 function DirectionProvider({
 	dir,

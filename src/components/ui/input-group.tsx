@@ -1,5 +1,5 @@
 import { cva, type VariantProps } from "class-variance-authority";
-import type * as React from "react";
+import * as React from "react";
 import { Button } from "#/components/ui/button.tsx";
 import { Input } from "#/components/ui/input.tsx";
 import { Textarea } from "#/components/ui/textarea.tsx";
@@ -7,7 +7,6 @@ import { cn } from "#/lib/utils.ts";
 
 function InputGroup({ className, ...props }: React.ComponentProps<"div">) {
 	return (
-		// biome-ignore lint/a11y/useSemanticElements: <fieldset> would impose UA styles (border, padding, min-inline-size) that completely break this inline input+addon layout. role="group" signals that the input and its addons are a cohesive unit without changing the element's presentation.
 		<div
 			data-slot="input-group"
 			role="group"
@@ -45,8 +44,6 @@ function InputGroupAddon({
 	...props
 }: React.ComponentProps<"div"> & VariantProps<typeof inputGroupAddonVariants>) {
 	return (
-		// biome-ignore lint/a11y/useSemanticElements: Same reasoning as InputGroup, <fieldset> UA styles break the inline layout. The addon is a decoration/label area, not an independent grouping of form controls.
-		// biome-ignore lint/a11y/useKeyWithClickEvents: This onClick is a mouse-only focus-delegation convenience: clicking the addon area focuses the sibling input (like clicking a <label>). Keyboard users already reach the input via Tab, there is no keyboard equivalent needed because this is not an interactive control.
 		<div
 			role="group"
 			data-slot="input-group-addon"

@@ -1,12 +1,11 @@
 import { ChevronLeftIcon, ChevronRightIcon, MoreHorizontalIcon } from "lucide-react";
-import type * as React from "react";
+import * as React from "react";
 import { Button } from "#/components/ui/button.tsx";
 import { cn } from "#/lib/utils.ts";
 
 function Pagination({ className, ...props }: React.ComponentProps<"nav">) {
 	return (
 		<nav
-			// biome-ignore lint/a11y/noRedundantRoles: <nav> already has the implicit "navigation" landmark role, so this is redundant to AT. Kept as an explicit hint for developers reading the markup.
 			role="navigation"
 			aria-label="pagination"
 			data-slot="pagination"
