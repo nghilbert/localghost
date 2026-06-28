@@ -1,18 +1,17 @@
 import { useChat } from "@tanstack/ai-react";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { ChatInput } from "#/features/chat/components/ChatView/ChatInput";
+import { useEffect, useMemo, useRef } from "react";
+import { ChatInput } from "#/features/chat/components/ChatInput";
 import { ChatStatus } from "#/features/chat/components/ChatView/ChatStatus";
 import { ChatWindow } from "#/features/chat/components/ChatView/ChatWindow";
-import { takePendingMessage } from "#/features/chat/components/NewChat";
-import { useChatTools } from "#/features/chat/hooks/use-chat-tools";
-import { useConversationSettings } from "#/features/chat/hooks/use-conversation-settings";
+import { useConversation } from "#/features/chat/hooks/use-conversation";
+import { takePendingMessage } from "#/features/chat/hooks/use-create-conversation";
 import { chatClientOptions } from "#/features/chat/lib/chat-client-options";
 import type { getConversation } from "#/features/chat/lib/conversation.functions";
 
 type ChatViewProps = { conversation: Awaited<ReturnType<typeof getConversation>> };
 export function ChatView({ conversation }: ChatViewProps) {
-	const { isReady, model, endpointId, setModel } = useConversationSettings(conversation.id);
 	const {
+		isReady,
 		enabledTools,
 		setEnabledTools,
 		forceWebSearch,
@@ -20,10 +19,10 @@ export function ChatView({ conversation }: ChatViewProps) {
 		resetTools,
 		supportsTools,
 		toolsToSend,
-	} = useChatTools(endpointId, model);
+	} = useConversation(conversation.id);
 
-	// Ephemeral per-conversation tool selection — sent with each message via
-	// `forwardedProps`, never persisted. `useChat` re-reads `forwardedProps` on
+	// Ephemeral per-conversation tool selection, sent with each message via
+	// `forwardedProps` and never persisted. `useChat` re-reads `forwardedProps` on
 	// every send, so a fresh object here means the latest choice rides along.
 	const forwardedProps = useMemo(
 		() => ({ conversationId: conversation.id, enabledTools: toolsToSend, forceWebSearch }),
@@ -44,13 +43,13 @@ export function ChatView({ conversation }: ChatViewProps) {
 	}
 
 	// The first message typed on `/new` is handed over out-of-band (the row was
-	// already created there); take it once and send it, then it's an ordinary chat.
-	const [pendingMessage] = useState(() => takePendingMessage(conversation.id));
-	const sentPending = useRef(false);
+	// already created there). Send it once the model is resolved, then clear it so it
+	// can't re-send, after which this is an ordinary chat.
+	const pending = useRef(takePendingMessage(conversation.id));
 	useEffect(() => {
-		if (pendingMessage && !sentPending.current) {
-			sentPending.current = true;
-			handleSend(pendingMessage);
+		if (pending.current && isReady) {
+			handleSend(pending.current);
+			pending.current = undefined;
 		}
 	});
 
@@ -61,10 +60,8 @@ export function ChatView({ conversation }: ChatViewProps) {
 			</ChatWindow>
 
 			<ChatInput
-				model={model}
-				endpointId={endpointId}
-				isReady={isReady}
-				onModelSelect={setModel}
+				conversationId={conversation.id}
+				disabled={!isReady}
 				isStreaming={isStreaming}
 				tools={{
 					enabledTools,
