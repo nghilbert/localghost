@@ -57,19 +57,25 @@ export function ModelPicker({ selection, onSelect }: ModelPickerProps) {
 						<span className="text-muted-foreground">Loading models…</span>
 					</DropdownMenuItem>
 				) : isError ? (
-					<DropdownMenuItem asChild>
-						<Link to="/settings">
-							<TriangleAlertIcon />
-							Couldn't reach endpoint, check Settings
-						</Link>
-					</DropdownMenuItem>
+					<DropdownMenuGroup>
+						<DropdownMenuLabel>Couldn't reach endpoint</DropdownMenuLabel>
+						<DropdownMenuItem asChild>
+							<Link to="/settings" search={{ tab: "providers" }}>
+								<TriangleAlertIcon />
+								Check Provider Settings
+							</Link>
+						</DropdownMenuItem>
+					</DropdownMenuGroup>
 				) : groups.length === 0 ? (
-					<DropdownMenuItem asChild>
-						<Link to="/library">
-							<LibraryIcon />
-							No models yet, browse the Library
-						</Link>
-					</DropdownMenuItem>
+					<DropdownMenuGroup>
+						<DropdownMenuLabel>No models yet</DropdownMenuLabel>
+						<DropdownMenuItem asChild>
+							<Link to="/library" search={{ tab: "browse" }}>
+								<LibraryIcon />
+								Browse the Library
+							</Link>
+						</DropdownMenuItem>
+					</DropdownMenuGroup>
 				) : (
 					groups.map(({ endpoint, models }) => (
 						<DropdownMenuGroup key={endpoint.id}>

@@ -13,13 +13,13 @@ export function NewChat() {
 	const createConversation = useCreateConversation();
 
 	return (
-		<Empty className="mx-auto h-full max-w-2xl px-4">
+		<Empty>
 			<EmptyHeader>
 				<EmptyTitle className="text-2xl">What can I help with?</EmptyTitle>
 				<EmptyDescription>Start typing. Your chat begins with your first message.</EmptyDescription>
 			</EmptyHeader>
 
-			<EmptyContent className="w-full max-w-none">
+			<EmptyContent>
 				<ChatInput
 					disabled={!createConversation.isReady}
 					isStreaming={createConversation.isPending}

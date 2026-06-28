@@ -44,7 +44,7 @@ export function ChatInput({
 	}
 
 	return (
-		<Card>
+		<Card className="w-full">
 			<CardContent>
 				<Textarea
 					ref={textareaRef}
