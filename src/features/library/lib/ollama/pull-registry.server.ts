@@ -46,26 +46,34 @@ type PullEntry = {
 const DONE_TTL_MS = 30_000;
 
 const pulls = new Map<string, PullEntry>();
-const keyFor = (userId: string, model: string) => `${userId}:${model}`;
+const keyFor = ({ userId, model }: { userId: string; model: string }) => `${userId}:${model}`;
 
 /**
  * Begin downloading a model, or no-op if a pull for the same user+model is
  * already running (a caller returning to the page attaches to the live pull
  * rather than starting a second download).
  */
-export function startPull(userId: string, model: string, ollamaUrl: string): void {
-	const key = keyFor(userId, model);
+export function startPull({
+	userId,
+	model,
+	ollamaUrl,
+}: {
+	userId: string;
+	model: string;
+	ollamaUrl: string;
+}): void {
+	const key = keyFor({ userId, model });
 	const existing = pulls.get(key);
 	if (existing && !existing.done) return;
 
 	const entry: PullEntry = { status: "Starting…", done: false, abort: () => {}, canceled: false };
 	pulls.set(key, entry);
-	void drivePull(key, entry, model, ollamaUrl);
+	void drivePull({ key, entry, model, ollamaUrl });
 }
 
 /** Abort an in-flight pull; the download stops and the entry is dropped. */
-export function cancelPull(userId: string, model: string): void {
-	const entry = pulls.get(keyFor(userId, model));
+export function cancelPull({ userId, model }: { userId: string; model: string }): void {
+	const entry = pulls.get(keyFor({ userId, model }));
 	if (entry && !entry.done) {
 		entry.canceled = true;
 		entry.abort();
@@ -102,14 +110,19 @@ export function getActivePulls(userId: string): PullSnapshot[] {
 }
 
 /** Streams the SDK's pull progress into the registry entry until it ends. */
-async function drivePull(
-	key: string,
-	entry: PullEntry,
-	model: string,
-	ollamaUrl: string,
-): Promise<void> {
+async function drivePull({
+	key,
+	entry,
+	model,
+	ollamaUrl,
+}: {
+	key: string;
+	entry: PullEntry;
+	model: string;
+	ollamaUrl: string;
+}): Promise<void> {
 	try {
-		const stream = await ollamaClient(ollamaUrl).pull({ model, stream: true });
+		const stream = await ollamaClient({ host: ollamaUrl }).pull({ model, stream: true });
 		// Cancellation may arrive before the stream resolves; honor it, then wire it up.
 		if (entry.canceled) {
 			stream.abort();
@@ -119,19 +132,22 @@ async function drivePull(
 		entry.abort = () => stream.abort();
 
 		for await (const part of stream) {
-			if (part.status === "success") return finish(entry, { status: "success" });
+			if (part.status === "success") return finish({ entry, terminal: { status: "success" } });
 			entry.status = part.status || "Downloading…";
 			entry.completed = part.completed;
 			entry.total = part.total;
-			updateRate(entry, part.completed);
+			updateRate({ entry, completed: part.completed });
 		}
-		finish(entry, { status: "success" });
+		finish({ entry, terminal: { status: "success" } });
 	} catch (err) {
 		if (entry.canceled) {
 			pulls.delete(key); // user stopped — drop immediately, nothing to report
 			return;
 		}
-		finish(entry, { status: "Error", error: err instanceof Error ? err.message : "Pull failed" });
+		finish({
+			entry,
+			terminal: { status: "Error", error: err instanceof Error ? err.message : "Pull failed" },
+		});
 	}
 }
 
@@ -141,7 +157,13 @@ async function drivePull(
  * Ollama reports `completed` per layer, so a decrease means a new layer started and
  * the window restarts there.
  */
-function updateRate(entry: PullEntry, completed: number | undefined): void {
+function updateRate({
+	entry,
+	completed,
+}: {
+	entry: PullEntry;
+	completed: number | undefined;
+}): void {
 	if (completed === undefined) return;
 	const now = Date.now();
 	if (entry.windowAt === undefined || completed < (entry.lastCompleted ?? 0)) {
@@ -153,7 +175,13 @@ function updateRate(entry: PullEntry, completed: number | undefined): void {
 	if (secs > 0) entry.bytesPerSec = (completed - (entry.windowCompleted ?? 0)) / secs;
 }
 
-function finish(entry: PullEntry, terminal: { status: string; error?: string }): void {
+function finish({
+	entry,
+	terminal,
+}: {
+	entry: PullEntry;
+	terminal: { status: string; error?: string };
+}): void {
 	entry.status = terminal.status;
 	entry.error = terminal.error;
 	entry.done = true;

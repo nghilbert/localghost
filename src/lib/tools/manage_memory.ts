@@ -17,25 +17,37 @@ type ManageMemoryArgs = z.infer<typeof manageMemoryArgsSchema>;
  * Tool handler for memory management. Called by the agent loop when the LLM
  * invokes the manage_memory tool.
  */
-export async function manageMemory(args: ManageMemoryArgs, ownerId: string): Promise<string> {
+export async function manageMemory({
+	args,
+	ownerId,
+}: {
+	args: ManageMemoryArgs;
+	ownerId: string;
+}): Promise<string> {
 	switch (args.action) {
 		case "add":
-			return addMemory(args, ownerId);
+			return addMemory({ args, ownerId });
 		case "search":
-			return searchMemory(args, ownerId);
+			return searchMemory({ args, ownerId });
 		case "list":
-			return listMemories(args, ownerId);
+			return listMemories({ args, ownerId });
 		case "delete":
-			return deleteMemory(args, ownerId);
+			return deleteMemory({ args, ownerId });
 		default:
 			return `Unknown memory action: ${args.action}`;
 	}
 }
 
-async function addMemory(args: ManageMemoryArgs, ownerId: string): Promise<string> {
+async function addMemory({
+	args,
+	ownerId,
+}: {
+	args: ManageMemoryArgs;
+	ownerId: string;
+}): Promise<string> {
 	if (!args.text?.trim()) return "text is required to add a memory";
 
-	const embedding = await embed(args.text, ownerId);
+	const embedding = await embed({ text: args.text, ownerId });
 
 	await prisma.$executeRaw`
 		INSERT INTO memory (text, category, source, owner_id, embedding)
@@ -57,16 +69,20 @@ export type RecalledMemory = { text: string; category: string };
  * is configured) over the user's memories. Shared by the `manage_memory` search
  * action and the automatic recall injected into every chat's system prompt.
  */
-export async function recallMemories(
-	ownerId: string,
-	query: string,
+export async function recallMemories({
+	ownerId,
+	query,
 	limit = 5,
-): Promise<RecalledMemory[]> {
+}: {
+	ownerId: string;
+	query: string;
+	limit?: number;
+}): Promise<RecalledMemory[]> {
 	const trimmed = query.trim();
 	if (!trimmed) return [];
 
 	const capped = Math.min(limit, 20);
-	const embedding = await embed(trimmed, ownerId);
+	const embedding = await embed({ text: trimmed, ownerId });
 
 	if (embedding) {
 		// Vector similarity search when embeddings are available.
@@ -85,16 +101,28 @@ export async function recallMemories(
 		LIMIT ${capped}`;
 }
 
-async function searchMemory(args: ManageMemoryArgs, ownerId: string): Promise<string> {
+async function searchMemory({
+	args,
+	ownerId,
+}: {
+	args: ManageMemoryArgs;
+	ownerId: string;
+}): Promise<string> {
 	const query = args.query?.trim();
 	if (!query) return "query is required to search memories";
 
-	const rows = await recallMemories(ownerId, query, args.limit ?? 5);
+	const rows = await recallMemories({ ownerId, query, limit: args.limit ?? 5 });
 	if (rows.length === 0) return "No matching memories found.";
 	return rows.map((r, i) => `[${i + 1}] (${r.category}) ${r.text}`).join("\n");
 }
 
-async function listMemories(args: ManageMemoryArgs, ownerId: string): Promise<string> {
+async function listMemories({
+	args,
+	ownerId,
+}: {
+	args: ManageMemoryArgs;
+	ownerId: string;
+}): Promise<string> {
 	const limit = Math.min(args.limit ?? 10, 50);
 	const memories = await prisma.memory.findMany({
 		where: { ownerId },
@@ -107,7 +135,13 @@ async function listMemories(args: ManageMemoryArgs, ownerId: string): Promise<st
 	return memories.map((m, i) => `[${i + 1}] (${m.category}) ${m.text}`).join("\n");
 }
 
-async function deleteMemory(args: ManageMemoryArgs, ownerId: string): Promise<string> {
+async function deleteMemory({
+	args,
+	ownerId,
+}: {
+	args: ManageMemoryArgs;
+	ownerId: string;
+}): Promise<string> {
 	if (!args.id) return "id is required to delete a memory";
 	const deleted = await prisma.memory.deleteMany({ where: { id: args.id, ownerId } });
 	return deleted.count > 0 ? "Memory deleted." : "Memory not found.";

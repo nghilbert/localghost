@@ -30,7 +30,7 @@ export function BrowseTab() {
 
 	function handlePull(model: string) {
 		if (!ollamaStatus?.found) return;
-		pull(model, ollamaStatus.ollamaUrl);
+		pull({ model, ollamaUrl: ollamaStatus.ollamaUrl });
 	}
 
 	return (

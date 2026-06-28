@@ -13,6 +13,7 @@ import {
 	testEndpointInput,
 	updateEndpointInput,
 } from "./schemas";
+import type { ModelSelection } from "./types";
 
 export const getEndpoints = createServerFn({ method: "GET" }).handler(async () => {
 	const userId = await getCurrentUserId();
@@ -81,14 +82,14 @@ export const getEndpointModels = createServerFn({ method: "POST" })
 		});
 		if (!endpoint) throw new Error("Not found");
 		const apiKey = endpoint.apiKeyEncrypted ? decrypt(endpoint.apiKeyEncrypted) : undefined;
-		return listModels(endpoint.url, apiKey);
+		return listModels({ url: endpoint.url, apiKey });
 	});
 
 export const testEndpoint = createServerFn({ method: "POST" })
 	.validator(testEndpointInput)
 	.handler(async ({ data }) => {
 		await getCurrentUserId();
-		return probeEndpoint(data.url, data.apiKey);
+		return probeEndpoint({ url: data.url, apiKey: data.apiKey });
 	});
 
 /**
@@ -107,7 +108,7 @@ export const getModelCapabilities = createServerFn({ method: "POST" })
 		if (endpoint?.provider !== "ollama") return { supportsTools: true };
 
 		try {
-			const { capabilities } = await ollamaClient(endpoint.url, 5000).show({
+			const { capabilities } = await ollamaClient({ host: endpoint.url, timeoutMs: 5000 }).show({
 				model: data.model,
 			});
 			return { supportsTools: capabilities.includes("tools") };
@@ -128,7 +129,7 @@ export const endpointModelsQueryOptions = (endpointId: string) =>
 		staleTime: 30_000,
 	});
 
-export const modelCapabilitiesQueryOptions = (endpointId: string, model: string) =>
+export const modelCapabilitiesQueryOptions = ({ endpointId, model }: ModelSelection) =>
 	queryOptions({
 		queryKey: ["model-capabilities", endpointId, model],
 		queryFn: () => getModelCapabilities({ data: { endpointId, model } }),

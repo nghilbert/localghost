@@ -1,5 +1,5 @@
 /**
- * The user-toggleable built-in tools — pure, client-safe metadata (no server
+ * The user-toggleable built-in tools. Pure, client-safe metadata (no server
  * imports), so the chat tools picker can render labels and the stream route can
  * resolve a selected id back to its `ServerTool`. Web search is not listed here:
  * it's offered to every tool-capable model automatically, with a separate "force

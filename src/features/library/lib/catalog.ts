@@ -319,7 +319,7 @@ export const CATALOG: CatalogModel[] = [
 	},
 ];
 
-export function computeFit(model: CatalogModel, hw: HardwareInfo): FitScore {
+export function computeFit({ model, hw }: { model: CatalogModel; hw: HardwareInfo }): FitScore {
 	const vramNeededMb = model.vramGb * 1024;
 	const bestGpu = hw.gpus?.reduce<NonNullable<typeof hw.gpus>[number] | null>(
 		(best, g) => (g.totalVramMb > (best?.totalVramMb ?? 0) ? g : best),

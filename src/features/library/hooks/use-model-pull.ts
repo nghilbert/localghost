@@ -53,7 +53,7 @@ export function useModelPull() {
 		};
 	}
 
-	async function pull(model: string, ollamaUrl: string) {
+	async function pull({ model, ollamaUrl }: { model: string; ollamaUrl: string }) {
 		toastedModels.current.delete(model);
 		await startModelPull({ data: { model, ollamaUrl } });
 		await queryClient.invalidateQueries({ queryKey: ["library", "active-pulls"] });

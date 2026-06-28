@@ -41,9 +41,15 @@ export type OllamaProbeResult = {
 };
 
 /** Checks whether an Ollama instance answers at the given base URL and lists its models. */
-export async function probeOllama(url: string, timeoutMs = 2500): Promise<OllamaProbeResult> {
+export async function probeOllama({
+	url,
+	timeoutMs = 2500,
+}: {
+	url: string;
+	timeoutMs?: number;
+}): Promise<OllamaProbeResult> {
 	try {
-		const { models } = await ollamaClient(url, timeoutMs).list();
+		const { models } = await ollamaClient({ host: url, timeoutMs }).list();
 		const installedModels = models.map((m) => ({
 			name: m.name,
 			sizeBytes: m.size,
@@ -77,7 +83,7 @@ export async function scanForOllama(userId: string): Promise<OllamaScanResult | 
 	const candidates = buildOllamaCandidateUrls({ savedUrls: saved.map((endpoint) => endpoint.url) });
 
 	const probes = await Promise.all(
-		candidates.map(async (url) => ({ url, ...(await probeOllama(url)) })),
+		candidates.map(async (url) => ({ url, ...(await probeOllama({ url })) })),
 	);
 	const found = probes.find((probe) => probe.reachable);
 	if (!found) return null;
@@ -95,11 +101,15 @@ export async function scanForOllama(userId: string): Promise<OllamaScanResult | 
  * Pass `existing` (the oldest saved ollama endpoint, or null) when already known
  * to skip the lookup.
  */
-export async function upsertOllamaEndpoint(
-	userId: string,
-	url: string,
-	existing?: { id: string; url: string } | null,
-): Promise<void> {
+export async function upsertOllamaEndpoint({
+	userId,
+	url,
+	existing,
+}: {
+	userId: string;
+	url: string;
+	existing?: { id: string; url: string } | null;
+}): Promise<void> {
 	const normalizedUrl = url.replace(/\/+$/, "");
 	const resolved =
 		existing !== undefined

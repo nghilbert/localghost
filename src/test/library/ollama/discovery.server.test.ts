@@ -77,7 +77,7 @@ describe("upsertOllamaEndpoint", () => {
 
 	it("creates an ollama endpoint on first detection", async () => {
 		findFirst.mockResolvedValue(null);
-		await upsertOllamaEndpoint("user-1", "http://localhost:11434/");
+		await upsertOllamaEndpoint({ userId: "user-1", url: "http://localhost:11434/" });
 		expect(create).toHaveBeenCalledWith({
 			data: {
 				name: "Ollama (local)",
@@ -91,7 +91,7 @@ describe("upsertOllamaEndpoint", () => {
 
 	it("updates the existing endpoint when ollama moved", async () => {
 		findFirst.mockResolvedValue({ id: "ep-1", url: "http://old-host:11434" });
-		await upsertOllamaEndpoint("user-1", "http://localhost:11434");
+		await upsertOllamaEndpoint({ userId: "user-1", url: "http://localhost:11434" });
 		expect(update).toHaveBeenCalledWith({
 			where: { id: "ep-1" },
 			data: { url: "http://localhost:11434" },
@@ -101,7 +101,7 @@ describe("upsertOllamaEndpoint", () => {
 
 	it("does nothing when the saved url already matches", async () => {
 		findFirst.mockResolvedValue({ id: "ep-1", url: "http://localhost:11434" });
-		await upsertOllamaEndpoint("user-1", "http://localhost:11434/");
+		await upsertOllamaEndpoint({ userId: "user-1", url: "http://localhost:11434/" });
 		expect(create).not.toHaveBeenCalled();
 		expect(update).not.toHaveBeenCalled();
 	});

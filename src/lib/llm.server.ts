@@ -41,22 +41,22 @@ type ProviderConfig = {
 	/** Normalizes a configured endpoint URL to the base the chat adapter expects. */
 	chatBaseUrl: (url: string) => string;
 	/** Builds the `@tanstack/ai` text adapter for a model against the normalized base URL. */
-	buildAdapter: (model: string, apiKey: string, baseUrl: string) => AnyTextAdapter;
+	buildAdapter: (args: { model: string; apiKey: string; baseUrl: string }) => AnyTextAdapter;
 	/**
 	 * The provider-specific `modelOptions` payload for a `chat()` call. `options` carries the
 	 * validated per-endpoint native sampling settings; providers that support them spread them
 	 * over the defaults so a present field wins, and the rest ignore the blob.
 	 */
-	modelOptions: (
-		model: string,
-		temperature: number,
-		maxTokens: number,
-		options: Record<string, unknown>,
-	) => Record<string, unknown>;
+	modelOptions: (args: {
+		model: string;
+		temperature: number;
+		maxTokens: number;
+		options: Record<string, unknown>;
+	}) => Record<string, unknown>;
 	/** Headers for the model-list fetch (auth lives here for header-auth providers). */
 	modelsHeaders: (apiKey?: string) => Record<string, string>;
 	/** The model-list endpoint URL, given a trailing-slash-stripped base. */
-	modelsUrl: (base: string, apiKey?: string) => string;
+	modelsUrl: (args: { base: string; apiKey?: string }) => string;
 	/** Extracts the advertised model ids from a model-list response. */
 	parseModels: (json: ModelsResponse) => string[];
 };
@@ -67,14 +67,19 @@ function clampUnit(value: number): number {
 }
 
 /** Builds an OpenAI-compatible adapter, optionally with extra default headers. */
-function openaiAdapter(
-	model: string,
-	apiKey: string,
-	baseURL: string,
-	defaultHeaders?: Record<string, string>,
-): AnyTextAdapter {
+function openaiAdapter({
+	model,
+	apiKey,
+	baseUrl,
+	defaultHeaders,
+}: {
+	model: string;
+	apiKey: string;
+	baseUrl: string;
+	defaultHeaders?: Record<string, string>;
+}): AnyTextAdapter {
 	return openaiCompatibleText(model, {
-		baseURL,
+		baseURL: baseUrl,
 		apiKey,
 		api: "chat-completions",
 		...(defaultHeaders ? { defaultHeaders } : {}),
@@ -87,8 +92,8 @@ const OPENAI_COMPATIBLE: ProviderConfig = {
 		const base = url.replace(/\/+$/, "").replace(/\/chat\/completions$/, "");
 		return base.endsWith("/v1") ? base : `${base}/v1`;
 	},
-	buildAdapter: (model, apiKey, baseURL) => openaiAdapter(model, apiKey, baseURL),
-	modelOptions: (_model, temperature, maxTokens, _options) => ({
+	buildAdapter: (args) => openaiAdapter(args),
+	modelOptions: ({ temperature, maxTokens }) => ({
 		temperature,
 		max_tokens: maxTokens,
 	}),
@@ -96,7 +101,7 @@ const OPENAI_COMPATIBLE: ProviderConfig = {
 		"Content-Type": "application/json",
 		...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
 	}),
-	modelsUrl: (base) => `${base}/v1/models`,
+	modelsUrl: ({ base }) => `${base}/v1/models`,
 	parseModels: (json) => (json.data ?? []).map((m) => m.id),
 };
 
@@ -104,15 +109,15 @@ const PROVIDERS: Record<LLMProvider, ProviderConfig> = {
 	anthropic: {
 		// Strip a trailing slash and a redundant `/v1` so the SDK appends its own path.
 		chatBaseUrl: (url) => url.replace(/\/+$/, "").replace(/\/v1$/, ""),
-		buildAdapter: (model, apiKey, baseURL) => {
+		buildAdapter: ({ model, apiKey, baseUrl }) => {
 			// `createAnthropicChat` type-constrains the model to a fixed list; widen it with a
 			// runtime model definition so any bring-your-own Claude model name is accepted.
 			const factory = extendAdapter(createAnthropicChat, [
 				createModel(model, ["text", "image", "document"]),
 			]);
-			return factory(model, apiKey, { baseURL });
+			return factory(model, apiKey, { baseURL: baseUrl });
 		},
-		modelOptions: (_model, temperature, maxTokens) => ({
+		modelOptions: ({ temperature, maxTokens }) => ({
 			temperature: clampUnit(temperature),
 			max_tokens: maxTokens,
 		}),
@@ -121,12 +126,12 @@ const PROVIDERS: Record<LLMProvider, ProviderConfig> = {
 			"anthropic-version": "2023-06-01",
 			...(apiKey ? { "x-api-key": apiKey } : {}),
 		}),
-		modelsUrl: (base) => `${base}/v1/models`,
+		modelsUrl: ({ base }) => `${base}/v1/models`,
 		parseModels: (json) => (json.data ?? []).map((m) => m.id),
 	},
 	gemini: {
 		chatBaseUrl: (url) => url.replace(/\/+$/, ""),
-		buildAdapter: (model, apiKey, baseUrl) => {
+		buildAdapter: ({ model, apiKey, baseUrl }) => {
 			// `createGeminiChat` type-constrains the model to a fixed list; widen it with a
 			// runtime model definition so any bring-your-own Gemini model name is accepted.
 			const factory = extendAdapter(createGeminiChat, [
@@ -134,31 +139,36 @@ const PROVIDERS: Record<LLMProvider, ProviderConfig> = {
 			]);
 			return factory(model, apiKey, { httpOptions: { baseUrl } });
 		},
-		modelOptions: (_model, temperature, maxTokens) => ({
+		modelOptions: ({ temperature, maxTokens }) => ({
 			temperature,
 			maxOutputTokens: maxTokens,
 		}),
 		// Gemini authenticates via a `?key=` query parameter, not an Authorization header.
 		modelsHeaders: () => ({ "Content-Type": "application/json" }),
-		modelsUrl: (base, apiKey) => `${base}/v1beta/models?key=${apiKey ?? ""}`,
+		modelsUrl: ({ base, apiKey }) => `${base}/v1beta/models?key=${apiKey ?? ""}`,
 		parseModels: (json) => (json.models ?? []).map((m) => m.name.replace(/^models\//, "")),
 	},
 	ollama: {
 		// Reduce to the host root; the SDK appends `/api/chat`.
 		chatBaseUrl: (url) => url.replace(/\/+$/, "").replace(/\/api$/, ""),
-		buildAdapter: (model, _apiKey, host) => createOllamaChat(model, host),
-		modelOptions: (model, temperature, maxTokens, options) => ({
+		buildAdapter: ({ model, baseUrl }) => createOllamaChat(model, baseUrl),
+		modelOptions: ({ model, temperature, maxTokens, options }) => ({
 			model,
 			options: { temperature, num_predict: maxTokens, ...options },
 		}),
 		modelsHeaders: () => ({ "Content-Type": "application/json" }),
-		modelsUrl: (base) => `${base}/api/tags`,
+		modelsUrl: ({ base }) => `${base}/api/tags`,
 		parseModels: (json) => (json.models ?? []).map((m) => m.name),
 	},
 	openrouter: {
 		...OPENAI_COMPATIBLE,
-		buildAdapter: (model, apiKey, baseURL) =>
-			openaiAdapter(model, apiKey, baseURL, { "HTTP-Referer": OPENROUTER_REFERER }),
+		buildAdapter: ({ model, apiKey, baseUrl }) =>
+			openaiAdapter({
+				model,
+				apiKey,
+				baseUrl,
+				defaultHeaders: { "HTTP-Referer": OPENROUTER_REFERER },
+			}),
 	},
 	groq: OPENAI_COMPATIBLE,
 	openai: OPENAI_COMPATIBLE,
@@ -194,13 +204,22 @@ function chatEvents(
 	const config = PROVIDERS[detectProvider(opts.url)];
 	const temperature = opts.temperature ?? 0.7;
 	const maxTokens = opts.maxTokens ?? DEFAULT_MAX_TOKENS;
-	const adapter = config.buildAdapter(opts.model, opts.apiKey ?? "", config.chatBaseUrl(opts.url));
+	const adapter = config.buildAdapter({
+		model: opts.model,
+		apiKey: opts.apiKey ?? "",
+		baseUrl: config.chatBaseUrl(opts.url),
+	});
 	return chat({
 		adapter,
 		messages: opts.messages,
 		systemPrompts: opts.systemPrompt ? [opts.systemPrompt] : [],
 		stream: true as const,
-		modelOptions: config.modelOptions(opts.model, temperature, maxTokens, opts.options ?? {}),
+		modelOptions: config.modelOptions({
+			model: opts.model,
+			temperature,
+			maxTokens,
+			options: opts.options ?? {},
+		}),
 		...(tools ? { tools, agentLoopStrategy: maxIterations(MAX_AGENT_ROUNDS) } : {}),
 	});
 }
@@ -251,11 +270,17 @@ export type EndpointProbeResult = {
  * @param apiKey - Optional API key for authenticated providers.
  * @returns Whether the endpoint responded, its status, and a model count when available.
  */
-export async function probeEndpoint(url: string, apiKey?: string): Promise<EndpointProbeResult> {
+export async function probeEndpoint({
+	url,
+	apiKey,
+}: {
+	url: string;
+	apiKey?: string;
+}): Promise<EndpointProbeResult> {
 	const config = PROVIDERS[detectProvider(url)];
 	const base = url.replace(/\/+$/, "");
 	try {
-		const res = await fetch(config.modelsUrl(base, apiKey), {
+		const res = await fetch(config.modelsUrl({ base, apiKey }), {
 			headers: config.modelsHeaders(apiKey),
 			signal: AbortSignal.timeout(8000),
 		});
@@ -277,11 +302,17 @@ export async function probeEndpoint(url: string, apiKey?: string): Promise<Endpo
  * @param apiKey - Optional API key for authenticated providers.
  * @returns The available model ids, or `[]` on any failure.
  */
-export async function listModels(url: string, apiKey?: string): Promise<string[]> {
+export async function listModels({
+	url,
+	apiKey,
+}: {
+	url: string;
+	apiKey?: string;
+}): Promise<string[]> {
 	const config = PROVIDERS[detectProvider(url)];
 	const base = url.replace(/\/+$/, "");
 	try {
-		const res = await fetch(config.modelsUrl(base, apiKey), {
+		const res = await fetch(config.modelsUrl({ base, apiKey }), {
 			headers: config.modelsHeaders(apiKey),
 		});
 		if (!res.ok) return [];

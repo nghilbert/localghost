@@ -12,6 +12,6 @@ function timeoutFetch(ms: number): Fetch {
  * (probe) that should fail fast; omit it for long-lived streams like
  * `pull`, whose own `AbortableAsyncIterator.abort()` handles cancellation.
  */
-export function ollamaClient(host: string, timeoutMs?: number): Ollama {
+export function ollamaClient({ host, timeoutMs }: { host: string; timeoutMs?: number }): Ollama {
 	return new Ollama(timeoutMs === undefined ? { host } : { host, fetch: timeoutFetch(timeoutMs) });
 }

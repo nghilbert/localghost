@@ -44,7 +44,7 @@ export function buildMyModelRows(
 			id,
 			name: catalog?.name ?? id,
 			catalog,
-			fit: catalog && hardware ? computeFit(catalog, hardware) : null,
+			fit: catalog && hardware ? computeFit({ model: catalog, hw: hardware }) : null,
 			installed: installedByName.get(id) ?? null,
 			pullState: pulling[id],
 		};

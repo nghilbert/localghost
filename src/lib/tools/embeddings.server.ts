@@ -15,7 +15,13 @@ const embeddingResponseSchema = z.object({
  * @returns The embedding vector, or `null` if no endpoint succeeds so callers can
  *   degrade gracefully (skip vector search, still save the record).
  */
-export async function embed(text: string, ownerId: string): Promise<number[] | null> {
+export async function embed({
+	text,
+	ownerId,
+}: {
+	text: string;
+	ownerId: string;
+}): Promise<number[] | null> {
 	const endpoints = await prisma.modelEndpoint.findMany({
 		where: { ownerId },
 		orderBy: { id: "asc" },

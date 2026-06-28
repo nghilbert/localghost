@@ -8,7 +8,7 @@ function webSearchTool(): ServerTool {
 	return toolDefinition({
 		name: "web_search",
 		description:
-			"Search the web via SearXNG for current information — facts you don't know or recent events. " +
+			"Search the web via SearXNG for current information: facts you don't know or recent events. " +
 			"Narrow the search when it helps: set `time_range` to 'day'/'month'/'year' for recent or " +
 			"time-sensitive topics, set `categories` (e.g. 'news', 'science', 'it') to focus the source set, " +
 			"and use operators inside `query` such as 'site:example.com' to restrict to one domain.",
@@ -66,7 +66,7 @@ function manageMemoryTool(ownerId: string): ServerTool {
 			"Use search to recall saved context when the user refers to something from a past " +
 			"conversation or asks what you remember. Use add ONLY when the user shares a durable fact " +
 			"worth remembering across sessions (a stable preference, personal detail, ongoing project, " +
-			"or an explicit 'remember this') — never save trivial or ephemeral conversation details. " +
+			"or an explicit 'remember this'). Never save trivial or ephemeral conversation details. " +
 			"Use list or delete to manage saved memories.",
 		inputSchema: {
 			type: "object",
@@ -87,7 +87,7 @@ function manageMemoryTool(ownerId: string): ServerTool {
 			},
 			required: ["action"],
 		},
-	}).server(async (args) => manageMemory(manageMemoryArgsSchema.parse(args), ownerId));
+	}).server(async (args) => manageMemory({ args: manageMemoryArgsSchema.parse(args), ownerId }));
 }
 
 /**
@@ -108,7 +108,7 @@ type BuildChatToolsOptions = {
 
 /**
  * Assembles the `ServerTool[]` for one chat run from the per-send selection,
- * skipping any unknown ids. Nothing is always-on — an untouched send hands the
+ * skipping any unknown ids. Nothing is always-on; an untouched send hands the
  * model no tools, which keeps small models reliable. `chat()` auto-executes them.
  */
 export function buildChatTools({ ownerId, enabledTools }: BuildChatToolsOptions): ServerTool[] {

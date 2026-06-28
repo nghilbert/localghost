@@ -47,7 +47,7 @@ export function pickRecommendedModels(
 	const candidates: ScoredModel[] = CATALOG.filter(
 		(model) => !model.tags.includes("embedding") && !installedIds.has(model.id),
 	)
-		.map((model) => ({ model, fit: computeFit(model, hw) }))
+		.map((model) => ({ model, fit: computeFit({ model, hw }) }))
 		.filter(({ fit }) => fit.tier !== "too-large");
 
 	const codingCandidates = candidates.filter(({ model }) => model.tags.includes("code"));

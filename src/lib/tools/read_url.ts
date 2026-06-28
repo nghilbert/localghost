@@ -12,7 +12,9 @@ export const readUrlArgsSchema = z.object({
  * searches, then reads a result in full. Output is capped to keep the context
  * budget in check.
  */
-export async function readUrl(url: string, maxChars = 8000): Promise<string> {
+const MAX_CHARS = 8000;
+
+export async function readUrl(url: string): Promise<string> {
 	try {
 		const res = await fetch(url, {
 			headers: { "User-Agent": "Mozilla/5.0 (compatible; localghost/1.0)" },
@@ -25,7 +27,7 @@ export async function readUrl(url: string, maxChars = 8000): Promise<string> {
 
 		const body = content?.trim();
 		if (!body) return "No readable content found at that URL.";
-		return `# ${title ?? url}\n\n${body}`.slice(0, maxChars);
+		return `# ${title ?? url}\n\n${body}`.slice(0, MAX_CHARS);
 	} catch (err) {
 		return `Failed to read page: ${err instanceof Error ? err.message : "Unknown error"}`;
 	}

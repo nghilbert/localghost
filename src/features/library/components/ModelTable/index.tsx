@@ -46,7 +46,7 @@ export function ModelTable({
 		return CATALOG.map((model) => ({
 			model,
 			fit: hardware
-				? computeFit(model, hardware)
+				? computeFit({ model, hw: hardware })
 				: { tier: "too-large", gpuHeadroomPct: null, cpuHeadroomGb: 0, overall: 0 },
 			installed: installedByName.get(model.id) ?? null,
 		}));

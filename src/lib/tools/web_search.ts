@@ -54,7 +54,7 @@ export async function webSearch(
 	}
 
 	try {
-		const { results, answers } = await searchSearXNG(query, limit, searxUrl, options);
+		const { results, answers } = await searchSearXNG({ query, limit, baseUrl: searxUrl, options });
 		if (results.length === 0 && answers.length === 0) return "No results found.";
 
 		const blocks = results.map((r, i) => `[${i + 1}] ${r.title}\n${r.url}\n${r.snippet}`);
@@ -65,12 +65,17 @@ export async function webSearch(
 	}
 }
 
-async function searchSearXNG(
-	query: string,
-	limit: number,
-	baseUrl: string,
-	options: WebSearchOptions,
-): Promise<{ results: SearchResult[]; answers: string[] }> {
+async function searchSearXNG({
+	query,
+	limit,
+	baseUrl,
+	options,
+}: {
+	query: string;
+	limit: number;
+	baseUrl: string;
+	options: WebSearchOptions;
+}): Promise<{ results: SearchResult[]; answers: string[] }> {
 	const url = new URL("/search", baseUrl);
 	url.searchParams.set("q", query);
 	url.searchParams.set("format", "json");
