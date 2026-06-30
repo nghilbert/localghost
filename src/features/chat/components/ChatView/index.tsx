@@ -1,12 +1,20 @@
 import { useChat } from "@tanstack/ai-react";
 import { useEffect, useMemo, useRef } from "react";
+import {
+	MessageScroller,
+	MessageScrollerButton,
+	MessageScrollerContent,
+	MessageScrollerItem,
+	MessageScrollerProvider,
+	MessageScrollerViewport,
+} from "#/components/ui/message-scroller";
 import { ChatInput } from "#/features/chat/components/ChatInput";
 import { ChatStatus } from "#/features/chat/components/ChatView/ChatStatus";
-import { ChatWindow } from "#/features/chat/components/ChatView/ChatWindow";
 import { useConversation } from "#/features/chat/hooks/use-conversation";
 import { takePendingMessage } from "#/features/chat/hooks/use-create-conversation";
 import { chatClientOptions } from "#/features/chat/lib/chat-client-options";
 import type { getConversation } from "#/features/chat/lib/conversation.functions";
+import { ChatMessage } from "../ChatMessage";
 
 type ChatViewProps = { conversation: Awaited<ReturnType<typeof getConversation>> };
 export function ChatView({ conversation }: ChatViewProps) {
@@ -56,26 +64,47 @@ export function ChatView({ conversation }: ChatViewProps) {
 	});
 
 	return (
-		<div className="flex h-full w-full flex-col min-h-0 gap-1 pb-6">
-			<ChatWindow messages={messages} isStreaming={isStreaming}>
-				<ChatStatus status={status} error={error} onRetry={reload} />
-			</ChatWindow>
-
-			<ChatInput
-				disabled={!isReady}
-				isStreaming={isStreaming}
-				selection={selection}
-				onSelect={setSelection}
-				tools={{
-					enabledTools,
-					forceWebSearch,
-					supportsTools,
-					onEnabledToolsChange: setEnabledTools,
-					onForceWebSearchChange: setForceWebSearch,
-				}}
-				sendMessage={handleSend}
-				stop={stop}
-			/>
-		</div>
+		<MessageScrollerProvider autoScroll defaultScrollPosition="last-anchor">
+			<MessageScroller>
+				<MessageScrollerViewport aria-label="Conversation" className="p-4">
+					<MessageScrollerContent aria-busy={isStreaming}>
+						{messages.map((msg, idx) => {
+							const isLast = idx === messages.length - 1;
+							return (
+								<MessageScrollerItem
+									key={msg.id}
+									messageId={msg.id}
+									scrollAnchor={msg.role === "user"}
+								>
+									<ChatMessage
+										message={msg}
+										isStreaming={isStreaming && isLast && msg.role === "assistant"}
+									/>
+								</MessageScrollerItem>
+							);
+						})}
+						<MessageScrollerItem>
+							<ChatStatus status={status} error={error} onRetry={reload} />
+						</MessageScrollerItem>
+					</MessageScrollerContent>
+					<MessageScrollerButton />
+				</MessageScrollerViewport>
+				<ChatInput
+					disabled={!isReady}
+					isStreaming={isStreaming}
+					selection={selection}
+					onSelect={setSelection}
+					tools={{
+						enabledTools,
+						forceWebSearch,
+						supportsTools,
+						onEnabledToolsChange: setEnabledTools,
+						onForceWebSearchChange: setForceWebSearch,
+					}}
+					sendMessage={handleSend}
+					stop={stop}
+				/>
+			</MessageScroller>
+		</MessageScrollerProvider>
 	);
 }

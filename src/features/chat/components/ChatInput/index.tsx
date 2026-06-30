@@ -1,8 +1,12 @@
 import { ArrowUpIcon, SquareIcon } from "lucide-react";
 import { type KeyboardEvent, useRef } from "react";
-import { Button } from "#/components/ui/button";
-import { Card, CardAction, CardContent, CardFooter } from "#/components/ui/card";
-import { Textarea } from "#/components/ui/textarea";
+import {
+	InputGroup,
+	InputGroupAddon,
+	InputGroupButton,
+	InputGroupTextarea,
+} from "#/components/ui/input-group";
+import { Separator } from "#/components/ui/separator";
 import { ModelPicker } from "#/features/chat/components/ChatInput/ModelPicker";
 import { type ToolControls, ToolToggles } from "#/features/chat/components/ChatInput/ToolToggles";
 import type { ModelSelection } from "#/features/endpoints/lib/types";
@@ -44,48 +48,43 @@ export function ChatInput({
 	}
 
 	return (
-		<Card className="w-full">
-			<CardContent>
-				<Textarea
-					ref={textareaRef}
-					rows={1}
-					placeholder="Message…"
-					className="max-h-50 field-sizing-content resize-none"
-					onKeyDown={handleKeyDown}
-					disabled={disabled}
-				/>
-			</CardContent>
-
-			<CardFooter className="justify-between gap-2">
-				<CardAction className="flex items-center gap-2">
-					<ModelPicker selection={selection} onSelect={onSelect} />
-					{tools && <ToolToggles {...tools} />}
-				</CardAction>
-
-				<CardAction>
-					{isStreaming && stop ? (
-						<Button
-							size="icon"
-							variant="outline"
-							className="h-8 w-8 shrink-0 rounded-full"
-							onClick={stop}
-						>
-							<SquareIcon size={14} />
-							<span className="sr-only">Stop</span>
-						</Button>
-					) : (
-						<Button
-							size="icon"
-							className="h-8 w-8 shrink-0 rounded-full"
-							onClick={submit}
-							disabled={disabled}
-						>
-							<ArrowUpIcon size={14} />
-							<span className="sr-only">Send</span>
-						</Button>
-					)}
-				</CardAction>
-			</CardFooter>
-		</Card>
+		<InputGroup>
+			<InputGroupTextarea
+				ref={textareaRef}
+				placeholder="Message…"
+				className="max-h-50 field-sizing-content resize-none"
+				onKeyDown={handleKeyDown}
+				disabled={disabled}
+			/>
+			<Separator />
+			<InputGroupAddon align="block-end" className="p-2">
+				<ModelPicker selection={selection} onSelect={onSelect} />
+				{tools && <ToolToggles {...tools} />}
+				{isStreaming && stop ? (
+					<InputGroupButton
+						type="submit"
+						variant="outline"
+						size="icon-sm"
+						className="ml-auto"
+						onClick={stop}
+					>
+						<SquareIcon size={14} />
+						<span className="sr-only">Stop</span>
+					</InputGroupButton>
+				) : (
+					<InputGroupButton
+						type="submit"
+						variant="default"
+						size="icon-sm"
+						className="ml-auto"
+						onClick={submit}
+						disabled={disabled}
+					>
+						<ArrowUpIcon size={14} />
+						<span className="sr-only">Send</span>
+					</InputGroupButton>
+				)}
+			</InputGroupAddon>
+		</InputGroup>
 	);
 }
