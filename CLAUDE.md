@@ -10,7 +10,7 @@ Guidance for Claude Code working in this repository.
 - **Prisma:** app model IDs `@default(dbgenerated("uuidv7()")) @db.Uuid`; auth-table IDs `@id @db.Uuid` with no `@default`; all FKs `@db.Uuid`; all camelCase fields `@map("snake_case")`.
 - **Biome:** tabs, 100-char width; fix all warnings, never `biome-ignore`.
 - **Server-only:** never import `.server.ts` from client code.
-- **Comments:** only for non-obvious behavior; JSDoc on exported functions when the signature isn't self-explanatory. Describe what the code is and does, never narrate PR or changelog history. Write plainly, like a terse engineer: no em dashes, no marketing or AI-sounding filler. This applies to all prose you write (comments, copy, commit messages).
+- **Comments:** only for non-obvious behavior. Exported functions get JSDoc; use real tags (`@param`, `@returns`, `@throws`, `{@link}`) wherever they add something the name and type don't already say, and skip the tag when they don't. Describe what the code is and does, never narrate PR or changelog history. Write plainly, like a terse engineer: no em dashes, no marketing or AI-sounding filler. This applies to all prose you write (comments, copy, commit messages).
 - **No `as` casts:** type correctly via generics, annotations, or Prisma model types.
 - **No positional params:** any function or callback with two or more parameters must use a single named object instead. One positional parameter is fine. Pass a named object, or better, remove the boundary so the value is read from its owner instead of threaded. This eliminates argument order bugs and stops prop or callback drilling.
 - **No dead code:** delete unused code; no re-exports, no `// removed` comments.

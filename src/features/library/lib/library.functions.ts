@@ -86,6 +86,8 @@ export const libraryStatusQueryOptions = () =>
 	queryOptions({
 		queryKey: ["library-status"],
 		queryFn: () => scanOllamaStatus(),
+		// Re-probe slowly once reachable, quickly while it's down so recovery shows fast.
+		refetchInterval: (query) => (query.state.data?.found ? 30_000 : 5_000),
 	});
 
 export const activePullsQueryOptions = () =>

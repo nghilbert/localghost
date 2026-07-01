@@ -15,6 +15,10 @@ import {
 } from "./schemas";
 import type { ModelSelection } from "./types";
 
+/**
+ * The current user's configured endpoints.
+ * @returns Each endpoint with its encrypted key stripped and a `hasApiKey` flag instead.
+ */
 export const getEndpoints = createServerFn({ method: "GET" }).handler(async () => {
 	const userId = await getCurrentUserId();
 	const endpoints = await prisma.modelEndpoint.findMany({
@@ -45,6 +49,11 @@ export const createEndpoint = createServerFn({ method: "POST" })
 		return { ...endpoint, apiKeyEncrypted: undefined, hasApiKey: !!endpoint.apiKeyEncrypted };
 	});
 
+/**
+ * Patch an endpoint's fields; re-encrypts the key when `apiKey` is supplied.
+ * @returns The updated endpoint, key stripped, with a `hasApiKey` flag.
+ * @throws If no endpoint with that id is owned by the current user.
+ */
 export const updateEndpoint = createServerFn({ method: "POST" })
 	.validator(updateEndpointInput)
 	.handler(async ({ data: { id, data: patch } }) => {
@@ -71,7 +80,7 @@ export const deleteEndpoint = createServerFn({ method: "POST" })
 	.handler(async ({ data: { id } }) => {
 		const userId = await getCurrentUserId();
 		// Clear the model on conversations using this endpoint so the (endpointId, model)
-		// pair goes null together — the FK's SetNull only nulls endpointId. Keeps history,
+		// pair goes null together; the FK's SetNull only nulls endpointId. Keeps history,
 		// reopening the chat to a fresh model pick instead of an orphaned model string.
 		await prisma.conversation.updateMany({
 			where: { endpointId: id, ownerId: userId },

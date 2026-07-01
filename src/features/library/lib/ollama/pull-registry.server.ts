@@ -35,7 +35,7 @@ type PullEntry = {
 	abort: () => void;
 	/** True once cancellation was requested, so the driver tears down instead of reporting an error. */
 	canceled: boolean;
-	/** Start of the current averaging window — Ollama reports `completed` per layer,
+	/** Start of the current averaging window. Ollama reports `completed` per layer,
 	 *  so the window restarts whenever a new layer begins. */
 	windowAt?: number;
 	windowCompleted?: number;
@@ -141,7 +141,7 @@ async function drivePull({
 		finish({ entry, terminal: { status: "success" } });
 	} catch (err) {
 		if (entry.canceled) {
-			pulls.delete(key); // user stopped — drop immediately, nothing to report
+			pulls.delete(key); // user stopped; drop immediately, nothing to report
 			return;
 		}
 		finish({

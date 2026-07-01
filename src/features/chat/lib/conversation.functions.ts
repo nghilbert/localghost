@@ -14,9 +14,9 @@ const DEFAULT_TITLE = "New Chat";
 const textPartSchema = z.object({ type: z.literal("text"), content: z.string() });
 
 /**
- * Derives a chat title from the leading words of the first user message, or
- * `null` when there's no usable text yet. Deterministic and model-free — used to
- * name a brand-new conversation on its first save.
+ * Derives a chat title from the leading words of the first user message.
+ * Deterministic and model-free, used to name a brand-new conversation on its first save.
+ * @returns The derived title, or `null` when the messages hold no usable text yet.
  */
 function deriveTitle(messages: Array<Record<string, unknown>>): string | null {
 	const firstUser = messages.find((m) => m.role === "user");
@@ -31,7 +31,7 @@ function deriveTitle(messages: Array<Record<string, unknown>>): string | null {
 	return text.split(/\s+/).slice(0, 6).join(" ").slice(0, 80);
 }
 
-/** Sidebar list — only the fields needed to render and order conversation links. */
+/** Sidebar list: only the fields needed to render and order conversation links. */
 export const listConversations = createServerFn({ method: "GET" }).handler(async () => {
 	const userId = await getCurrentUserId();
 	return prisma.conversation.findMany({
@@ -41,7 +41,10 @@ export const listConversations = createServerFn({ method: "GET" }).handler(async
 	});
 });
 
-/** Full conversation row, including the `messages` blob and endpoint config. */
+/**
+ * Full conversation row, including the `messages` blob and endpoint config.
+ * @throws If no conversation with that id is owned by the current user.
+ */
 export const getConversation = createServerFn({ method: "POST" })
 	.validator(conversationIdInput)
 	.handler(async ({ data: { id } }) => {
@@ -105,7 +108,7 @@ export const startConversation = createServerFn({ method: "POST" }).handler(asyn
 
 /**
  * Persist the conversation's `messages` blob. Called by the client persistence
- * adapter on every message-list change — this is the only write path for chat
+ * adapter on every message-list change; this is the only write path for chat
  * content (the stream route writes nothing).
  */
 export const saveConversationMessages = createServerFn({ method: "POST" })
@@ -127,6 +130,11 @@ export const saveConversationMessages = createServerFn({ method: "POST" })
 		}
 	});
 
+/**
+ * Patch a conversation's title, archived flag, and/or model selection.
+ * @returns The updated row with its endpoint config included.
+ * @throws If no conversation with that id is owned by the current user.
+ */
 export const updateConversation = createServerFn({ method: "POST" })
 	.validator(updateConversationInput)
 	.handler(async ({ data: { id, data: patch } }) => {
@@ -147,6 +155,7 @@ export const updateConversation = createServerFn({ method: "POST" })
 		});
 	});
 
+/** Delete a conversation by id. No-op when the id isn't owned by the current user. */
 export const deleteConversation = createServerFn({ method: "POST" })
 	.validator(conversationIdInput)
 	.handler(async ({ data: { id } }) => {

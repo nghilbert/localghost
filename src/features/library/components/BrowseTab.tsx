@@ -18,10 +18,7 @@ import {
 export function BrowseTab() {
 	const { data: hardware, isLoading: isLoadingHardware } = useQuery(hardwareQueryOptions());
 
-	const { data: ollamaStatus } = useQuery({
-		...libraryStatusQueryOptions(),
-		refetchInterval: (query) => (query.state.data?.found ? 30_000 : 5_000),
-	});
+	const { data: ollamaStatus } = useQuery(libraryStatusQueryOptions());
 
 	const { pulling, pull, stop } = useModelPull();
 	const { deleteModel } = useOllama();

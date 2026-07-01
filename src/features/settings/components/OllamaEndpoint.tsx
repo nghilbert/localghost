@@ -18,10 +18,7 @@ const DEFAULT_OLLAMA_URL = "http://localhost:11434";
  * Library discovery, so this never offers to add or delete it.
  */
 export function OllamaEndpoint() {
-	const { data: status } = useQuery({
-		...libraryStatusQueryOptions(),
-		refetchInterval: (query) => (query.state.data?.found ? 30_000 : 5_000),
-	});
+	const { data: status } = useQuery(libraryStatusQueryOptions());
 	const currentUrl = status?.ollamaUrl ?? DEFAULT_OLLAMA_URL;
 
 	return (

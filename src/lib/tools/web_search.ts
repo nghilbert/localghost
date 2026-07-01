@@ -92,7 +92,9 @@ async function searchSearXNG({
 
 	if (!res.ok) throw new Error(`SearXNG HTTP ${res.status}`);
 
-	const data = searxResponseSchema.parse(await res.json());
+	// Tolerate an unexpected SearXNG payload: fall back to empty rather than throwing.
+	const parsed = searxResponseSchema.safeParse(await res.json());
+	const data = parsed.success ? parsed.data : { results: [], answers: [] };
 
 	return {
 		results: (data.results ?? []).slice(0, limit).map((r) => ({

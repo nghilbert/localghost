@@ -16,6 +16,7 @@ export function useConversations() {
 		mutationFn: ({ id, title }: { id: string; title: string }) =>
 			updateConversation({ data: { id, data: { title } } }),
 		onSuccess: invalidate,
+		onError: (error) => toast.error(`Failed to rename chat: ${error.message}`),
 	});
 
 	const archiveConversationMutation = useMutation({

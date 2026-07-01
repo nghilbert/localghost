@@ -35,10 +35,7 @@ type MyModelsTabProps = {
 export function MyModelsTab({ onBrowse }: MyModelsTabProps) {
 	const { data: hardware } = useQuery(hardwareQueryOptions());
 
-	const { data: ollamaStatus } = useQuery({
-		...libraryStatusQueryOptions(),
-		refetchInterval: (query) => (query.state.data?.found ? 30_000 : 5_000),
-	});
+	const { data: ollamaStatus } = useQuery(libraryStatusQueryOptions());
 
 	const { pulling, stop } = useModelPull();
 	const { deleteModel } = useOllama();

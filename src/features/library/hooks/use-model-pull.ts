@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 import {
@@ -53,17 +53,21 @@ export function useModelPull() {
 		};
 	}
 
-	async function pull({ model, ollamaUrl }: { model: string; ollamaUrl: string }) {
-		toastedModels.current.delete(model);
-		await startModelPull({ data: { model, ollamaUrl } });
-		await queryClient.invalidateQueries({ queryKey: ["library", "active-pulls"] });
-	}
+	const pullMutation = useMutation({
+		mutationFn: (vars: { model: string; ollamaUrl: string }) => startModelPull({ data: vars }),
+		onMutate: ({ model }) => toastedModels.current.delete(model),
+		onSuccess: () => queryClient.invalidateQueries({ queryKey: ["library", "active-pulls"] }),
+		onError: (error) => toast.error("Failed to start pull", { description: error.message }),
+	});
 
-	async function stop(model: string) {
-		await cancelModelPull({ data: { model } });
-		await queryClient.invalidateQueries({ queryKey: ["library", "active-pulls"] });
-		toast.info(`Stopped pulling ${model}`);
-	}
+	const stopMutation = useMutation({
+		mutationFn: (model: string) => cancelModelPull({ data: { model } }),
+		onSuccess: (_data, model) => {
+			queryClient.invalidateQueries({ queryKey: ["library", "active-pulls"] });
+			toast.info(`Stopped pulling ${model}`);
+		},
+		onError: (error) => toast.error("Failed to stop pull", { description: error.message }),
+	});
 
-	return { pulling, pull, stop };
+	return { pulling, pull: pullMutation.mutate, stop: stopMutation.mutate };
 }

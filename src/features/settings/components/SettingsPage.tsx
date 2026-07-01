@@ -5,7 +5,7 @@ import { AccountTab } from "#/features/settings/components/AccountTab";
 import { AppearanceTab } from "#/features/settings/components/AppearanceTab";
 import { EndpointsTab } from "#/features/settings/components/EndpointsTab";
 import { MemoryTab } from "#/features/settings/components/MemoryTab";
-import { TAB_VALUES } from "#/features/settings/lib/schemas";
+import { isTabValue } from "#/features/settings/lib/schemas";
 
 const routeApi = getRouteApi("/_authenticated/settings");
 
@@ -15,8 +15,8 @@ export function SettingsPage() {
 	const activeTab = tab ?? "account";
 
 	function handleTabChange(value: string) {
-		if (TAB_VALUES.includes(value as (typeof TAB_VALUES)[number])) {
-			navigate({ to: "/settings", search: { tab: value as (typeof TAB_VALUES)[number] } });
+		if (isTabValue(value)) {
+			navigate({ to: "/settings", search: { tab: value } });
 		}
 	}
 

@@ -2,7 +2,7 @@ import { Ollama } from "ollama";
 
 type Fetch = typeof fetch;
 
-/** A `fetch` that aborts after `ms` — for one-shot Ollama calls that must time out. */
+/** A `fetch` that aborts after `ms`, for one-shot Ollama calls that must time out. */
 function timeoutFetch(ms: number): Fetch {
 	return (input, init) => fetch(input, { ...init, signal: AbortSignal.timeout(ms) });
 }
