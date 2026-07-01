@@ -75,9 +75,8 @@ export function ToolCalls({ toolCalls, isStreaming }: ToolCallsProps) {
 							<Textarea
 								readOnly
 								className="max-h-56 border-t whitespace-pre-wrap wrap-break-word px-3 py-2.5 font-mono leading-relaxed text-muted-foreground"
-							>
-								{outputText(tc.output)}
-							</Textarea>
+								value={outputText(tc.output)}
+							/>
 						</CollapsibleContent>
 					</Collapsible>
 				);

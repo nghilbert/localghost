@@ -1,6 +1,6 @@
 import { useQueries } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { CheckIcon, ChevronDownIcon, LibraryIcon, TriangleAlertIcon } from "lucide-react";
+import { CheckIcon, ChevronDownIcon, LibraryIcon, LockIcon, TriangleAlertIcon } from "lucide-react";
 import { useState } from "react";
 import { Button } from "#/components/ui/button";
 import {
@@ -13,17 +13,47 @@ import {
 	DropdownMenuTrigger,
 } from "#/components/ui/dropdown-menu";
 import { Spinner } from "#/components/ui/spinner";
+import { Tooltip, TooltipContent, TooltipTrigger } from "#/components/ui/tooltip";
 import { useEndpoints } from "#/features/endpoints/hooks/use-endpoints";
 import { endpointModelsQueryOptions } from "#/features/endpoints/lib/endpoint.functions";
 import type { ModelSelection } from "#/features/endpoints/lib/types";
 
 type ModelPickerProps = {
 	selection: ModelSelection | null;
-	onSelect: (selection: ModelSelection) => void;
+	onSelect?: (selection: ModelSelection) => void;
+	/** A started conversation is fixed to its model; the picker becomes a read-only label. */
+	locked?: boolean;
 };
 
-/** Endpoint and model dropdown. Reads and writes the selection through its owner. */
-export function ModelPicker({ selection, onSelect }: ModelPickerProps) {
+/**
+ * Endpoint and model picker. A started conversation is locked to its model, so it
+ * renders a read-only label; the draft page renders the interactive dropdown.
+ */
+export function ModelPicker({ selection, onSelect, locked = false }: ModelPickerProps) {
+	if (locked) return <LockedModel selection={selection} />;
+	return <ModelDropdown selection={selection} onSelect={onSelect} />;
+}
+
+/** Read-only model label for a locked conversation, explaining the lock on hover. */
+function LockedModel({ selection }: { selection: ModelSelection | null }) {
+	return (
+		<Tooltip>
+			<TooltipTrigger asChild>
+				<Button variant="ghost" size="sm" disabled className="gap-1 truncate opacity-100">
+					<LockIcon size={13} className="shrink-0 text-muted-foreground" />
+					<span className="truncate">{selection?.model ?? "Model unavailable"}</span>
+				</Button>
+			</TooltipTrigger>
+			<TooltipContent>
+				{selection
+					? "Locked to this chat. Start a new chat to use a different model."
+					: "This chat's model is no longer available. Start a new chat."}
+			</TooltipContent>
+		</Tooltip>
+	);
+}
+
+function ModelDropdown({ selection, onSelect }: Omit<ModelPickerProps, "locked">) {
 	const [open, setOpen] = useState(false);
 	const { endpoints } = useEndpoints();
 	const label = selection?.model ?? "Select model";
@@ -86,7 +116,7 @@ export function ModelPicker({ selection, onSelect }: ModelPickerProps) {
 								return (
 									<DropdownMenuItem
 										key={model}
-										onClick={() => onSelect({ endpointId: endpoint.id, model })}
+										onClick={() => onSelect?.({ endpointId: endpoint.id, model })}
 									>
 										<span className="truncate">{model}</span>
 										{isSelected && <CheckIcon size={13} className="ml-auto shrink-0" />}

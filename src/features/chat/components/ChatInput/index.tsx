@@ -1,5 +1,5 @@
 import { ArrowUpIcon, SquareIcon } from "lucide-react";
-import { type KeyboardEvent, useRef } from "react";
+import { type KeyboardEvent, useState } from "react";
 import {
 	InputGroup,
 	InputGroupAddon,
@@ -8,14 +8,17 @@ import {
 } from "#/components/ui/input-group";
 import { Separator } from "#/components/ui/separator";
 import { ModelPicker } from "#/features/chat/components/ChatInput/ModelPicker";
-import { type ToolControls, ToolToggles } from "#/features/chat/components/ChatInput/ToolToggles";
+import { type ToolControls, ToolsMenu } from "#/features/chat/components/ChatInput/ToolsMenu";
 import type { ModelSelection } from "#/features/endpoints/lib/types";
 
 type ChatInputProps = {
 	disabled?: boolean;
 	isStreaming: boolean;
 	selection: ModelSelection | null;
-	onSelect: (selection: ModelSelection) => void;
+	/** Only the draft page selects a model; a locked conversation omits this. */
+	onSelect?: (selection: ModelSelection) => void;
+	/** Locks the model picker to a read-only label (a started conversation). */
+	locked?: boolean;
 	/** Per-message tool toggles (web search, memory). */
 	tools?: ToolControls;
 	sendMessage: (content: string) => void;
@@ -27,22 +30,22 @@ export function ChatInput({
 	isStreaming,
 	selection,
 	onSelect,
+	locked = false,
 	tools,
 	sendMessage,
 	stop,
 }: ChatInputProps) {
-	const textareaRef = useRef<HTMLTextAreaElement>(null);
+	const [messageDraft, setMessageDraft] = useState("");
 
 	function submit() {
-		const value = textareaRef.current?.value.trim();
-		if (!value || isStreaming || disabled) return;
-		sendMessage(value);
-		if (textareaRef.current) textareaRef.current.value = "";
+		if (!messageDraft || isStreaming || disabled) return;
+		sendMessage(messageDraft);
+		setMessageDraft("");
 	}
 
-	function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
-		if (e.key === "Enter" && !e.shiftKey) {
-			e.preventDefault();
+	function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+		if (event.key === "Enter" && !event.shiftKey) {
+			event.preventDefault();
 			submit();
 		}
 	}
@@ -50,7 +53,8 @@ export function ChatInput({
 	return (
 		<InputGroup>
 			<InputGroupTextarea
-				ref={textareaRef}
+				value={messageDraft}
+				onChange={(event) => setMessageDraft(event.target.value)}
 				placeholder="Message…"
 				className="max-h-50 field-sizing-content resize-none"
 				onKeyDown={handleKeyDown}
@@ -58,8 +62,8 @@ export function ChatInput({
 			/>
 			<Separator />
 			<InputGroupAddon align="block-end" className="p-2">
-				<ModelPicker selection={selection} onSelect={onSelect} />
-				{tools && <ToolToggles {...tools} />}
+				<ModelPicker selection={selection} onSelect={onSelect} locked={locked} />
+				{tools && <ToolsMenu {...tools} />}
 				{isStreaming && stop ? (
 					<InputGroupButton
 						type="submit"

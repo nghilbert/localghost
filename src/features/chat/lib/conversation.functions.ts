@@ -6,7 +6,12 @@ import { decrypt } from "#/lib/crypto.server";
 import { prisma } from "#/lib/db.server";
 import { listModels } from "#/lib/llm.server";
 import { orderEndpointsForDefault } from "./default-selection";
-import { conversationIdInput, saveMessagesInput, updateConversationInput } from "./schemas";
+import {
+	conversationIdInput,
+	createConversationInput,
+	saveMessagesInput,
+	updateConversationInput,
+} from "./schemas";
 
 /** Default title a conversation keeps until its first message names it. */
 const DEFAULT_TITLE = "New Chat";
@@ -58,53 +63,48 @@ export const getConversation = createServerFn({ method: "POST" })
 	});
 
 /**
- * The endpoint and model a new chat opens on. Prefers the built-in Ollama, then the
- * oldest added endpoint, and only picks one that actually returns a model, so it never
- * seeds an endpoint with no model (which renders as configured-but-disabled). Returns a
- * fully null selection when nothing is usable; the empty chat then prompts the user to
- * pick one.
+ * The endpoint and model the New-chat draft page pre-fills, without persisting anything.
+ * Prefers the built-in Ollama, then the oldest added endpoint, and only picks one that
+ * actually returns a model. Returns a fully null selection when nothing is usable; the
+ * draft page then prompts the user to pick one.
  */
-async function defaultSelection(
-	userId: string,
-): Promise<{ endpointId: string | null; model: string | null }> {
-	const endpoints = await prisma.modelEndpoint.findMany({
-		where: { ownerId: userId },
-		orderBy: { id: "asc" },
-	});
+export const getDefaultSelection = createServerFn({ method: "GET" }).handler(
+	async (): Promise<{ endpointId: string | null; model: string | null }> => {
+		const userId = await getCurrentUserId();
+		const endpoints = await prisma.modelEndpoint.findMany({
+			where: { ownerId: userId },
+			orderBy: { id: "asc" },
+		});
 
-	for (const endpoint of orderEndpointsForDefault(endpoints)) {
-		try {
-			const apiKey = endpoint.apiKeyEncrypted ? decrypt(endpoint.apiKeyEncrypted) : undefined;
-			const [model] = await listModels({ url: endpoint.url, apiKey });
-			if (model) return { endpointId: endpoint.id, model };
-		} catch {
-			// Unreachable or rejected; fall through to the next endpoint.
+		for (const endpoint of orderEndpointsForDefault(endpoints)) {
+			try {
+				const apiKey = endpoint.apiKeyEncrypted ? decrypt(endpoint.apiKeyEncrypted) : undefined;
+				const [model] = await listModels({ url: endpoint.url, apiKey });
+				if (model) return { endpointId: endpoint.id, model };
+			} catch {
+				// Unreachable or rejected; fall through to the next endpoint.
+			}
 		}
-	}
-	return { endpointId: null, model: null };
-}
+		return { endpointId: null, model: null };
+	},
+);
 
 /**
- * Resolves the conversation to open for a new chat: reuses an existing empty,
- * untitled draft when one exists (so opening a new chat never piles up empty
- * rows and the `/new` resolver stays idempotent), otherwise creates one seeded
- * with the default model selection.
+ * Creates a conversation locked to the given model selection. Called on the first
+ * message send from the draft page, so no empty rows are ever persisted; the model is
+ * fixed at creation and never changes (a different model means a new chat).
+ * @returns The new conversation's id.
  */
-export const startConversation = createServerFn({ method: "POST" }).handler(async () => {
-	const userId = await getCurrentUserId();
-	const draft = await prisma.conversation.findFirst({
-		where: { ownerId: userId, archived: false, title: DEFAULT_TITLE, messages: { equals: [] } },
-		orderBy: { updatedAt: "desc" },
-		select: { id: true },
+export const createConversation = createServerFn({ method: "POST" })
+	.validator(createConversationInput)
+	.handler(async ({ data: { selection } }) => {
+		const userId = await getCurrentUserId();
+		const conversation = await prisma.conversation.create({
+			data: { ownerId: userId, endpointId: selection.endpointId, model: selection.model },
+			select: { id: true },
+		});
+		return { id: conversation.id };
 	});
-	if (draft) return { id: draft.id };
-
-	const conversation = await prisma.conversation.create({
-		data: { ownerId: userId, ...(await defaultSelection(userId)) },
-		select: { id: true },
-	});
-	return { id: conversation.id };
-});
 
 /**
  * Persist the conversation's `messages` blob. Called by the client persistence
@@ -131,7 +131,8 @@ export const saveConversationMessages = createServerFn({ method: "POST" })
 	});
 
 /**
- * Patch a conversation's title, archived flag, and/or model selection.
+ * Patch a conversation's title and/or archived flag. The model is fixed at creation
+ * and deliberately not patchable here (changing model means starting a new chat).
  * @returns The updated row with its endpoint config included.
  * @throws If no conversation with that id is owned by the current user.
  */
@@ -146,10 +147,6 @@ export const updateConversation = createServerFn({ method: "POST" })
 			data: {
 				...(patch.title !== undefined && { title: patch.title }),
 				...(patch.archived !== undefined && { archived: patch.archived }),
-				...(patch.selection !== undefined && {
-					endpointId: patch.selection.endpointId,
-					model: patch.selection.model,
-				}),
 			},
 			include: { endpoint: { select: { id: true, name: true, url: true, provider: true } } },
 		});
@@ -172,4 +169,10 @@ export const conversationQueryOptions = (id: string) =>
 	queryOptions({
 		queryKey: ["conversation", id],
 		queryFn: () => getConversation({ data: { id } }),
+	});
+
+export const defaultSelectionQueryOptions = () =>
+	queryOptions({
+		queryKey: ["conversation", "default-selection"],
+		queryFn: () => getDefaultSelection(),
 	});

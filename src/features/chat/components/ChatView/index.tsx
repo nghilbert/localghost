@@ -1,6 +1,6 @@
 import { useChat } from "@tanstack/ai-react";
-import { useMemo } from "react";
-import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "#/components/ui/empty";
+import { useLocation } from "@tanstack/react-router";
+import { useEffect, useMemo, useRef } from "react";
 import {
 	MessageScroller,
 	MessageScrollerButton,
@@ -18,18 +18,16 @@ import { ChatMessage } from "../ChatMessage";
 
 type ChatViewProps = { conversation: Awaited<ReturnType<typeof getConversation>> };
 export function ChatView({ conversation }: ChatViewProps) {
-	const {
-		selection,
-		setSelection,
-		isReady,
-		enabledTools,
-		setEnabledTools,
-		forceWebSearch,
-		setForceWebSearch,
-		resetTools,
-		supportsTools,
-		toolsToSend,
-	} = useConversation(conversation.id);
+	// The New-chat draft page hands off the first message and its tool choices here.
+	const { state: handoff } = useLocation();
+
+	const { selection, isReady, controls, forceWebSearch, resetTools, toolsToSend } = useConversation(
+		{
+			conversationId: conversation.id,
+			initialEnabledTools: handoff.enabledTools,
+			initialForceWebSearch: handoff.forceWebSearch,
+		},
+	);
 
 	// Ephemeral per-conversation tool selection, sent with each message via
 	// `forwardedProps` and never persisted. `useChat` re-reads `forwardedProps` on
@@ -52,21 +50,20 @@ export function ChatView({ conversation }: ChatViewProps) {
 		resetTools();
 	}
 
+	// Auto-send the draft's first message exactly once. Guarded by the empty transcript
+	// so a reload (history state persists) never resends an already-sent message.
+	const handoffSent = useRef(false);
+	useEffect(() => {
+		if (handoffSent.current || !handoff.firstMessage || messages.length > 0) return;
+		handoffSent.current = true;
+		void handleSend(handoff.firstMessage);
+	});
+
 	return (
 		<MessageScrollerProvider autoScroll defaultScrollPosition="last-anchor">
 			<MessageScroller>
 				<MessageScrollerViewport aria-label="Conversation" className="p-4">
 					<MessageScrollerContent aria-busy={isStreaming}>
-						{messages.length === 0 && (
-							<Empty className="my-auto">
-								<EmptyHeader>
-									<EmptyTitle className="text-2xl">What can I help with?</EmptyTitle>
-									<EmptyDescription>
-										Start typing. Your chat begins with your first message.
-									</EmptyDescription>
-								</EmptyHeader>
-							</Empty>
-						)}
 						{messages.map((msg, idx) => {
 							const isLast = idx === messages.length - 1;
 							return (
@@ -92,14 +89,8 @@ export function ChatView({ conversation }: ChatViewProps) {
 					disabled={!isReady}
 					isStreaming={isStreaming}
 					selection={selection}
-					onSelect={setSelection}
-					tools={{
-						enabledTools,
-						forceWebSearch,
-						supportsTools,
-						onEnabledToolsChange: setEnabledTools,
-						onForceWebSearchChange: setForceWebSearch,
-					}}
+					locked
+					tools={controls}
 					sendMessage={handleSend}
 					stop={stop}
 				/>

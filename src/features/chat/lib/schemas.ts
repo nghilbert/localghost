@@ -2,15 +2,18 @@ import { z } from "zod/v4";
 
 const uuid = z.uuid();
 
+/** A chosen model on a specific endpoint — the unit a conversation is locked to. */
+export const modelSelectionSchema = z.object({ endpointId: uuid, model: z.string().min(1) });
+
 export const updateConversationSchema = z.object({
 	title: z.string().min(1).optional(),
-	selection: z.object({ endpointId: uuid, model: z.string().min(1) }).optional(),
 	archived: z.boolean().optional(),
 });
 
 // ── Server-fn inputs ─────────────────────────────────────────────────────────
 
 export const conversationIdInput = z.object({ id: uuid });
+export const createConversationInput = z.object({ selection: modelSelectionSchema });
 export const updateConversationInput = z.object({ id: uuid, data: updateConversationSchema });
 export const saveMessagesInput = z.object({
 	id: uuid,
