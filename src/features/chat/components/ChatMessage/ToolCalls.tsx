@@ -1,17 +1,8 @@
 import type { UIMessage } from "@tanstack/ai-client";
-import {
-	BrainIcon,
-	ChevronRightIcon,
-	GlobeIcon,
-	LinkIcon,
-	type LucideIcon,
-	TerminalIcon,
-} from "lucide-react";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "#/components/ui/collapsible";
-import { Marker, MarkerContent, MarkerIcon } from "#/components/ui/marker";
-import { Spinner } from "#/components/ui/spinner";
+import { BrainIcon, GlobeIcon, LinkIcon, type LucideIcon, TerminalIcon } from "lucide-react";
 import { Textarea } from "#/components/ui/textarea";
-import { useElapsedSeconds } from "#/features/chat/hooks/use-elapsed-seconds";
+import { ActivityMarker } from "#/features/chat/components/ActivityMarker";
+import { MessageStep } from "#/features/chat/components/ChatMessage/MessageStep";
 
 type ToolCall = Extract<UIMessage["parts"][number], { type: "tool-call" }>;
 
@@ -34,51 +25,27 @@ function outputText(output: ToolCall["output"]): string {
 type ToolCallsProps = { toolCalls: ToolCall[]; isStreaming?: boolean };
 
 /**
- * Renders an assistant message's tool calls: a live bubble with an elapsed timer
- * while a call is in flight, then a collapsible of its output once it resolves.
- * Owns the timer so it only ticks while a call is actually pending.
+ * Renders an assistant message's tool calls: a live marker with an elapsed timer
+ * while a call is in flight, then a collapsible step with its output once it
+ * resolves.
  */
 export function ToolCalls({ toolCalls, isStreaming }: ToolCallsProps) {
-	const isRunning = Boolean(isStreaming && toolCalls.some((tc) => tc.output === undefined));
-	const seconds = useElapsedSeconds(isRunning);
-
 	if (toolCalls.length === 0) return null;
 
 	return (
 		<>
 			{toolCalls.map((tc) => {
-				const { icon: DisplayIcon, running, done } = display(tc.name);
+				const { icon, running, done } = display(tc.name);
 				return isStreaming && tc.output === undefined ? (
-					<Marker key={tc.id} role="status">
-						<MarkerIcon>
-							<Spinner />
-						</MarkerIcon>
-						<MarkerContent>
-							{running}
-							{seconds ? <span className="tabular-nums opacity-70"> · {seconds}s</span> : null}
-						</MarkerContent>
-					</Marker>
+					<ActivityMarker key={tc.id} label={running} />
 				) : (
-					<Collapsible
-						key={tc.id}
-						className="overflow-hidden rounded-lg border bg-muted/30 text-xs"
-					>
-						<CollapsibleTrigger className="group flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left font-medium text-muted-foreground transition-colors hover:bg-muted/50">
-							<DisplayIcon size={12} className="shrink-0" />
-							<span className="flex-1">{done}</span>
-							<ChevronRightIcon
-								size={12}
-								className="transition-transform group-data-[state=open]:rotate-90"
-							/>
-						</CollapsibleTrigger>
-						<CollapsibleContent asChild>
-							<Textarea
-								readOnly
-								className="max-h-56 border-t whitespace-pre-wrap wrap-break-word px-3 py-2.5 font-mono leading-relaxed text-muted-foreground"
-								value={outputText(tc.output)}
-							/>
-						</CollapsibleContent>
-					</Collapsible>
+					<MessageStep key={tc.id} icon={icon} title={done}>
+						<Textarea
+							readOnly
+							className="max-h-56 border-t whitespace-pre-wrap wrap-break-word px-3 py-2.5 font-mono leading-relaxed text-muted-foreground"
+							value={outputText(tc.output)}
+						/>
+					</MessageStep>
 				);
 			})}
 		</>

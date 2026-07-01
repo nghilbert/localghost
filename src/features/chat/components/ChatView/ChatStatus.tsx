@@ -1,13 +1,12 @@
-import type { ChatClientState } from "@tanstack/ai-client";
+import type { ChatClientState, UIMessage } from "@tanstack/ai-client";
 import { RefreshCwIcon, TriangleAlertIcon } from "lucide-react";
 import { Alert, AlertAction, AlertDescription, AlertTitle } from "#/components/ui/alert";
 import { Button } from "#/components/ui/button";
-import { Marker, MarkerContent, MarkerIcon } from "#/components/ui/marker";
-import { Spinner } from "#/components/ui/spinner";
-import { useElapsedSeconds } from "#/features/chat/hooks/use-elapsed-seconds";
+import { ActivityMarker } from "#/features/chat/components/ActivityMarker";
 
 type ChatStatusProps = {
 	status: ChatClientState;
+	messages: Array<UIMessage>;
 	error: Error | undefined;
 	onRetry: () => void;
 };
@@ -30,22 +29,28 @@ function humanizeError(message: string): { title: string; description: string } 
 	return { title: "Something went wrong", description: message };
 }
 
-/** The conversation's single transient status row: a recoverable error alert, or a "Thinking" marker — nothing once streaming or idle. */
-export function ChatStatus({ status, error, onRetry }: ChatStatusProps) {
-	const seconds = useElapsedSeconds(status === "submitted");
+/** Whether the last message is an assistant reply with anything on screen yet. */
+function hasVisibleOutput(messages: Array<UIMessage>): boolean {
+	const last = messages.at(-1);
+	if (last?.role !== "assistant") return false;
+	return last.parts.some(
+		(part) =>
+			((part.type === "text" || part.type === "thinking") && part.content.length > 0) ||
+			part.type === "tool-call",
+	);
+}
 
-	if (status === "submitted") {
-		return (
-			<Marker role="status">
-				<MarkerIcon>
-					<Spinner />
-				</MarkerIcon>
-				<MarkerContent>
-					Thinking
-					{seconds ? <span className="tabular-nums opacity-70"> · {seconds}s</span> : null}
-				</MarkerContent>
-			</Marker>
-		);
+/**
+ * The conversation's single transient status row: a recoverable error alert, or a
+ * live "Thinking" marker from the moment a response is requested until the model
+ * shows its first output (text, reasoning, or a tool call) — nothing once visible
+ * output streams or the chat is idle.
+ */
+export function ChatStatus({ status, messages, error, onRetry }: ChatStatusProps) {
+	const pending = status === "submitted" || (status === "streaming" && !hasVisibleOutput(messages));
+
+	if (pending) {
+		return <ActivityMarker label="Thinking" />;
 	}
 
 	if (status === "error") {
@@ -65,7 +70,5 @@ export function ChatStatus({ status, error, onRetry }: ChatStatusProps) {
 		);
 	}
 
-	if (status === "ready" || status === "streaming") {
-		return null;
-	}
+	return null;
 }
