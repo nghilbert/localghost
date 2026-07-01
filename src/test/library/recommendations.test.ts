@@ -71,4 +71,28 @@ describe("pickRecommendedModels", () => {
 			expect(fit.tier).toBe("cpu-only");
 		}
 	});
+
+	it("breaks equal-fit ties by pull count, not raw size", () => {
+		const tied: CatalogModel[] = [
+			makeCatalogModel({
+				id: "big-niche:14b",
+				paramB: 14,
+				vramGb: 9.1,
+				ramGb: 16.1,
+				tags: ["chat"],
+				pullCount: "50K",
+			}),
+			makeCatalogModel({
+				id: "popular:8b",
+				paramB: 8,
+				vramGb: 5.2,
+				ramGb: 9.2,
+				tags: ["chat"],
+				pullCount: "120M",
+			}),
+		];
+		const recs = pickRecommendedModels({ hw: bigGpuBox, installed: [], catalog: tied });
+		const best = recs.find((r) => r.reason === "best-overall");
+		expect(best?.model.id).toBe("popular:8b");
+	});
 });

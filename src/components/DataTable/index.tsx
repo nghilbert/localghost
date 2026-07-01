@@ -73,6 +73,7 @@ export function DataTable<TData>({
 	return (
 		<div className="space-y-3">
 			{toolbar?.(table)}
+			{pageSize && <DataTablePagination table={table} />}
 			<div className="rounded-md border">
 				<Table>
 					<TableHeader>

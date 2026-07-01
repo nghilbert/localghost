@@ -46,10 +46,6 @@ export function ModelIdentityCell({ row }: { row: ModelRow }) {
 	);
 }
 
-export function FamilyCell({ family }: { family?: string | null }) {
-	return <span className="text-xs text-muted-foreground whitespace-nowrap">{family || "—"}</span>;
-}
-
 export function ParamsCell({ row }: { row: ModelRow }) {
 	const params =
 		row.catalog?.paramB != null ? `${row.catalog.paramB}B` : row.installed?.parameterSize;

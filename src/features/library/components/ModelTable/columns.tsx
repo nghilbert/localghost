@@ -1,7 +1,6 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import { DataTableColumnHeader } from "#/components/DataTable/DataTableColumnHeader";
 import {
-	FamilyCell,
 	FitCell,
 	MemoryCell,
 	ModelIdentityCell,
@@ -10,6 +9,7 @@ import {
 	TextCell,
 } from "#/features/library/components/ModelCells";
 import { ModelActionsCell } from "#/features/library/components/ModelTable/ModelActionsCell";
+import { parsePullCount } from "#/features/library/lib/catalog";
 import type { ModelRow } from "#/features/library/lib/model-rows";
 
 type ModelColumnOptions = {
@@ -22,14 +22,13 @@ type ModelColumnOptions = {
 /** Display names for the column-visibility menu, keyed by column id. */
 export const MODEL_COLUMN_LABELS: Record<string, string> = {
 	name: "Model",
-	family: "By",
 	params: "Params",
 	vram: "VRAM",
 	ram: "RAM",
-	fit: "Fit",
 	size: "Size",
 	pulls: "Pulls",
 	updated: "Updated",
+	fit: "Fit",
 };
 
 /** `null`/`undefined` sort last regardless of direction. */
@@ -48,15 +47,9 @@ export function createModelColumns({
 			id: "name",
 			accessorFn: (row) =>
 				`${row.name} ${row.id} ${row.catalog?.tags.join(" ") ?? ""} ${row.installed?.family ?? ""}`,
-			header: "Model",
+			header: ({ column }) => <DataTableColumnHeader column={column} title="Model" />,
 			enableHiding: false,
 			cell: ({ row }) => <ModelIdentityCell row={row.original} />,
-		},
-		{
-			id: "family",
-			accessorFn: (row) => row.installed?.family ?? "",
-			header: "By",
-			cell: ({ row }) => <FamilyCell family={row.original.installed?.family} />,
 		},
 		{
 			id: "params",
@@ -77,12 +70,6 @@ export function createModelColumns({
 			cell: ({ row }) => <MemoryCell gb={row.original.catalog?.ramGb ?? 0} />,
 		},
 		{
-			id: "fit",
-			accessorFn: (row) => nullableNumber(row.fit?.overall),
-			header: ({ column }) => <DataTableColumnHeader column={column} title="Fit" />,
-			cell: ({ row }) => <FitCell fit={row.original.fit} hasHardware={hasHardware} />,
-		},
-		{
 			id: "size",
 			accessorFn: (row) => row.installed?.sizeBytes ?? 0,
 			header: ({ column }) => <DataTableColumnHeader column={column} title="Size" />,
@@ -90,8 +77,8 @@ export function createModelColumns({
 		},
 		{
 			id: "pulls",
-			accessorFn: (row) => row.catalog?.pullCount ?? "",
-			header: "Pulls",
+			accessorFn: (row) => parsePullCount(row.catalog?.pullCount ?? ""),
+			header: ({ column }) => <DataTableColumnHeader column={column} title="Pulls" />,
 			cell: ({ row }) => <TextCell value={row.original.catalog?.pullCount} />,
 		},
 		{
@@ -99,6 +86,12 @@ export function createModelColumns({
 			accessorFn: (row) => row.catalog?.updatedAt ?? "",
 			header: ({ column }) => <DataTableColumnHeader column={column} title="Updated" />,
 			cell: ({ row }) => <TextCell value={row.original.catalog?.updated} />,
+		},
+		{
+			id: "fit",
+			accessorFn: (row) => nullableNumber(row.fit?.overall),
+			header: ({ column }) => <DataTableColumnHeader column={column} title="Fit" />,
+			cell: ({ row }) => <FitCell fit={row.original.fit} hasHardware={hasHardware} />,
 		},
 		{
 			id: "actions",

@@ -4,6 +4,7 @@ import {
 	deriveTags,
 	estimateFootprint,
 	parseParamB,
+	parsePullCount,
 } from "#/features/library/lib/catalog";
 import { makeHardware as hw, makeGpu, makeCatalogModel as model } from "#/test/factories";
 
@@ -27,6 +28,24 @@ describe("parseParamB", () => {
 	it("returns null for unparseable tags", () => {
 		expect(parseParamB("latest")).toBeNull();
 		expect(parseParamB("")).toBeNull();
+	});
+});
+
+describe("parsePullCount", () => {
+	it("scales K/M/B suffixes", () => {
+		expect(parsePullCount("116.6M")).toBe(116_600_000);
+		expect(parsePullCount("9.4K")).toBe(9400);
+		expect(parsePullCount("2B")).toBe(2_000_000_000);
+	});
+
+	it("parses plain integers and is case-insensitive", () => {
+		expect(parsePullCount("523")).toBe(523);
+		expect(parsePullCount("1.2m")).toBe(1_200_000);
+	});
+
+	it("returns 0 for empty or unparseable values", () => {
+		expect(parsePullCount("")).toBe(0);
+		expect(parsePullCount("lots")).toBe(0);
 	});
 });
 

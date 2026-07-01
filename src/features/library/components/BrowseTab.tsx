@@ -71,7 +71,7 @@ export function BrowseTab() {
 							onPull={handlePull}
 							onStop={stop}
 							onDelete={(model) => deleteModel.mutate(model)}
-							initialColumnVisibility={{ family: false, size: false }}
+							initialColumnVisibility={{ size: false }}
 						/>
 					</>
 				)

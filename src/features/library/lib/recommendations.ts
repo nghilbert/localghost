@@ -1,4 +1,4 @@
-import { computeFit } from "#/features/library/lib/catalog";
+import { computeFit, parsePullCount } from "#/features/library/lib/catalog";
 import type {
 	CatalogModel,
 	FitScore,
@@ -23,9 +23,13 @@ const TIER_RANK: Record<FitScore["tier"], number> = {
 
 type ScoredModel = { model: CatalogModel; fit: FitScore };
 
-/** Best tier first, then the largest model that achieves it. */
+/** Best tier first, then the most-pulled model, then the largest as a final tiebreak. */
 function byCapability(a: ScoredModel, b: ScoredModel): number {
-	return TIER_RANK[b.fit.tier] - TIER_RANK[a.fit.tier] || paramB(b) - paramB(a);
+	return (
+		TIER_RANK[b.fit.tier] - TIER_RANK[a.fit.tier] ||
+		popularity(b) - popularity(a) ||
+		paramB(b) - paramB(a)
+	);
 }
 
 /** Best tier first, then the smallest model — fewer parameters means faster tokens. */
@@ -36,6 +40,11 @@ function bySpeed(a: ScoredModel, b: ScoredModel): number {
 /** Candidates are pre-filtered to a known size; coalesce to satisfy the types. */
 function paramB(scored: ScoredModel): number {
 	return scored.model.paramB ?? 0;
+}
+
+/** Real-world popularity from the library's pull count, as a quality proxy. */
+function popularity(scored: ScoredModel): number {
+	return parsePullCount(scored.model.pullCount);
 }
 
 /**

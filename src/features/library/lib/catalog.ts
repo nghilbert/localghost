@@ -21,6 +21,18 @@ export function parseParamB(size: string): number | null {
 }
 
 /**
+ * Parses the library's abbreviated pull count into a number for sorting/ranking.
+ * Handles plain counts and K/M/B suffixes ("116.6M" → 116_600_000, "9.4K" → 9400).
+ * Returns 0 when the value isn't parseable.
+ */
+export function parsePullCount(value: string): number {
+	const match = value.trim().match(/^([\d.]+)\s*([kmb])?$/i);
+	if (!match) return 0;
+	const multiplier = { k: 1e3, m: 1e6, b: 1e9 }[match[2]?.toLowerCase() ?? ""] ?? 1;
+	return Number(match[1]) * multiplier;
+}
+
+/**
  * Estimates a Q4-ish memory footprint from parameter count. The library doesn't
  * publish VRAM/RAM, so we approximate: the ratios below match the previously
  * hand-tuned catalog closely (weights at ~0.65 GB/B, plus CPU overhead).
