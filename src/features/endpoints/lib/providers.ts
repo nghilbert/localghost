@@ -30,20 +30,12 @@ export type ProviderDefinition = {
 };
 
 /**
- * Known providers for the guided picker. Default base URLs must round-trip
- * through detectProvider() in llm.server.ts so chat routes requests correctly
- * — pinned by a unit test.
+ * Selectable providers for the guided add-endpoint picker. Local Ollama is the
+ * built-in endpoint and is intentionally absent here; it is never "added". Default
+ * base URLs must round-trip through detectProvider() in llm.server.ts so chat routes
+ * requests correctly; pinned by a unit test.
  */
 export const PROVIDERS: ProviderDefinition[] = [
-	{
-		id: "ollama",
-		label: "Ollama (local)",
-		defaultName: "Ollama (local)",
-		defaultBaseUrl: null,
-		prefillBaseUrl: "http://localhost:11434",
-		requiresApiKey: false,
-		description: "Run models on your own hardware — no API key needed.",
-	},
 	{
 		id: "anthropic",
 		label: "Anthropic",

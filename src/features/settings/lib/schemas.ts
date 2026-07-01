@@ -1,6 +1,6 @@
 import { z } from "zod/v4";
 
-export const TAB_VALUES = ["account", "memory", "providers", "appearance"] as const;
+export const TAB_VALUES = ["account", "memory", "endpoints", "appearance"] as const;
 
 export const SettingsSearchSchema = z.object({
 	tab: z.enum(TAB_VALUES).optional().catch(undefined),

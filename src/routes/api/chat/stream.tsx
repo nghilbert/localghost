@@ -49,7 +49,7 @@ export const Route = createFileRoute("/api/chat/stream")({
 				});
 				if (!conversation) return new Response("Conversation not found", { status: 404 });
 				if (!conversation.endpoint || !conversation.model)
-					return new Response("No model endpoint configured", { status: 400 });
+					return new Response("No provider endpoint configured", { status: 400 });
 
 				const endpoint = conversation.endpoint;
 				const apiKey = endpoint.apiKeyEncrypted ? decrypt(endpoint.apiKeyEncrypted) : undefined;

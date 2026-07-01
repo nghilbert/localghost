@@ -5,6 +5,7 @@ import { getCurrentUserId } from "#/features/auth/lib/session.server";
 import { decrypt } from "#/lib/crypto.server";
 import { prisma } from "#/lib/db.server";
 import { listModels } from "#/lib/llm.server";
+import { orderEndpointsForDefault } from "./default-selection";
 import { conversationIdInput, saveMessagesInput, updateConversationInput } from "./schemas";
 
 /** Default title a conversation keeps until its first message names it. */
@@ -54,25 +55,30 @@ export const getConversation = createServerFn({ method: "POST" })
 	});
 
 /**
- * The user's first endpoint and its first model, best-effort. Returns a null
- * model when there are no endpoints, none expose a model, or the provider call
- * fails — the empty chat then prompts the user to pick one.
+ * The endpoint and model a new chat opens on. Prefers the built-in Ollama, then the
+ * oldest added endpoint, and only picks one that actually returns a model, so it never
+ * seeds an endpoint with no model (which renders as configured-but-disabled). Returns a
+ * fully null selection when nothing is usable; the empty chat then prompts the user to
+ * pick one.
  */
 async function defaultSelection(
 	userId: string,
 ): Promise<{ endpointId: string | null; model: string | null }> {
-	const endpoint = await prisma.modelEndpoint.findFirst({
+	const endpoints = await prisma.modelEndpoint.findMany({
 		where: { ownerId: userId },
 		orderBy: { id: "asc" },
 	});
-	if (!endpoint) return { endpointId: null, model: null };
-	try {
-		const apiKey = endpoint.apiKeyEncrypted ? decrypt(endpoint.apiKeyEncrypted) : undefined;
-		const [model] = await listModels({ url: endpoint.url, apiKey });
-		return { endpointId: endpoint.id, model: model ?? null };
-	} catch {
-		return { endpointId: endpoint.id, model: null };
+
+	for (const endpoint of orderEndpointsForDefault(endpoints)) {
+		try {
+			const apiKey = endpoint.apiKeyEncrypted ? decrypt(endpoint.apiKeyEncrypted) : undefined;
+			const [model] = await listModels({ url: endpoint.url, apiKey });
+			if (model) return { endpointId: endpoint.id, model };
+		} catch {
+			// Unreachable or rejected; fall through to the next endpoint.
+		}
 	}
+	return { endpointId: null, model: null };
 }
 
 /**

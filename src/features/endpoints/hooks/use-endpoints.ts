@@ -23,9 +23,9 @@ export function useEndpoints() {
 		mutationFn: (data: z.input<typeof createEndpointSchema>) => createEndpoint({ data }),
 		onSuccess: () => {
 			invalidate();
-			toast.success("Provider added");
+			toast.success("Provider endpoint added");
 		},
-		onError: (error) => toast.error(`Failed to add provider: ${error.message}`),
+		onError: (error) => toast.error(`Failed to add provider endpoint: ${error.message}`),
 	});
 
 	const updateEndpointMutation = useMutation({
@@ -33,18 +33,18 @@ export function useEndpoints() {
 			updateEndpoint({ data: vars }),
 		onSuccess: () => {
 			invalidate();
-			toast.success("Provider updated");
+			toast.success("Provider endpoint updated");
 		},
-		onError: (error) => toast.error(`Failed to update provider: ${error.message}`),
+		onError: (error) => toast.error(`Failed to update provider endpoint: ${error.message}`),
 	});
 
 	const deleteEndpointMutation = useMutation({
 		mutationFn: (id: string) => deleteEndpoint({ data: { id } }),
 		onSuccess: () => {
 			invalidate();
-			toast.success("Provider removed");
+			toast.success("Provider endpoint removed");
 		},
-		onError: (error) => toast.error(`Failed to remove provider: ${error.message}`),
+		onError: (error) => toast.error(`Failed to remove provider endpoint: ${error.message}`),
 	});
 
 	const testEndpointMutation = useMutation({

@@ -3,8 +3,8 @@ import { BrainIcon, PaletteIcon, PlugIcon, UserIcon } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "#/components/ui/tabs";
 import { AccountTab } from "#/features/settings/components/AccountTab";
 import { AppearanceTab } from "#/features/settings/components/AppearanceTab";
+import { EndpointsTab } from "#/features/settings/components/EndpointsTab";
 import { MemoryTab } from "#/features/settings/components/MemoryTab";
-import { ProvidersTab } from "#/features/settings/components/ProvidersTab";
 import { TAB_VALUES } from "#/features/settings/lib/schemas";
 
 const routeApi = getRouteApi("/_authenticated/settings");
@@ -36,9 +36,9 @@ export function SettingsPage() {
 						<BrainIcon size={13} />
 						Memory
 					</TabsTrigger>
-					<TabsTrigger value="providers" className="gap-1.5">
+					<TabsTrigger value="endpoints" className="gap-1.5">
 						<PlugIcon size={13} />
-						Providers
+						Provider endpoints
 					</TabsTrigger>
 					<TabsTrigger value="appearance" className="gap-1.5">
 						<PaletteIcon size={13} />
@@ -53,8 +53,8 @@ export function SettingsPage() {
 				<TabsContent value="memory">
 					<MemoryTab />
 				</TabsContent>
-				<TabsContent value="providers">
-					<ProvidersTab />
+				<TabsContent value="endpoints">
+					<EndpointsTab />
 				</TabsContent>
 				<TabsContent value="appearance">
 					<AppearanceTab />

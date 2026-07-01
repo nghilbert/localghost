@@ -29,16 +29,10 @@ describe("provider registry", () => {
 		}
 	});
 
-	it("ollama prefills a local url without requiring a key", () => {
-		const ollama = PROVIDERS.find((p) => p.id === "ollama");
-		expect(ollama?.defaultBaseUrl).toBeNull();
-		expect(ollama?.requiresApiKey).toBe(false);
-		expect(ollama?.prefillBaseUrl).toBe("http://localhost:11434");
+	it("omits ollama from the add-endpoint picker (it is the built-in endpoint)", () => {
+		expect(PROVIDERS.some((p) => p.id === "ollama")).toBe(false);
+		// The protocol mapping still exists for the discovery-managed ollama row.
 		expect(detectProvider("http://localhost:11434")).toBe("ollama");
-	});
-
-	it("lists ollama first as the default provider", () => {
-		expect(PROVIDERS[0]?.id).toBe("ollama");
 	});
 
 	it("routes gemini through detectProvider and maps to its own db provider", () => {

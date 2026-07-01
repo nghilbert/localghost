@@ -60,9 +60,9 @@ export function ModelPicker({ selection, onSelect }: ModelPickerProps) {
 					<DropdownMenuGroup>
 						<DropdownMenuLabel>Couldn't reach endpoint</DropdownMenuLabel>
 						<DropdownMenuItem asChild>
-							<Link to="/settings" search={{ tab: "providers" }}>
+							<Link to="/settings" search={{ tab: "endpoints" }}>
 								<TriangleAlertIcon />
-								Check Provider Settings
+								Check provider endpoints
 							</Link>
 						</DropdownMenuItem>
 					</DropdownMenuGroup>

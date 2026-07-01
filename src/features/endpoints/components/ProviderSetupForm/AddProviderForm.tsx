@@ -126,7 +126,7 @@ export function AddProviderForm({ definition, onCreated }: AddProviderFormProps)
 				<Field orientation="horizontal">
 					<form.SubmitButton>
 						<PlusIcon />
-						Add provider
+						Add provider endpoint
 					</form.SubmitButton>
 					<Button
 						type="button"

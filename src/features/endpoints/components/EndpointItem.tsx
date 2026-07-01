@@ -5,7 +5,7 @@ import type { getEndpoints } from "#/features/endpoints/lib/endpoint.functions";
 
 type Endpoint = Awaited<ReturnType<typeof getEndpoints>>[number];
 
-/** A configured provider connection: name, URL, key status, and delete. */
+/** A configured provider endpoint: name, URL, key status, and delete. */
 export function EndpointItem({ endpoint, onDelete }: { endpoint: Endpoint; onDelete: () => void }) {
 	return (
 		<Item variant="outline">
@@ -17,7 +17,12 @@ export function EndpointItem({ endpoint, onDelete }: { endpoint: Endpoint; onDel
 				</ItemDescription>
 			</ItemContent>
 			<ItemActions>
-				<Button variant="ghost" size="icon-sm" onClick={onDelete} aria-label="Delete provider">
+				<Button
+					variant="ghost"
+					size="icon-sm"
+					onClick={onDelete}
+					aria-label="Delete provider endpoint"
+				>
 					<Trash2Icon size={14} />
 				</Button>
 			</ItemActions>

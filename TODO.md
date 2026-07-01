@@ -5,20 +5,6 @@ recommended order: #6 defines how models are sourced, which #4/#5 and #7 build o
 #1 and #8 are cleanup that can slot in between. #3 is an umbrella the others chip
 away at.
 
-## Provider / model source
-
-- [ ] **#6 — Simplify the "provider" concept to: local Ollama built-in + cloud
-  add-ons.** Adding a second provider broke things (controls looked disabled but
-  still routed a request), and the word "provider" doesn't say what it is.
-  - Local Ollama is a built-in source that always exists. Users never "add" it.
-  - "Adding a provider" means only a bring-your-own **cloud endpoint** (URL +
-    key). Rename the concept in the UI to something concrete (e.g. Cloud
-    endpoint / Connection).
-  - Root-cause and fix the disabled-but-still-active bug (selection/enabled
-    state got out of sync with a second endpoint).
-  - Strip the endpoints UI and logic down to the minimum for this model.
-  - _Depends on nothing; everything else about models leans on this._
-
 ## Library
 
 - [ ] **#4 — Build a browsable model catalog from the Ollama library.** The Browse
@@ -65,6 +51,8 @@ away at.
   - Confirm what's already ephemeral (per-message tool toggles are not
     persisted) and flag anything that surprises.
 
+- [ ] **JSDoc comments need to utilize JSDoc features better.** Right now it is just a glorified comment
+
 ## UX (umbrella)
 
 - [ ] **#3 — Make the experience seamless: intuitive, not complex.** Umbrella
@@ -80,3 +68,15 @@ away at.
   chat surface: `/new` is now a resolver that reuses-or-creates a draft and
   redirects; the first message sends through the same composer path as every later
   message.
+
+- [x] **#6 — Simplify the "provider" concept to: local Ollama built-in + cloud
+  add-ons.** Adding a second provider broke things (controls looked disabled but
+  still routed a request), and the word "provider" doesn't say what it is.
+  - Local Ollama is a built-in source that always exists. Users never "add" it.
+  - "Adding a provider" means only a bring-your-own **cloud endpoint** (URL +
+    key). Rename the concept in the UI to something concrete (e.g. Cloud
+    endpoint / Connection).
+  - Root-cause and fix the disabled-but-still-active bug (selection/enabled
+    state got out of sync with a second endpoint).
+  - Strip the endpoints UI and logic down to the minimum for this model.
+  - _Depends on nothing; everything else about models leans on this._
