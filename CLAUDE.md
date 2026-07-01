@@ -17,6 +17,11 @@ Guidance for Claude Code working in this repository.
 - **Components own their styling.** An ad-hoc `<div className="rounded-lg border bg-card p-4">` card surface in feature code is wrong — that's `<Card>` and its sub-components. Reach for `className` only for layout the component can't do itself.
 - **Layout-agnostic components:** reusable components never set their own width, max-width, or margins — the parent owns layout.
 - **Post-action toasts:** after user-awaited mutations, fire `toast.success` / `toast.error` from `sonner`.
+- **Test complex work:** when a change has real moving parts (parsers, data transforms,
+  non-trivial UI behavior), write well-structured Vitest tests in `src/test/<area>/` that
+  assert what should actually happen — follow good SDLC practice. Keep test data inline or
+  tiny; never commit large captured/scraped blobs (HTML dumps, API snapshots) as fixtures —
+  craft the minimal input that exercises the case.
 
 ## Project Purpose
 
@@ -73,13 +78,8 @@ src/features/<name>/
 - File suffixes: `*.functions.ts` (server fns), `*.server.ts` (server-only), `*.client.ts` (client-only). Type files: `types.ts`.
 - `src/components/ui/` — shadcn primitives, never edit by hand; regenerate via `npx shadcn add <component> --overwrite`.
 - `src/components/DataTable/` — the only table implementation; never hand-roll `useReactTable`.
-- Tests in `src/test/<area>/`; write for new pure logic and non-trivial UI behavior.
-
-## Git & SDLC
-
-- Branch from `main`: `feat/`, `fix/`, `refactor/`, `chore/`. PR title ≤70 chars, imperative.
-- **Before every commit:** `npm run fix` → `npm run check` → `npx vitest run` → `npm run build`.
-- **Compaction checkpoints:** mark `🛑 STOP — compaction checkpoint` in plans at natural phase boundaries; pause so the user can compact before continuing.
+- Tests live in `src/test/<area>/`, run with `npx vitest run`. See the "Test complex work"
+  rule above for when and how.
 
 ## Feature Map
 
