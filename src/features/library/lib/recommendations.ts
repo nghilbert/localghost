@@ -1,4 +1,4 @@
-import { CATALOG, computeFit } from "#/features/library/lib/catalog";
+import { computeFit } from "#/features/library/lib/catalog";
 import type {
 	CatalogModel,
 	FitScore,
@@ -25,12 +25,17 @@ type ScoredModel = { model: CatalogModel; fit: FitScore };
 
 /** Best tier first, then the largest model that achieves it. */
 function byCapability(a: ScoredModel, b: ScoredModel): number {
-	return TIER_RANK[b.fit.tier] - TIER_RANK[a.fit.tier] || b.model.paramB - a.model.paramB;
+	return TIER_RANK[b.fit.tier] - TIER_RANK[a.fit.tier] || paramB(b) - paramB(a);
 }
 
 /** Best tier first, then the smallest model — fewer parameters means faster tokens. */
 function bySpeed(a: ScoredModel, b: ScoredModel): number {
-	return TIER_RANK[b.fit.tier] - TIER_RANK[a.fit.tier] || a.model.paramB - b.model.paramB;
+	return TIER_RANK[b.fit.tier] - TIER_RANK[a.fit.tier] || paramB(a) - paramB(b);
+}
+
+/** Candidates are pre-filtered to a known size; coalesce to satisfy the types. */
+function paramB(scored: ScoredModel): number {
+	return scored.model.paramB ?? 0;
 }
 
 /**
@@ -38,15 +43,22 @@ function bySpeed(a: ScoredModel, b: ScoredModel): number {
  * fit, the fastest, and the best coding model. Embedding models, models that
  * don't fit, and already-installed models are excluded.
  */
-export function pickRecommendedModels(
-	hw: HardwareInfo,
-	installed: OllamaInstalledModel[],
-): Recommendation[] {
+export function pickRecommendedModels({
+	hw,
+	installed,
+	catalog,
+}: {
+	hw: HardwareInfo;
+	installed: OllamaInstalledModel[];
+	catalog: CatalogModel[];
+}): Recommendation[] {
 	const installedIds = new Set(installed.map((m) => m.name.replace(/:latest$/, "")));
 
-	const candidates: ScoredModel[] = CATALOG.filter(
-		(model) => !model.tags.includes("embedding") && !installedIds.has(model.id),
-	)
+	const candidates: ScoredModel[] = catalog
+		.filter(
+			(model) =>
+				model.paramB !== null && !model.tags.includes("embedding") && !installedIds.has(model.id),
+		)
 		.map((model) => ({ model, fit: computeFit({ model, hw }) }))
 		.filter(({ fit }) => fit.tier !== "too-large");
 

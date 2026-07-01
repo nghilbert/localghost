@@ -1,325 +1,69 @@
-import type { CatalogModel, FitScore, HardwareInfo } from "./types";
+import type { FitScore, HardwareInfo } from "./types";
 
-export const CATALOG: CatalogModel[] = [
-	// Meta Llama 3.2
-	{
-		id: "llama3.2:1b",
-		name: "Llama 3.2",
-		family: "Meta",
-		paramB: 1,
-		vramGb: 1.2,
-		ramGb: 2,
-		contextK: 128,
-		tags: ["chat", "fast", "multilingual"],
-		description: "Ultra-compact. Great for quick responses on any hardware.",
-	},
-	{
-		id: "llama3.2:3b",
-		name: "Llama 3.2",
-		family: "Meta",
-		paramB: 3,
-		vramGb: 2.4,
-		ramGb: 4,
-		contextK: 128,
-		tags: ["chat", "fast", "multilingual"],
-		description: "Best quality-to-size ratio. The go-to for low-end hardware.",
-	},
+/**
+ * Parses billions of parameters from an Ollama size tag. Handles plain sizes
+ * ("8b", "1.5b", "0.5b"), million-scale ("270m", "137m"), and mixture-of-experts
+ * naming ("8x7b" → 56). Returns null when the tag isn't a parseable size.
+ */
+export function parseParamB(size: string): number | null {
+	const tag = size.trim().toLowerCase();
 
-	// Meta Llama 3.1
-	{
-		id: "llama3.1:8b",
-		name: "Llama 3.1",
-		family: "Meta",
-		paramB: 8,
-		vramGb: 5.5,
-		ramGb: 9,
-		contextK: 128,
-		tags: ["chat", "multilingual"],
-		description: "Strong all-rounder with 128K context support.",
-	},
-	{
-		id: "llama3.1:70b",
-		name: "Llama 3.1",
-		family: "Meta",
-		paramB: 70,
-		vramGb: 43,
-		ramGb: 64,
-		contextK: 128,
-		tags: ["chat", "multilingual", "large"],
-		description: "Near-frontier quality. Requires a high-end GPU.",
-	},
+	const moe = tag.match(/^(\d+(?:\.\d+)?)x(\d+(?:\.\d+)?)b$/);
+	if (moe) return Number(moe[1]) * Number(moe[2]);
 
-	// Qwen 2.5
-	{
-		id: "qwen2.5:0.5b",
-		name: "Qwen 2.5",
-		family: "Alibaba",
-		paramB: 0.5,
-		vramGb: 0.6,
-		ramGb: 1,
-		contextK: 32,
-		tags: ["chat", "fast"],
-		description: "Tiny but surprisingly capable for simple tasks.",
-	},
-	{
-		id: "qwen2.5:3b",
-		name: "Qwen 2.5",
-		family: "Alibaba",
-		paramB: 3,
-		vramGb: 2.4,
-		ramGb: 4,
-		contextK: 32,
-		tags: ["chat", "multilingual"],
-		description: "Compact multilingual model with good instruction following.",
-	},
-	{
-		id: "qwen2.5:7b",
-		name: "Qwen 2.5",
-		family: "Alibaba",
-		paramB: 7,
-		vramGb: 4.8,
-		ramGb: 8,
-		contextK: 128,
-		tags: ["chat", "multilingual", "code"],
-		description: "Excellent multilingual and coding performance.",
-	},
-	{
-		id: "qwen2.5:14b",
-		name: "Qwen 2.5",
-		family: "Alibaba",
-		paramB: 14,
-		vramGb: 9.5,
-		ramGb: 16,
-		contextK: 128,
-		tags: ["chat", "multilingual", "code"],
-		description: "Strong reasoning across languages and code.",
-	},
-	{
-		id: "qwen2.5:32b",
-		name: "Qwen 2.5",
-		family: "Alibaba",
-		paramB: 32,
-		vramGb: 20,
-		ramGb: 36,
-		contextK: 128,
-		tags: ["chat", "multilingual", "code", "large"],
-		description: "Best Qwen 2.5 size for quality vs hardware tradeoff.",
-	},
+	const billions = tag.match(/^(\d+(?:\.\d+)?)b$/);
+	if (billions) return Number(billions[1]);
 
-	// Qwen 2.5 Coder
-	{
-		id: "qwen2.5-coder:7b",
-		name: "Qwen 2.5 Coder",
-		family: "Alibaba",
-		paramB: 7,
-		vramGb: 4.8,
-		ramGb: 8,
-		contextK: 32,
-		tags: ["code"],
-		description: "Specialized for coding tasks with excellent autocomplete.",
-	},
-	{
-		id: "qwen2.5-coder:14b",
-		name: "Qwen 2.5 Coder",
-		family: "Alibaba",
-		paramB: 14,
-		vramGb: 9.5,
-		ramGb: 16,
-		contextK: 32,
-		tags: ["code"],
-		description: "Top-tier coding model at this size class.",
-	},
+	const millions = tag.match(/^(\d+(?:\.\d+)?)m$/);
+	if (millions) return Number(millions[1]) / 1000;
 
-	// DeepSeek R1 (reasoning)
-	{
-		id: "deepseek-r1:1.5b",
-		name: "DeepSeek R1",
-		family: "DeepSeek",
-		paramB: 1.5,
-		vramGb: 1.4,
-		ramGb: 2.5,
-		contextK: 128,
-		tags: ["reasoning", "fast"],
-		description: "Tiny reasoning model with chain-of-thought quality.",
-	},
-	{
-		id: "deepseek-r1:7b",
-		name: "DeepSeek R1",
-		family: "DeepSeek",
-		paramB: 7,
-		vramGb: 4.8,
-		ramGb: 8,
-		contextK: 128,
-		tags: ["reasoning", "math"],
-		description: "Strong math and reasoning. Open weights.",
-	},
-	{
-		id: "deepseek-r1:14b",
-		name: "DeepSeek R1",
-		family: "DeepSeek",
-		paramB: 14,
-		vramGb: 9.5,
-		ramGb: 16,
-		contextK: 128,
-		tags: ["reasoning", "math"],
-		description: "Best value for reasoning tasks under 20GB VRAM.",
-	},
-	{
-		id: "deepseek-r1:32b",
-		name: "DeepSeek R1",
-		family: "DeepSeek",
-		paramB: 32,
-		vramGb: 20,
-		ramGb: 36,
-		contextK: 128,
-		tags: ["reasoning", "math", "large"],
-		description: "Near-frontier reasoning capability.",
-	},
-	{
-		id: "deepseek-r1:70b",
-		name: "DeepSeek R1",
-		family: "DeepSeek",
-		paramB: 70,
-		vramGb: 43,
-		ramGb: 64,
-		contextK: 128,
-		tags: ["reasoning", "math", "large"],
-		description: "State-of-the-art open reasoning model.",
-	},
+	return null;
+}
 
-	// Microsoft Phi
-	{
-		id: "phi4:14b",
-		name: "Phi 4",
-		family: "Microsoft",
-		paramB: 14,
-		vramGb: 9.5,
-		ramGb: 16,
-		contextK: 16,
-		tags: ["chat", "reasoning"],
-		description: "Microsoft's punchy mid-size model. Strong at instruction following.",
-	},
-	{
-		id: "phi4-mini:3.8b",
-		name: "Phi 4 Mini",
-		family: "Microsoft",
-		paramB: 3.8,
-		vramGb: 2.8,
-		ramGb: 5,
-		contextK: 128,
-		tags: ["chat", "fast", "reasoning"],
-		description: "Compact and capable. Great for devices with limited VRAM.",
-	},
+/**
+ * Estimates a Q4-ish memory footprint from parameter count. The library doesn't
+ * publish VRAM/RAM, so we approximate: the ratios below match the previously
+ * hand-tuned catalog closely (weights at ~0.65 GB/B, plus CPU overhead).
+ */
+export function estimateFootprint({ paramB }: { paramB: number }): {
+	vramGb: number;
+	ramGb: number;
+} {
+	return {
+		vramGb: Math.round(paramB * 0.65 * 10) / 10,
+		ramGb: Math.round(paramB * 1.15 * 10) / 10,
+	};
+}
 
-	// Google Gemma 3
-	{
-		id: "gemma3:1b",
-		name: "Gemma 3",
-		family: "Google",
-		paramB: 1,
-		vramGb: 0.9,
-		ramGb: 1.5,
-		contextK: 32,
-		tags: ["chat", "fast"],
-		description: "Google's smallest Gemma 3.",
-	},
-	{
-		id: "gemma3:4b",
-		name: "Gemma 3",
-		family: "Google",
-		paramB: 4,
-		vramGb: 3,
-		ramGb: 5,
-		contextK: 128,
-		tags: ["chat"],
-		description: "Compact model with strong general performance.",
-	},
-	{
-		id: "gemma3:12b",
-		name: "Gemma 3",
-		family: "Google",
-		paramB: 12,
-		vramGb: 8,
-		ramGb: 14,
-		contextK: 128,
-		tags: ["chat"],
-		description: "Google's strong mid-size model.",
-	},
-	{
-		id: "gemma3:27b",
-		name: "Gemma 3",
-		family: "Google",
-		paramB: 27,
-		vramGb: 17,
-		ramGb: 30,
-		contextK: 128,
-		tags: ["chat", "large"],
-		description: "Top Google open model.",
-	},
+/**
+ * Builds the display tags for a catalog model: the raw capability badges plus
+ * derived hints the recommender relies on ("fast" for small models, "code" for
+ * coding-focused ones).
+ */
+export function deriveTags({
+	name,
+	description,
+	paramB,
+	capabilities,
+}: {
+	name: string;
+	description: string;
+	paramB: number | null;
+	capabilities: string[];
+}): string[] {
+	const tags = [...capabilities];
+	if (paramB !== null && paramB <= 3) tags.push("fast");
+	if (/cod(e|er)/i.test(`${name} ${description}`)) tags.push("code");
+	return tags;
+}
 
-	// Mistral
-	{
-		id: "mistral:7b",
-		name: "Mistral",
-		family: "Mistral AI",
-		paramB: 7,
-		vramGb: 4.8,
-		ramGb: 8,
-		contextK: 32,
-		tags: ["chat", "fast"],
-		description: "Fast, reliable, and widely used.",
-	},
-	{
-		id: "mistral-nemo:12b",
-		name: "Mistral Nemo",
-		family: "Mistral AI",
-		paramB: 12,
-		vramGb: 8,
-		ramGb: 14,
-		contextK: 128,
-		tags: ["chat"],
-		description: "Strong 12B with long context.",
-	},
-
-	// QwQ (reasoning)
-	{
-		id: "qwq:32b",
-		name: "QwQ",
-		family: "Alibaba",
-		paramB: 32,
-		vramGb: 20,
-		ramGb: 36,
-		contextK: 128,
-		tags: ["reasoning", "math", "large"],
-		description: "Qwen's dedicated reasoning model. Excellent math and logic.",
-	},
-
-	// Embedding models
-	{
-		id: "nomic-embed-text",
-		name: "Nomic Embed Text",
-		family: "Nomic",
-		paramB: 0.137,
-		vramGb: 0.3,
-		ramGb: 0.5,
-		contextK: 8,
-		tags: ["embedding"],
-		description: "High-quality text embeddings. Powers RAG and memory search.",
-	},
-	{
-		id: "mxbai-embed-large",
-		name: "mxbai Embed Large",
-		family: "Mixedbread",
-		paramB: 0.334,
-		vramGb: 0.7,
-		ramGb: 1,
-		contextK: 0.5,
-		tags: ["embedding"],
-		description: "Excellent embedding quality for semantic search.",
-	},
-];
-
-export function computeFit({ model, hw }: { model: CatalogModel; hw: HardwareInfo }): FitScore {
+export function computeFit({
+	model,
+	hw,
+}: {
+	model: { vramGb: number; ramGb: number };
+	hw: HardwareInfo;
+}): FitScore {
 	const vramNeededMb = model.vramGb * 1024;
 	const bestGpu = hw.gpus?.reduce<NonNullable<typeof hw.gpus>[number] | null>(
 		(best, g) => (g.totalVramMb > (best?.totalVramMb ?? 0) ? g : best),

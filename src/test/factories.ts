@@ -18,13 +18,14 @@ export function makeCatalogModel(overrides: Partial<CatalogModel> = {}): Catalog
 	return {
 		id: faker.string.uuid(),
 		name: faker.commerce.productName(),
-		family: faker.word.noun(),
 		paramB: 7,
 		vramGb: 4,
 		ramGb: 8,
-		contextK: 128,
 		tags: ["chat"],
+		capabilities: ["tools"],
 		description: faker.lorem.sentence(),
+		pullCount: "1M",
+		updated: "1 year ago",
 		...overrides,
 	};
 }

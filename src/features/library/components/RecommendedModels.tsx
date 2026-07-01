@@ -15,6 +15,7 @@ import {
 	type RecommendationReason,
 } from "#/features/library/lib/recommendations";
 import type {
+	CatalogModel,
 	HardwareInfo,
 	OllamaInstalledModel,
 	PullProgress,
@@ -27,6 +28,7 @@ const REASON_LABELS: Record<RecommendationReason, string> = {
 };
 
 type RecommendedModelsProps = {
+	catalog: CatalogModel[];
 	hardware: HardwareInfo | undefined;
 	installedModels: OllamaInstalledModel[];
 	pulling: Record<string, PullProgress>;
@@ -35,6 +37,7 @@ type RecommendedModelsProps = {
 };
 
 export function RecommendedModels({
+	catalog,
 	hardware,
 	installedModels,
 	pulling,
@@ -43,7 +46,11 @@ export function RecommendedModels({
 }: RecommendedModelsProps) {
 	if (!hardware) return null;
 
-	const recommendations = pickRecommendedModels(hardware, installedModels);
+	const recommendations = pickRecommendedModels({
+		hw: hardware,
+		installed: installedModels,
+		catalog,
+	});
 	if (recommendations.length === 0) return null;
 
 	return (

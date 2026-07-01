@@ -1,3 +1,5 @@
+import type { Table } from "@tanstack/react-table";
+import { DataTableViewOptions } from "#/components/DataTable/DataTableViewOptions";
 import { Input } from "#/components/ui/input";
 import {
 	Select,
@@ -6,29 +8,32 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "#/components/ui/select";
+import { MODEL_COLUMN_LABELS } from "#/features/library/components/ModelTable/columns";
+import type { ModelRow } from "#/features/library/lib/model-rows";
 
 const STATUS_FILTERS = ["all", "installed", "available"] as const;
 
 export type ModelStatusFilter = (typeof STATUS_FILTERS)[number];
 
-function isModelStatusFilter(value: string): value is ModelStatusFilter {
+export function isModelStatusFilter(value: string): value is ModelStatusFilter {
 	return STATUS_FILTERS.some((filter) => filter === value);
 }
 
 type ModelTableToolbarProps = {
+	table: Table<ModelRow>;
 	globalFilter: string;
 	onGlobalFilterChange: (value: string) => void;
-	statusFilter: ModelStatusFilter;
-	onStatusFilterChange: (value: ModelStatusFilter) => void;
-	rowCount: number;
+	/** Omit to hide the all/installed/available select (e.g. the My Models view). */
+	statusFilter?: ModelStatusFilter;
+	onStatusFilterChange?: (value: ModelStatusFilter) => void;
 };
 
 export function ModelTableToolbar({
+	table,
 	globalFilter,
 	onGlobalFilterChange,
 	statusFilter,
 	onStatusFilterChange,
-	rowCount,
 }: ModelTableToolbarProps) {
 	return (
 		<div className="flex items-center gap-2">
@@ -38,24 +43,29 @@ export function ModelTableToolbar({
 				onChange={(e) => onGlobalFilterChange(e.target.value)}
 				className="max-w-xs h-8 text-sm"
 			/>
-			<Select
-				value={statusFilter}
-				onValueChange={(value) => {
-					if (isModelStatusFilter(value)) onStatusFilterChange(value);
-				}}
-			>
-				<SelectTrigger className="h-8 w-36 text-xs">
-					<SelectValue />
-				</SelectTrigger>
-				<SelectContent>
-					<SelectItem value="all">All models</SelectItem>
-					<SelectItem value="installed">Installed</SelectItem>
-					<SelectItem value="available">Not installed</SelectItem>
-				</SelectContent>
-			</Select>
-			<span className="ml-auto text-xs text-muted-foreground">
-				{rowCount} model{rowCount !== 1 ? "s" : ""}
-			</span>
+			{statusFilter && onStatusFilterChange && (
+				<Select
+					value={statusFilter}
+					onValueChange={(value) => {
+						if (isModelStatusFilter(value)) onStatusFilterChange(value);
+					}}
+				>
+					<SelectTrigger className="h-8 w-36 text-xs">
+						<SelectValue />
+					</SelectTrigger>
+					<SelectContent>
+						<SelectItem value="all">All models</SelectItem>
+						<SelectItem value="installed">Installed</SelectItem>
+						<SelectItem value="available">Not installed</SelectItem>
+					</SelectContent>
+				</Select>
+			)}
+			<div className="ml-auto flex items-center gap-2">
+				<span className="text-xs text-muted-foreground">
+					{table.getRowCount()} model{table.getRowCount() !== 1 ? "s" : ""}
+				</span>
+				<DataTableViewOptions table={table} labels={MODEL_COLUMN_LABELS} />
+			</div>
 		</div>
 	);
 }

@@ -1,16 +1,15 @@
+import type { VisibilityState } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
 import { DataTable } from "#/components/DataTable";
 import { fuzzyFilter } from "#/components/DataTable/fuzzyFilter";
-import {
-	createModelColumns,
-	type ModelRow,
-} from "#/features/library/components/ModelTable/columns";
+import { createModelColumns } from "#/features/library/components/ModelTable/columns";
 import {
 	type ModelStatusFilter,
 	ModelTableToolbar,
 } from "#/features/library/components/ModelTable/ModelTableToolbar";
-import { CATALOG, computeFit } from "#/features/library/lib/catalog";
+import { buildModelRows } from "#/features/library/lib/model-rows";
 import type {
+	CatalogModel,
 	HardwareInfo,
 	OllamaInstalledModel,
 	PullProgress,
@@ -18,49 +17,48 @@ import type {
 import { cn } from "#/lib/utils";
 
 type ModelTableProps = {
+	catalog: CatalogModel[];
 	hardware: HardwareInfo | undefined;
 	installedModels: OllamaInstalledModel[];
 	pulling: Record<string, PullProgress>;
 	onPull: (model: string) => void;
 	onStop: (model: string) => void;
 	onDelete: (model: string) => void;
+	/** "mine" shows only installed or in-flight models and hides the status select. */
+	scope?: "catalog" | "mine";
+	initialColumnVisibility?: VisibilityState;
 };
 
+/** The single table for both Browse and My Models — same columns, same rows. */
 export function ModelTable({
+	catalog,
 	hardware,
 	installedModels,
 	pulling,
 	onPull,
 	onStop,
 	onDelete,
+	scope = "catalog",
+	initialColumnVisibility,
 }: ModelTableProps) {
 	const [globalFilter, setGlobalFilter] = useState("");
 	const [statusFilter, setStatusFilter] = useState<ModelStatusFilter>("all");
 
-	const installedByName = useMemo(
-		() => new Map(installedModels.map((m) => [m.name, m])),
-		[installedModels],
+	const rows = useMemo(
+		() => buildModelRows({ catalog, installedModels, pulling, hardware }),
+		[catalog, installedModels, pulling, hardware],
 	);
 
-	const rows: ModelRow[] = useMemo(() => {
-		return CATALOG.map((model) => ({
-			model,
-			fit: hardware
-				? computeFit({ model, hw: hardware })
-				: { tier: "too-large", gpuHeadroomPct: null, cpuHeadroomGb: 0, overall: 0 },
-			installed: installedByName.get(model.id) ?? null,
-		}));
-	}, [hardware, installedByName]);
-
 	const filteredRows = useMemo(() => {
+		if (scope === "mine") return rows.filter((row) => row.installed || row.pullState);
 		if (statusFilter === "installed") return rows.filter((row) => row.installed);
 		if (statusFilter === "available") return rows.filter((row) => !row.installed);
 		return rows;
-	}, [rows, statusFilter]);
+	}, [rows, scope, statusFilter]);
 
 	const columns = useMemo(
-		() => createModelColumns({ hasHardware: Boolean(hardware), pulling, onPull, onStop, onDelete }),
-		[hardware, pulling, onPull, onStop, onDelete],
+		() => createModelColumns({ hasHardware: Boolean(hardware), onPull, onStop, onDelete }),
+		[hardware, onPull, onStop, onDelete],
 	);
 
 	return (
@@ -68,17 +66,19 @@ export function ModelTable({
 			columns={columns}
 			data={filteredRows}
 			emptyMessage="No models found."
-			initialSorting={[{ id: "overall", desc: true }]}
+			initialSorting={[{ id: "fit", desc: true }]}
+			initialColumnVisibility={initialColumnVisibility}
+			pageSize={25}
 			globalFilter={globalFilter}
 			globalFilterFn={fuzzyFilter}
 			getRowClassName={(row) => cn(row.installed && "bg-success/5")}
 			toolbar={(table) => (
 				<ModelTableToolbar
+					table={table}
 					globalFilter={globalFilter}
 					onGlobalFilterChange={setGlobalFilter}
-					statusFilter={statusFilter}
-					onStatusFilterChange={setStatusFilter}
-					rowCount={table.getRowCount()}
+					statusFilter={scope === "mine" ? undefined : statusFilter}
+					onStatusFilterChange={scope === "mine" ? undefined : setStatusFilter}
 				/>
 			)}
 		/>

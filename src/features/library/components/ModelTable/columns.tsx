@@ -1,37 +1,44 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import { DataTableColumnHeader } from "#/components/DataTable/DataTableColumnHeader";
-import { Badge } from "#/components/ui/badge";
 import {
 	FamilyCell,
 	FitCell,
-	InstalledCheck,
+	MemoryCell,
+	ModelIdentityCell,
+	ParamsCell,
 	SizeCell,
+	TextCell,
 } from "#/features/library/components/ModelCells";
 import { ModelActionsCell } from "#/features/library/components/ModelTable/ModelActionsCell";
-import type {
-	CatalogModel,
-	FitScore,
-	OllamaInstalledModel,
-	PullProgress,
-} from "#/features/library/lib/types";
-
-export type ModelRow = {
-	model: CatalogModel;
-	fit: FitScore;
-	installed: OllamaInstalledModel | null;
-};
+import type { ModelRow } from "#/features/library/lib/model-rows";
 
 type ModelColumnOptions = {
 	hasHardware: boolean;
-	pulling: Record<string, PullProgress>;
 	onPull: (model: string) => void;
 	onStop: (model: string) => void;
 	onDelete: (model: string) => void;
 };
 
+/** Display names for the column-visibility menu, keyed by column id. */
+export const MODEL_COLUMN_LABELS: Record<string, string> = {
+	name: "Model",
+	family: "By",
+	params: "Params",
+	vram: "VRAM",
+	ram: "RAM",
+	fit: "Fit",
+	size: "Size",
+	pulls: "Pulls",
+	updated: "Updated",
+};
+
+/** `null`/`undefined` sort last regardless of direction. */
+function nullableNumber(value: number | null | undefined): number {
+	return value ?? Number.NEGATIVE_INFINITY;
+}
+
 export function createModelColumns({
 	hasHardware,
-	pulling,
 	onPull,
 	onStop,
 	onDelete,
@@ -40,89 +47,68 @@ export function createModelColumns({
 		{
 			id: "name",
 			accessorFn: (row) =>
-				`${row.model.name} ${row.model.family} ${row.model.id} ${row.model.tags.join(" ")}`,
+				`${row.name} ${row.id} ${row.catalog?.tags.join(" ") ?? ""} ${row.installed?.family ?? ""}`,
 			header: "Model",
-			cell: ({ row }) => {
-				const { model, installed } = row.original;
-				return (
-					<div className="min-w-0">
-						<div className="flex items-center gap-1.5">
-							<span className="font-medium text-sm">{model.name}</span>
-							<span className="text-xs text-muted-foreground">{model.paramB}B</span>
-							{installed && <InstalledCheck />}
-						</div>
-						<p className="text-xs text-muted-foreground truncate max-w-xs">{model.description}</p>
-						<div className="mt-1 flex flex-wrap gap-0.5">
-							{model.tags.map((tag) => (
-								<Badge key={tag} variant="secondary" className="text-xs px-1 py-0 h-auto">
-									{tag}
-								</Badge>
-							))}
-						</div>
-					</div>
-				);
-			},
+			enableHiding: false,
+			cell: ({ row }) => <ModelIdentityCell row={row.original} />,
 		},
 		{
 			id: "family",
-			accessorFn: (row) => row.model.family,
+			accessorFn: (row) => row.installed?.family ?? "",
 			header: "By",
-			cell: ({ row }) => <FamilyCell family={row.original.model.family} />,
+			cell: ({ row }) => <FamilyCell family={row.original.installed?.family} />,
 		},
 		{
 			id: "params",
-			accessorFn: (row) => row.model.paramB,
+			accessorFn: (row) => nullableNumber(row.catalog?.paramB),
 			header: ({ column }) => <DataTableColumnHeader column={column} title="Params" />,
-			cell: ({ row }) => <span className="text-sm tabular-nums">{row.original.model.paramB}B</span>,
-		},
-		{
-			id: "context",
-			accessorFn: (row) => row.model.contextK,
-			header: ({ column }) => <DataTableColumnHeader column={column} title="Context" />,
-			cell: ({ row }) => (
-				<span className="text-xs text-muted-foreground tabular-nums">
-					{row.original.model.contextK < 1
-						? `${Math.round(row.original.model.contextK * 1000)}K`
-						: `${row.original.model.contextK}K`}
-				</span>
-			),
+			cell: ({ row }) => <ParamsCell row={row.original} />,
 		},
 		{
 			id: "vram",
-			accessorFn: (row) => row.model.vramGb,
+			accessorFn: (row) => nullableNumber(row.catalog?.paramB && row.catalog.vramGb),
 			header: ({ column }) => <DataTableColumnHeader column={column} title="VRAM" />,
-			cell: ({ row }) => (
-				<span className="text-xs tabular-nums">{row.original.model.vramGb} GB</span>
-			),
+			cell: ({ row }) => <MemoryCell gb={row.original.catalog?.vramGb ?? 0} />,
 		},
 		{
 			id: "ram",
-			accessorFn: (row) => row.model.ramGb,
+			accessorFn: (row) => nullableNumber(row.catalog?.paramB && row.catalog.ramGb),
 			header: ({ column }) => <DataTableColumnHeader column={column} title="RAM" />,
-			cell: ({ row }) => (
-				<span className="text-xs tabular-nums">{row.original.model.ramGb} GB</span>
-			),
+			cell: ({ row }) => <MemoryCell gb={row.original.catalog?.ramGb ?? 0} />,
 		},
 		{
-			id: "overall",
-			accessorFn: (row) => row.fit.overall,
+			id: "fit",
+			accessorFn: (row) => nullableNumber(row.fit?.overall),
 			header: ({ column }) => <DataTableColumnHeader column={column} title="Fit" />,
 			cell: ({ row }) => <FitCell fit={row.original.fit} hasHardware={hasHardware} />,
 		},
 		{
 			id: "size",
 			accessorFn: (row) => row.installed?.sizeBytes ?? 0,
-			header: "Size",
+			header: ({ column }) => <DataTableColumnHeader column={column} title="Size" />,
 			cell: ({ row }) => <SizeCell installed={row.original.installed} />,
 		},
 		{
+			id: "pulls",
+			accessorFn: (row) => row.catalog?.pullCount ?? "",
+			header: "Pulls",
+			cell: ({ row }) => <TextCell value={row.original.catalog?.pullCount} />,
+		},
+		{
+			id: "updated",
+			accessorFn: (row) => row.catalog?.updatedAt ?? "",
+			header: ({ column }) => <DataTableColumnHeader column={column} title="Updated" />,
+			cell: ({ row }) => <TextCell value={row.original.catalog?.updated} />,
+		},
+		{
 			id: "actions",
+			enableHiding: false,
 			header: "",
 			cell: ({ row }) => (
 				<ModelActionsCell
-					modelId={row.original.model.id}
+					modelId={row.original.id}
 					installed={row.original.installed}
-					pullState={pulling[row.original.model.id]}
+					pullState={row.original.pullState}
 					onStop={onStop}
 					onPull={onPull}
 					onDelete={onDelete}

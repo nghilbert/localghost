@@ -20,10 +20,11 @@ import {
 	EmptyMedia,
 	EmptyTitle,
 } from "#/components/ui/empty";
-import { MyModelTable } from "#/features/library/components/MyModelTable";
+import { ModelTable } from "#/features/library/components/ModelTable";
 import { useModelPull } from "#/features/library/hooks/use-model-pull";
 import { useOllama } from "#/features/library/hooks/use-ollama";
 import {
+	catalogQueryOptions,
 	hardwareQueryOptions,
 	libraryStatusQueryOptions,
 } from "#/features/library/lib/library.functions";
@@ -36,6 +37,8 @@ export function MyModelsTab({ onBrowse }: MyModelsTabProps) {
 	const { data: hardware } = useQuery(hardwareQueryOptions());
 
 	const { data: ollamaStatus } = useQuery(libraryStatusQueryOptions());
+
+	const { data: catalog = [] } = useQuery(catalogQueryOptions());
 
 	const { pulling, stop } = useModelPull();
 	const { deleteModel } = useOllama();
@@ -67,12 +70,16 @@ export function MyModelsTab({ onBrowse }: MyModelsTabProps) {
 
 	return (
 		<div className="p-6">
-			<MyModelTable
+			<ModelTable
+				scope="mine"
+				catalog={catalog}
 				hardware={hardware}
 				installedModels={installedModels}
 				pulling={pulling}
+				onPull={() => {}}
 				onStop={stop}
 				onDelete={(model) => setPendingDelete(model)}
+				initialColumnVisibility={{ vram: false, ram: false, pulls: false, updated: false }}
 			/>
 			<AlertDialog
 				open={pendingDelete !== null}

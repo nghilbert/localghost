@@ -4,6 +4,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod/v4";
 import { getCurrentUserId } from "#/features/auth/lib/session.server";
 import { getHardwareInfo } from "#/features/library/lib/hardware.server";
+import { getCatalog } from "#/features/library/lib/ollama/catalog.server";
 import { ollamaClient } from "#/features/library/lib/ollama/client.server";
 import {
 	getOllamaUrl,
@@ -22,6 +23,11 @@ import type { OllamaStatus } from "#/features/library/lib/types";
 export const getHardware = createServerFn({ method: "GET" }).handler(async () => {
 	await getCurrentUserId();
 	return getHardwareInfo();
+});
+
+export const getModelCatalog = createServerFn({ method: "GET" }).handler(async () => {
+	await getCurrentUserId();
+	return getCatalog();
 });
 
 export const scanOllamaStatus = createServerFn({ method: "GET" }).handler(
@@ -103,4 +109,12 @@ export const hardwareQueryOptions = () =>
 		queryKey: ["library-hardware"],
 		queryFn: () => getHardware(),
 		staleTime: 60_000,
+	});
+
+export const catalogQueryOptions = () =>
+	queryOptions({
+		queryKey: ["library-catalog"],
+		queryFn: () => getModelCatalog(),
+		// Matches the server-side scrape TTL; the catalog changes slowly.
+		staleTime: 6 * 60 * 60_000,
 	});

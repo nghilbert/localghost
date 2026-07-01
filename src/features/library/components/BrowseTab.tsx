@@ -11,6 +11,7 @@ import { RemoteOllamaForm } from "#/features/library/components/RemoteOllamaForm
 import { useModelPull } from "#/features/library/hooks/use-model-pull";
 import { useOllama } from "#/features/library/hooks/use-ollama";
 import {
+	catalogQueryOptions,
 	hardwareQueryOptions,
 	libraryStatusQueryOptions,
 } from "#/features/library/lib/library.functions";
@@ -19,6 +20,8 @@ export function BrowseTab() {
 	const { data: hardware, isLoading: isLoadingHardware } = useQuery(hardwareQueryOptions());
 
 	const { data: ollamaStatus } = useQuery(libraryStatusQueryOptions());
+
+	const { data: catalog = [] } = useQuery(catalogQueryOptions());
 
 	const { pulling, pull, stop } = useModelPull();
 	const { deleteModel } = useOllama();
@@ -53,6 +56,7 @@ export function BrowseTab() {
 							</ItemActions>
 						</Item>
 						<RecommendedModels
+							catalog={catalog}
 							hardware={hardware}
 							installedModels={ollamaStatus.installedModels}
 							pulling={pulling}
@@ -60,12 +64,14 @@ export function BrowseTab() {
 							onStop={stop}
 						/>
 						<ModelTable
+							catalog={catalog}
 							hardware={hardware}
 							installedModels={ollamaStatus.installedModels}
 							pulling={pulling}
 							onPull={handlePull}
 							onStop={stop}
 							onDelete={(model) => deleteModel.mutate(model)}
+							initialColumnVisibility={{ family: false, size: false }}
 						/>
 					</>
 				)

@@ -1,6 +1,67 @@
 import { describe, expect, it } from "vitest";
-import { computeFit } from "#/features/library/lib/catalog";
+import {
+	computeFit,
+	deriveTags,
+	estimateFootprint,
+	parseParamB,
+} from "#/features/library/lib/catalog";
 import { makeHardware as hw, makeGpu, makeCatalogModel as model } from "#/test/factories";
+
+describe("parseParamB", () => {
+	it("parses billion-scale tags", () => {
+		expect(parseParamB("8b")).toBe(8);
+		expect(parseParamB("1.5b")).toBe(1.5);
+		expect(parseParamB("0.5b")).toBe(0.5);
+		expect(parseParamB("405B")).toBe(405);
+	});
+
+	it("parses million-scale tags into fractional billions", () => {
+		expect(parseParamB("270m")).toBeCloseTo(0.27);
+		expect(parseParamB("137m")).toBeCloseTo(0.137);
+	});
+
+	it("multiplies mixture-of-experts naming", () => {
+		expect(parseParamB("8x7b")).toBe(56);
+	});
+
+	it("returns null for unparseable tags", () => {
+		expect(parseParamB("latest")).toBeNull();
+		expect(parseParamB("")).toBeNull();
+	});
+});
+
+describe("estimateFootprint", () => {
+	it("scales roughly with the previously hand-tuned catalog", () => {
+		expect(estimateFootprint({ paramB: 8 })).toEqual({ vramGb: 5.2, ramGb: 9.2 });
+		expect(estimateFootprint({ paramB: 70 }).vramGb).toBeCloseTo(45.5);
+	});
+});
+
+describe("deriveTags", () => {
+	it("keeps capability badges and flags small models fast", () => {
+		const tags = deriveTags({
+			name: "gemma3",
+			description: "small",
+			paramB: 1,
+			capabilities: ["vision"],
+		});
+		expect(tags).toContain("vision");
+		expect(tags).toContain("fast");
+		expect(tags).not.toContain("code");
+	});
+
+	it("flags coding models via name or description", () => {
+		expect(
+			deriveTags({ name: "qwen2.5-coder", description: "", paramB: 7, capabilities: [] }),
+		).toContain("code");
+	});
+
+	it("does not flag large models fast", () => {
+		expect(deriveTags({ name: "x", description: "", paramB: 14, capabilities: [] })).not.toContain(
+			"fast",
+		);
+	});
+});
 
 const gpu = (totalVramMb: number) => makeGpu({ totalVramMb });
 
