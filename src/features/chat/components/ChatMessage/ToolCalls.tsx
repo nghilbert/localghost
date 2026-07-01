@@ -1,8 +1,16 @@
 import type { UIMessage } from "@tanstack/ai-client";
-import { BrainIcon, GlobeIcon, LinkIcon, type LucideIcon, TerminalIcon } from "lucide-react";
+import {
+	BrainIcon,
+	ChevronRightIcon,
+	GlobeIcon,
+	LinkIcon,
+	type LucideIcon,
+	TerminalIcon,
+} from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "#/components/ui/collapsible";
 import { Marker, MarkerContent, MarkerIcon } from "#/components/ui/marker";
 import { Spinner } from "#/components/ui/spinner";
-import { MessageCollapsible } from "#/features/chat/components/ChatMessage/MessageCollapsible";
+import { Textarea } from "#/components/ui/textarea";
 import { useElapsedSeconds } from "#/features/chat/hooks/use-elapsed-seconds";
 
 type ToolCall = Extract<UIMessage["parts"][number], { type: "tool-call" }>;
@@ -37,9 +45,9 @@ export function ToolCalls({ toolCalls, isStreaming }: ToolCallsProps) {
 	if (toolCalls.length === 0) return null;
 
 	return (
-		<div className="space-y-1.5">
+		<>
 			{toolCalls.map((tc) => {
-				const { icon, running, done } = display(tc.name);
+				const { icon: DisplayIcon, running, done } = display(tc.name);
 				return isStreaming && tc.output === undefined ? (
 					<Marker key={tc.id} role="status">
 						<MarkerIcon>
@@ -51,13 +59,29 @@ export function ToolCalls({ toolCalls, isStreaming }: ToolCallsProps) {
 						</MarkerContent>
 					</Marker>
 				) : (
-					<MessageCollapsible key={tc.id} icon={icon} label={done}>
-						<pre className="whitespace-pre-wrap wrap-break-word px-3 py-2.5 font-mono leading-relaxed text-muted-foreground">
-							{outputText(tc.output)}
-						</pre>
-					</MessageCollapsible>
+					<Collapsible
+						key={tc.id}
+						className="overflow-hidden rounded-lg border bg-muted/30 text-xs"
+					>
+						<CollapsibleTrigger className="group flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left font-medium text-muted-foreground transition-colors hover:bg-muted/50">
+							<DisplayIcon size={12} className="shrink-0" />
+							<span className="flex-1">{done}</span>
+							<ChevronRightIcon
+								size={12}
+								className="transition-transform group-data-[state=open]:rotate-90"
+							/>
+						</CollapsibleTrigger>
+						<CollapsibleContent asChild>
+							<Textarea
+								readOnly
+								className="max-h-56 border-t whitespace-pre-wrap wrap-break-word px-3 py-2.5 font-mono leading-relaxed text-muted-foreground"
+							>
+								{outputText(tc.output)}
+							</Textarea>
+						</CollapsibleContent>
+					</Collapsible>
 				);
 			})}
-		</div>
+		</>
 	);
 }
