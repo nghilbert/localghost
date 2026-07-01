@@ -4,12 +4,15 @@ import {
 	flexRender,
 	getCoreRowModel,
 	getFilteredRowModel,
+	getPaginationRowModel,
 	getSortedRowModel,
 	type SortingState,
 	type Table as TanstackTable,
 	useReactTable,
+	type VisibilityState,
 } from "@tanstack/react-table";
 import { useState } from "react";
+import { DataTablePagination } from "#/components/DataTable/DataTablePagination";
 import {
 	Table,
 	TableBody,
@@ -24,6 +27,10 @@ type DataTableProps<TData> = {
 	data: TData[];
 	emptyMessage?: string;
 	initialSorting?: SortingState;
+	/** Columns hidden by default; users can re-show them via the toolbar view options. */
+	initialColumnVisibility?: VisibilityState;
+	/** Enable client-side pagination at this page size; omit to render every row. */
+	pageSize?: number;
 	/** Controlled global filter value; manage the input in your toolbar. */
 	globalFilter?: string;
 	/** Global filter matcher; defaults to a case-insensitive substring match. */
@@ -38,21 +45,28 @@ export function DataTable<TData>({
 	data,
 	emptyMessage = "No results.",
 	initialSorting = [],
+	initialColumnVisibility = {},
+	pageSize,
 	globalFilter,
 	globalFilterFn = "includesString",
 	getRowClassName,
 	toolbar,
 }: DataTableProps<TData>) {
 	const [sorting, setSorting] = useState<SortingState>(initialSorting);
+	const [columnVisibility, setColumnVisibility] =
+		useState<VisibilityState>(initialColumnVisibility);
 
 	const table = useReactTable({
 		data,
 		columns,
-		state: { sorting, globalFilter },
+		state: { sorting, globalFilter, columnVisibility },
 		onSortingChange: setSorting,
+		onColumnVisibilityChange: setColumnVisibility,
 		getCoreRowModel: getCoreRowModel(),
 		getSortedRowModel: getSortedRowModel(),
 		getFilteredRowModel: getFilteredRowModel(),
+		getPaginationRowModel: pageSize ? getPaginationRowModel() : undefined,
+		initialState: pageSize ? { pagination: { pageSize } } : undefined,
 		globalFilterFn,
 	});
 
@@ -78,7 +92,7 @@ export function DataTable<TData>({
 						{table.getRowModel().rows.length === 0 ? (
 							<TableRow>
 								<TableCell
-									colSpan={columns.length}
+									colSpan={table.getVisibleFlatColumns().length}
 									className="h-24 text-center text-sm text-muted-foreground"
 								>
 									{emptyMessage}
@@ -98,6 +112,7 @@ export function DataTable<TData>({
 					</TableBody>
 				</Table>
 			</div>
+			{pageSize && <DataTablePagination table={table} />}
 		</div>
 	);
 }
