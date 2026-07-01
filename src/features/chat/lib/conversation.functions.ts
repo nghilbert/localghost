@@ -1,40 +1,17 @@
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
-import { z } from "zod/v4";
 import { getCurrentUserId } from "#/features/auth/lib/session.server";
 import { decrypt } from "#/lib/crypto.server";
 import { prisma } from "#/lib/db.server";
 import { listModels } from "#/lib/llm.server";
 import { orderEndpointsForDefault } from "./default-selection";
+import { buildFirstUserMessage, deriveConversationTitle } from "./messages";
 import {
 	conversationIdInput,
 	createConversationInput,
 	saveMessagesInput,
 	updateConversationInput,
 } from "./schemas";
-
-/** Default title a conversation keeps until its first message names it. */
-const DEFAULT_TITLE = "New Chat";
-
-const textPartSchema = z.object({ type: z.literal("text"), content: z.string() });
-
-/**
- * Derives a chat title from the leading words of the first user message.
- * Deterministic and model-free, used to name a brand-new conversation on its first save.
- * @returns The derived title, or `null` when the messages hold no usable text yet.
- */
-function deriveTitle(messages: Array<Record<string, unknown>>): string | null {
-	const firstUser = messages.find((m) => m.role === "user");
-	const parts = z.array(z.unknown()).safeParse(firstUser?.parts);
-	if (!parts.success) return null;
-	const text = parts.data
-		.map((part) => textPartSchema.safeParse(part))
-		.flatMap((result) => (result.success ? [result.data.content] : []))
-		.join("")
-		.trim();
-	if (!text) return null;
-	return text.split(/\s+/).slice(0, 6).join(" ").slice(0, 80);
-}
 
 /** Sidebar list: only the fields needed to render and order conversation links. */
 export const listConversations = createServerFn({ method: "GET" }).handler(async () => {
@@ -90,17 +67,25 @@ export const getDefaultSelection = createServerFn({ method: "GET" }).handler(
 );
 
 /**
- * Creates a conversation locked to the given model selection. Called on the first
- * message send from the draft page, so no empty rows are ever persisted; the model is
- * fixed at creation and never changes (a different model means a new chat).
+ * Creates a conversation locked to the given model selection, seeded with the
+ * first user message and a title derived from it. Called on the first send from
+ * the draft page, so no empty rows are ever persisted and the message survives
+ * the navigation to the conversation view, which requests the response.
  * @returns The new conversation's id.
  */
 export const createConversation = createServerFn({ method: "POST" })
 	.validator(createConversationInput)
-	.handler(async ({ data: { selection } }) => {
+	.handler(async ({ data: { selection, firstMessage } }) => {
 		const userId = await getCurrentUserId();
+		const message = buildFirstUserMessage(firstMessage);
 		const conversation = await prisma.conversation.create({
-			data: { ownerId: userId, endpointId: selection.endpointId, model: selection.model },
+			data: {
+				ownerId: userId,
+				endpointId: selection.endpointId,
+				model: selection.model,
+				title: deriveConversationTitle(firstMessage) ?? undefined,
+				messages: JSON.parse(JSON.stringify([message])),
+			},
 			select: { id: true },
 		});
 		return { id: conversation.id };
@@ -119,15 +104,6 @@ export const saveConversationMessages = createServerFn({ method: "POST" })
 			where: { id, ownerId: userId },
 			data: { messages: JSON.parse(JSON.stringify(messages)) },
 		});
-		// Name the conversation from its first message while it's still untitled; the
-		// guarded `where` makes this a no-op once a title exists (manual rename wins).
-		const title = deriveTitle(messages);
-		if (title) {
-			await prisma.conversation.updateMany({
-				where: { id, ownerId: userId, title: DEFAULT_TITLE },
-				data: { title },
-			});
-		}
 	});
 
 /**

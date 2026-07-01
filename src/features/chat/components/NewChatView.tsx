@@ -11,6 +11,7 @@ import {
 } from "#/components/ui/empty";
 import { ChatInput } from "#/features/chat/components/ChatInput";
 import { useChatTools } from "#/features/chat/hooks/use-chat-tools";
+import { storeChatHandoff } from "#/features/chat/lib/chat-client";
 import {
 	createConversation,
 	defaultSelectionQueryOptions,
@@ -19,8 +20,8 @@ import type { ModelSelection } from "#/features/endpoints/lib/types";
 
 /**
  * The New-chat draft page: a composer with an editable model picker that persists
- * nothing. The first send creates the conversation locked to the chosen model, then
- * hands the message and tool choices to the conversation view to send once.
+ * nothing. The first send creates the conversation locked to the chosen model with
+ * the message already persisted; the conversation view then requests the response.
  */
 export function NewChatView() {
 	const navigate = useNavigate();
@@ -40,20 +41,14 @@ export function NewChatView() {
 	const start = useMutation({
 		mutationFn: async (firstMessage: string) => {
 			if (!selection) throw new Error("No model selected");
-			const { id } = await createConversation({ data: { selection } });
-			return { id, firstMessage };
+			return createConversation({ data: { selection, firstMessage } });
 		},
-		onSuccess: ({ id, firstMessage }) => {
-			navigate({
-				to: "/chat/$conversationId",
-				params: { conversationId: id },
-				state: (prev) => ({
-					...prev,
-					firstMessage,
-					enabledTools: controls.enabledTools,
-					forceWebSearch,
-				}),
+		onSuccess: ({ id }) => {
+			storeChatHandoff({
+				conversationId: id,
+				handoff: { enabledTools: controls.enabledTools, forceWebSearch },
 			});
+			navigate({ to: "/chat/$conversationId", params: { conversationId: id } });
 		},
 		onError: () => toast.error("Couldn't start the chat"),
 	});

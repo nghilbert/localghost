@@ -1,5 +1,6 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+import { Spinner } from "#/components/ui/spinner";
 import { ChatView } from "#/features/chat/components/ChatView";
 import { conversationQueryOptions } from "#/features/chat/lib/conversation.functions";
 
@@ -7,6 +8,11 @@ export const Route = createFileRoute("/_authenticated/chat/$conversationId")({
 	loader: async ({ params, context }) => {
 		await context.queryClient.ensureQueryData(conversationQueryOptions(params.conversationId));
 	},
+	pendingComponent: () => (
+		<div className="flex h-full items-center justify-center">
+			<Spinner />
+		</div>
+	),
 	component: ConversationPage,
 });
 

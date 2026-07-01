@@ -13,7 +13,10 @@ export const updateConversationSchema = z.object({
 // ── Server-fn inputs ─────────────────────────────────────────────────────────
 
 export const conversationIdInput = z.object({ id: uuid });
-export const createConversationInput = z.object({ selection: modelSelectionSchema });
+export const createConversationInput = z.object({
+	selection: modelSelectionSchema,
+	firstMessage: z.string().min(1),
+});
 export const updateConversationInput = z.object({ id: uuid, data: updateConversationSchema });
 export const saveMessagesInput = z.object({
 	id: uuid,
