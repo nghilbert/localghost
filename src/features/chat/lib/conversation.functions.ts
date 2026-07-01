@@ -2,13 +2,10 @@ import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod/v4";
 import { getCurrentUserId } from "#/features/auth/lib/session.server";
+import { decrypt } from "#/lib/crypto.server";
 import { prisma } from "#/lib/db.server";
-import {
-	conversationIdInput,
-	createConversationSchema,
-	saveMessagesInput,
-	updateConversationInput,
-} from "./schemas";
+import { listModels } from "#/lib/llm.server";
+import { conversationIdInput, saveMessagesInput, updateConversationInput } from "./schemas";
 
 /** Default title a conversation keeps until its first message names it. */
 const DEFAULT_TITLE = "New Chat";
@@ -56,19 +53,49 @@ export const getConversation = createServerFn({ method: "POST" })
 		return conversation;
 	});
 
-export const createConversation = createServerFn({ method: "POST" })
-	.validator(createConversationSchema)
-	.handler(async ({ data }) => {
-		const userId = await getCurrentUserId();
-		return prisma.conversation.create({
-			data: {
-				title: data.title,
-				endpointId: data.endpointId,
-				model: data.model,
-				ownerId: userId,
-			},
-		});
+/**
+ * The user's first endpoint and its first model, best-effort. Returns a null
+ * model when there are no endpoints, none expose a model, or the provider call
+ * fails — the empty chat then prompts the user to pick one.
+ */
+async function defaultSelection(
+	userId: string,
+): Promise<{ endpointId: string | null; model: string | null }> {
+	const endpoint = await prisma.modelEndpoint.findFirst({
+		where: { ownerId: userId },
+		orderBy: { id: "asc" },
 	});
+	if (!endpoint) return { endpointId: null, model: null };
+	try {
+		const apiKey = endpoint.apiKeyEncrypted ? decrypt(endpoint.apiKeyEncrypted) : undefined;
+		const [model] = await listModels({ url: endpoint.url, apiKey });
+		return { endpointId: endpoint.id, model: model ?? null };
+	} catch {
+		return { endpointId: endpoint.id, model: null };
+	}
+}
+
+/**
+ * Resolves the conversation to open for a new chat: reuses an existing empty,
+ * untitled draft when one exists (so opening a new chat never piles up empty
+ * rows and the `/new` resolver stays idempotent), otherwise creates one seeded
+ * with the default model selection.
+ */
+export const startConversation = createServerFn({ method: "POST" }).handler(async () => {
+	const userId = await getCurrentUserId();
+	const draft = await prisma.conversation.findFirst({
+		where: { ownerId: userId, archived: false, title: DEFAULT_TITLE, messages: { equals: [] } },
+		orderBy: { updatedAt: "desc" },
+		select: { id: true },
+	});
+	if (draft) return { id: draft.id };
+
+	const conversation = await prisma.conversation.create({
+		data: { ownerId: userId, ...(await defaultSelection(userId)) },
+		select: { id: true },
+	});
+	return { id: conversation.id };
+});
 
 /**
  * Persist the conversation's `messages` blob. Called by the client persistence

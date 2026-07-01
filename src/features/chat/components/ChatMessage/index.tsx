@@ -14,7 +14,7 @@ export function ChatMessage({ message, isStreaming }: ChatMessageProps) {
 
 	if (message.role === "user") {
 		return (
-			<Message align="end" aria-label="Your message">
+			<Message align="end" role="article" aria-label="Your message">
 				<MessageContent>
 					<Bubble variant="default">
 						<BubbleContent>
@@ -33,7 +33,7 @@ export function ChatMessage({ message, isStreaming }: ChatMessageProps) {
 	const toolCalls = message.parts.filter((p) => p.type === "tool-call");
 
 	return (
-		<Message aria-label="Assistant message">
+		<Message role="article" aria-label="Assistant message">
 			<MessageContent>
 				{reasoning && (
 					<MessageCollapsible icon={BrainIcon} label="Reasoning">

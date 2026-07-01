@@ -2,12 +2,6 @@ import { z } from "zod/v4";
 
 const uuid = z.uuid();
 
-export const createConversationSchema = z.object({
-	title: z.string().default("New Chat"),
-	endpointId: uuid,
-	model: z.string().min(1),
-});
-
 export const updateConversationSchema = z.object({
 	title: z.string().min(1).optional(),
 	selection: z.object({ endpointId: uuid, model: z.string().min(1) }).optional(),

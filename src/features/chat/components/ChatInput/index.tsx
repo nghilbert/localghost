@@ -16,7 +16,7 @@ type ChatInputProps = {
 	isStreaming: boolean;
 	selection: ModelSelection | null;
 	onSelect: (selection: ModelSelection) => void;
-	/** Tool toggles, shown only inside a conversation; omitted on the `/new` composer. */
+	/** Per-message tool toggles (web search, memory). */
 	tools?: ToolControls;
 	sendMessage: (content: string) => void;
 	stop?: () => void;

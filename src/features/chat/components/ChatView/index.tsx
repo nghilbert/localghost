@@ -1,5 +1,6 @@
 import { useChat } from "@tanstack/ai-react";
-import { useEffect, useMemo, useRef } from "react";
+import { useMemo } from "react";
+import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "#/components/ui/empty";
 import {
 	MessageScroller,
 	MessageScrollerButton,
@@ -11,7 +12,6 @@ import {
 import { ChatInput } from "#/features/chat/components/ChatInput";
 import { ChatStatus } from "#/features/chat/components/ChatView/ChatStatus";
 import { useConversation } from "#/features/chat/hooks/use-conversation";
-import { takePendingMessage } from "#/features/chat/hooks/use-create-conversation";
 import { chatClientOptions } from "#/features/chat/lib/chat-client-options";
 import type { getConversation } from "#/features/chat/lib/conversation.functions";
 import { ChatMessage } from "../ChatMessage";
@@ -52,22 +52,21 @@ export function ChatView({ conversation }: ChatViewProps) {
 		resetTools();
 	}
 
-	// The first message typed on `/new` is handed over out-of-band (the row was
-	// already created there). Send it once the model is resolved, then clear it so it
-	// can't re-send, after which this is an ordinary chat.
-	const pending = useRef(takePendingMessage(conversation.id));
-	useEffect(() => {
-		if (pending.current && isReady) {
-			handleSend(pending.current);
-			pending.current = undefined;
-		}
-	});
-
 	return (
 		<MessageScrollerProvider autoScroll defaultScrollPosition="last-anchor">
 			<MessageScroller>
 				<MessageScrollerViewport aria-label="Conversation" className="p-4">
 					<MessageScrollerContent aria-busy={isStreaming}>
+						{messages.length === 0 && (
+							<Empty className="my-auto">
+								<EmptyHeader>
+									<EmptyTitle className="text-2xl">What can I help with?</EmptyTitle>
+									<EmptyDescription>
+										Start typing. Your chat begins with your first message.
+									</EmptyDescription>
+								</EmptyHeader>
+							</Empty>
+						)}
 						{messages.map((msg, idx) => {
 							const isLast = idx === messages.length - 1;
 							return (
