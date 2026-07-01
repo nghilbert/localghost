@@ -81,21 +81,12 @@ CREATE TABLE "user" (
     "email" TEXT NOT NULL,
     "email_verified" BOOLEAN NOT NULL DEFAULT false,
     "image" TEXT,
+    "system_prompt" TEXT,
+    "temperature" DOUBLE PRECISION,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "user_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "user_settings" (
-    "id" UUID NOT NULL DEFAULT uuidv7(),
-    "owner_id" UUID NOT NULL,
-    "system_prompt" TEXT,
-    "temperature" DOUBLE PRECISION,
-    "updated_at" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "user_settings_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -132,9 +123,6 @@ CREATE UNIQUE INDEX "session_token_key" ON "session"("token");
 CREATE UNIQUE INDEX "user_email_key" ON "user"("email");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "user_settings_owner_id_key" ON "user_settings"("owner_id");
-
--- CreateIndex
 CREATE INDEX "verification_identifier_idx" ON "verification"("identifier");
 
 -- AddForeignKey
@@ -154,6 +142,3 @@ ALTER TABLE "model_endpoint" ADD CONSTRAINT "model_endpoint_owner_id_fkey" FOREI
 
 -- AddForeignKey
 ALTER TABLE "session" ADD CONSTRAINT "session_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "user_settings" ADD CONSTRAINT "user_settings_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;

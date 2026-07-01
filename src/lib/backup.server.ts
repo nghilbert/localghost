@@ -35,7 +35,10 @@ export async function exportBackup({ userId, email }: { userId: string; email: s
 			take: 50,
 			select: { title: true, model: true, messages: true },
 		}),
-		prisma.userSettings.findUnique({ where: { ownerId: userId } }),
+		prisma.user.findUnique({
+			where: { id: userId },
+			select: { systemPrompt: true, temperature: true },
+		}),
 	]);
 
 	return {
@@ -67,13 +70,16 @@ export async function importBackup({
 	payload: ImportPayload;
 }): Promise<{ memories: number; conversations: number }> {
 	if (payload.userSettings) {
-		const existing = await prisma.userSettings.findUnique({ where: { ownerId: userId } });
-		const systemPrompt = existing?.systemPrompt ?? payload.userSettings.systemPrompt ?? null;
-		const temperature = existing?.temperature ?? payload.userSettings.temperature ?? null;
-		await prisma.userSettings.upsert({
-			where: { ownerId: userId },
-			create: { ownerId: userId, systemPrompt, temperature },
-			update: { systemPrompt, temperature },
+		const existing = await prisma.user.findUnique({
+			where: { id: userId },
+			select: { systemPrompt: true, temperature: true },
+		});
+		await prisma.user.update({
+			where: { id: userId },
+			data: {
+				systemPrompt: existing?.systemPrompt ?? payload.userSettings.systemPrompt ?? null,
+				temperature: existing?.temperature ?? payload.userSettings.temperature ?? null,
+			},
 		});
 	}
 

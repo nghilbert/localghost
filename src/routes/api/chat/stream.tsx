@@ -54,9 +54,12 @@ export const Route = createFileRoute("/api/chat/stream")({
 				const endpoint = conversation.endpoint;
 				const apiKey = endpoint.apiKeyEncrypted ? decrypt(endpoint.apiKeyEncrypted) : undefined;
 
-				// System prompt + temperature are global per-user chat defaults; per-endpoint
-				// generation options (Ollama) override them where set.
-				const userSettings = await prisma.userSettings.findUnique({ where: { ownerId: userId } });
+				// System prompt + temperature are global per-user chat defaults stored on the
+				// user row; per-endpoint generation options (Ollama) override them where set.
+				const userSettings = await prisma.user.findUnique({
+					where: { id: userId },
+					select: { systemPrompt: true, temperature: true },
+				});
 				const tools = buildChatTools({ ownerId: userId, enabledTools });
 				const endpointOptions = ollamaOptionsSchema.safeParse(endpoint.options);
 
