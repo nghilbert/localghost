@@ -16,6 +16,16 @@ export function readToolInputField(raw: string, field: string): string {
 	}
 }
 
+/** Parses the Claude Code hook payload and returns one top-level field. */
+export function readPayloadField(raw: string, field: string): unknown {
+	try {
+		const parsed: unknown = JSON.parse(raw);
+		return isRecord(parsed) ? parsed[field] : undefined;
+	} catch {
+		return undefined;
+	}
+}
+
 /** Extracts combined stdout/stderr from an execSync error without unsafe casts. */
 export function execErrorOutput(error: unknown): string {
 	if (!isRecord(error)) return "";

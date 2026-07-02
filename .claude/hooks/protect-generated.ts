@@ -14,7 +14,8 @@ const PROTECTED = [
 	},
 	{
 		pattern: /src[/\\]generated[/\\]/,
-		message: "src/generated/* is Prisma output — run `npm run prisma -- generate` instead.",
+		message:
+			"src/generated/* is Prisma output — edit prisma/schema/ instead and ask Nate to regenerate (prisma commands are his job).",
 	},
 ];
 
