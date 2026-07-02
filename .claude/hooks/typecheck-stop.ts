@@ -10,7 +10,10 @@ import { execErrorOutput, onStdin, readPayloadField, readToolInputField } from "
 
 function markerPath(raw: string): string {
 	const sessionId = readPayloadField(raw, "session_id");
-	return join(tmpdir(), `localghost-typecheck-${typeof sessionId === "string" ? sessionId : "any"}`);
+	return join(
+		tmpdir(),
+		`localghost-typecheck-${typeof sessionId === "string" ? sessionId : "any"}`,
+	);
 }
 
 onStdin((raw) => {

@@ -34,7 +34,10 @@ const TELLS: Tell[] = [
 		label: "stock framing phrase: cut it",
 	},
 	{ pattern: /\bwhether you'?re\b/gi, label: "marketing second-person hedge: cut it" },
-	{ pattern: /\b(dive|diving|deep dive) (in|into|deeper)\b/gi, label: "'dive into': write 'see' or 'read'" },
+	{
+		pattern: /\b(dive|diving|deep dive) (in|into|deeper)\b/gi,
+		label: "'dive into': write 'see' or 'read'",
+	},
 	{ pattern: /\b(great|excellent) (question|point|choice)\b/gi, label: "sycophancy: cut it" },
 	{ pattern: /\boops\b/gi, label: "cutesy error copy: say what failed and what to do" },
 ];
@@ -94,7 +97,8 @@ function findTells({ text, isMarkdown }: { text: string; isMarkdown: boolean }):
 	return hits.sort((a, b) => a.line - b.line);
 }
 
-const SKIP_PATH = /\.claude[/\\]hooks|src[/\\](components[/\\]ui|generated)[/\\]|routeTree\.gen\.ts|node_modules/;
+const SKIP_PATH =
+	/\.claude[/\\]hooks|src[/\\](components[/\\]ui|generated)[/\\]|routeTree\.gen\.ts|node_modules/;
 const PROSE_FILE = /\.(ts|tsx|md)$/;
 
 function scanTree(dir: string): number {
@@ -124,9 +128,7 @@ if (process.argv[2] === "--scan") {
 		const added = readToolInputField(raw, "new_string") || readToolInputField(raw, "content");
 		const hits = findTells({ text: added, isMarkdown: filePath.endsWith(".md") });
 		if (hits.length === 0) process.exit(0);
-		const report = hits
-			.map((hit) => `- [${hit.excerpt}] ${hit.label}`)
-			.join("\n");
+		const report = hits.map((hit) => `- [${hit.excerpt}] ${hit.label}`).join("\n");
 		console.error(
 			`Robotic prose in the text just added to ${filePath} — fix these now:\n${report}\nWrite like a terse engineer: plain words, no gloss, no rule-of-three flourishes.`,
 		);
