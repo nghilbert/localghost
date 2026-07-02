@@ -3,6 +3,7 @@ import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "#/components/ui/popover";
 import { Switch } from "#/components/ui/switch";
+import { Tooltip, TooltipContent, TooltipTrigger } from "#/components/ui/tooltip";
 
 export type ToolControls = {
 	/** Catalog ids the user opted into for the next message (currently just `memory`). */
@@ -62,13 +63,30 @@ export function ToolsMenu(controls: ToolControls) {
 	const rows = toolRows(controls);
 	const activeCount = rows.filter((row) => row.on).length;
 
+	if (!controls.supportsTools) {
+		return (
+			<Tooltip>
+				{/* Disabled elements swallow pointer events, so the span carries the trigger. */}
+				<TooltipTrigger asChild>
+					<span>
+						<Button variant="outline" size="sm" className="gap-1.5" disabled>
+							<SlidersHorizontalIcon size={14} />
+							Tools
+						</Button>
+					</span>
+				</TooltipTrigger>
+				<TooltipContent>This model doesn't support tools.</TooltipContent>
+			</Tooltip>
+		);
+	}
+
 	return (
 		<Popover>
 			<PopoverTrigger asChild>
-				<Button variant="outline" size="sm" className="gap-1.5" disabled={!controls.supportsTools}>
+				<Button variant="outline" size="sm" className="gap-1.5">
 					<SlidersHorizontalIcon size={14} />
 					Tools
-					{controls.supportsTools && activeCount > 0 && (
+					{activeCount > 0 && (
 						<Badge variant="secondary" className="px-1.5 py-0 text-xs tabular-nums">
 							{activeCount}
 						</Badge>

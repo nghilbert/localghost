@@ -24,6 +24,15 @@ function trimHistory(messages: ModelMessage[]): ModelMessage[] {
 }
 
 /**
+ * The current server date and time, so models answer time questions directly
+ * instead of searching or hallucinating.
+ */
+function currentDateTimeLine(): string {
+	const now = new Date().toLocaleString("en-US", { dateStyle: "full", timeStyle: "short" });
+	return `Current date and time: ${now}.`;
+}
+
+/**
  * Pure chat stream: the client owns persistence (it hydrates from and writes to
  * the `Conversation.messages` blob via the persistence adapter), so this route
  * performs no database writes. It reads the conversation's config + endpoint,
@@ -63,16 +72,16 @@ export const Route = createFileRoute("/api/chat/stream")({
 				const tools = buildChatTools({ ownerId: userId, enabledTools });
 				const endpointOptions = ollamaOptionsSchema.safeParse(endpoint.options);
 
-				// When the user forces web search, prepend a directive to the user's system
-				// prompt; otherwise the model decides whether to reach for the tool itself.
-				const systemPrompt =
-					[
-						userSettings?.systemPrompt?.trim(),
-						forceWebSearch &&
-							"Use the web_search tool to look up current information before answering this message.",
-					]
-						.filter(Boolean)
-						.join("\n\n") || undefined;
+				// Always ground the model in the current date/time; when the user forces
+				// web search, append a directive on top of the user's own system prompt.
+				const systemPrompt = [
+					currentDateTimeLine(),
+					userSettings?.systemPrompt?.trim(),
+					forceWebSearch &&
+						"Use the web_search tool to look up current information before answering this message.",
+				]
+					.filter(Boolean)
+					.join("\n\n");
 
 				const source = streamLLMEvents(
 					{

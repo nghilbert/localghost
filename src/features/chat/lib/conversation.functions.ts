@@ -1,6 +1,7 @@
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 import { getCurrentUserId } from "#/features/auth/lib/session.server";
+import { ollamaClient } from "#/features/library/lib/ollama/client.server";
 import { decrypt } from "#/lib/crypto.server";
 import { prisma } from "#/lib/db.server";
 import { listModels } from "#/lib/llm.server";
@@ -128,6 +129,35 @@ export const updateConversation = createServerFn({ method: "POST" })
 		});
 	});
 
+/**
+ * Whether the conversation's model is warming up. Ollama loads a model into
+ * memory on first use (often tens of seconds); `ps()` reports what's loaded.
+ * Other providers have no warm-up concept and always read "ready", as does any
+ * state we can't determine.
+ */
+export const getModelRunState = createServerFn({ method: "POST" })
+	.validator(conversationIdInput)
+	.handler(async ({ data: { id } }): Promise<"warming" | "ready"> => {
+		const userId = await getCurrentUserId();
+		const conversation = await prisma.conversation.findFirst({
+			where: { id, ownerId: userId },
+			select: { model: true, endpoint: { select: { url: true, provider: true } } },
+		});
+		if (!conversation?.model || conversation.endpoint?.provider !== "ollama") return "ready";
+		try {
+			const { models } = await ollamaClient({
+				host: conversation.endpoint.url,
+				timeoutMs: 3_000,
+			}).ps();
+			const loaded = models.some(({ name, model }) =>
+				[name, model].includes(conversation.model ?? ""),
+			);
+			return loaded ? "ready" : "warming";
+		} catch {
+			return "ready";
+		}
+	});
+
 /** Delete a conversation by id. No-op when the id isn't owned by the current user. */
 export const deleteConversation = createServerFn({ method: "POST" })
 	.validator(conversationIdInput)
@@ -151,4 +181,10 @@ export const defaultSelectionQueryOptions = () =>
 	queryOptions({
 		queryKey: ["conversation", "default-selection"],
 		queryFn: () => getDefaultSelection(),
+	});
+
+export const modelRunStateQueryOptions = (id: string) =>
+	queryOptions({
+		queryKey: ["conversation", id, "run-state"],
+		queryFn: () => getModelRunState({ data: { id } }),
 	});

@@ -7,6 +7,7 @@ import {
 	InputGroupTextarea,
 } from "#/components/ui/input-group";
 import { Separator } from "#/components/ui/separator";
+import { Tooltip, TooltipContent, TooltipTrigger } from "#/components/ui/tooltip";
 import { ModelPicker } from "#/features/chat/components/ChatInput/ModelPicker";
 import { type ToolControls, ToolsMenu } from "#/features/chat/components/ChatInput/ToolsMenu";
 import type { ModelSelection } from "#/features/endpoints/lib/types";
@@ -36,6 +37,9 @@ export function ChatInput({
 	stop,
 }: ChatInputProps) {
 	const [messageDraft, setMessageDraft] = useState("");
+	// A missing model is the one disabled state the user can fix from here, so it
+	// gets explicit guidance; a locked conversation explains itself via ModelPicker.
+	const needsModel = !selection && !locked;
 
 	function submit() {
 		if (!messageDraft || isStreaming || disabled) return;
@@ -55,7 +59,7 @@ export function ChatInput({
 			<InputGroupTextarea
 				value={messageDraft}
 				onChange={(event) => setMessageDraft(event.target.value)}
-				placeholder="Message…"
+				placeholder={needsModel ? "Pick a model to start…" : "Message…"}
 				className="max-h-50 field-sizing-content resize-none"
 				onKeyDown={handleKeyDown}
 				disabled={disabled}
@@ -75,6 +79,19 @@ export function ChatInput({
 						<SquareIcon size={14} />
 						<span className="sr-only">Stop</span>
 					</InputGroupButton>
+				) : needsModel ? (
+					<Tooltip>
+						{/* Disabled elements swallow pointer events, so the span carries the trigger. */}
+						<TooltipTrigger asChild>
+							<span className="ml-auto">
+								<InputGroupButton type="submit" variant="default" size="icon-sm" disabled>
+									<ArrowUpIcon size={14} />
+									<span className="sr-only">Send</span>
+								</InputGroupButton>
+							</span>
+						</TooltipTrigger>
+						<TooltipContent>Pick a model first. Use the model menu on the left.</TooltipContent>
+					</Tooltip>
 				) : (
 					<InputGroupButton
 						type="submit"

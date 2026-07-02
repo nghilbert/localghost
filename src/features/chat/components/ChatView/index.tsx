@@ -72,31 +72,41 @@ export function ChatView({ conversation }: ChatViewProps) {
 	});
 
 	return (
-		<MessageScrollerProvider autoScroll defaultScrollPosition="last-anchor">
-			<MessageScroller>
-				<MessageScrollerViewport aria-label="Conversation" className="p-4">
-					<MessageScrollerContent aria-busy={isStreaming}>
-						{messages.map((msg, idx) => {
-							const isLast = idx === messages.length - 1;
-							return (
-								<MessageScrollerItem
-									key={msg.id}
-									messageId={msg.id}
-									scrollAnchor={msg.role === "user"}
-								>
-									<ChatMessage
-										message={msg}
-										isStreaming={isStreaming && isLast && msg.role === "assistant"}
-									/>
-								</MessageScrollerItem>
-							);
-						})}
-						<MessageScrollerItem>
-							<ChatStatus status={status} messages={messages} error={error} onRetry={reload} />
-						</MessageScrollerItem>
-					</MessageScrollerContent>
+		<div className="flex h-full min-h-0 flex-col">
+			<MessageScrollerProvider autoScroll defaultScrollPosition="last-anchor">
+				<MessageScroller className="flex-1">
+					<MessageScrollerViewport aria-label="Conversation" className="p-4">
+						<MessageScrollerContent aria-busy={isStreaming}>
+							{messages.map((msg, idx) => {
+								const isLast = idx === messages.length - 1;
+								return (
+									<MessageScrollerItem
+										key={msg.id}
+										messageId={msg.id}
+										scrollAnchor={msg.role === "user"}
+									>
+										<ChatMessage
+											message={msg}
+											isStreaming={isStreaming && isLast && msg.role === "assistant"}
+										/>
+									</MessageScrollerItem>
+								);
+							})}
+							<MessageScrollerItem>
+								<ChatStatus
+									conversationId={conversation.id}
+									status={status}
+									messages={messages}
+									error={error}
+									onRetry={reload}
+								/>
+							</MessageScrollerItem>
+						</MessageScrollerContent>
+					</MessageScrollerViewport>
 					<MessageScrollerButton />
-				</MessageScrollerViewport>
+				</MessageScroller>
+			</MessageScrollerProvider>
+			<div className="px-4 pb-4">
 				<ChatInput
 					disabled={!isReady}
 					isStreaming={isStreaming}
@@ -106,7 +116,7 @@ export function ChatView({ conversation }: ChatViewProps) {
 					sendMessage={handleSend}
 					stop={stop}
 				/>
-			</MessageScroller>
-		</MessageScrollerProvider>
+			</div>
+		</div>
 	);
 }

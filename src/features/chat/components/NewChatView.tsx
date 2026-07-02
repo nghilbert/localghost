@@ -11,7 +11,7 @@ import {
 } from "#/components/ui/empty";
 import { ChatInput } from "#/features/chat/components/ChatInput";
 import { useChatTools } from "#/features/chat/hooks/use-chat-tools";
-import { storeChatHandoff } from "#/features/chat/lib/chat-client";
+import { storeChatHandoff } from "#/features/chat/lib/chat-handoff";
 import {
 	createConversation,
 	defaultSelectionQueryOptions,

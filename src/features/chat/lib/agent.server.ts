@@ -1,8 +1,21 @@
 import type { ServerTool } from "@tanstack/ai";
 import { toolDefinition } from "@tanstack/ai";
+import type { z } from "zod";
 import { manageMemory, manageMemoryArgsSchema } from "#/lib/tools/manage_memory";
 import { readUrl, readUrlArgsSchema } from "#/lib/tools/read_url";
 import { webSearch, webSearchArgsSchema } from "#/lib/tools/web_search";
+
+/**
+ * A short corrective message a model can act on. A thrown ZodError would abort
+ * the whole run; returning this as the tool result lets the model fix its
+ * arguments and retry.
+ */
+function invalidArgsMessage(error: z.ZodError): string {
+	const issues = error.issues.map(
+		(issue) => `${issue.path.join(".") || "arguments"}: ${issue.message}`,
+	);
+	return `Invalid tool arguments, fix and retry. ${issues.join("; ")}`;
+}
 
 function webSearchTool(): ServerTool {
 	return toolDefinition({
@@ -34,8 +47,10 @@ function webSearchTool(): ServerTool {
 			required: ["query"],
 		},
 	}).server(async (args) => {
-		const { query, time_range, categories } = webSearchArgsSchema.parse(args);
-		return webSearch(query ?? "", 5, { timeRange: time_range, categories });
+		const parsed = webSearchArgsSchema.safeParse(args);
+		if (!parsed.success) return invalidArgsMessage(parsed.error);
+		const { query, time_range, categories } = parsed.data;
+		return webSearch(query, 5, { timeRange: time_range, categories });
 	});
 }
 
@@ -53,8 +68,9 @@ function readUrlTool(): ServerTool {
 			required: ["url"],
 		},
 	}).server(async (args) => {
-		const { url } = readUrlArgsSchema.parse(args);
-		return readUrl(url);
+		const parsed = readUrlArgsSchema.safeParse(args);
+		if (!parsed.success) return invalidArgsMessage(parsed.error);
+		return readUrl(parsed.data.url);
 	});
 }
 
@@ -87,7 +103,11 @@ function manageMemoryTool(ownerId: string): ServerTool {
 			},
 			required: ["action"],
 		},
-	}).server(async (args) => manageMemory({ args: manageMemoryArgsSchema.parse(args), ownerId }));
+	}).server(async (args) => {
+		const parsed = manageMemoryArgsSchema.safeParse(args);
+		if (!parsed.success) return invalidArgsMessage(parsed.error);
+		return manageMemory({ args: parsed.data, ownerId });
+	});
 }
 
 /**

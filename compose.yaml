@@ -48,6 +48,9 @@ services:
       context: .
       target: dev
     profiles: [dev]
+    ports:
+      - "3000:3000"
+      - "4206:4206"  # TanStack devtools event bus; unpublished it spams ws errors in the browser
     volumes:
       - .:/app             # live source for HMR
       - /app/node_modules  # anonymous volume: keep the image's deps, don't shadow with host's

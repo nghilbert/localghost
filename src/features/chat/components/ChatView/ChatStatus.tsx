@@ -1,10 +1,13 @@
 import type { ChatClientState, UIMessage } from "@tanstack/ai-client";
+import { useQuery } from "@tanstack/react-query";
 import { RefreshCwIcon, TriangleAlertIcon } from "lucide-react";
 import { Alert, AlertAction, AlertDescription, AlertTitle } from "#/components/ui/alert";
 import { Button } from "#/components/ui/button";
 import { ActivityMarker } from "#/features/chat/components/ActivityMarker";
+import { modelRunStateQueryOptions } from "#/features/chat/lib/conversation.functions";
 
 type ChatStatusProps = {
+	conversationId: string;
 	status: ChatClientState;
 	messages: Array<UIMessage>;
 	error: Error | undefined;
@@ -42,15 +45,22 @@ function hasVisibleOutput(messages: Array<UIMessage>): boolean {
 
 /**
  * The conversation's single transient status row: a recoverable error alert, or a
- * live "Thinking" marker from the moment a response is requested until the model
- * shows its first output (text, reasoning, or a tool call) — nothing once visible
- * output streams or the chat is idle.
+ * live marker from the moment a response is requested until the model shows its
+ * first output (text, reasoning, or a tool call) — nothing once visible output
+ * streams or the chat is idle. While pending, an Ollama endpoint is polled for
+ * whether the model is actually loaded, so a cold start reads "Warming up"
+ * instead of a suspiciously long "Thinking".
  */
-export function ChatStatus({ status, messages, error, onRetry }: ChatStatusProps) {
+export function ChatStatus({ conversationId, status, messages, error, onRetry }: ChatStatusProps) {
 	const pending = status === "submitted" || (status === "streaming" && !hasVisibleOutput(messages));
+	const { data: runState } = useQuery({
+		...modelRunStateQueryOptions(conversationId),
+		enabled: pending,
+		refetchInterval: 2_000,
+	});
 
 	if (pending) {
-		return <ActivityMarker label="Thinking" />;
+		return <ActivityMarker label={runState === "warming" ? "Warming up the model" : "Thinking"} />;
 	}
 
 	if (status === "error") {

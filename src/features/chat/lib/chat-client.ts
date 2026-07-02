@@ -1,89 +1,66 @@
 import type { ChatClientPersistence } from "@tanstack/ai-client";
 import { createChatClientOptions, fetchServerSentEvents } from "@tanstack/ai-client";
 import type { QueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
 	conversationQueryOptions,
 	deleteConversation,
 	saveConversationMessages,
 } from "#/features/chat/lib/conversation.functions";
 
+/** Delay between a message change and its persistence write; each burst saves once. */
+const SAVE_DEBOUNCE_MS = 500;
+
+/** Deep-copies through JSON so live chat state and the query cache never share objects. */
+function clone<T>(value: T): T {
+	return JSON.parse(JSON.stringify(value));
+}
+
 /**
- * The `@tanstack/ai-client` persistence contract backed by the `Conversation`
- * row's `messages` blob, read and written through the app's query cache. The
- * client owns persistence end-to-end: it hydrates from `getItem` and writes the
- * full `UIMessage[]` on every change via `setItem`, so the chat stream route
- * performs no database writes. Route loaders prime the conversation query, so
- * hydration is a cache hit instead of a second fetch.
+ * {@link ChatClientPersistence} backed by the conversation query cache: `getItem`
+ * answers synchronously from the loader-primed cache (no hydration race), and the
+ * per-delta `setItem` calls debounce into one save per burst.
  */
 function createChatPersistence(queryClient: QueryClient): ChatClientPersistence {
+	const saveTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
 	return {
-		getItem: async (id) => {
-			const conversation = await queryClient.ensureQueryData(conversationQueryOptions(id));
-			// `messages` is the stored JSONB blob holding the framework's own
-			// `UIMessage[]` shape; round-trip to a plain typed value for the persistor.
-			return JSON.parse(JSON.stringify(conversation.messages));
+		getItem: (id) => {
+			const cached = queryClient.getQueryData(conversationQueryOptions(id).queryKey);
+			if (cached) return clone(cached.messages);
+			return queryClient
+				.ensureQueryData(conversationQueryOptions(id))
+				.then((conversation) => clone(conversation.messages));
 		},
-		setItem: async (id, messages) => {
-			// Round-trip to plain JSON so the value is a clean, serializable blob for
-			// the JSONB column (and assignable to the server fn's validated input).
-			const plain = JSON.parse(JSON.stringify(messages));
-			await saveConversationMessages({ data: { id, messages: plain } });
-			// Mirror the write into the cache so it stays the single source of truth.
-			queryClient.setQueryData(conversationQueryOptions(id).queryKey, (prev) =>
-				prev ? { ...prev, messages: plain } : prev,
+		setItem: (id, messages) => {
+			const snapshot = clone(messages);
+			clearTimeout(saveTimers.get(id));
+			saveTimers.set(
+				id,
+				setTimeout(() => {
+					saveTimers.delete(id);
+					saveConversationMessages({ data: { id, messages: snapshot } }).catch(() =>
+						toast.error("Failed to save the conversation"),
+					);
+					queryClient.setQueryData(conversationQueryOptions(id).queryKey, (prev) =>
+						prev ? { ...prev, messages: snapshot } : prev,
+					);
+				}, SAVE_DEBOUNCE_MS),
 			);
 		},
 		removeItem: async (id) => {
+			clearTimeout(saveTimers.get(id));
+			saveTimers.delete(id);
 			await deleteConversation({ data: { id } });
 			queryClient.removeQueries({ queryKey: conversationQueryOptions(id).queryKey });
 		},
 	};
 }
 
-/**
- * Shared `useChat` wiring: the SSE connection to the pure stream route and the
- * query-cache-backed persistence adapter. The caller supplies the
- * per-conversation `id` and `forwardedProps`.
- */
+/** Shared `useChat` options: SSE connection to the stream route plus cache-backed persistence. */
 export function createChatOptions(queryClient: QueryClient) {
 	return createChatClientOptions({
 		connection: fetchServerSentEvents("/api/chat/stream"),
 		persistence: createChatPersistence(queryClient),
 	});
-}
-
-/**
- * Read-once handoff of the draft page's ephemeral tool toggles to the freshly
- * created conversation, keyed by conversation id in `sessionStorage`. Only the
- * toggles travel this way — the first message itself is persisted at creation —
- * so losing the handoff merely falls back to default toggles.
- */
-export type ChatHandoff = {
-	enabledTools: string[];
-	forceWebSearch: boolean;
-};
-
-const handoffKey = (conversationId: string) => `chat-handoff:${conversationId}`;
-
-export function storeChatHandoff({
-	conversationId,
-	handoff,
-}: {
-	conversationId: string;
-	handoff: ChatHandoff;
-}): void {
-	sessionStorage.setItem(handoffKey(conversationId), JSON.stringify(handoff));
-}
-
-/** Reads and removes the handoff for a conversation. Null on the server or when absent. */
-export function takeChatHandoff(conversationId: string): ChatHandoff | null {
-	if (typeof sessionStorage === "undefined") return null;
-	const raw = sessionStorage.getItem(handoffKey(conversationId));
-	if (!raw) return null;
-	sessionStorage.removeItem(handoffKey(conversationId));
-	try {
-		return JSON.parse(raw);
-	} catch {
-		return null;
-	}
 }

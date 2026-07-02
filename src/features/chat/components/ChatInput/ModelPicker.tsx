@@ -17,6 +17,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "#/components/ui/tooltip
 import { useEndpoints } from "#/features/endpoints/hooks/use-endpoints";
 import { endpointModelsQueryOptions } from "#/features/endpoints/lib/endpoint.functions";
 import type { ModelSelection } from "#/features/endpoints/lib/types";
+import { cn } from "#/lib/utils";
 
 type ModelPickerProps = {
 	selection: ModelSelection | null;
@@ -38,11 +39,14 @@ export function ModelPicker({ selection, onSelect, locked = false }: ModelPicker
 function LockedModel({ selection }: { selection: ModelSelection | null }) {
 	return (
 		<Tooltip>
+			{/* Disabled elements swallow pointer events, so the span carries the trigger. */}
 			<TooltipTrigger asChild>
-				<Button variant="ghost" size="sm" disabled className="gap-1 truncate opacity-100">
-					<LockIcon size={13} className="shrink-0 text-muted-foreground" />
-					<span className="truncate">{selection?.model ?? "Model unavailable"}</span>
-				</Button>
+				<span>
+					<Button variant="ghost" size="sm" disabled className="gap-1 truncate opacity-100">
+						<LockIcon size={13} className="shrink-0 text-muted-foreground" />
+						<span className="truncate">{selection?.model ?? "Model unavailable"}</span>
+					</Button>
+				</span>
 			</TooltipTrigger>
 			<TooltipContent>
 				{selection
@@ -75,7 +79,11 @@ function ModelDropdown({ selection, onSelect }: Omit<ModelPickerProps, "locked">
 	return (
 		<DropdownMenu open={open} onOpenChange={setOpen}>
 			<DropdownMenuTrigger asChild>
-				<Button variant="outline" size="sm" className="gap-1 truncate">
+				<Button
+					variant="outline"
+					size="sm"
+					className={cn("gap-1 truncate", !selection && "text-primary ring-2 ring-primary/40")}
+				>
 					<span className="truncate">{label}</span>
 					<ChevronDownIcon size={14} className="shrink-0" />
 				</Button>

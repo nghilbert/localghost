@@ -1,9 +1,11 @@
 import { z } from "zod/v4";
 
+// Optional filters degrade to "unset" instead of failing the call when a model
+// invents a value ("week", "all", "") outside the advertised set.
 export const webSearchArgsSchema = z.object({
-	query: z.string().optional(),
-	time_range: z.enum(["day", "month", "year"]).optional(),
-	categories: z.string().optional(),
+	query: z.string().min(1),
+	time_range: z.enum(["day", "month", "year"]).optional().catch(undefined),
+	categories: z.string().optional().catch(undefined),
 });
 
 /** SearXNG returns `answers` either as plain strings or `{ answer }` objects. */
