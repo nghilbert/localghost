@@ -44,12 +44,9 @@ function hasVisibleOutput(messages: Array<UIMessage>): boolean {
 }
 
 /**
- * The conversation's single transient status row: a recoverable error alert, or a
- * live marker from the moment a response is requested until the model shows its
- * first output (text, reasoning, or a tool call) — nothing once visible output
- * streams or the chat is idle. While pending, an Ollama endpoint is polled for
- * whether the model is actually loaded, so a cold start reads "Warming up"
- * instead of a suspiciously long "Thinking".
+ * Transient status row: a recoverable error alert, or an activity marker from
+ * response request until first visible output. While pending, Ollama is polled
+ * for whether the model is loaded, so a cold start reads "Warming up".
  */
 export function ChatStatus({ conversationId, status, messages, error, onRetry }: ChatStatusProps) {
 	const pending = status === "submitted" || (status === "streaming" && !hasVisibleOutput(messages));

@@ -1,11 +1,7 @@
 /**
- * In-memory source of truth for in-flight Ollama model pulls.
- *
- * A pull is driven server-side and survives every client disconnecting, so the
- * download keeps running while the user navigates away. Clients read live
- * progress by polling {@link getActivePulls} and cancel via {@link cancelPull},
- * which aborts the underlying Ollama request. Single-process is sufficient —
- * `docker compose up` runs one server instance (see memory `compose-is-prod`).
+ * In-memory source of truth for in-flight Ollama model pulls. Pulls run
+ * server-side, surviving client disconnects; clients poll {@link getActivePulls}
+ * and cancel via {@link cancelPull}. Compose runs one server, so no shared store.
  */
 
 import { ollamaClient } from "#/features/library/lib/ollama/client.server";
@@ -152,10 +148,9 @@ async function drivePull({
 }
 
 /**
- * Throughput as the average over the current layer: bytes downloaded since the
- * window opened ÷ elapsed time. Naturally smooth, so no extra dampening is needed.
- * Ollama reports `completed` per layer, so a decrease means a new layer started and
- * the window restarts there.
+ * Throughput averaged over the current layer: bytes since the window opened
+ * over elapsed time. Ollama reports `completed` per layer, so a decrease means
+ * a new layer started and the window restarts there.
  */
 function updateRate({
 	entry,

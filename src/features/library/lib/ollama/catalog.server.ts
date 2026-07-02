@@ -7,9 +7,8 @@ const CACHE_TTL_MS = 6 * 60 * 60_000;
 
 /**
  * Parses the ollama.com/library index HTML into one CatalogModel per size
- * variant. Pure and exported for testing. Keys off the stable `x-test-*` hooks
- * the page renders; a model with no size tags (e.g. embeddings) yields a single
- * variant whose id is the bare model name.
+ * variant, keying off the page's stable `x-test-*` hooks. A model with no size
+ * tags (e.g. embeddings) yields a single variant with the bare model name.
  */
 export function parseCatalogHtml(html: string): CatalogModel[] {
 	const { document } = parseHTML(html);

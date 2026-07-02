@@ -8,7 +8,7 @@ type ReasoningProps = { content: string; isThinking: boolean };
 /**
  * A message's reasoning trace (`ThinkingPart`): streams open with a live timer
  * while the model thinks, then collapses once the answer starts. Thinking is
- * UI-only — it is never sent back to the model.
+ * UI-only; it is never sent back to the model.
  */
 export function Reasoning({ content, isThinking }: ReasoningProps) {
 	const seconds = useElapsedSeconds(isThinking);

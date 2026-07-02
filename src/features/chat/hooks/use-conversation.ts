@@ -5,10 +5,9 @@ import { endpointsQueryOptions } from "#/features/endpoints/lib/endpoint.functio
 import type { ModelSelection } from "#/features/endpoints/lib/types";
 
 /**
- * All state needed to drive one active chat: the model it's locked to (fixed at
- * creation, read-only here) plus the ephemeral per-send tool toggles. The locked
- * selection only resolves while its endpoint still exists, so a chat on a
- * deleted endpoint can't send.
+ * State driving one active chat: the model it's locked to (fixed at creation)
+ * plus the ephemeral per-send tool toggles. The locked selection only resolves
+ * while its endpoint exists, so a chat on a deleted endpoint can't send.
  */
 export function useConversation({ conversationId }: { conversationId: string }) {
 	const { data: conversation } = useSuspenseQuery(conversationQueryOptions(conversationId));

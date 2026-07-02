@@ -1,3 +1,4 @@
+import type { UIMessage } from "@tanstack/ai-client";
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 import { getCurrentUserId } from "#/features/auth/lib/session.server";
@@ -6,7 +7,7 @@ import { decrypt } from "#/lib/crypto.server";
 import { prisma } from "#/lib/db.server";
 import { listModels } from "#/lib/llm.server";
 import { orderEndpointsForDefault } from "./default-selection";
-import { buildFirstUserMessage, deriveConversationTitle } from "./messages";
+import { buildFirstUserMessage, deriveConversationTitle, storedMessages } from "./messages";
 import {
 	conversationIdInput,
 	createConversationInput,
@@ -40,11 +41,15 @@ export const getConversation = createServerFn({ method: "POST" })
 		return conversation;
 	});
 
+/** A conversation as the query cache holds it: the row with `messages` typed. */
+export type ConversationDetail = Omit<Awaited<ReturnType<typeof getConversation>>, "messages"> & {
+	messages: UIMessage[];
+};
+
 /**
- * The endpoint and model the New-chat draft page pre-fills, without persisting anything.
- * Prefers the built-in Ollama, then the oldest added endpoint, and only picks one that
- * actually returns a model. Returns a fully null selection when nothing is usable; the
- * draft page then prompts the user to pick one.
+ * The endpoint and model the New-chat draft page pre-fills, persisting nothing.
+ * Prefers the built-in Ollama, then the oldest endpoint, picking only one that
+ * returns a model. A fully null selection means the page prompts the user.
  */
 export const getDefaultSelection = createServerFn({ method: "GET" }).handler(
 	async (): Promise<{ endpointId: string | null; model: string | null }> => {
@@ -68,11 +73,9 @@ export const getDefaultSelection = createServerFn({ method: "GET" }).handler(
 );
 
 /**
- * Creates a conversation locked to the given model selection, seeded with the
- * first user message and a title derived from it. Called on the first send from
- * the draft page, so no empty rows are ever persisted and the message survives
- * the navigation to the conversation view, which requests the response.
- * @returns The new conversation's id.
+ * Creates a conversation locked to the model selection, seeded with the first
+ * user message and a derived title. Called on the first send, so no empty rows
+ * are persisted and the message survives navigation to the conversation view.
  */
 export const createConversation = createServerFn({ method: "POST" })
 	.validator(createConversationInput)
@@ -108,9 +111,8 @@ export const saveConversationMessages = createServerFn({ method: "POST" })
 	});
 
 /**
- * Patch a conversation's title and/or archived flag. The model is fixed at creation
- * and deliberately not patchable here (changing model means starting a new chat).
- * @returns The updated row with its endpoint config included.
+ * Patch a conversation's title and/or archived flag. The model is fixed at
+ * creation and not patchable (changing model means starting a new chat).
  * @throws If no conversation with that id is owned by the current user.
  */
 export const updateConversation = createServerFn({ method: "POST" })
@@ -130,10 +132,9 @@ export const updateConversation = createServerFn({ method: "POST" })
 	});
 
 /**
- * Whether the conversation's model is warming up. Ollama loads a model into
- * memory on first use (often tens of seconds); `ps()` reports what's loaded.
- * Other providers have no warm-up concept and always read "ready", as does any
- * state we can't determine.
+ * Whether the conversation's model is still loading. Only Ollama has a warm-up
+ * (first use loads the model into memory; `ps()` reports what's loaded); other
+ * providers and unknown states read "ready".
  */
 export const getModelRunState = createServerFn({ method: "POST" })
 	.validator(conversationIdInput)
@@ -174,7 +175,12 @@ export const conversationsQueryOptions = () =>
 export const conversationQueryOptions = (id: string) =>
 	queryOptions({
 		queryKey: ["conversation", id],
-		queryFn: () => getConversation({ data: { id } }),
+		// The server fn returns `messages` as the raw JSONB value (UIMessage isn't
+		// provably serializable to Start's validator); type it at the query seam.
+		queryFn: async (): Promise<ConversationDetail> => {
+			const conversation = await getConversation({ data: { id } });
+			return { ...conversation, messages: storedMessages(conversation.messages) };
+		},
 	});
 
 export const defaultSelectionQueryOptions = () =>

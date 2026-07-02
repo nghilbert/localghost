@@ -8,10 +8,9 @@ import type {
 } from "#/features/library/lib/types";
 
 /**
- * Test data factories. Each builder fills semantically-irrelevant fields with
- * faker noise and keeps deterministic defaults for the values that drive logic,
- * then merges caller `overrides` last — so tests stay readable and deterministic
- * while only declaring the fields they actually assert on.
+ * Test data factories. Each builder fills irrelevant fields with faker noise,
+ * keeps deterministic defaults for values that drive logic, and merges caller
+ * `overrides` last, so tests declare only the fields they assert on.
  */
 
 export function makeCatalogModel(overrides: Partial<CatalogModel> = {}): CatalogModel {

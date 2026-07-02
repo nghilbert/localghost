@@ -12,7 +12,7 @@ export type StreamLLMOptions = {
 	url: string;
 	apiKey?: string;
 	model: string;
-	/** Conversation history as framework `ModelMessage`s (roles user/assistant/tool — no system). */
+	/** Conversation history as framework `ModelMessage`s (roles user/assistant/tool; no system). */
 	messages: ModelMessage[];
 	systemPrompt?: string;
 	temperature?: number;
@@ -32,11 +32,9 @@ type ModelsResponse = {
 };
 
 /**
- * Per-provider configuration that drives every provider-specific decision:
- * adapter construction, base-URL normalization, the `modelOptions` request
- * shape, and the model-list endpoint's URL/headers/parsing. Keyed by
- * {@link LLMProvider} in {@link PROVIDERS} so the rest of the file stays
- * branch-free.
+ * Per-provider configuration driving every provider-specific decision: adapter
+ * construction, base-URL normalization, `modelOptions` shape, and the model-list
+ * endpoint. Keyed by {@link LLMProvider} so the rest of the file stays branch-free.
  */
 type ProviderConfig = {
 	/** Normalizes a configured endpoint URL to the base the chat adapter expects. */
@@ -178,9 +176,6 @@ const PROVIDERS: Record<LLMProvider, ProviderConfig> = {
 /**
  * Auto-detects the provider family from a bring-your-own endpoint URL so the
  * right {@link ProviderConfig} is selected.
- *
- * @param url - The endpoint base URL configured on a `ModelEndpoint`.
- * @returns The detected provider family.
  */
 export function detectProvider(url: string): LLMProvider {
 	const u = url.toLowerCase();
@@ -194,9 +189,8 @@ export function detectProvider(url: string): LLMProvider {
 
 /**
  * Drives a `chat()` run against the detected provider, applying the registry's
- * adapter construction, base-URL normalization, and `modelOptions` shape.
- * Returns the raw `@tanstack/ai` (AG-UI) event stream — `chat()` auto-executes
- * any server tools and loops up to `MAX_AGENT_ROUNDS`.
+ * adapter, base URL, and `modelOptions` shape. Returns the raw `@tanstack/ai`
+ * event stream; `chat()` auto-executes server tools up to `MAX_AGENT_ROUNDS`.
  */
 function chatEvents(
 	opts: StreamLLMOptions,
@@ -226,13 +220,9 @@ function chatEvents(
 }
 
 /**
- * Streams a completion as the raw `@tanstack/ai` (AG-UI) event stream that the
- * `@tanstack/ai-client` SSE adapter consumes natively. Unlike a downconverted
- * stream, text/reasoning deltas, usage, and run lifecycle events pass through verbatim.
- *
- * @param opts - Endpoint, model, messages, system prompt, and sampling controls.
- * @param tools - Optional `ServerTool[]` for agent mode; when provided the loop runs up to `MAX_AGENT_ROUNDS`.
- * @returns The `@tanstack/ai` event stream for this completion.
+ * Streams a completion as the raw `@tanstack/ai` (AG-UI) event stream the
+ * `@tanstack/ai-client` SSE adapter consumes natively, events verbatim.
+ * @param tools - Optional `ServerTool[]`; when provided the agent loop runs.
  */
 export function streamLLMEvents(
 	opts: StreamLLMOptions,
@@ -242,11 +232,8 @@ export function streamLLMEvents(
 }
 
 /**
- * Non-streaming convenience wrapper: iterates `chatEvents` and collects
+ * Non-streaming wrapper: iterates `chatEvents` and collects the
  * `TEXT_MESSAGE_CONTENT` deltas into the full assistant response text.
- *
- * @param opts - Same options as {@link streamLLMEvents}.
- * @returns The full assistant response text.
  */
 export async function callLLM(opts: StreamLLMOptions): Promise<string> {
 	let text = "";
@@ -259,14 +246,9 @@ export async function callLLM(opts: StreamLLMOptions): Promise<string> {
 export type EndpointProbeResult = { ok: true; modelCount: number } | { ok: false; error: string };
 
 /**
- * Lists the model ids advertised by an endpoint. Throws on transport or HTTP
- * failure (with a reason) so callers can tell an unreachable or rejected endpoint
- * from one that simply has no models yet. An empty array means the endpoint
- * responded OK with no models.
- *
- * @param url - The endpoint base URL.
- * @param apiKey - Optional API key for authenticated providers.
- * @returns The available model ids.
+ * Lists the model ids advertised by an endpoint. An empty array means the
+ * endpoint responded OK with no models.
+ * @throws On transport or HTTP failure, naming the reason.
  */
 export async function listModels({
 	url,
@@ -292,9 +274,6 @@ export async function listModels({
 /**
  * Probes a provider's model-list endpoint with real auth so the test-connection
  * UI can report success with a model count or the precise failure reason.
- *
- * @param url - The endpoint base URL.
- * @param apiKey - Optional API key for authenticated providers.
  */
 export async function probeEndpoint({
 	url,

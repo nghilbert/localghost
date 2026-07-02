@@ -16,7 +16,7 @@ COMPOSE_PROFILES=cpu
 docker compose up -d`;
 
 /**
- * Shown when no running Ollama instance was found. Purely informational — the
+ * Shown when no running Ollama instance was found. Purely informational; the
  * parent's status query keeps polling and unmounts this card once one appears.
  */
 export function OllamaSetupCard() {

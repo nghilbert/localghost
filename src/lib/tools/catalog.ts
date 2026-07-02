@@ -1,10 +1,7 @@
 /**
- * The user-toggleable built-in tools. Pure, client-safe metadata (no server
- * imports), so the chat tools picker can render labels and the stream route can
- * resolve a selected id back to its `ServerTool`. Web search is not listed here:
- * it's offered to every tool-capable model automatically, with a separate "force
- * a search this turn" toggle. The remaining catalog tools stay opt-in to keep the
- * tool count low for small models.
+ * The user-toggleable built-in tools, as client-safe metadata (no server
+ * imports). Web search is absent: every tool-capable model gets it, with its
+ * own "force a search" toggle. The rest stay opt-in for small models' sake.
  */
 export const TOOL_CATALOG = [
 	{

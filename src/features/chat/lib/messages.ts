@@ -1,15 +1,19 @@
 import type { UIMessage } from "@tanstack/ai-client";
 
 /**
- * Joins a message's text parts into plain text, excluding tool calls, tool
- * results, and thinking — the human-readable transcript of the message used for
- * export, auto-naming, and text-to-speech.
- *
- * @param parts - A `UIMessage`'s ordered parts (as stored in the `parts` JSONB column).
- * @returns The concatenated text content.
+ * Joins a message's text parts into plain text, skipping tool calls, results,
+ * and thinking: the readable transcript used for export and auto-naming.
  */
 export function partsText(parts: UIMessage["parts"]): string {
 	return parts.flatMap((part) => (part.type === "text" ? [part.content] : [])).join("");
+}
+
+/**
+ * Reads the `messages` JSONB blob back as the ai-client's `UIMessage[]`.
+ * The one trust boundary between the stored blob and the typed transcript.
+ */
+export function storedMessages(value: unknown): UIMessage[] {
+	return JSON.parse(JSON.stringify(value ?? []));
 }
 
 /**
@@ -27,7 +31,7 @@ export function buildFirstUserMessage(content: string): UIMessage {
 }
 
 /**
- * Whether the transcript ends on a user message with no assistant reply yet —
+ * Whether the transcript ends on a user message with no assistant reply yet:
  * the signal for the conversation view to request a response via `reload()`.
  */
 export function awaitingAssistantResponse(messages: Array<UIMessage>): boolean {

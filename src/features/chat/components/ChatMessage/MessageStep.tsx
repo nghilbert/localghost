@@ -11,7 +11,7 @@ type MessageStepProps = {
 };
 
 /**
- * A collapsed step inside an assistant message — a resolved tool call or a
+ * A collapsed step inside an assistant message: a resolved tool call or a
  * reasoning trace. Uncontrolled (default closed) unless `open`/`onOpenChange`
  * are supplied.
  */

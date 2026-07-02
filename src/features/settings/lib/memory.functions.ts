@@ -6,7 +6,7 @@ import { prisma } from "#/lib/db.server";
 
 const deleteMemoryInput = z.object({ id: z.uuid() });
 
-/** The current user's saved memories, newest first — for the Settings Memory list. */
+/** The current user's saved memories, newest first, for the Settings Memory list. */
 export const listSavedMemories = createServerFn({ method: "GET" }).handler(async () => {
 	const userId = await getCurrentUserId();
 	return prisma.memory.findMany({

@@ -16,6 +16,10 @@
 				"hooks": [
 					{
 						"type": "command",
+						"command": "node .claude/hooks/guard-prisma.ts"
+					},
+					{
+						"type": "command",
 						"command": "node .claude/hooks/pre-commit-gate.ts",
 						"timeout": 300
 					}
@@ -29,6 +33,25 @@
 					{
 						"type": "command",
 						"command": "node .claude/hooks/biome-fix.ts"
+					},
+					{
+						"type": "command",
+						"command": "node .claude/hooks/prose-check.ts"
+					},
+					{
+						"type": "command",
+						"command": "node .claude/hooks/typecheck-stop.ts --mark"
+					}
+				]
+			}
+		],
+		"Stop": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "node .claude/hooks/typecheck-stop.ts",
+						"timeout": 150
 					}
 				]
 			}

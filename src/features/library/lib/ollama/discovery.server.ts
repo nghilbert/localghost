@@ -97,10 +97,9 @@ export async function scanForOllama(userId: string): Promise<OllamaScanResult | 
 }
 
 /**
- * Keeps the user's ollama endpoint row in sync with where Ollama was actually found,
- * creating it on first detection so chat can use local models with zero setup.
- * Pass `existing` (the oldest saved ollama endpoint, or null) when already known
- * to skip the lookup.
+ * Keeps the user's ollama endpoint row in sync with where Ollama was found,
+ * creating it on first detection so chat works with zero setup. Pass `existing`
+ * (the oldest saved ollama endpoint, or null) when known, to skip the lookup.
  */
 export async function upsertOllamaEndpoint({
 	userId,

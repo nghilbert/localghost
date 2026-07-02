@@ -33,11 +33,9 @@ function currentDateTimeLine(): string {
 }
 
 /**
- * Pure chat stream: the client owns persistence (it hydrates from and writes to
- * the `Conversation.messages` blob via the persistence adapter), so this route
- * performs no database writes. It reads the conversation's config + endpoint,
- * resolves the system prompt and tools, dispatches to the LLM/agent runner, and
- * forwards the AG-UI event stream back.
+ * Pure chat stream: the client owns persistence, so this route writes nothing
+ * to the database. It reads the conversation's config, resolves the system
+ * prompt and tools, and forwards the LLM's AG-UI event stream back.
  */
 export const Route = createFileRoute("/api/chat/stream")({
 	server: {

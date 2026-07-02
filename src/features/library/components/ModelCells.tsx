@@ -15,7 +15,7 @@ export function InstalledCheck() {
 	return <CheckCircle2Icon size={12} className="shrink-0 text-success" />;
 }
 
-/** Name, size, install state, blurb, and capability tags — the primary cell. */
+/** The primary cell: name, size, install state, blurb, and capability tags. */
 export function ModelIdentityCell({ row }: { row: ModelRow }) {
 	const { id, name, catalog, installed, pullState } = row;
 	return (
@@ -52,7 +52,7 @@ export function ParamsCell({ row }: { row: ModelRow }) {
 	return <span className="text-sm tabular-nums">{params ?? "—"}</span>;
 }
 
-/** Estimated memory footprint; `—` when we couldn't parse a parameter count. */
+/** Estimated memory footprint; empty when no parameter count could be parsed. */
 export function MemoryCell({ gb }: { gb: number }) {
 	if (gb <= 0) return <EmptyCell />;
 	return <span className="text-xs tabular-nums">~{gb} GB</span>;

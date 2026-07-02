@@ -29,7 +29,7 @@ export function RemoteOllamaForm({ onBack }: { onBack: () => void }) {
 		testRemote.mutate(parsed.data.url, {
 			onSuccess: (result) => {
 				if (result.reachable) {
-					toast.success(`Connection works — ${result.modelCount} models available`);
+					toast.success(`Connection works: ${result.modelCount} models available`);
 				}
 			},
 		});

@@ -2,7 +2,7 @@ import { z } from "zod/v4";
 
 const uuid = z.uuid();
 
-/** A chosen model on a specific endpoint — the unit a conversation is locked to. */
+/** A chosen model on a specific endpoint: the unit a conversation is locked to. */
 export const modelSelectionSchema = z.object({ endpointId: uuid, model: z.string().min(1) });
 
 export const updateConversationSchema = z.object({
@@ -18,17 +18,14 @@ export const createConversationInput = z.object({
 	firstMessage: z.string().min(1),
 });
 export const updateConversationInput = z.object({ id: uuid, data: updateConversationSchema });
-export const saveMessagesInput = z.object({
-	id: uuid,
-	messages: z.array(z.record(z.string(), z.unknown())),
-});
+// `messages` carries UIMessage[], whose interface type can't satisfy a zod record;
+// the blob is stored opaquely, so unknown entries are fine here.
+export const saveMessagesInput = z.object({ id: uuid, messages: z.array(z.unknown()) });
 
 /**
- * The `forwardedProps` the chat stream route reads from the AG-UI request body.
- * `conversationId` resolves the row whose model/endpoint config is the server's
- * source of truth; `enabledTools` is the user's ephemeral per-send tool choice
- * (tool ids), never persisted; `forceWebSearch` tells the model to run a web
- * search this turn rather than leaving it to infer.
+ * The `forwardedProps` the chat stream route reads from the request body:
+ * the conversation whose row holds the model config, plus the user's ephemeral
+ * per-send tool choices (never persisted).
  */
 export const chatStreamForwardedPropsSchema = z.object({
 	conversationId: uuid,

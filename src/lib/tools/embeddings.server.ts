@@ -8,13 +8,9 @@ const embeddingResponseSchema = z.object({
 });
 
 /**
- * Fetches a text embedding from the user's first endpoint that supports
- * `/v1/embeddings`, trying each endpoint in creation order.
- *
- * @param text - The text to embed.
- * @param ownerId - The user whose configured endpoints are tried.
- * @returns The embedding vector, or `null` if no endpoint succeeds so callers can
- *   degrade gracefully (skip vector search, still save the record).
+ * Fetches a text embedding from the user's first endpoint supporting
+ * `/v1/embeddings`, in creation order.
+ * @returns The vector, or `null` when no endpoint succeeds (callers degrade).
  */
 export async function embed({
 	text,
@@ -62,11 +58,8 @@ export async function embed({
 }
 
 /**
- * Formats a vector as a pgvector literal (e.g. `[0.1,0.2,...]`) for use in raw SQL,
+ * Formats a vector as a pgvector literal (e.g. `[0.1,0.2,...]`) for raw SQL,
  * since Prisma has no native vector type.
- *
- * @param embedding - The embedding vector.
- * @returns The pgvector literal string.
  */
 export function toVectorLiteral(embedding: number[]): string {
 	return `[${embedding.join(",")}]`;

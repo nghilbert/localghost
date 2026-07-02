@@ -66,7 +66,7 @@ export function AddProviderForm({ definition, onCreated }: AddProviderFormProps)
 					if (result.ok) {
 						toast.success(
 							result.modelCount != null
-								? `Connection works — ${result.modelCount} models available`
+								? `Connection works: ${result.modelCount} models available`
 								: "Connection works",
 						);
 					}

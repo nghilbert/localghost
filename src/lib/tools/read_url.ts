@@ -7,10 +7,9 @@ export const readUrlArgsSchema = z.object({
 });
 
 /**
- * Fetches a web page and returns its main content as clean Markdown, stripping
- * navigation/ads/boilerplate via defuddle. Pairs with `web_search`: the model
- * searches, then reads a result in full. Output is capped to keep the context
- * budget in check.
+ * Fetches a web page as clean Markdown, stripping navigation and boilerplate
+ * via defuddle. Pairs with `web_search`: the model searches, then reads a
+ * result in full. Output is capped to protect the context budget.
  */
 const MAX_CHARS = 8000;
 

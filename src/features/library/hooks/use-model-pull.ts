@@ -9,10 +9,9 @@ import {
 import type { PullProgress } from "#/features/library/lib/types";
 
 /**
- * Drives Ollama model pulls off the server-side registry: starting a pull only
- * kicks off the server download, and live progress comes from polling that
- * registry — so the returned `pulling` map is always current and survives
- * navigation or a reload while a download is in flight.
+ * Drives Ollama model pulls off the server-side registry: starting a pull kicks
+ * off the server download, and progress comes from polling that registry, so
+ * the `pulling` map survives navigation or a reload mid-download.
  */
 export function useModelPull() {
 	const queryClient = useQueryClient();

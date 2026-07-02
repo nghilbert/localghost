@@ -109,10 +109,9 @@ export const testEndpoint = createServerFn({ method: "POST" })
 	});
 
 /**
- * Reports whether a model can use tools, so the chat UI can disable the tool
- * picker for models that can't. Only local Ollama models are checked (via
- * `/api/show` capabilities); cloud providers support tools, and any unknown or
- * unreachable case is assumed capable so a working model is never wrongly blocked.
+ * Whether a model can use tools, so the chat UI can disable the tool picker.
+ * Only local Ollama models are checked (via `/api/show`); cloud providers and
+ * any unknown case are assumed capable, never wrongly blocking a working model.
  */
 export const getModelCapabilities = createServerFn({ method: "POST" })
 	.validator(modelCapabilitiesInput)

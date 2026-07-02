@@ -68,7 +68,7 @@ function OllamaUrlForm({ currentUrl }: { currentUrl: string }) {
 		testRemote.mutate(parsed.data.url, {
 			onSuccess: (result) => {
 				if (result.reachable) {
-					toast.success(`Connection works — ${result.modelCount} models available`);
+					toast.success(`Connection works: ${result.modelCount} models available`);
 				}
 			},
 		});

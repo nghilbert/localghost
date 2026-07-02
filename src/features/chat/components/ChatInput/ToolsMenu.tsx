@@ -26,8 +26,8 @@ type ToolRow = {
 };
 
 /**
- * Builds the tool rows from the controls. Adding a tool later (MCP, skills) is a new
- * entry here, not a layout change — the menu renders whatever this returns.
+ * Builds the tool rows from the controls. Adding a tool later (MCP, skills) is a
+ * new entry here, not a layout change: the menu renders whatever this returns.
  */
 export function toolRows(controls: ToolControls): ToolRow[] {
 	const { enabledTools, onEnabledToolsChange } = controls;

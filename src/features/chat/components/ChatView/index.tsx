@@ -12,12 +12,13 @@ import {
 import { ChatInput } from "#/features/chat/components/ChatInput";
 import { ChatStatus } from "#/features/chat/components/ChatView/ChatStatus";
 import { useConversation } from "#/features/chat/hooks/use-conversation";
-import { createChatOptions, takeChatHandoff } from "#/features/chat/lib/chat-client";
-import type { getConversation } from "#/features/chat/lib/conversation.functions";
+import { createChatOptions } from "#/features/chat/lib/chat-client";
+import { takeChatHandoff } from "#/features/chat/lib/chat-handoff";
+import type { ConversationDetail } from "#/features/chat/lib/conversation.functions";
 import { awaitingAssistantResponse } from "#/features/chat/lib/messages";
 import { ChatMessage } from "../ChatMessage";
 
-type ChatViewProps = { conversation: Awaited<ReturnType<typeof getConversation>> };
+type ChatViewProps = { conversation: ConversationDetail };
 export function ChatView({ conversation }: ChatViewProps) {
 	const queryClient = useQueryClient();
 

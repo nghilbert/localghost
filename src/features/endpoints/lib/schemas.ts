@@ -3,11 +3,9 @@ import { z } from "zod/v4";
 const uuid = z.uuid();
 
 /**
- * Per-endpoint generation settings, mirroring the Ollama SDK `Options` interface.
- * Every field is optional — an absent field means "use Ollama's own default", so an
- * endpoint needs zero tuning to work. The blob accepts any of these fields; the
- * Settings UI renders a curated subset. The schema also validates the stored JSON
- * back into a typed value with no cast when handed to the Ollama request.
+ * Per-endpoint generation settings mirroring the Ollama SDK `Options` interface.
+ * Every field is optional; absent means "use Ollama's own default", so an
+ * endpoint needs zero tuning. The Settings UI renders a curated subset.
  */
 export const ollamaOptionsSchema = z
 	.object({

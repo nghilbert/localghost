@@ -5,7 +5,7 @@ import type { ComponentFieldProps } from "./types";
 
 /**
  * Numeric input bound to an optional `number`. A blank field maps to `undefined`
- * rather than `0`, so an empty value means "unset" — letting the consumer fall
+ * rather than `0`, so an empty value means "unset", letting the consumer fall
  * back to a provider default instead of forcing a zero.
  */
 export function NumberField({

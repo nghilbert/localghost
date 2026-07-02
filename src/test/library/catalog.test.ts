@@ -182,13 +182,13 @@ describe("computeFit", () => {
 			expect(result.overall).toBeLessThanOrEqual(100);
 		});
 
-		it("overall is 70–89 for gpu-tight", () => {
+		it("overall is 70-89 for gpu-tight", () => {
 			const result = computeFit({ model: model({ vramGb: 4 }), hw: hw({ gpus: [gpu(4096)] }) });
 			expect(result.overall).toBeGreaterThanOrEqual(70);
 			expect(result.overall).toBeLessThan(90);
 		});
 
-		it("overall is 40–70 for cpu-only", () => {
+		it("overall is 40-70 for cpu-only", () => {
 			const result = computeFit({
 				model: model({ ramGb: 8 }),
 				hw: hw({ gpus: null, totalRamGb: 32 }),

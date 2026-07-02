@@ -30,10 +30,9 @@ export type ProviderDefinition = {
 };
 
 /**
- * Selectable providers for the guided add-endpoint picker. Local Ollama is the
- * built-in endpoint and is intentionally absent here; it is never "added". Default
- * base URLs must round-trip through detectProvider() in llm.server.ts so chat routes
- * requests correctly; pinned by a unit test.
+ * Selectable providers for the guided add-endpoint picker. The built-in local
+ * Ollama is deliberately absent; it is never "added". Default base URLs must
+ * round-trip through detectProvider() in llm.server.ts; pinned by a unit test.
  */
 export const PROVIDERS: ProviderDefinition[] = [
 	{
@@ -44,7 +43,7 @@ export const PROVIDERS: ProviderDefinition[] = [
 		requiresApiKey: true,
 		keyPlaceholder: "sk-ant-…",
 		keyConsoleUrl: "https://console.anthropic.com/settings/keys",
-		description: "Claude models — strong reasoning, coding, and long context.",
+		description: "Claude models: strong reasoning, coding, and long context.",
 	},
 	{
 		id: "openai",
@@ -64,7 +63,7 @@ export const PROVIDERS: ProviderDefinition[] = [
 		requiresApiKey: true,
 		keyPlaceholder: "AIza…",
 		keyConsoleUrl: "https://aistudio.google.com/apikey",
-		description: "Gemini models from Google — fast, multimodal, long context.",
+		description: "Gemini models from Google: fast, multimodal, long context.",
 	},
 	{
 		id: "openrouter",

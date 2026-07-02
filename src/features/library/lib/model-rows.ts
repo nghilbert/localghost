@@ -22,10 +22,9 @@ function normalizeId(id: string): string {
 }
 
 /**
- * Unions the fetched catalog with the user's installed models and in-flight
- * pulls into one row per model id. Catalog rows carry a hardware fit score; rows
- * that only exist locally (off-catalog installs) still surface with Ollama's own
- * metadata. This is the single source of rows for both Browse and My Models.
+ * Unions the catalog with installed models and in-flight pulls into one row per
+ * model id; the single source of rows for both Browse and My Models. Off-catalog
+ * installs still surface, carrying Ollama's own metadata.
  */
 export function buildModelRows({
 	catalog,

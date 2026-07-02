@@ -32,7 +32,7 @@ function byCapability(a: ScoredModel, b: ScoredModel): number {
 	);
 }
 
-/** Best tier first, then the smallest model — fewer parameters means faster tokens. */
+/** Best tier first, then the smallest model; fewer parameters means faster tokens. */
 function bySpeed(a: ScoredModel, b: ScoredModel): number {
 	return TIER_RANK[b.fit.tier] - TIER_RANK[a.fit.tier] || paramB(a) - paramB(b);
 }

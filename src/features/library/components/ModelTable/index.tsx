@@ -29,7 +29,7 @@ type ModelTableProps = {
 	initialColumnVisibility?: VisibilityState;
 };
 
-/** The single table for both Browse and My Models — same columns, same rows. */
+/** The single table for both Browse and My Models: same columns, same rows. */
 export function ModelTable({
 	catalog,
 	hardware,
