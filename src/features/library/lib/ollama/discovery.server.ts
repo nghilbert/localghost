@@ -1,4 +1,5 @@
 import { trimPathRight } from "@tanstack/react-router";
+import { ollamaOptionsSchema } from "#/features/endpoints/lib/schemas";
 import { ollamaClient } from "#/features/library/lib/ollama/client.server";
 import type { OllamaInstalledModel } from "#/features/library/lib/types";
 import { prisma } from "#/lib/db.server";
@@ -64,11 +65,14 @@ export async function probeOllama({
 	}
 }
 
+/** The user's oldest saved ollama endpoint row, as far as discovery needs it. */
+export type SavedOllamaEndpoint = { id: string; url: string; options: unknown };
+
 export type OllamaScanResult = {
 	url: string;
 	installedModels: OllamaInstalledModel[];
 	/** The user's oldest saved ollama endpoint, so callers can sync it without re-querying. */
-	savedEndpoint: { id: string; url: string } | null;
+	savedEndpoint: SavedOllamaEndpoint | null;
 };
 
 /**
@@ -79,7 +83,7 @@ export async function scanForOllama(userId: string): Promise<OllamaScanResult | 
 	const saved = await prisma.modelEndpoint.findMany({
 		where: { ownerId: userId, provider: "ollama" },
 		orderBy: { id: "asc" },
-		select: { id: true, url: true },
+		select: { id: true, url: true, options: true },
 	});
 	const candidates = buildOllamaCandidateUrls({ savedUrls: saved.map((endpoint) => endpoint.url) });
 
@@ -98,17 +102,19 @@ export async function scanForOllama(userId: string): Promise<OllamaScanResult | 
 
 /**
  * Keeps the user's ollama endpoint row in sync with where Ollama was found,
- * creating it on first detection so chat works with zero setup. Pass `existing`
- * (the oldest saved ollama endpoint, or null) when known, to skip the lookup.
+ * creating it on first detection. Pass `existing` when known to skip the lookup.
+ * @param numCtx - A number saves the override, `null` clears it, `undefined` leaves it.
  */
 export async function upsertOllamaEndpoint({
 	userId,
 	url,
 	existing,
+	numCtx,
 }: {
 	userId: string;
 	url: string;
-	existing?: { id: string; url: string } | null;
+	existing?: SavedOllamaEndpoint | null;
+	numCtx?: number | null;
 }): Promise<void> {
 	const normalizedUrl = trimPathRight(url);
 	const resolved =
@@ -117,17 +123,38 @@ export async function upsertOllamaEndpoint({
 			: await prisma.modelEndpoint.findFirst({
 					where: { ownerId: userId, provider: "ollama" },
 					orderBy: { id: "asc" },
-					select: { id: true, url: true },
+					select: { id: true, url: true, options: true },
 				});
 
 	if (!resolved) {
 		await prisma.modelEndpoint.create({
-			data: { name: "Ollama (local)", url: normalizedUrl, provider: "ollama", ownerId: userId },
+			data: {
+				name: "Ollama (local)",
+				url: normalizedUrl,
+				provider: "ollama",
+				ownerId: userId,
+				...(typeof numCtx === "number" ? { options: { num_ctx: numCtx } } : {}),
+			},
 		});
-	} else if (resolved.url !== normalizedUrl) {
-		await prisma.modelEndpoint.update({
-			where: { id: resolved.id },
-			data: { url: normalizedUrl },
-		});
+		return;
 	}
+
+	const nextOptions = numCtx === undefined ? undefined : mergeNumCtx(resolved.options, numCtx);
+	if (resolved.url === normalizedUrl && nextOptions === undefined) return;
+	await prisma.modelEndpoint.update({
+		where: { id: resolved.id },
+		data: {
+			url: normalizedUrl,
+			...(nextOptions !== undefined ? { options: nextOptions } : {}),
+		},
+	});
+}
+
+/** Sets or clears num_ctx on an endpoint's options blob, keeping the other keys. */
+function mergeNumCtx(options: unknown, numCtx: number | null) {
+	const parsed = ollamaOptionsSchema.safeParse(options);
+	const merged = { ...(parsed.success ? parsed.data : {}) };
+	if (numCtx === null) delete merged.num_ctx;
+	else merged.num_ctx = numCtx;
+	return merged;
 }

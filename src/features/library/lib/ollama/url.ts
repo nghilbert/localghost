@@ -11,3 +11,18 @@ export const OllamaUrlSchema = z.object({
 		.max(2048)
 		.transform((value) => new URL(value).origin),
 });
+
+const NumCtxSchema = z.number().int().min(1024, "At least 1024 tokens").max(1_048_576, "Too large");
+
+/** Settings-form shape: an empty context field stays `undefined`. */
+export const OllamaConnectionFormSchema = OllamaUrlSchema.extend({
+	numCtx: NumCtxSchema.optional(),
+});
+
+/**
+ * `registerRemoteOllama` input: the base URL plus a context-window override
+ * (`num_ctx`). `null` clears a saved override; `undefined` leaves it.
+ */
+export const OllamaConnectionSchema = OllamaUrlSchema.extend({
+	numCtx: NumCtxSchema.nullish(),
+});

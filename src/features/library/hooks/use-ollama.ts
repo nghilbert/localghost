@@ -19,7 +19,8 @@ export function useOllama() {
 	});
 
 	const connectRemoteMutation = useMutation({
-		mutationFn: (url: string) => registerRemoteOllama({ data: { url } }),
+		mutationFn: (input: { url: string; numCtx?: number | null }) =>
+			registerRemoteOllama({ data: input }),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["library-status"] });
 			queryClient.invalidateQueries({ queryKey: ["endpoints"] });

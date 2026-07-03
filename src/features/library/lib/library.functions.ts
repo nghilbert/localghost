@@ -3,6 +3,7 @@ import { trimPathRight } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod/v4";
 import { getCurrentUserId } from "#/features/auth/lib/session.server";
+import { ollamaOptionsSchema } from "#/features/endpoints/lib/schemas";
 import { getHardwareInfo } from "#/features/library/lib/hardware.server";
 import { getCatalog } from "#/features/library/lib/ollama/catalog.server";
 import { ollamaClient } from "#/features/library/lib/ollama/client.server";
@@ -17,7 +18,7 @@ import {
 	getActivePulls as readActivePulls,
 	startPull,
 } from "#/features/library/lib/ollama/pull-registry.server";
-import { OllamaUrlSchema } from "#/features/library/lib/ollama/url";
+import { OllamaConnectionSchema, OllamaUrlSchema } from "#/features/library/lib/ollama/url";
 import type { OllamaStatus } from "#/features/library/lib/types";
 
 export const getHardware = createServerFn({ method: "GET" }).handler(async () => {
@@ -34,10 +35,16 @@ export const scanOllamaStatus = createServerFn({ method: "GET" }).handler(
 	async (): Promise<OllamaStatus> => {
 		const userId = await getCurrentUserId();
 		const found = await scanForOllama(userId);
-		if (!found) return { found: false, ollamaUrl: null, installedModels: [] };
+		if (!found) return { found: false, ollamaUrl: null, installedModels: [], numCtx: null };
 
 		await upsertOllamaEndpoint({ userId, url: found.url, existing: found.savedEndpoint });
-		return { found: true, ollamaUrl: found.url, installedModels: found.installedModels };
+		const options = ollamaOptionsSchema.safeParse(found.savedEndpoint?.options);
+		return {
+			found: true,
+			ollamaUrl: found.url,
+			installedModels: found.installedModels,
+			numCtx: options.success ? (options.data.num_ctx ?? null) : null,
+		};
 	},
 );
 
@@ -58,14 +65,14 @@ export const testRemoteOllama = createServerFn({ method: "POST" })
 	});
 
 export const registerRemoteOllama = createServerFn({ method: "POST" })
-	.validator(OllamaUrlSchema)
+	.validator(OllamaConnectionSchema)
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		const probe = await probeOllama({ url: data.url });
 		if (!probe.reachable) {
 			throw new Error(`No Ollama instance is responding at ${data.url}`);
 		}
-		await upsertOllamaEndpoint({ userId, url: data.url });
+		await upsertOllamaEndpoint({ userId, url: data.url, numCtx: data.numCtx });
 	});
 
 export const startModelPull = createServerFn({ method: "POST" })

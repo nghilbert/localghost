@@ -15,7 +15,7 @@ export function RemoteOllamaForm({ onBack }: { onBack: () => void }) {
 		validators: { onDynamic: OllamaUrlSchema },
 		validationLogic: revalidateLogic(),
 		onSubmit: async ({ value }) => {
-			await connectRemote.mutate(value.url);
+			await connectRemote.mutate({ url: value.url });
 		},
 	});
 
@@ -40,7 +40,7 @@ export function RemoteOllamaForm({ onBack }: { onBack: () => void }) {
 			<CardHeader>
 				<CardTitle>Connect to Ollama at a URL</CardTitle>
 				<CardDescription>
-					Point at an Ollama instance by URL — a homelab server, another machine, or a custom port.
+					Point at an Ollama instance by URL: a homelab server, another machine, or a custom port.
 					Make sure Ollama listens on the network there (OLLAMA_HOST=0.0.0.0).
 				</CardDescription>
 			</CardHeader>

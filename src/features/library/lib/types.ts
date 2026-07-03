@@ -24,8 +24,14 @@ export type OllamaInstalledModel = {
 };
 
 export type OllamaStatus =
-	| { found: true; ollamaUrl: string; installedModels: OllamaInstalledModel[] }
-	| { found: false; ollamaUrl: null; installedModels: OllamaInstalledModel[] };
+	| {
+			found: true;
+			ollamaUrl: string;
+			installedModels: OllamaInstalledModel[];
+			/** The endpoint's saved num_ctx override, null when using the default. */
+			numCtx: number | null;
+	  }
+	| { found: false; ollamaUrl: null; installedModels: OllamaInstalledModel[]; numCtx: null };
 
 export type CatalogModel = {
 	/** The exact `ollama pull` id, e.g. "llama3.1:8b". */
