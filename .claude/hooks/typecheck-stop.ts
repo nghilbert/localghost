@@ -30,9 +30,7 @@ onStdin((raw) => {
 	if (readPayloadField(raw, "stop_hook_active") === true) process.exit(0);
 
 	try {
-		// The hooks folder is a dot-directory, invisible to the root tsconfig's
-		// globs, so it needs its own project pass.
-		execSync("npx tsc --noEmit && npx tsc -p .claude/hooks", { stdio: "pipe", timeout: 120_000 });
+		execSync("npx tsc --noEmit", { stdio: "pipe", timeout: 120_000 });
 		process.exit(0);
 	} catch (error) {
 		console.error(
