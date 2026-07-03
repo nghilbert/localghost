@@ -1,48 +1,124 @@
-import { getRouteApi } from "@tanstack/react-router";
-import { BoxesIcon, Rows3Icon } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "#/components/ui/tabs";
-import { BrowseTab } from "#/features/library/components/BrowseTab";
-import { MyModelsTab } from "#/features/library/components/MyModelsTab";
-
-const routeApi = getRouteApi("/_authenticated/library");
-
-const TABS = ["my-models", "browse"] as const;
-type LibraryTab = (typeof TABS)[number];
-
-function isLibraryTab(value: string): value is LibraryTab {
-	return TABS.some((candidate) => candidate === value);
-}
+import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "#/components/ui/alert-dialog";
+import { Button } from "#/components/ui/button";
+import { Item, ItemActions, ItemContent, ItemDescription, ItemTitle } from "#/components/ui/item";
+import { Separator } from "#/components/ui/separator";
+import { HardwareCard } from "#/features/library/components/HardwareCard";
+import { ModelTable } from "#/features/library/components/ModelTable";
+import { OllamaSetupCard } from "#/features/library/components/OllamaSetupCard";
+import { RecommendedModels } from "#/features/library/components/RecommendedModels";
+import { RemoteOllamaForm } from "#/features/library/components/RemoteOllamaForm";
+import { useModelPull } from "#/features/library/hooks/use-model-pull";
+import { useOllama } from "#/features/library/hooks/use-ollama";
+import {
+	catalogQueryOptions,
+	hardwareQueryOptions,
+	libraryStatusQueryOptions,
+} from "#/features/library/lib/library.functions";
 
 export function LibraryPage() {
-	const { tab } = routeApi.useSearch();
-	const navigate = routeApi.useNavigate();
+	const { data: hardware, isLoading: isLoadingHardware } = useQuery(hardwareQueryOptions());
+
+	const { data: ollamaStatus } = useQuery(libraryStatusQueryOptions());
+
+	const { data: catalog = [] } = useQuery(catalogQueryOptions());
+
+	const { pulling, pull, stop } = useModelPull();
+	const { deleteModel } = useOllama();
+
+	const [isReconnecting, setIsReconnecting] = useState(false);
+	const [pendingDelete, setPendingDelete] = useState<string | null>(null);
+
+	function handlePull(model: string) {
+		if (!ollamaStatus?.found) return;
+		pull({ model, ollamaUrl: ollamaStatus.ollamaUrl });
+	}
 
 	return (
-		<Tabs
-			value={tab ?? "my-models"}
-			onValueChange={(value) => {
-				if (isLibraryTab(value)) navigate({ search: { tab: value } });
-			}}
-			className="flex h-full flex-col overflow-hidden"
-		>
-			<div className="shrink-0 border-b px-4 py-2">
-				<TabsList variant="line">
-					<TabsTrigger value="my-models" className="gap-1.5">
-						<BoxesIcon size={13} />
-						My Models
-					</TabsTrigger>
-					<TabsTrigger value="browse" className="gap-1.5">
-						<Rows3Icon size={13} />
-						Browse
-					</TabsTrigger>
-				</TabsList>
+		<div className="h-full overflow-auto">
+			<div className="space-y-6 p-6">
+				<HardwareCard hardware={hardware} isLoading={isLoadingHardware} />
+
+				<Separator />
+
+				{ollamaStatus?.found ? (
+					isReconnecting ? (
+						<RemoteOllamaForm onBack={() => setIsReconnecting(false)} />
+					) : (
+						<>
+							<Item variant="muted">
+								<ItemContent>
+									<ItemTitle>Connected to Ollama</ItemTitle>
+									<ItemDescription>{ollamaStatus.ollamaUrl}</ItemDescription>
+								</ItemContent>
+								<ItemActions>
+									<Button variant="outline" size="sm" onClick={() => setIsReconnecting(true)}>
+										Use a different Ollama
+									</Button>
+								</ItemActions>
+							</Item>
+							<RecommendedModels
+								catalog={catalog}
+								hardware={hardware}
+								installedModels={ollamaStatus.installedModels}
+								pulling={pulling}
+								onPull={handlePull}
+								onStop={stop}
+							/>
+							<ModelTable
+								catalog={catalog}
+								hardware={hardware}
+								installedModels={ollamaStatus.installedModels}
+								pulling={pulling}
+								onPull={handlePull}
+								onStop={stop}
+								onDelete={(model) => setPendingDelete(model)}
+								initialColumnVisibility={{ size: false }}
+							/>
+						</>
+					)
+				) : (
+					<OllamaSetupCard />
+				)}
 			</div>
-			<TabsContent value="my-models" className="flex flex-col overflow-auto">
-				<MyModelsTab onBrowse={() => navigate({ search: { tab: "browse" } })} />
-			</TabsContent>
-			<TabsContent value="browse" className="overflow-auto">
-				<BrowseTab />
-			</TabsContent>
-		</Tabs>
+			<AlertDialog
+				open={pendingDelete !== null}
+				onOpenChange={(open) => {
+					if (!open) setPendingDelete(null);
+				}}
+			>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>Delete this model?</AlertDialogTitle>
+						<AlertDialogDescription>
+							{pendingDelete} will be removed from this machine. You'll need to download it again to
+							use it.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel>Cancel</AlertDialogCancel>
+						<AlertDialogAction
+							variant="destructive"
+							onClick={() => {
+								if (pendingDelete) deleteModel.mutate(pendingDelete);
+								setPendingDelete(null);
+							}}
+						>
+							Delete
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
+		</div>
 	);
 }
