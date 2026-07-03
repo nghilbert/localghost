@@ -1,6 +1,8 @@
-// PostToolUse hook: auto-fixes the edited file with biome and feeds any
-// remaining diagnostics back to Claude (exit 2 routes stderr to the model).
-import { execSync } from "node:child_process";
+// PostToolUse hook: auto-fixes the edited file via `npm run fix` (the repo's
+// canonical biome command) and feeds any remaining diagnostics back to Claude
+// (exit 2 routes stderr to the model). execFileSync keeps shell expansion away
+// from paths like routes/chat/$conversationId.tsx.
+import { execFileSync } from "node:child_process";
 import { execErrorOutput, onStdin, readToolInputField } from "./hook-input.ts";
 
 onStdin((raw) => {
@@ -9,7 +11,7 @@ onStdin((raw) => {
 		process.exit(0);
 	}
 	try {
-		execSync(`npx biome check --write "${filePath}"`, { stdio: "pipe" });
+		execFileSync("npm", ["run", "fix", "--", filePath], { stdio: "pipe" });
 		process.exit(0);
 	} catch (error) {
 		const output = execErrorOutput(error);
