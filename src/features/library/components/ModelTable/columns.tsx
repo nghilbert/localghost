@@ -9,7 +9,7 @@ import {
 	TextCell,
 } from "#/features/library/components/ModelCells";
 import { ModelActionsCell } from "#/features/library/components/ModelTable/ModelActionsCell";
-import { parsePullCount } from "#/features/library/lib/catalog";
+import { parsePullCount, requiredMemoryGb } from "#/features/library/lib/catalog";
 import type { ModelRow } from "#/features/library/lib/model-rows";
 
 type ModelColumnOptions = {
@@ -23,8 +23,7 @@ type ModelColumnOptions = {
 export const MODEL_COLUMN_LABELS: Record<string, string> = {
 	name: "Model",
 	params: "Params",
-	vram: "VRAM",
-	ram: "RAM",
+	memory: "Memory",
 	size: "Size",
 	pulls: "Pulls",
 	updated: "Updated",
@@ -58,22 +57,19 @@ export function createModelColumns({
 			cell: ({ row }) => <ParamsCell row={row.original} />,
 		},
 		{
-			id: "vram",
-			accessorFn: (row) => nullableNumber(row.catalog?.paramB && row.catalog.vramGb),
-			header: ({ column }) => <DataTableColumnHeader column={column} title="VRAM" />,
-			cell: ({ row }) => <MemoryCell gb={row.original.catalog?.vramGb ?? 0} />,
-		},
-		{
-			id: "ram",
-			accessorFn: (row) => nullableNumber(row.catalog?.paramB && row.catalog.ramGb),
-			header: ({ column }) => <DataTableColumnHeader column={column} title="RAM" />,
-			cell: ({ row }) => <MemoryCell gb={row.original.catalog?.ramGb ?? 0} />,
+			id: "memory",
+			accessorFn: (row) => nullableNumber(row.catalog && requiredMemoryGb(row.catalog)),
+			header: ({ column }) => <DataTableColumnHeader column={column} title="Memory" />,
+			cell: ({ row }) => (
+				<MemoryCell gb={row.original.catalog ? requiredMemoryGb(row.original.catalog) : null} />
+			),
 		},
 		{
 			id: "size",
-			accessorFn: (row) => row.installed?.sizeBytes ?? 0,
+			accessorFn: (row) =>
+				nullableNumber(row.installed ? row.installed.sizeBytes / 1e9 : row.catalog?.sizeGb),
 			header: ({ column }) => <DataTableColumnHeader column={column} title="Size" />,
-			cell: ({ row }) => <SizeCell installed={row.original.installed} />,
+			cell: ({ row }) => <SizeCell row={row.original} />,
 		},
 		{
 			id: "pulls",

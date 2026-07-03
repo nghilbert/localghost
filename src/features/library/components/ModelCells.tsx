@@ -3,7 +3,7 @@ import { Badge } from "#/components/ui/badge";
 import { FitBadge } from "#/features/library/components/ModelTable/FitBadge";
 import { formatBytes } from "#/features/library/lib/format";
 import type { ModelRow } from "#/features/library/lib/model-rows";
-import type { FitScore, OllamaInstalledModel } from "#/features/library/lib/types";
+import type { FitScore } from "#/features/library/lib/types";
 
 /** Em-dash placeholder shown when a cell has no value. */
 export function EmptyCell() {
@@ -52,19 +52,21 @@ export function ParamsCell({ row }: { row: ModelRow }) {
 	return <span className="text-sm tabular-nums">{params ?? "—"}</span>;
 }
 
-/** Estimated memory footprint; empty when no parameter count could be parsed. */
-export function MemoryCell({ gb }: { gb: number }) {
-	if (gb <= 0) return <EmptyCell />;
+/** Estimated memory needed to run the model; empty when its size is unknown. */
+export function MemoryCell({ gb }: { gb: number | null }) {
+	if (gb === null || gb <= 0) return <EmptyCell />;
 	return <span className="text-xs tabular-nums">~{gb} GB</span>;
 }
 
-export function SizeCell({ installed }: { installed: OllamaInstalledModel | null }) {
-	if (!installed) return <EmptyCell />;
-	return (
-		<span className="text-xs tabular-nums text-muted-foreground">
-			{formatBytes(installed.sizeBytes)}
-		</span>
-	);
+/** Download size: the installed blob when present, else the catalog's tags-page size. */
+export function SizeCell({ row }: { row: ModelRow }) {
+	const label = row.installed
+		? formatBytes(row.installed.sizeBytes)
+		: row.catalog?.sizeGb != null
+			? `${row.catalog.sizeGb} GB`
+			: null;
+	if (!label) return <EmptyCell />;
+	return <span className="text-xs tabular-nums text-muted-foreground">{label}</span>;
 }
 
 export function FitCell({ fit, hasHardware }: { fit: FitScore | null; hasHardware: boolean }) {

@@ -23,7 +23,7 @@ function normalizeId(id: string): string {
 
 /**
  * Unions the catalog with installed models and in-flight pulls into one row per
- * model id; the single source of rows for both Browse and My Models. Off-catalog
+ * model id; the single source of rows for the Library table. Off-catalog
  * installs still surface, carrying Ollama's own metadata.
  */
 export function buildModelRows({
@@ -48,8 +48,7 @@ export function buildModelRows({
 
 	return [...ids].map((id) => {
 		const model = catalogById.get(id) ?? null;
-		const fit =
-			model && model.paramB !== null && hardware ? computeFit({ model, hw: hardware }) : null;
+		const fit = model && hardware ? computeFit({ model, hw: hardware }) : null;
 		return {
 			id,
 			name: model?.name ?? id,

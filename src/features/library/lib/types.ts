@@ -40,9 +40,10 @@ export type CatalogModel = {
 	name: string;
 	/** Billions of parameters parsed from the size tag; null when unparseable. */
 	paramB: number | null;
-	/** Estimated footprint derived from paramB (heuristic, not scraped). */
-	vramGb: number;
-	ramGb: number;
+	/** Actual download size from the model's tags page; null until enriched. */
+	sizeGb: number | null;
+	/** Context window in K tokens from the tags page, e.g. 128 for "128K". */
+	contextK: number | null;
 	/** Display tags: capability badges plus derived "fast"/"code". */
 	tags: string[];
 	/** Raw capability badges from the library (tools, vision, embedding, thinking). */
@@ -56,7 +57,16 @@ export type CatalogModel = {
 	updatedAt?: string;
 };
 
-export type FitTier = "gpu-optimal" | "gpu-tight" | "cpu-only" | "too-large";
+/** One tag row parsed from a model's ollama.com tags page. */
+export type ModelTagInfo = {
+	tag: string;
+	/** Short blob digest; identical digests mean identical weights (e.g. `latest` = `8b`). */
+	digest: string | null;
+	sizeGb: number | null;
+	contextK: number | null;
+};
+
+export type FitTier = "gpu-optimal" | "gpu-tight" | "gpu-partial" | "cpu-only" | "too-large";
 
 export type FitScore = {
 	tier: FitTier;

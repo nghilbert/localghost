@@ -1,4 +1,4 @@
-import type { FitScore, HardwareInfo } from "./types";
+import type { CatalogModel, FitScore, HardwareInfo, ModelTagInfo } from "./types";
 
 /**
  * Parses billions of parameters from an Ollama size tag. Handles plain sizes
@@ -32,18 +32,61 @@ export function parsePullCount(value: string): number {
 	return Number(match[1]) * multiplier;
 }
 
+/** Q4 quantization weighs roughly this many GB per billion parameters. */
+export const Q4_GB_PER_B = 0.6;
+
+function round1(value: number): number {
+	return Math.round(value * 10) / 10;
+}
+
 /**
- * Estimates a Q4-ish memory footprint from parameter count. The library doesn't
- * publish VRAM/RAM, so we approximate: the ratios below match the previously
- * hand-tuned catalog closely (weights at ~0.65 GB/B, plus CPU overhead).
+ * Memory needed to run a model at the default 8K context: real download size
+ * (Q4 estimate from paramB otherwise) plus ~15% KV cache and ~1 GB runtime
+ * overhead. Null when neither size nor parameter count is known.
  */
-export function estimateFootprint({ paramB }: { paramB: number }): {
-	vramGb: number;
-	ramGb: number;
-} {
+export function requiredMemoryGb({
+	sizeGb,
+	paramB,
+}: Pick<CatalogModel, "sizeGb" | "paramB">): number | null {
+	const weightsGb = sizeGb ?? (paramB !== null ? round1(paramB * Q4_GB_PER_B) : null);
+	if (weightsGb === null) return null;
+	return round1(weightsGb * 1.15 + 1);
+}
+
+/**
+ * Merges tags-page data into a catalog entry: real size, context window, and a
+ * paramB recovered via blob digest when the index row had none (`latest` shares
+ * its digest with the size tag it aliases). Re-derives tags for "fast".
+ */
+export function enrichCatalogModel({
+	model,
+	tags,
+}: {
+	model: CatalogModel;
+	tags: ModelTagInfo[];
+}): CatalogModel {
+	const colon = model.id.indexOf(":");
+	const tagName = colon === -1 ? "latest" : model.id.slice(colon + 1);
+	const info = tags.find((t) => t.tag === tagName);
+	if (!info) return model;
+
+	let paramB = model.paramB;
+	if (paramB === null && info.digest) {
+		const sibling = tags.find((t) => t.digest === info.digest && parseParamB(t.tag) !== null);
+		if (sibling) paramB = parseParamB(sibling.tag);
+	}
+
 	return {
-		vramGb: Math.round(paramB * 0.65 * 10) / 10,
-		ramGb: Math.round(paramB * 1.15 * 10) / 10,
+		...model,
+		paramB,
+		sizeGb: info.sizeGb ?? model.sizeGb,
+		contextK: info.contextK ?? model.contextK,
+		tags: deriveTags({
+			name: model.name,
+			description: model.description,
+			paramB,
+			capabilities: model.capabilities,
+		}),
 	};
 }
 
@@ -69,43 +112,59 @@ export function deriveTags({
 	return tags;
 }
 
+/**
+ * Scores how a model runs on the detected hardware. Mirrors Ollama's layering:
+ * fully in VRAM, split across VRAM and RAM (`gpu-partial`), or CPU-only.
+ * Null when the model has no known size or parameter count.
+ */
 export function computeFit({
 	model,
 	hw,
 }: {
-	model: { vramGb: number; ramGb: number };
+	model: Pick<CatalogModel, "sizeGb" | "paramB">;
 	hw: HardwareInfo;
-}): FitScore {
-	const vramNeededMb = model.vramGb * 1024;
+}): FitScore | null {
+	const requiredGb = requiredMemoryGb(model);
+	if (requiredGb === null) return null;
+
 	const bestGpu = hw.gpus?.reduce<NonNullable<typeof hw.gpus>[number] | null>(
 		(best, g) => (g.totalVramMb > (best?.totalVramMb ?? 0) ? g : best),
 		null,
 	);
+	const usableRamGb = hw.totalRamGb - 2;
+	const cpuHeadroomGb = round1(usableRamGb - requiredGb);
 
-	let gpuHeadroomPct: number | null = null;
-	let tier: FitScore["tier"];
-
-	if (bestGpu && bestGpu.totalVramMb >= vramNeededMb) {
-		gpuHeadroomPct = Math.round(((bestGpu.totalVramMb - vramNeededMb) / bestGpu.totalVramMb) * 100);
-		tier = gpuHeadroomPct >= 20 ? "gpu-optimal" : "gpu-tight";
-	} else {
-		const cpuRamNeeded = model.ramGb;
-		const usableRamGb = hw.totalRamGb - 2;
-		const cpuHeadroomGb = usableRamGb - cpuRamNeeded;
-		if (cpuHeadroomGb >= 0) {
-			tier = "cpu-only";
-		} else {
-			tier = "too-large";
+	if (bestGpu) {
+		const vramGb = bestGpu.totalVramMb / 1024;
+		if (requiredGb <= vramGb) {
+			const gpuHeadroomPct = Math.round(((vramGb - requiredGb) / vramGb) * 100);
+			const tier = gpuHeadroomPct >= 20 ? "gpu-optimal" : "gpu-tight";
+			const overall =
+				tier === "gpu-optimal"
+					? 90 + Math.min(10, Math.round(gpuHeadroomPct / 10))
+					: 75 + Math.round(gpuHeadroomPct * 0.75);
+			return { tier, gpuHeadroomPct, cpuHeadroomGb, overall };
 		}
+		if (requiredGb <= vramGb + usableRamGb) {
+			// Scored by the fraction of the model living in VRAM: more offload, faster.
+			const overall = Math.round(45 + 25 * (vramGb / requiredGb));
+			return { tier: "gpu-partial", gpuHeadroomPct: null, cpuHeadroomGb, overall };
+		}
+		return tooLarge(cpuHeadroomGb);
 	}
 
-	const cpuHeadroomGb = Math.max(0, hw.totalRamGb - 2 - model.ramGb);
+	if (requiredGb <= usableRamGb) {
+		const overall = Math.round(40 + Math.min(30, cpuHeadroomGb * 2));
+		return { tier: "cpu-only", gpuHeadroomPct: null, cpuHeadroomGb, overall };
+	}
+	return tooLarge(cpuHeadroomGb);
+}
 
-	let overall: number;
-	if (tier === "gpu-optimal") overall = 90 + Math.min(10, gpuHeadroomPct ?? 0) / 10;
-	else if (tier === "gpu-tight") overall = 70 + Math.max(0, (gpuHeadroomPct ?? 0) / 2);
-	else if (tier === "cpu-only") overall = 40 + Math.min(30, cpuHeadroomGb * 2);
-	else overall = Math.max(0, 20 - Math.abs(cpuHeadroomGb) * 2);
-
-	return { tier, gpuHeadroomPct, cpuHeadroomGb, overall: Math.round(overall) };
+function tooLarge(cpuHeadroomGb: number): FitScore {
+	return {
+		tier: "too-large",
+		gpuHeadroomPct: null,
+		cpuHeadroomGb,
+		overall: Math.max(0, Math.round(20 + cpuHeadroomGb * 2)),
+	};
 }

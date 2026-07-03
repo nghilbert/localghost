@@ -5,6 +5,7 @@ import { cn } from "#/lib/utils";
 const TIER_LABELS: Record<FitScore["tier"], string> = {
 	"gpu-optimal": "GPU",
 	"gpu-tight": "GPU (tight)",
+	"gpu-partial": "GPU + RAM",
 	"cpu-only": "CPU",
 	"too-large": "Too large",
 };
@@ -12,6 +13,7 @@ const TIER_LABELS: Record<FitScore["tier"], string> = {
 const TIER_VARIANTS: Record<FitScore["tier"], React.ComponentProps<typeof Badge>["variant"]> = {
 	"gpu-optimal": "default",
 	"gpu-tight": "secondary",
+	"gpu-partial": "secondary",
 	"cpu-only": "outline",
 	"too-large": "outline",
 };

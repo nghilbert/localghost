@@ -1,4 +1,4 @@
-import { computeFit, parsePullCount } from "#/features/library/lib/catalog";
+import { computeFit, parsePullCount, Q4_GB_PER_B } from "#/features/library/lib/catalog";
 import type {
 	CatalogModel,
 	FitScore,
@@ -15,8 +15,9 @@ export type Recommendation = {
 };
 
 const TIER_RANK: Record<FitScore["tier"], number> = {
-	"gpu-optimal": 3,
-	"gpu-tight": 2,
+	"gpu-optimal": 4,
+	"gpu-tight": 3,
+	"gpu-partial": 2,
 	"cpu-only": 1,
 	"too-large": 0,
 };
@@ -28,18 +29,19 @@ function byCapability(a: ScoredModel, b: ScoredModel): number {
 	return (
 		TIER_RANK[b.fit.tier] - TIER_RANK[a.fit.tier] ||
 		popularity(b) - popularity(a) ||
-		paramB(b) - paramB(a)
+		effectiveParamB(b) - effectiveParamB(a)
 	);
 }
 
 /** Best tier first, then the smallest model; fewer parameters means faster tokens. */
 function bySpeed(a: ScoredModel, b: ScoredModel): number {
-	return TIER_RANK[b.fit.tier] - TIER_RANK[a.fit.tier] || paramB(a) - paramB(b);
+	return TIER_RANK[b.fit.tier] - TIER_RANK[a.fit.tier] || effectiveParamB(a) - effectiveParamB(b);
 }
 
-/** Candidates are pre-filtered to a known size; coalesce to satisfy the types. */
-function paramB(scored: ScoredModel): number {
-	return scored.model.paramB ?? 0;
+/** Parameter count, approximated from the Q4 download size when unparsed. */
+function effectiveParamB(scored: ScoredModel): number {
+	const { paramB, sizeGb } = scored.model;
+	return paramB ?? (sizeGb !== null ? sizeGb / Q4_GB_PER_B : 0);
 }
 
 /** Real-world popularity from the library's pull count, as a quality proxy. */
@@ -64,12 +66,11 @@ export function pickRecommendedModels({
 	const installedIds = new Set(installed.map((m) => m.name.replace(/:latest$/, "")));
 
 	const candidates: ScoredModel[] = catalog
-		.filter(
-			(model) =>
-				model.paramB !== null && !model.tags.includes("embedding") && !installedIds.has(model.id),
-		)
-		.map((model) => ({ model, fit: computeFit({ model, hw }) }))
-		.filter(({ fit }) => fit.tier !== "too-large");
+		.filter((model) => !model.tags.includes("embedding") && !installedIds.has(model.id))
+		.flatMap((model) => {
+			const fit = computeFit({ model, hw });
+			return fit === null || fit.tier === "too-large" ? [] : [{ model, fit }];
+		});
 
 	const codingCandidates = candidates.filter(({ model }) => model.tags.includes("code"));
 	const fastCandidates = candidates.filter(({ model }) => model.tags.includes("fast"));
