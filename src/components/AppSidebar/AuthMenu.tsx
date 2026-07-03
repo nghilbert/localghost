@@ -62,9 +62,9 @@ export function AuthMenu() {
 								Settings
 							</Link>
 						</DropdownMenuItem>
-						<DropdownMenuItem onClick={() => signOut.mutate()}>
+						<DropdownMenuItem disabled={signOut.isPending} onClick={() => signOut.mutate()}>
 							<LogOutIcon />
-							Sign out
+							{signOut.isPending ? "Signing out…" : "Sign out"}
 						</DropdownMenuItem>
 					</DropdownMenuContent>
 				</DropdownMenu>

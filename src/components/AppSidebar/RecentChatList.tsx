@@ -1,6 +1,16 @@
-import { Link, useParams } from "@tanstack/react-router";
-import { ArchiveIcon, MoreHorizontalIcon, Trash2Icon } from "lucide-react";
+import { Link, useNavigate, useParams } from "@tanstack/react-router";
+import { MoreHorizontalIcon, PencilIcon, Trash2Icon } from "lucide-react";
 import { useState } from "react";
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "#/components/ui/alert-dialog";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -20,11 +30,22 @@ import {
 import { useConversations } from "#/features/chat/hooks/use-conversations";
 
 export function RecentChatList() {
-	const { conversations, renameConversation, archiveConversation, deleteConversation } =
-		useConversations();
+	const { conversations, renameConversation, deleteConversation } = useConversations();
 	const [renamingId, setRenamingId] = useState<string | null>(null);
+	const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+	const navigate = useNavigate();
 
 	const { conversationId: currentConversationId } = useParams({ strict: false });
+	const pendingDelete = conversations.find((c) => c.id === pendingDeleteId);
+
+	function confirmDelete(id: string) {
+		deleteConversation.mutate(id, {
+			onSuccess: () => {
+				if (id === currentConversationId) navigate({ to: "/new" });
+			},
+		});
+		setPendingDeleteId(null);
+	}
 
 	return (
 		<SidebarGroup>
@@ -37,7 +58,7 @@ export function RecentChatList() {
 						<SidebarMenuItem key={conversation.id}>
 							{renamingId === conversation.id ? (
 								<Input
-									ref={(el) => el?.focus()}
+									ref={(el) => el?.select()}
 									defaultValue={conversation.title}
 									className="h-7"
 									onBlur={(e) => {
@@ -76,13 +97,13 @@ export function RecentChatList() {
 									</SidebarMenuAction>
 								</DropdownMenuTrigger>
 								<DropdownMenuContent side="right" align="start" className="min-w-36">
-									<DropdownMenuItem onClick={() => archiveConversation.mutate(conversation.id)}>
-										<ArchiveIcon size={13} className="mr-2" />
-										Archive
+									<DropdownMenuItem onClick={() => setRenamingId(conversation.id)}>
+										<PencilIcon size={13} className="mr-2" />
+										Rename
 									</DropdownMenuItem>
 									<DropdownMenuItem
 										variant="destructive"
-										onClick={() => deleteConversation.mutate(conversation.id)}
+										onClick={() => setPendingDeleteId(conversation.id)}
 									>
 										<Trash2Icon size={13} className="mr-2" />
 										Delete
@@ -96,6 +117,32 @@ export function RecentChatList() {
 					)}
 				</SidebarMenu>
 			</SidebarGroupContent>
+			<AlertDialog
+				open={pendingDeleteId !== null}
+				onOpenChange={(open) => {
+					if (!open) setPendingDeleteId(null);
+				}}
+			>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>Delete this chat?</AlertDialogTitle>
+						<AlertDialogDescription>
+							"{pendingDelete?.title}" and its messages will be permanently deleted.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel>Cancel</AlertDialogCancel>
+						<AlertDialogAction
+							variant="destructive"
+							onClick={() => {
+								if (pendingDeleteId) confirmDelete(pendingDeleteId);
+							}}
+						>
+							Delete
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
 		</SidebarGroup>
 	);
 }

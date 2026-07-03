@@ -8,10 +8,16 @@ import {
 	SidebarMenuItem,
 } from "../ui/sidebar";
 
-type NavItem = { label: string; to: LinkProps["to"]; NavIcon: LucideIcon };
+type NavItem = {
+	label: string;
+	to: LinkProps["to"];
+	NavIcon: LucideIcon;
+	/** Path prefixes that count as this section, beyond `to` itself. */
+	matches: readonly string[];
+};
 const NAV_ITEMS = [
-	{ label: "Chat", to: "/new", NavIcon: MessageCirclePlusIcon },
-	{ label: "Library", to: "/library", NavIcon: LibraryIcon },
+	{ label: "Chat", to: "/new", NavIcon: MessageCirclePlusIcon, matches: ["/new", "/chat"] },
+	{ label: "Library", to: "/library", NavIcon: LibraryIcon, matches: ["/library"] },
 ] as const satisfies NavItem[];
 
 export function PageNav() {
@@ -21,9 +27,13 @@ export function PageNav() {
 		<SidebarGroup>
 			<SidebarGroupContent>
 				<SidebarMenu>
-					{NAV_ITEMS.map(({ to, label, NavIcon }) => (
+					{NAV_ITEMS.map(({ to, label, NavIcon, matches }) => (
 						<SidebarMenuItem key={to}>
-							<SidebarMenuButton asChild isActive={location.startsWith(to)} tooltip={label}>
+							<SidebarMenuButton
+								asChild
+								isActive={matches.some((prefix) => location.startsWith(prefix))}
+								tooltip={label}
+							>
 								<Link to={to}>
 									<NavIcon />
 									<span>{label}</span>
