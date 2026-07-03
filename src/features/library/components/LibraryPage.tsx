@@ -83,7 +83,6 @@ export function LibraryPage() {
 								onPull={handlePull}
 								onStop={stop}
 								onDelete={(model) => setPendingDelete(model)}
-								initialColumnVisibility={{ size: false }}
 							/>
 						</>
 					)

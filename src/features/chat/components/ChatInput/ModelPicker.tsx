@@ -108,7 +108,7 @@ function ModelDropdown({ selection, onSelect }: Omit<ModelPickerProps, "locked">
 					<DropdownMenuGroup>
 						<DropdownMenuLabel>No models yet</DropdownMenuLabel>
 						<DropdownMenuItem asChild>
-							<Link to="/library" search={{ tab: "browse" }}>
+							<Link to="/library">
 								<LibraryIcon />
 								Browse the Library
 							</Link>

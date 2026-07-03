@@ -23,9 +23,8 @@ type ModelTableToolbarProps = {
 	table: Table<ModelRow>;
 	globalFilter: string;
 	onGlobalFilterChange: (value: string) => void;
-	/** Omit to hide the all/installed/available select (e.g. the My Models view). */
-	statusFilter?: ModelStatusFilter;
-	onStatusFilterChange?: (value: ModelStatusFilter) => void;
+	statusFilter: ModelStatusFilter;
+	onStatusFilterChange: (value: ModelStatusFilter) => void;
 };
 
 export function ModelTableToolbar({
@@ -43,23 +42,22 @@ export function ModelTableToolbar({
 				onChange={(e) => onGlobalFilterChange(e.target.value)}
 				className="max-w-xs h-8 text-sm"
 			/>
-			{statusFilter && onStatusFilterChange && (
-				<Select
-					value={statusFilter}
-					onValueChange={(value) => {
-						if (isModelStatusFilter(value)) onStatusFilterChange(value);
-					}}
-				>
-					<SelectTrigger className="h-8 w-36 text-xs">
-						<SelectValue />
-					</SelectTrigger>
-					<SelectContent>
-						<SelectItem value="all">All models</SelectItem>
-						<SelectItem value="installed">Installed</SelectItem>
-						<SelectItem value="available">Not installed</SelectItem>
-					</SelectContent>
-				</Select>
-			)}
+			<Select
+				value={statusFilter}
+				onValueChange={(value) => {
+					if (isModelStatusFilter(value)) onStatusFilterChange(value);
+				}}
+			>
+				<SelectTrigger className="h-8 w-36 text-xs">
+					<SelectValue />
+				</SelectTrigger>
+				<SelectContent>
+					<SelectItem value="all">All models</SelectItem>
+					<SelectItem value="installed">Installed</SelectItem>
+					<SelectItem value="available">Not installed</SelectItem>
+				</SelectContent>
+			</Select>
+
 			<div className="ml-auto flex items-center gap-2">
 				<span className="text-xs text-muted-foreground">
 					{table.getRowCount()} model{table.getRowCount() !== 1 ? "s" : ""}

@@ -24,12 +24,10 @@ type ModelTableProps = {
 	onPull: (model: string) => void;
 	onStop: (model: string) => void;
 	onDelete: (model: string) => void;
-	/** "mine" shows only installed or in-flight models and hides the status select. */
-	scope?: "catalog" | "mine";
 	initialColumnVisibility?: VisibilityState;
 };
 
-/** The single table for both Browse and My Models: same columns, same rows. */
+/** The Library's model table: catalog, installed, and in-flight rows in one place. */
 export function ModelTable({
 	catalog,
 	hardware,
@@ -38,7 +36,6 @@ export function ModelTable({
 	onPull,
 	onStop,
 	onDelete,
-	scope = "catalog",
 	initialColumnVisibility,
 }: ModelTableProps) {
 	const [globalFilter, setGlobalFilter] = useState("");
@@ -50,11 +47,10 @@ export function ModelTable({
 	);
 
 	const filteredRows = useMemo(() => {
-		if (scope === "mine") return rows.filter((row) => row.installed || row.pullState);
 		if (statusFilter === "installed") return rows.filter((row) => row.installed);
 		if (statusFilter === "available") return rows.filter((row) => !row.installed);
 		return rows;
-	}, [rows, scope, statusFilter]);
+	}, [rows, statusFilter]);
 
 	const columns = useMemo(
 		() => createModelColumns({ hasHardware: Boolean(hardware), onPull, onStop, onDelete }),
@@ -77,8 +73,8 @@ export function ModelTable({
 					table={table}
 					globalFilter={globalFilter}
 					onGlobalFilterChange={setGlobalFilter}
-					statusFilter={scope === "mine" ? undefined : statusFilter}
-					onStatusFilterChange={scope === "mine" ? undefined : setStatusFilter}
+					statusFilter={statusFilter}
+					onStatusFilterChange={setStatusFilter}
 				/>
 			)}
 		/>

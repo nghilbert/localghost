@@ -10,9 +10,9 @@ Guidance for Claude Code working in this repository.
 - **Prisma:** app model IDs `@default(dbgenerated("uuidv7()")) @db.Uuid`; auth-table IDs `@id @db.Uuid` with no `@default`; all FKs `@db.Uuid`; all camelCase fields `@map("snake_case")`.
 - **Biome:** tabs, 100-char width; fix all warnings, never `biome-ignore`.
 - **Server-only:** never import `.server.ts` from client code.
-- **Comments:** only for non-obvious behavior. Exported functions get JSDoc; use real tags (`@param`, `@returns`, `@throws`, `{@link}`) wherever they add something the name and type don't already say, and skip the tag when they don't. Describe what the code is and does, never narrate PR or changelog history. Write plainly, like a terse engineer: no em dashes, no marketing or AI-sounding filler. This applies to all prose you write (comments, copy, commit messages).
+- **Comments:** only for non-obvious behavior. Exported functions get JSDoc; add tags (`@param`, `@returns`, `@throws`, `{@link}`) only where they say something the name and type don't. Describe what the code does, never PR or changelog history. All prose you write (comments, copy, commit messages) reads like a terse engineer: no em dashes, no marketing or AI-sounding filler.
 - **No `as` casts:** type correctly via generics, annotations, or Prisma model types.
-- **No positional params:** any function or callback with two or more parameters must use a single named object instead. One positional parameter is fine. Pass a named object, or better, remove the boundary so the value is read from its owner instead of threaded. This eliminates argument order bugs and stops prop or callback drilling.
+- **No positional params:** two or more parameters means a single named object; one positional parameter is fine. Better still, remove the boundary so the value is read from its owner instead of threaded through.
 - **No dead code:** delete unused code; no re-exports, no `// removed` comments.
 - **Components own their styling.** An ad-hoc `<div className="rounded-lg border bg-card p-4">` card surface in feature code is wrong — that's `<Card>` and its sub-components. Reach for `className` only for layout the component can't do itself.
 - **Layout-agnostic components:** reusable components never set their own width, max-width, or margins — the parent owns layout.
@@ -55,15 +55,24 @@ Copy `.env.example` to `.env`. Required: `POSTGRES_PASSWORD`, `BETTER_AUTH_SECRE
 - **Data:** TanStack Query + `createServerFn` in co-located `*.functions.ts`. Call as `fn({ data: { ... } })`.
 - **Database:** Prisma 7 + `@prisma/adapter-pg`. Multi-file schema in `prisma/schema/`. Generated client in `src/generated/prisma/`. Import `prisma` — never alias.
 - **Styling:** Tailwind v4. `src/lib/globals.css` is the single CSS entry. Light/dark via `.dark` on `<html>`. `cn()` in `src/lib/utils.ts`.
-- **LLM:** `src/lib/llm.server.ts` — `streamLLMEvents()` → `AsyncIterable<StreamChunk>` (pass a `ServerTool[]` to enable the agent loop), `callLLM()` non-streaming. A data-driven `PROVIDERS` registry handles per-provider URL/header/model-list/options quirks; provider auto-detected from URL. All wrap `@tanstack/ai`'s `chat()` with native adapters.
+- **LLM:** `src/lib/llm.server.ts`: `streamLLMEvents(opts)` returns `AsyncIterable<StreamChunk>`; include `tools: ServerTool[]` in the options to run the agent loop. A data-driven `PROVIDERS` registry handles per-provider URL/header/model-list/options quirks; provider auto-detected from URL. Wraps `@tanstack/ai`'s `chat()` with native adapters.
 - **Tools:** `src/features/chat/lib/agent.server.ts` — `buildChatTools()` assembles the built-in `ServerTool[]` (web search, memory, skills, search chats) plus MCP server tools; `chat()` auto-executes them. There is **one** chat — no separate "agent mode". Every tool is **opt-in per request**: the client sends the selection via `forwardedProps` (not persisted), so an untouched send hands the model no tools — keeping small models reliable.
 - **Chat persistence:** one `Conversation` row = one `UIMessage[]` blob (`messages` JSONB). The **client** owns persistence via `ChatClientPersistence` (`src/features/chat/lib/chat-persistence.ts`), so `/api/chat/stream` performs **zero DB writes**.
 
 ## Forms
 
-`useAppForm` (TanStack Form) in `src/hooks/use-app-form.ts`. Field components in `src/components/appForm/` — never hand-wire `useState`-per-field + `Input` for submit forms. Validate with Zod v4 via `validators: { onDynamic: Schema }`. Submit via `form.handleSubmit()`. Need a new field type? Add a field component — don't hand-wire.
+`useAppForm` (TanStack Form) in `src/hooks/use-app-form/`. Field components in `src/components/appForm/`; never hand-wire `useState`-per-field + `Input` for submit forms. Validate with Zod v4 via `validators: { onDynamic: Schema }`. Submit via `form.handleSubmit()`. Need a new field type? Add a field component — don't hand-wire.
 
 **Submitting:** a form's `onSubmit` awaits a regular `mutation.mutate(value)` — never `mutateAsync`. The mutation owns its feedback: define both `onSuccess` and `onError` on the `useMutation` (firing `toast.success` / `toast.error` there), so submit handlers stay a one-line `await xMutation.mutate(value)` and nothing is wired per-call. Don't surface the same submit error twice — the mutation's `onError` toast is the error channel; reserve inline `FormError` for inline affordances (e.g. a "Test connection" result), not for re-printing the submit mutation's error.
+
+## React & Data Practices
+
+- Derive values during render. Never mirror props or query data into `useState` synced by `useEffect`; effects are only for real external systems (DOM APIs, subscriptions, timers).
+- List `key`s come from data ids, never array indexes.
+- Mutations invalidate the queries they touch in `onSuccess` via `queryClient.invalidateQueries`; no manual refetching, no local copies of server state.
+- Route-level data loads through shared `queryOptions()` used by both the route loader and `useQuery`; components never ad-hoc `fetch`.
+- One Zod schema per shape, shared by the form validator and the server fn input; never declare the same shape twice.
+- Annotate exported function signatures; let locals and obvious generics infer.
 
 ## Code Organization
 
@@ -86,13 +95,12 @@ src/features/<name>/
 | Area | Key files |
 |------|-----------|
 | Chat + streaming | `src/features/chat/` (`conversation.functions.ts`, `chat-persistence.ts`), `src/routes/api/chat/stream.tsx` |
-| Library (core) | `src/features/library/`, `src/routes/api/library/pull.tsx`, `src/features/library/lib/hardware.server.ts` — browse/install local models (My Models, Browse) |
+| Library (core) | `src/features/library/` (`lib/ollama/catalog.server.ts` scrapes ollama.com, `lib/catalog.ts` scores hardware fit, `lib/hardware.server.ts` probes the host), `src/routes/api/library/pull.tsx`: one page to browse and install local models |
 | Endpoints / providers | `src/features/endpoints/` — shared `ModelEndpoint` table |
 | Memory (pgvector) | `src/lib/tools/manage_memory.ts`, `src/lib/tools/embeddings.server.ts` — opt-in per-message tool; browse/delete saved memories in Settings |
 | Skills | `src/features/skills/` |
 | MCP servers | `src/features/mcp/lib/tools.server.ts`, `src/features/mcp/` |
 | Settings | `src/features/settings/components/` |
-| Backup/import | `src/routes/api/backup/` — non-destructive merge |
-| Context compaction | `src/features/chat/lib/compactor.server.ts` — summarizes at 85% token limit |
+| Backup/import | `src/routes/api/backup/`: non-destructive merge |
 | Auth | `src/features/auth/` |
 | Theme | `src/features/theme/` |
