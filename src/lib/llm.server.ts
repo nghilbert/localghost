@@ -29,6 +29,8 @@ export type StreamLLMOptions = {
 	threadId?: string;
 	/** AG-UI run id from the wire. */
 	runId?: string;
+	/** Server tools to auto-execute; when present the agent loop runs. */
+	tools?: ServerTool[];
 };
 
 const OPENROUTER_REFERER = "https://localghost.app";
@@ -206,11 +208,11 @@ export function detectProvider(url: string): LLMProvider {
 }
 
 /**
- * Assembles the provider-resolved `chat()` options shared by the streaming
- * and non-streaming calls: adapter, base URL, `modelOptions` shape, and the
- * agent loop (server tools auto-execute up to `MAX_AGENT_ROUNDS`).
+ * Assembles the provider-resolved `chat()` options: adapter, base URL,
+ * `modelOptions` shape, and the agent loop (server tools auto-execute up to
+ * `MAX_AGENT_ROUNDS`).
  */
-function baseChatOptions(opts: StreamLLMOptions, tools: ServerTool[] | undefined) {
+function baseChatOptions(opts: StreamLLMOptions) {
 	const config = PROVIDERS[detectProvider(opts.url)];
 	const adapter = config.buildAdapter({
 		model: opts.model,
@@ -229,25 +231,18 @@ function baseChatOptions(opts: StreamLLMOptions, tools: ServerTool[] | undefined
 		}),
 		threadId: opts.threadId,
 		runId: opts.runId,
-		...(tools ? { tools, agentLoopStrategy: maxIterations(MAX_AGENT_ROUNDS) } : {}),
+		...(opts.tools
+			? { tools: opts.tools, agentLoopStrategy: maxIterations(MAX_AGENT_ROUNDS) }
+			: {}),
 	};
 }
 
 /**
  * Streams a completion as the raw `@tanstack/ai` (AG-UI) event stream the
  * `@tanstack/ai-client` SSE adapter consumes natively, events verbatim.
- * @param tools - Optional `ServerTool[]`; when provided the agent loop runs.
  */
-export function streamLLMEvents(
-	opts: StreamLLMOptions,
-	tools?: ServerTool[],
-): AsyncIterable<StreamChunk> {
-	return chat({ ...baseChatOptions(opts, tools), stream: true });
-}
-
-/** Non-streaming completion: resolves to the full assistant response text. */
-export function callLLM(opts: StreamLLMOptions): Promise<string> {
-	return chat({ ...baseChatOptions(opts, undefined), stream: false });
+export function streamLLMEvents(opts: StreamLLMOptions): AsyncIterable<StreamChunk> {
+	return chat({ ...baseChatOptions(opts), stream: true });
 }
 
 export type EndpointProbeResult = { ok: true; modelCount: number } | { ok: false; error: string };

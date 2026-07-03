@@ -53,25 +53,23 @@ export const Route = createFileRoute("/api/chat/stream")({
 				const tools = buildChatTools({ ownerId: userId, enabledTools });
 				const endpointOptions = ollamaOptionsSchema.safeParse(endpoint.options);
 
-				const source = streamLLMEvents(
-					{
-						url: endpoint.url,
-						apiKey,
-						model: conversation.model,
-						// `chat()` accepts the wire messages as-is and converts internally.
-						messages: trimHistory(params.messages),
-						systemPrompt: buildChatSystemPrompt({
-							userPrompt: userSettings?.systemPrompt,
-							enabledTools,
-							timeZone,
-						}),
-						temperature: userSettings?.temperature ?? undefined,
-						options: endpointOptions.success ? endpointOptions.data : undefined,
-						threadId: params.threadId,
-						runId: params.runId,
-					},
+				const source = streamLLMEvents({
+					url: endpoint.url,
+					apiKey,
+					model: conversation.model,
+					// `chat()` accepts the wire messages as-is and converts internally.
+					messages: trimHistory(params.messages),
+					systemPrompt: buildChatSystemPrompt({
+						userPrompt: userSettings?.systemPrompt,
+						enabledTools,
+						timeZone,
+					}),
+					temperature: userSettings?.temperature ?? undefined,
+					options: endpointOptions.success ? endpointOptions.data : undefined,
+					threadId: params.threadId,
+					runId: params.runId,
 					tools,
-				);
+				});
 
 				// Translate provider errors into a terminal RUN_ERROR event.
 				async function* withErrorHandling(): AsyncGenerator<StreamChunk> {

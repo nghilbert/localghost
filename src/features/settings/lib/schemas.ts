@@ -6,7 +6,7 @@ export type TabValue = (typeof TAB_VALUES)[number];
 
 /** Narrows an arbitrary string to a settings tab id. */
 export function isTabValue(value: string): value is TabValue {
-	return (TAB_VALUES as readonly string[]).includes(value);
+	return TAB_VALUES.some((tab) => tab === value);
 }
 
 export const SettingsSearchSchema = z.object({

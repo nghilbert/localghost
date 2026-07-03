@@ -42,8 +42,6 @@ export const MODE_OPTIONS: { label: string; value: string; ModeIcon: LucideIcon 
 	{ label: "System", value: "system", ModeIcon: MonitorIcon },
 ];
 
-export const THEME_STORAGE_KEY = "localghost-theme";
-
 export function isColorTheme(value: string | null | undefined): value is ColorTheme {
 	return COLOR_THEMES.some((t) => t === value);
 }

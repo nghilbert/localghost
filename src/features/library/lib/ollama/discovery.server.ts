@@ -139,7 +139,8 @@ export async function upsertOllamaEndpoint({
 		return;
 	}
 
-	const nextOptions = numCtx === undefined ? undefined : mergeNumCtx(resolved.options, numCtx);
+	const nextOptions =
+		numCtx === undefined ? undefined : mergeNumCtx({ options: resolved.options, numCtx });
 	if (resolved.url === normalizedUrl && nextOptions === undefined) return;
 	await prisma.modelEndpoint.update({
 		where: { id: resolved.id },
@@ -151,7 +152,7 @@ export async function upsertOllamaEndpoint({
 }
 
 /** Sets or clears num_ctx on an endpoint's options blob, keeping the other keys. */
-function mergeNumCtx(options: unknown, numCtx: number | null) {
+function mergeNumCtx({ options, numCtx }: { options: unknown; numCtx: number | null }) {
 	const parsed = ollamaOptionsSchema.safeParse(options);
 	const merged = { ...(parsed.success ? parsed.data : {}) };
 	if (numCtx === null) delete merged.num_ctx;
