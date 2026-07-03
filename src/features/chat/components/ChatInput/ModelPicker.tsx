@@ -41,7 +41,7 @@ function LockedModel({ selection }: { selection: ModelSelection | null }) {
 		<Tooltip>
 			{/* Disabled elements swallow pointer events, so the span carries the trigger. */}
 			<TooltipTrigger asChild>
-				<span>
+				<span className="cursor-not-allowed">
 					<Button variant="ghost" size="sm" disabled className="gap-1 truncate opacity-100">
 						<LockIcon size={13} className="shrink-0 text-muted-foreground" />
 						<span className="truncate">{selection?.model ?? "Model unavailable"}</span>
