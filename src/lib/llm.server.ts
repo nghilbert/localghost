@@ -1,4 +1,10 @@
-import type { AnyTextAdapter, ModelMessage, ServerTool, StreamChunk } from "@tanstack/ai";
+import type {
+	AnyTextAdapter,
+	ModelMessage,
+	ServerTool,
+	StreamChunk,
+	UIMessage,
+} from "@tanstack/ai";
 import { chat, createModel, extendAdapter, maxIterations } from "@tanstack/ai";
 import { createAnthropicChat } from "@tanstack/ai-anthropic";
 import { createGeminiChat } from "@tanstack/ai-gemini";
@@ -12,18 +18,25 @@ export type StreamLLMOptions = {
 	url: string;
 	apiKey?: string;
 	model: string;
-	/** Conversation history as framework `ModelMessage`s (roles user/assistant/tool; no system). */
-	messages: ModelMessage[];
+	/** Conversation history as wire messages; `chat()` converts internally (no system role). */
+	messages: Array<UIMessage | ModelMessage>;
 	systemPrompt?: string;
 	temperature?: number;
 	maxTokens?: number;
 	/** Validated per-endpoint native sampling options (Ollama). Each present field overrides the default. */
 	options?: Record<string, unknown>;
+	/** AG-UI thread id from the wire, forwarded so run events stay correlated. */
+	threadId?: string;
+	/** AG-UI run id from the wire. */
+	runId?: string;
 };
 
 const OPENROUTER_REFERER = "https://localghost.app";
 const DEFAULT_MAX_TOKENS = 4096;
 const MAX_AGENT_ROUNDS = 10;
+// Ollama's own default is 4096, which silently truncates long chats (the
+// system prompt shifts out first). A per-endpoint num_ctx overrides this.
+const DEFAULT_OLLAMA_NUM_CTX = 8192;
 
 /** Shape of the model-list responses across providers (OpenAI `data`, Ollama/Gemini `models`). */
 type ModelsResponse = {
@@ -153,7 +166,12 @@ const PROVIDERS: Record<LLMProvider, ProviderConfig> = {
 		buildAdapter: ({ model, baseUrl }) => createOllamaChat(model, baseUrl),
 		modelOptions: ({ model, temperature, maxTokens, options }) => ({
 			model,
-			options: { temperature, num_predict: maxTokens, ...options },
+			options: {
+				temperature,
+				num_predict: maxTokens,
+				num_ctx: DEFAULT_OLLAMA_NUM_CTX,
+				...options,
+			},
 		}),
 		modelsHeaders: () => ({ "Content-Type": "application/json" }),
 		modelsUrl: ({ base }) => `${base}/api/tags`,
@@ -188,35 +206,31 @@ export function detectProvider(url: string): LLMProvider {
 }
 
 /**
- * Drives a `chat()` run against the detected provider, applying the registry's
- * adapter, base URL, and `modelOptions` shape. Returns the raw `@tanstack/ai`
- * event stream; `chat()` auto-executes server tools up to `MAX_AGENT_ROUNDS`.
+ * Assembles the provider-resolved `chat()` options shared by the streaming
+ * and non-streaming calls: adapter, base URL, `modelOptions` shape, and the
+ * agent loop (server tools auto-execute up to `MAX_AGENT_ROUNDS`).
  */
-function chatEvents(
-	opts: StreamLLMOptions,
-	tools: ServerTool[] | undefined,
-): AsyncIterable<StreamChunk> {
+function baseChatOptions(opts: StreamLLMOptions, tools: ServerTool[] | undefined) {
 	const config = PROVIDERS[detectProvider(opts.url)];
-	const temperature = opts.temperature ?? 0.7;
-	const maxTokens = opts.maxTokens ?? DEFAULT_MAX_TOKENS;
 	const adapter = config.buildAdapter({
 		model: opts.model,
 		apiKey: opts.apiKey ?? "",
 		baseUrl: config.chatBaseUrl(opts.url),
 	});
-	return chat({
+	return {
 		adapter,
 		messages: opts.messages,
 		systemPrompts: opts.systemPrompt ? [opts.systemPrompt] : [],
-		stream: true as const,
 		modelOptions: config.modelOptions({
 			model: opts.model,
-			temperature,
-			maxTokens,
+			temperature: opts.temperature ?? 0.7,
+			maxTokens: opts.maxTokens ?? DEFAULT_MAX_TOKENS,
 			options: opts.options ?? {},
 		}),
+		threadId: opts.threadId,
+		runId: opts.runId,
 		...(tools ? { tools, agentLoopStrategy: maxIterations(MAX_AGENT_ROUNDS) } : {}),
-	});
+	};
 }
 
 /**
@@ -228,19 +242,12 @@ export function streamLLMEvents(
 	opts: StreamLLMOptions,
 	tools?: ServerTool[],
 ): AsyncIterable<StreamChunk> {
-	return chatEvents(opts, tools);
+	return chat({ ...baseChatOptions(opts, tools), stream: true });
 }
 
-/**
- * Non-streaming wrapper: iterates `chatEvents` and collects the
- * `TEXT_MESSAGE_CONTENT` deltas into the full assistant response text.
- */
-export async function callLLM(opts: StreamLLMOptions): Promise<string> {
-	let text = "";
-	for await (const chunk of chatEvents(opts, undefined)) {
-		if (chunk.type === "TEXT_MESSAGE_CONTENT") text += chunk.delta;
-	}
-	return text;
+/** Non-streaming completion: resolves to the full assistant response text. */
+export function callLLM(opts: StreamLLMOptions): Promise<string> {
+	return chat({ ...baseChatOptions(opts, undefined), stream: false });
 }
 
 export type EndpointProbeResult = { ok: true; modelCount: number } | { ok: false; error: string };
