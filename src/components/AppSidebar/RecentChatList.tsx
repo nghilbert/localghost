@@ -1,6 +1,7 @@
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { MoreHorizontalIcon, PencilIcon, Trash2Icon } from "lucide-react";
 import { useState } from "react";
+import { ChatRenameForm } from "#/components/AppSidebar/ChatRenameForm";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -17,7 +18,6 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "#/components/ui/dropdown-menu";
-import { Input } from "#/components/ui/input";
 import {
 	SidebarGroup,
 	SidebarGroupContent,
@@ -30,7 +30,7 @@ import {
 import { useConversations } from "#/features/chat/hooks/use-conversations";
 
 export function RecentChatList() {
-	const { conversations, renameConversation, deleteConversation } = useConversations();
+	const { conversations, deleteConversation } = useConversations();
 	const [renamingId, setRenamingId] = useState<string | null>(null);
 	const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 	const navigate = useNavigate();
@@ -57,26 +57,7 @@ export function RecentChatList() {
 					{conversations.map((conversation) => (
 						<SidebarMenuItem key={conversation.id}>
 							{renamingId === conversation.id ? (
-								<Input
-									ref={(el) => el?.select()}
-									defaultValue={conversation.title}
-									className="h-7"
-									onBlur={(e) => {
-										const title = e.target.value.trim();
-										if (title && title !== conversation.title) {
-											renameConversation.mutate(
-												{ id: conversation.id, title },
-												{ onSuccess: () => setRenamingId(null) },
-											);
-										} else {
-											setRenamingId(null);
-										}
-									}}
-									onKeyDown={(e) => {
-										if (e.key === "Enter") e.currentTarget.blur();
-										if (e.key === "Escape") setRenamingId(null);
-									}}
-								/>
+								<ChatRenameForm conversation={conversation} onDone={() => setRenamingId(null)} />
 							) : (
 								<SidebarMenuButton
 									render={

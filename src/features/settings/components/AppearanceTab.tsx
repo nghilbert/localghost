@@ -1,83 +1,88 @@
 import { useTheme } from "next-themes";
 import { Field, FieldDescription, FieldLabel, FieldTitle } from "#/components/ui/field";
 import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
-import { ToggleGroup, ToggleGroupItem } from "#/components/ui/toggle-group";
+import { useAppForm } from "#/hooks/use-app-form";
 import { useColorTheme } from "#/hooks/use-color-theme";
-import { COLOR_THEME_LABELS, COLOR_THEMES, MODE_OPTIONS } from "#/lib/theme";
+import { COLOR_THEME_LABELS, COLOR_THEMES, isColorTheme, MODE_OPTIONS } from "#/lib/theme";
 import { cn } from "#/lib/utils";
 
 export function AppearanceTab() {
 	const { theme = "system", setTheme } = useTheme();
 	const { colorTheme, setColorTheme } = useColorTheme();
 
-	return (
-		<div className="space-y-6">
-			<Field>
-				<FieldLabel>Mode</FieldLabel>
-				<FieldDescription>
-					System follows your operating system's light/dark preference.
-				</FieldDescription>
-				<ToggleGroup
-					variant="outline"
-					value={[theme]}
-					onValueChange={(value) => {
-						const newValue = value[0];
-						if (newValue) setTheme(newValue);
-					}}
-				>
-					{MODE_OPTIONS.map(({ label, value, ModeIcon }) => (
-						<ToggleGroupItem key={value} value={value} aria-label={label}>
-							<ModeIcon />
-							{label}
-						</ToggleGroupItem>
-					))}
-				</ToggleGroup>
-			</Field>
+	const form = useAppForm({
+		defaultValues: { mode: theme, colorTheme: colorTheme ?? "none" },
+	});
 
-			<Field>
-				<FieldLabel>Theme</FieldLabel>
-				<FieldDescription>
-					Full color presets — every preset adapts to light and dark mode.
-				</FieldDescription>
-				<RadioGroup
-					value={colorTheme ?? "none"}
-					className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3"
+	return (
+		<form.AppForm>
+			<div className="space-y-6">
+				<form.AppField name="mode" listeners={{ onChange: ({ value }) => setTheme(value) }}>
+					{(field) => (
+						<field.ToggleGroupField
+							label="Mode"
+							description="System follows your operating system's light/dark preference."
+							variant="outline"
+							options={MODE_OPTIONS.map(({ label, value, ModeIcon }) => ({
+								label,
+								value,
+								icon: ModeIcon,
+							}))}
+						/>
+					)}
+				</form.AppField>
+
+				<form.AppField
+					name="colorTheme"
+					listeners={{ onChange: ({ value }) => setColorTheme(isColorTheme(value) ? value : null) }}
 				>
-					<FieldLabel htmlFor="theme-none">
-						<Field orientation="horizontal">
-							<div
-								aria-hidden
-								className="h-8 w-14 shrink-0 overflow-hidden rounded border flex items-center justify-center text-xs text-muted-foreground"
-							/>
-							<FieldTitle className="flex-1">None</FieldTitle>
-							<RadioGroupItem value="none" id="theme-none" onClick={() => setColorTheme(null)} />
+					{(field) => (
+						<Field>
+							<FieldLabel>Theme</FieldLabel>
+							<FieldDescription>
+								Full color presets — every preset adapts to light and dark mode.
+							</FieldDescription>
+							<RadioGroup
+								value={field.state.value}
+								onValueChange={(value) => field.handleChange(isColorTheme(value) ? value : "none")}
+								className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3"
+							>
+								<FieldLabel htmlFor="theme-none">
+									<Field orientation="horizontal">
+										<div
+											aria-hidden
+											className="h-8 w-14 shrink-0 overflow-hidden rounded border flex items-center justify-center text-xs text-muted-foreground"
+										/>
+										<FieldTitle className="flex-1">None</FieldTitle>
+										<RadioGroupItem value="none" id="theme-none" />
+									</Field>
+								</FieldLabel>
+								{COLOR_THEMES.map((colorThemeName) => (
+									<FieldLabel key={colorThemeName} htmlFor={`theme-${colorThemeName}`}>
+										<Field orientation="horizontal">
+											<div
+												aria-hidden
+												className={cn(
+													"h-8 w-14 shrink-0 overflow-hidden rounded border flex flex-col gap-0.5 p-1 bg-background",
+													`theme-${colorThemeName}`,
+												)}
+											>
+												<div className="h-1.5 w-8 rounded-full bg-foreground opacity-60" />
+												<div className="h-1.5 w-5 rounded-full bg-foreground opacity-30" />
+												<div className="mt-auto h-2 w-6 rounded-sm bg-primary" />
+											</div>
+											<FieldTitle className="flex-1">
+												{COLOR_THEME_LABELS[colorThemeName]}
+											</FieldTitle>
+											<RadioGroupItem value={colorThemeName} id={`theme-${colorThemeName}`} />
+										</Field>
+									</FieldLabel>
+								))}
+							</RadioGroup>
 						</Field>
-					</FieldLabel>
-					{COLOR_THEMES.map((theme) => (
-						<FieldLabel key={theme} htmlFor={`theme-${theme}`}>
-							<Field orientation="horizontal">
-								<div
-									aria-hidden
-									className={cn(
-										"h-8 w-14 shrink-0 overflow-hidden rounded border flex flex-col gap-0.5 p-1 bg-background",
-										`theme-${theme}`,
-									)}
-								>
-									<div className="h-1.5 w-8 rounded-full bg-foreground opacity-60" />
-									<div className="h-1.5 w-5 rounded-full bg-foreground opacity-30" />
-									<div className="mt-auto h-2 w-6 rounded-sm bg-primary" />
-								</div>
-								<FieldTitle className="flex-1">{COLOR_THEME_LABELS[theme]}</FieldTitle>
-								<RadioGroupItem
-									value={theme}
-									id={`theme-${theme}`}
-									onClick={() => setColorTheme(theme)}
-								/>
-							</Field>
-						</FieldLabel>
-					))}
-				</RadioGroup>
-			</Field>
-		</div>
+					)}
+				</form.AppField>
+			</div>
+		</form.AppForm>
 	);
 }

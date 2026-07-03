@@ -31,6 +31,7 @@ export function ToggleGroupField({
 			>
 				{options.map((option) => (
 					<ToggleGroupItem key={option.value} value={option.value}>
+						{option.icon && <option.icon />}
 						{option.label}
 					</ToggleGroupItem>
 				))}

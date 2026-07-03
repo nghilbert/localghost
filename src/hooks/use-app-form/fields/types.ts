@@ -1,3 +1,4 @@
+import type { LucideIcon } from "lucide-react";
 import type { ComponentProps, ElementType } from "react";
 import type { Field } from "#/components/ui/field";
 
@@ -6,7 +7,7 @@ export type BaseFieldProps = {
 	description?: string;
 	fieldOrientation?: ComponentProps<typeof Field>["orientation"];
 };
-export type FieldOption = { label: string; value: string };
+export type FieldOption = { label: string; value: string; icon?: LucideIcon };
 
 type FormManagedPropKeys =
 	| "id"
