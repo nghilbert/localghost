@@ -51,10 +51,17 @@ export function ToolsMenu(controls: ToolControls) {
 	if (!controls.supportsTools) {
 		return (
 			<Tooltip>
-				{/* Disabled elements swallow pointer events, so the span carries the trigger. */}
+				{/* Not natively disabled: that would trip InputGroup's has-disabled
+				    styling and grey out the whole chat input. */}
 				<TooltipTrigger asChild>
 					<span className="cursor-not-allowed">
-						<Button variant="outline" size="sm" className="gap-1.5" disabled>
+						<Button
+							variant="outline"
+							size="sm"
+							className="pointer-events-none gap-1.5 opacity-50"
+							aria-disabled
+							tabIndex={-1}
+						>
 							<SlidersHorizontalIcon size={14} />
 							Tools
 						</Button>
