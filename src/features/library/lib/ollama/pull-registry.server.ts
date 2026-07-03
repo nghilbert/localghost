@@ -67,13 +67,20 @@ export function startPull({
 	void drivePull({ key, entry, model, ollamaUrl });
 }
 
-/** Abort an in-flight pull; the download stops and the entry is dropped. */
+/**
+ * Abort an in-flight pull (the download stops and the entry is dropped), or
+ * drop an already-finished entry so a client can dismiss a failed pull.
+ */
 export function cancelPull({ userId, model }: { userId: string; model: string }): void {
-	const entry = pulls.get(keyFor({ userId, model }));
-	if (entry && !entry.done) {
-		entry.canceled = true;
-		entry.abort();
+	const key = keyFor({ userId, model });
+	const entry = pulls.get(key);
+	if (!entry) return;
+	if (entry.done) {
+		pulls.delete(key);
+		return;
 	}
+	entry.canceled = true;
+	entry.abort();
 }
 
 /**

@@ -68,5 +68,17 @@ export function useModelPull() {
 		onError: (error) => toast.error("Failed to stop pull", { description: error.message }),
 	});
 
-	return { pulling, pull: pullMutation.mutate, stop: stopMutation.mutate };
+	// Clears a failed pull's row; same server call as stop, minus the toast.
+	const dismissMutation = useMutation({
+		mutationFn: (model: string) => cancelModelPull({ data: { model } }),
+		onSuccess: () => queryClient.invalidateQueries({ queryKey: ["library", "active-pulls"] }),
+		onError: (error) => toast.error("Failed to dismiss", { description: error.message }),
+	});
+
+	return {
+		pulling,
+		pull: pullMutation.mutate,
+		stop: stopMutation.mutate,
+		dismiss: dismissMutation.mutate,
+	};
 }

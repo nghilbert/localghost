@@ -23,6 +23,7 @@ type ModelTableProps = {
 	pulling: Record<string, PullProgress>;
 	onPull: (model: string) => void;
 	onStop: (model: string) => void;
+	onDismiss: (model: string) => void;
 	onDelete: (model: string) => void;
 	initialColumnVisibility?: VisibilityState;
 };
@@ -35,6 +36,7 @@ export function ModelTable({
 	pulling,
 	onPull,
 	onStop,
+	onDismiss,
 	onDelete,
 	initialColumnVisibility,
 }: ModelTableProps) {
@@ -53,8 +55,9 @@ export function ModelTable({
 	}, [rows, statusFilter]);
 
 	const columns = useMemo(
-		() => createModelColumns({ hasHardware: Boolean(hardware), onPull, onStop, onDelete }),
-		[hardware, onPull, onStop, onDelete],
+		() =>
+			createModelColumns({ hasHardware: Boolean(hardware), onPull, onStop, onDismiss, onDelete }),
+		[hardware, onPull, onStop, onDismiss, onDelete],
 	);
 
 	return (

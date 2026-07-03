@@ -16,6 +16,7 @@ type ModelColumnOptions = {
 	hasHardware: boolean;
 	onPull: (model: string) => void;
 	onStop: (model: string) => void;
+	onDismiss: (model: string) => void;
 	onDelete: (model: string) => void;
 };
 
@@ -39,6 +40,7 @@ export function createModelColumns({
 	hasHardware,
 	onPull,
 	onStop,
+	onDismiss,
 	onDelete,
 }: ModelColumnOptions): ColumnDef<ModelRow>[] {
 	return [
@@ -100,6 +102,7 @@ export function createModelColumns({
 					pullState={row.original.pullState}
 					onStop={onStop}
 					onPull={onPull}
+					onDismiss={onDismiss}
 					onDelete={onDelete}
 				/>
 			),

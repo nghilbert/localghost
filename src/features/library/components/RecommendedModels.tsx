@@ -34,6 +34,7 @@ type RecommendedModelsProps = {
 	pulling: Record<string, PullProgress>;
 	onPull: (model: string) => void;
 	onStop: (model: string) => void;
+	onDismiss: (model: string) => void;
 };
 
 export function RecommendedModels({
@@ -43,6 +44,7 @@ export function RecommendedModels({
 	pulling,
 	onPull,
 	onStop,
+	onDismiss,
 }: RecommendedModelsProps) {
 	if (!hardware) return null;
 
@@ -82,6 +84,7 @@ export function RecommendedModels({
 									pullState={pulling[model.id]}
 									onStop={onStop}
 									onPull={onPull}
+									onDismiss={onDismiss}
 								/>
 							</ItemActions>
 						</Item>
