@@ -68,6 +68,7 @@ export function ChatInput({
 				className="max-h-50 field-sizing-content resize-none"
 				onKeyDown={handleKeyDown}
 				disabled={disabled}
+				spellCheck={true}
 			/>
 			<Separator />
 			<InputGroupAddon align="block-end" className="p-2">
