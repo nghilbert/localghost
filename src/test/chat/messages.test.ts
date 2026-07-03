@@ -5,6 +5,8 @@ import {
 	buildFirstUserMessage,
 	deriveConversationTitle,
 	partsText,
+	strandedToolCall,
+	trimHistory,
 } from "#/features/chat/lib/messages";
 
 function userMessage(content: string): UIMessage {
@@ -72,5 +74,51 @@ describe("partsText", () => {
 			{ type: "text", content: " world" },
 		];
 		expect(partsText(parts)).toBe("Hello world");
+	});
+});
+
+describe("trimHistory", () => {
+	it("returns short histories untouched", () => {
+		const messages = [userMessage("hi")];
+		expect(trimHistory(messages)).toBe(messages);
+	});
+
+	it("keeps the most recent 40 whole messages", () => {
+		const messages = Array.from({ length: 45 }, (_, i) => userMessage(`m${i}`));
+		const trimmed = trimHistory(messages);
+		expect(trimmed).toHaveLength(40);
+		expect(trimmed[0]).toBe(messages[5]);
+		expect(trimmed[39]).toBe(messages[44]);
+	});
+});
+
+describe("strandedToolCall", () => {
+	it("returns the tool name for a bare tool-call blob", () => {
+		expect(strandedToolCall('{"name": "read_url", "parameters": {"url": "https://x.com"}}')).toBe(
+			"read_url",
+		);
+		expect(strandedToolCall('  {"name": "currentDateTimeLine", "parameters": {}} ')).toBe(
+			"currentDateTimeLine",
+		);
+	});
+
+	it("accepts the arguments key as well as parameters", () => {
+		expect(strandedToolCall('{"name": "web_search", "arguments": {"query": "x"}}')).toBe(
+			"web_search",
+		);
+	});
+
+	it("returns null for prose, prose around a blob, and fenced JSON", () => {
+		expect(strandedToolCall("The current time is 5pm.")).toBeNull();
+		expect(strandedToolCall('I will call {"name": "web_search", "parameters": {}} now')).toBeNull();
+		expect(strandedToolCall('```json\n{"name": "x", "parameters": {}}\n```')).toBeNull();
+	});
+
+	it("returns null for JSON that is not a tool call", () => {
+		expect(strandedToolCall('{"name": "x"}')).toBeNull();
+		expect(strandedToolCall('{"query": "weather"}')).toBeNull();
+		expect(strandedToolCall('{"name": 3, "parameters": {}}')).toBeNull();
+		expect(strandedToolCall('{"name": "x", "parameters": "y"}')).toBeNull();
+		expect(strandedToolCall("{not json}")).toBeNull();
 	});
 });

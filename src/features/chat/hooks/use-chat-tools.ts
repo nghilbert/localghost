@@ -13,11 +13,9 @@ import { DEFAULT_ENABLED_TOOLS } from "#/lib/tools/catalog";
 export function useChatTools({
 	selection,
 	initialEnabledTools = DEFAULT_ENABLED_TOOLS,
-	initialForceWebSearch = false,
 }: {
 	selection: ModelSelection | null;
 	initialEnabledTools?: string[];
-	initialForceWebSearch?: boolean;
 }) {
 	const { data: capabilities } = useQuery({
 		...modelCapabilitiesQueryOptions(selection ?? { endpointId: "", model: "" }),
@@ -26,24 +24,19 @@ export function useChatTools({
 	const supportsTools = capabilities?.supportsTools ?? true;
 
 	const [enabledTools, setEnabledTools] = useState<string[]>(initialEnabledTools);
-	const [forceWebSearch, setForceWebSearch] = useState(initialForceWebSearch);
 	const resetTools = useCallback(() => {
 		setEnabledTools(DEFAULT_ENABLED_TOOLS);
-		setForceWebSearch(false);
 	}, []);
 
 	const controls: ToolControls = {
 		enabledTools,
-		forceWebSearch,
 		supportsTools,
 		onEnabledToolsChange: setEnabledTools,
-		onForceWebSearchChange: setForceWebSearch,
 	};
 
 	return {
 		controls,
-		forceWebSearch,
-		toolsToSend: supportsTools ? [...enabledTools, "web_search"] : [],
+		toolsToSend: supportsTools ? enabledTools : [],
 		resetTools,
 	};
 }

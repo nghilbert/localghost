@@ -36,7 +36,7 @@ export function NewChatView() {
 			? { endpointId: fallback.endpointId, model: fallback.model }
 			: null);
 
-	const { controls, forceWebSearch } = useChatTools({ selection });
+	const { controls } = useChatTools({ selection });
 
 	const start = useMutation({
 		mutationFn: async (firstMessage: string) => {
@@ -46,7 +46,7 @@ export function NewChatView() {
 		onSuccess: ({ id }) => {
 			storeChatHandoff({
 				conversationId: id,
-				handoff: { enabledTools: controls.enabledTools, forceWebSearch },
+				handoff: { enabledTools: controls.enabledTools },
 			});
 			navigate({ to: "/chat/$conversationId", params: { conversationId: id } });
 		},

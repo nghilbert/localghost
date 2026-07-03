@@ -24,11 +24,11 @@ export const saveMessagesInput = z.object({ id: uuid, messages: z.array(z.unknow
 
 /**
  * The `forwardedProps` the chat stream route reads from the request body:
- * the conversation whose row holds the model config, plus the user's ephemeral
- * per-send tool choices (never persisted).
+ * the conversation whose row holds the model config, the ephemeral per-send
+ * tool choices (never persisted), and the user's IANA timezone.
  */
 export const chatStreamForwardedPropsSchema = z.object({
 	conversationId: uuid,
 	enabledTools: z.array(z.string()).default([]),
-	forceWebSearch: z.boolean().default(false),
+	timeZone: z.string().max(64).optional(),
 });

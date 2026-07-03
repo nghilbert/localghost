@@ -1,4 +1,36 @@
+import type { ModelMessage } from "@tanstack/ai";
 import type { UIMessage } from "@tanstack/ai-client";
+
+const MAX_HISTORY_MESSAGES = 40;
+
+/**
+ * Caps history to the most recent N entries. Operates on whole wire messages,
+ * so a UIMessage turn keeps its tool-call parts intact across the cut.
+ */
+export function trimHistory(messages: Array<UIMessage | ModelMessage>) {
+	if (messages.length <= MAX_HISTORY_MESSAGES) return messages;
+	return messages.slice(-MAX_HISTORY_MESSAGES);
+}
+
+/**
+ * Detects an assistant reply that is nothing but a tool-call JSON blob: a
+ * small model writing the call as prose instead of invoking it.
+ * @returns The tool name it tried to call, or null for normal content.
+ */
+export function strandedToolCall(text: string): string | null {
+	const trimmed = text.trim();
+	if (!trimmed.startsWith("{") || !trimmed.endsWith("}")) return null;
+	try {
+		const parsed: unknown = JSON.parse(trimmed);
+		if (typeof parsed !== "object" || parsed === null || !("name" in parsed)) return null;
+		const args =
+			"parameters" in parsed ? parsed.parameters : "arguments" in parsed ? parsed.arguments : null;
+		if (typeof parsed.name !== "string" || typeof args !== "object" || args === null) return null;
+		return parsed.name;
+	} catch {
+		return null;
+	}
+}
 
 /**
  * Joins a message's text parts into plain text, skipping tool calls, results,

@@ -22,16 +22,21 @@ type ChatViewProps = { conversation: ConversationDetail };
 export function ChatView({ conversation }: ChatViewProps) {
 	const queryClient = useQueryClient();
 
-	const { selection, isReady, controls, forceWebSearch, resetTools, toolsToSend } = useConversation(
-		{ conversationId: conversation.id },
-	);
+	const { selection, isReady, controls, resetTools, toolsToSend } = useConversation({
+		conversationId: conversation.id,
+	});
 
 	// Ephemeral per-conversation tool selection, sent with each message via
 	// `forwardedProps` and never persisted. `useChat` re-reads `forwardedProps` on
 	// every send, so a fresh object here means the latest choice rides along.
+	// The timezone rides along so the server can state the user's local time.
 	const forwardedProps = useMemo(
-		() => ({ conversationId: conversation.id, enabledTools: toolsToSend, forceWebSearch }),
-		[conversation.id, toolsToSend, forceWebSearch],
+		() => ({
+			conversationId: conversation.id,
+			enabledTools: toolsToSend,
+			timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+		}),
+		[conversation.id, toolsToSend],
 	);
 
 	const chatOptions = useMemo(() => createChatOptions(queryClient), [queryClient]);
@@ -57,7 +62,6 @@ export function ChatView({ conversation }: ChatViewProps) {
 		const handoff = takeChatHandoff(conversation.id);
 		if (handoff) {
 			controls.onEnabledToolsChange(handoff.enabledTools);
-			controls.onForceWebSearchChange(handoff.forceWebSearch);
 		}
 		setHandoffApplied(true);
 	});

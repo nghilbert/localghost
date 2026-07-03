@@ -1,21 +1,19 @@
-import { BrainIcon, GlobeIcon, type LucideIcon, SlidersHorizontalIcon } from "lucide-react";
+import { type LucideIcon, SlidersHorizontalIcon } from "lucide-react";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "#/components/ui/popover";
 import { Switch } from "#/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "#/components/ui/tooltip";
+import { TOOL_CATALOG } from "#/lib/tools/catalog";
 
 export type ToolControls = {
-	/** Catalog ids the user opted into for the next message (currently just `memory`). */
+	/** Catalog ids the user opted into for the next message. */
 	enabledTools: string[];
-	/** When true, the next message is told to run a web search instead of inferring. */
-	forceWebSearch: boolean;
 	supportsTools: boolean;
 	onEnabledToolsChange: (enabledTools: string[]) => void;
-	onForceWebSearchChange: (force: boolean) => void;
 };
 
-/** One toggleable tool row, resolved from the controls into a uniform shape. */
+/** One toggleable tool row, resolved from the catalog into a uniform shape. */
 type ToolRow = {
 	id: string;
 	label: string;
@@ -26,32 +24,19 @@ type ToolRow = {
 };
 
 /**
- * Builds the tool rows from the controls. Adding a tool later (MCP, skills) is a
- * new entry here, not a layout change: the menu renders whatever this returns.
+ * Builds one switch row per catalog tool, each toggling its id in
+ * `enabledTools`. Adding a tool later is a catalog entry plus an icon here.
  */
 export function toolRows(controls: ToolControls): ToolRow[] {
 	const { enabledTools, onEnabledToolsChange } = controls;
-	return [
-		{
-			id: "web_search",
-			label: "Web search",
-			description: "Force the model to do a web search for this message",
-			icon: GlobeIcon,
-			on: controls.forceWebSearch,
-			onChange: controls.onForceWebSearchChange,
-		},
-		{
-			id: "memory",
-			label: "Memory",
-			description: "Let the model save and recall long-term notes about you.",
-			icon: BrainIcon,
-			on: enabledTools.includes("memory"),
-			onChange: (on) =>
-				onEnabledToolsChange(
-					on ? [...enabledTools, "memory"] : enabledTools.filter((t) => t !== "memory"),
-				),
-		},
-	];
+	return TOOL_CATALOG.map((tool) => ({
+		...tool,
+		on: enabledTools.includes(tool.id),
+		onChange: (on) =>
+			onEnabledToolsChange(
+				on ? [...enabledTools, tool.id] : enabledTools.filter((t) => t !== tool.id),
+			),
+	}));
 }
 
 /**
@@ -68,7 +53,7 @@ export function ToolsMenu(controls: ToolControls) {
 			<Tooltip>
 				{/* Disabled elements swallow pointer events, so the span carries the trigger. */}
 				<TooltipTrigger asChild>
-					<span>
+					<span className="cursor-not-allowed">
 						<Button variant="outline" size="sm" className="gap-1.5" disabled>
 							<SlidersHorizontalIcon size={14} />
 							Tools

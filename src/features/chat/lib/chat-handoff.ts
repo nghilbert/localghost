@@ -1,7 +1,6 @@
 /** Draft-page tool toggles carried to the new conversation. */
 export type ChatHandoff = {
 	enabledTools: string[];
-	forceWebSearch: boolean;
 };
 
 const handoffKey = (conversationId: string) => `chat-handoff:${conversationId}`;

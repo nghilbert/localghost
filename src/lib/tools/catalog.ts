@@ -1,13 +1,22 @@
+import { BrainIcon, GlobeIcon } from "lucide-react";
+
 /**
  * The user-toggleable built-in tools, as client-safe metadata (no server
- * imports). Web search is absent: every tool-capable model gets it, with its
- * own "force a search" toggle. The rest stay opt-in for small models' sake.
+ * imports). Every tool is opt-in per message; an untouched send hands the
+ * model no tools, which keeps small models reliable.
  */
 export const TOOL_CATALOG = [
+	{
+		id: "web_search",
+		label: "Web search",
+		description: "Search the web and read pages for current information.",
+		icon: GlobeIcon,
+	},
 	{
 		id: "memory",
 		label: "Memory",
 		description: "Save and recall long-term memories about you.",
+		icon: BrainIcon,
 	},
 ] as const;
 

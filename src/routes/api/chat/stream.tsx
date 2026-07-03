@@ -1,7 +1,5 @@
 import {
 	chatParamsFromRequestBody,
-	convertMessagesToModelMessages,
-	type ModelMessage,
 	type StreamChunk,
 	toServerSentEventsResponse,
 } from "@tanstack/ai";
@@ -9,28 +7,13 @@ import { EventType } from "@tanstack/ai/client";
 import { createFileRoute } from "@tanstack/react-router";
 import { auth } from "#/features/auth/lib/auth.server";
 import { buildChatTools } from "#/features/chat/lib/agent.server";
+import { trimHistory } from "#/features/chat/lib/messages";
 import { chatStreamForwardedPropsSchema } from "#/features/chat/lib/schemas";
+import { buildChatSystemPrompt } from "#/features/chat/lib/system-prompt";
 import { ollamaOptionsSchema } from "#/features/endpoints/lib/schemas";
 import { decrypt } from "#/lib/crypto.server";
 import { prisma } from "#/lib/db.server";
 import { streamLLMEvents } from "#/lib/llm.server";
-
-const MAX_HISTORY_MESSAGES = 40;
-
-/** Caps history to the most recent N turns. */
-function trimHistory(messages: ModelMessage[]): ModelMessage[] {
-	if (messages.length <= MAX_HISTORY_MESSAGES) return messages;
-	return messages.slice(-MAX_HISTORY_MESSAGES);
-}
-
-/**
- * The current server date and time, so models answer time questions directly
- * instead of searching or hallucinating.
- */
-function currentDateTimeLine(): string {
-	const now = new Date().toLocaleString("en-US", { dateStyle: "full", timeStyle: "short" });
-	return `Current date and time: ${now}.`;
-}
 
 /**
  * Pure chat stream: the client owns persistence, so this route writes nothing
@@ -48,7 +31,7 @@ export const Route = createFileRoute("/api/chat/stream")({
 				const params = await chatParamsFromRequestBody(await request.json());
 				const forwarded = chatStreamForwardedPropsSchema.safeParse(params.forwardedProps);
 				if (!forwarded.success) return new Response("Bad request", { status: 400 });
-				const { conversationId, enabledTools, forceWebSearch } = forwarded.data;
+				const { conversationId, enabledTools, timeZone } = forwarded.data;
 
 				const conversation = await prisma.conversation.findFirst({
 					where: { id: conversationId, ownerId: userId },
@@ -70,26 +53,22 @@ export const Route = createFileRoute("/api/chat/stream")({
 				const tools = buildChatTools({ ownerId: userId, enabledTools });
 				const endpointOptions = ollamaOptionsSchema.safeParse(endpoint.options);
 
-				// Always ground the model in the current date/time; when the user forces
-				// web search, append a directive on top of the user's own system prompt.
-				const systemPrompt = [
-					currentDateTimeLine(),
-					userSettings?.systemPrompt?.trim(),
-					forceWebSearch &&
-						"Use the web_search tool to look up current information before answering this message.",
-				]
-					.filter(Boolean)
-					.join("\n\n");
-
 				const source = streamLLMEvents(
 					{
 						url: endpoint.url,
 						apiKey,
 						model: conversation.model,
-						messages: trimHistory(convertMessagesToModelMessages(params.messages)),
-						systemPrompt,
+						// `chat()` accepts the wire messages as-is and converts internally.
+						messages: trimHistory(params.messages),
+						systemPrompt: buildChatSystemPrompt({
+							userPrompt: userSettings?.systemPrompt,
+							enabledTools,
+							timeZone,
+						}),
 						temperature: userSettings?.temperature ?? undefined,
 						options: endpointOptions.success ? endpointOptions.data : undefined,
+						threadId: params.threadId,
+						runId: params.runId,
 					},
 					tools,
 				);
