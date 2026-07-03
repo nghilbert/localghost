@@ -1,5 +1,6 @@
 import { CheckCircle2Icon } from "lucide-react";
 import { Badge } from "#/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "#/components/ui/tooltip";
 import { FitBadge } from "#/features/library/components/ModelTable/FitBadge";
 import { formatBytes } from "#/features/library/lib/format";
 import type { ModelRow } from "#/features/library/lib/model-rows";
@@ -30,9 +31,14 @@ export function ModelIdentityCell({ row }: { row: ModelRow }) {
 					<span className="text-xs text-muted-foreground">installing</span>
 				)}
 			</div>
-			<p className="text-xs text-muted-foreground truncate max-w-xs">
-				{catalog?.description || id}
-			</p>
+			<Tooltip>
+				<TooltipTrigger>
+					<p className="text-xs text-muted-foreground truncate max-w-xs">
+						{catalog?.description || id}
+					</p>
+				</TooltipTrigger>
+				<TooltipContent side="right">{catalog?.description || id}</TooltipContent>
+			</Tooltip>
 			{catalog && catalog.tags.length > 0 && (
 				<div className="mt-1 flex flex-wrap gap-0.5">
 					{catalog.tags.map((tag) => (
