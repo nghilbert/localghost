@@ -46,7 +46,7 @@ describe("buildModelRows", () => {
 	});
 
 	it("scores catalog rows against hardware", () => {
-		const catalog = [makeCatalogModel({ id: "llama3.2:3b", name: "Llama 3.2", vramGb: 4 })];
+		const catalog = [makeCatalogModel({ id: "llama3.2:3b", name: "Llama 3.2", sizeGb: 4 })];
 		const hardware = makeHardware({ gpus: [makeGpu({ totalVramMb: 8192 })] });
 
 		const row = rowById(
@@ -70,8 +70,8 @@ describe("buildModelRows", () => {
 		expect(row.fit).toBeNull();
 	});
 
-	it("leaves fit null when a catalog model has an unknown parameter count", () => {
-		const catalog = [makeCatalogModel({ id: "nomic-embed-text", paramB: null, vramGb: 0 })];
+	it("leaves fit null when a catalog model has no known size or parameter count", () => {
+		const catalog = [makeCatalogModel({ id: "nomic-embed-text", paramB: null, sizeGb: null })];
 		const hardware = makeHardware({ gpus: [makeGpu({ totalVramMb: 8192 })] });
 
 		const row = rowById(

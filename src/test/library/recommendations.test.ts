@@ -4,19 +4,13 @@ import type { CatalogModel } from "#/features/library/lib/types";
 import { makeCatalogModel, makeGpu, makeHardware, makeInstalledModel } from "#/test/factories";
 
 const catalog: CatalogModel[] = [
-	makeCatalogModel({ id: "gemma3:1b", paramB: 1, vramGb: 0.7, ramGb: 1.2, tags: ["fast"] }),
-	makeCatalogModel({ id: "llama3.1:8b", paramB: 8, vramGb: 5.2, ramGb: 9.2, tags: ["chat"] }),
-	makeCatalogModel({ id: "qwen2.5:32b", paramB: 32, vramGb: 20.8, ramGb: 36.8, tags: ["chat"] }),
-	makeCatalogModel({ id: "qwen2.5-coder:7b", paramB: 7, vramGb: 4.6, ramGb: 8, tags: ["code"] }),
-	makeCatalogModel({
-		id: "nomic-embed-text",
-		paramB: 0.1,
-		vramGb: 0.1,
-		ramGb: 0.2,
-		tags: ["embedding"],
-	}),
-	makeCatalogModel({ id: "llama3.1:405b", paramB: 405, vramGb: 263, ramGb: 466, tags: ["chat"] }),
-	makeCatalogModel({ id: "weird:latest", paramB: null, vramGb: 0, ramGb: 0, tags: [] }),
+	makeCatalogModel({ id: "gemma3:1b", paramB: 1, sizeGb: 0.8, tags: ["fast"] }),
+	makeCatalogModel({ id: "llama3.1:8b", paramB: 8, sizeGb: 4.9, tags: ["chat"] }),
+	makeCatalogModel({ id: "qwen2.5:32b", paramB: 32, sizeGb: 19.9, tags: ["chat"] }),
+	makeCatalogModel({ id: "qwen2.5-coder:7b", paramB: 7, sizeGb: 4.7, tags: ["code"] }),
+	makeCatalogModel({ id: "nomic-embed-text", paramB: 0.1, sizeGb: 0.3, tags: ["embedding"] }),
+	makeCatalogModel({ id: "llama3.1:405b", paramB: 405, sizeGb: 243, tags: ["chat"] }),
+	makeCatalogModel({ id: "weird:latest", paramB: null, sizeGb: null, tags: [] }),
 ];
 
 const bigGpuBox = makeHardware({
@@ -43,11 +37,11 @@ describe("pickRecommendedModels", () => {
 		expect(new Set(recs.map((r) => r.reason)).size).toBe(recs.length);
 	});
 
-	it("never recommends embedding models, unparseable sizes, or non-fitting models", () => {
+	it("never recommends embedding models, unknown sizes, or non-fitting models", () => {
 		for (const hw of [bigGpuBox, cpuOnlyBox, tinyBox]) {
 			for (const { model, fit } of pick(hw)) {
 				expect(model.tags).not.toContain("embedding");
-				expect(model.paramB).not.toBeNull();
+				expect(model.paramB !== null || model.sizeGb !== null).toBe(true);
 				expect(fit.tier).not.toBe("too-large");
 			}
 		}
@@ -72,21 +66,27 @@ describe("pickRecommendedModels", () => {
 		}
 	});
 
+	it("recommends a model whose size is known but parameter count is not", () => {
+		const sizeOnly: CatalogModel[] = [
+			makeCatalogModel({ id: "mystery", paramB: null, sizeGb: 4.9, tags: ["chat"] }),
+		];
+		const recs = pickRecommendedModels({ hw: bigGpuBox, installed: [], catalog: sizeOnly });
+		expect(recs.map((r) => r.model.id)).toContain("mystery");
+	});
+
 	it("breaks equal-fit ties by pull count, not raw size", () => {
 		const tied: CatalogModel[] = [
 			makeCatalogModel({
 				id: "big-niche:14b",
 				paramB: 14,
-				vramGb: 9.1,
-				ramGb: 16.1,
+				sizeGb: 9,
 				tags: ["chat"],
 				pullCount: "50K",
 			}),
 			makeCatalogModel({
 				id: "popular:8b",
 				paramB: 8,
-				vramGb: 5.2,
-				ramGb: 9.2,
+				sizeGb: 4.9,
 				tags: ["chat"],
 				pullCount: "120M",
 			}),
