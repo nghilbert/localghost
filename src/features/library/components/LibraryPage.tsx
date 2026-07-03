@@ -1,5 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
+import { CircleAlertIcon } from "lucide-react";
 import { useState } from "react";
+import { Alert, AlertAction, AlertDescription, AlertTitle } from "#/components/ui/alert";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -13,6 +15,7 @@ import {
 import { Button } from "#/components/ui/button";
 import { Item, ItemActions, ItemContent, ItemDescription, ItemTitle } from "#/components/ui/item";
 import { Separator } from "#/components/ui/separator";
+import { Skeleton } from "#/components/ui/skeleton";
 import { HardwareCard } from "#/features/library/components/HardwareCard";
 import { ModelTable } from "#/features/library/components/ModelTable";
 import { OllamaSetupCard } from "#/features/library/components/OllamaSetupCard";
@@ -29,11 +32,16 @@ import {
 export function LibraryPage() {
 	const { data: hardware, isLoading: isLoadingHardware } = useQuery(hardwareQueryOptions());
 
-	const { data: ollamaStatus } = useQuery(libraryStatusQueryOptions());
+	const { data: ollamaStatus, isPending: isStatusPending } = useQuery(libraryStatusQueryOptions());
 
-	const { data: catalog = [] } = useQuery(catalogQueryOptions());
+	const {
+		data: catalog = [],
+		isPending: isCatalogPending,
+		isError: isCatalogError,
+		refetch: refetchCatalog,
+	} = useQuery(catalogQueryOptions());
 
-	const { pulling, pull, stop } = useModelPull();
+	const { pulling, pull, stop, dismiss } = useModelPull();
 	const { deleteModel } = useOllama();
 
 	const [isReconnecting, setIsReconnecting] = useState(false);
@@ -51,7 +59,12 @@ export function LibraryPage() {
 
 				<Separator />
 
-				{ollamaStatus?.found ? (
+				{isStatusPending ? (
+					<div className="space-y-6">
+						<Skeleton className="h-16 w-full" />
+						<Skeleton className="h-72 w-full" />
+					</div>
+				) : ollamaStatus?.found ? (
 					isReconnecting ? (
 						<RemoteOllamaForm onBack={() => setIsReconnecting(false)} />
 					) : (
@@ -67,23 +80,46 @@ export function LibraryPage() {
 									</Button>
 								</ItemActions>
 							</Item>
-							<RecommendedModels
-								catalog={catalog}
-								hardware={hardware}
-								installedModels={ollamaStatus.installedModels}
-								pulling={pulling}
-								onPull={handlePull}
-								onStop={stop}
-							/>
-							<ModelTable
-								catalog={catalog}
-								hardware={hardware}
-								installedModels={ollamaStatus.installedModels}
-								pulling={pulling}
-								onPull={handlePull}
-								onStop={stop}
-								onDelete={(model) => setPendingDelete(model)}
-							/>
+							{isCatalogError && (
+								<Alert variant="destructive">
+									<CircleAlertIcon />
+									<AlertTitle>Couldn't load the model catalog</AlertTitle>
+									<AlertDescription>
+										ollama.com didn't respond, so only installed models are listed. Check your
+										connection and try again.
+									</AlertDescription>
+									<AlertAction>
+										<Button size="sm" variant="outline" onClick={() => refetchCatalog()}>
+											Try again
+										</Button>
+									</AlertAction>
+								</Alert>
+							)}
+							{isCatalogPending ? (
+								<Skeleton className="h-72 w-full" />
+							) : (
+								<>
+									<RecommendedModels
+										catalog={catalog}
+										hardware={hardware}
+										installedModels={ollamaStatus.installedModels}
+										pulling={pulling}
+										onPull={handlePull}
+										onStop={stop}
+										onDismiss={dismiss}
+									/>
+									<ModelTable
+										catalog={catalog}
+										hardware={hardware}
+										installedModels={ollamaStatus.installedModels}
+										pulling={pulling}
+										onPull={handlePull}
+										onStop={stop}
+										onDismiss={dismiss}
+										onDelete={(model) => setPendingDelete(model)}
+									/>
+								</>
+							)}
 						</>
 					)
 				) : (

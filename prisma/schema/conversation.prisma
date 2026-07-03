@@ -9,10 +9,9 @@ model Conversation {
   endpointId String?        @map("endpoint_id") @db.Uuid
   endpoint   ModelEndpoint? @relation(fields: [endpointId], references: [id], onDelete: SetNull)
   model      String?
-  archived   Boolean        @default(false)
   messages   Json           @default("[]") /// @tanstack/ai UIMessage[] — the full conversation transcript.
   updatedAt  DateTime       @updatedAt @map("updated_at")
 
-  @@index([ownerId, archived])
+  @@index([ownerId])
   @@map("conversation")
 }

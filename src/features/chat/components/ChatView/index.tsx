@@ -93,6 +93,11 @@ export function ChatView({ conversation }: ChatViewProps) {
 										<ChatMessage
 											message={msg}
 											isStreaming={isStreaming && isLast && msg.role === "assistant"}
+											onRegenerate={
+												isLast && msg.role === "assistant" && !isStreaming
+													? () => void reload()
+													: undefined
+											}
 										/>
 									</MessageScrollerItem>
 								);

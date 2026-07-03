@@ -19,7 +19,7 @@ import {
 export const listConversations = createServerFn({ method: "GET" }).handler(async () => {
 	const userId = await getCurrentUserId();
 	return prisma.conversation.findMany({
-		where: { ownerId: userId, archived: false },
+		where: { ownerId: userId },
 		orderBy: { updatedAt: "desc" },
 		select: { id: true, title: true, model: true, endpointId: true, updatedAt: true },
 	});
@@ -111,8 +111,8 @@ export const saveConversationMessages = createServerFn({ method: "POST" })
 	});
 
 /**
- * Patch a conversation's title and/or archived flag. The model is fixed at
- * creation and not patchable (changing model means starting a new chat).
+ * Patch a conversation's title. The model is fixed at creation and not
+ * patchable (changing model means starting a new chat).
  * @throws If no conversation with that id is owned by the current user.
  */
 export const updateConversation = createServerFn({ method: "POST" })
@@ -123,10 +123,7 @@ export const updateConversation = createServerFn({ method: "POST" })
 		if (!existing) throw new Error("Not found");
 		return prisma.conversation.update({
 			where: { id },
-			data: {
-				...(patch.title !== undefined && { title: patch.title }),
-				...(patch.archived !== undefined && { archived: patch.archived }),
-			},
+			data: { ...(patch.title !== undefined && { title: patch.title }) },
 			include: { endpoint: { select: { id: true, name: true, url: true, provider: true } } },
 		});
 	});

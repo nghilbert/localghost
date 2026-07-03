@@ -66,6 +66,7 @@ export function NewChatView() {
 					selection={selection}
 					onSelect={setOverride}
 					tools={controls}
+					isSending={start.isPending}
 					sendMessage={(content) => start.mutate(content)}
 				/>
 			</EmptyContent>

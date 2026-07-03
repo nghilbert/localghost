@@ -27,7 +27,6 @@ CREATE TABLE "conversation" (
     "title" TEXT NOT NULL DEFAULT 'New Chat',
     "endpoint_id" UUID,
     "model" TEXT,
-    "archived" BOOLEAN NOT NULL DEFAULT false,
     "messages" JSONB NOT NULL DEFAULT '[]',
     "updated_at" TIMESTAMP(3) NOT NULL,
 
@@ -105,7 +104,7 @@ CREATE TABLE "verification" (
 CREATE INDEX "account_user_id_idx" ON "account"("user_id");
 
 -- CreateIndex
-CREATE INDEX "conversation_owner_id_archived_idx" ON "conversation"("owner_id", "archived");
+CREATE INDEX "conversation_owner_id_idx" ON "conversation"("owner_id");
 
 -- CreateIndex
 CREATE INDEX "memory_owner_id_idx" ON "memory"("owner_id");

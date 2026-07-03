@@ -7,7 +7,6 @@ export const modelSelectionSchema = z.object({ endpointId: uuid, model: z.string
 
 export const updateConversationSchema = z.object({
 	title: z.string().min(1).optional(),
-	archived: z.boolean().optional(),
 });
 
 // ── Server-fn inputs ─────────────────────────────────────────────────────────

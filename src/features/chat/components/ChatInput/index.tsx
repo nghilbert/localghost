@@ -7,6 +7,7 @@ import {
 	InputGroupTextarea,
 } from "#/components/ui/input-group";
 import { Separator } from "#/components/ui/separator";
+import { Spinner } from "#/components/ui/spinner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "#/components/ui/tooltip";
 import { ModelPicker } from "#/features/chat/components/ChatInput/ModelPicker";
 import { type ToolControls, ToolsMenu } from "#/features/chat/components/ChatInput/ToolsMenu";
@@ -22,6 +23,8 @@ type ChatInputProps = {
 	locked?: boolean;
 	/** Per-message tool toggles (web search, memory). */
 	tools?: ToolControls;
+	/** A send is in flight (e.g. the draft page creating the conversation). */
+	isSending?: boolean;
 	sendMessage: (content: string) => void;
 	stop?: () => void;
 };
@@ -33,6 +36,7 @@ export function ChatInput({
 	onSelect,
 	locked = false,
 	tools,
+	isSending = false,
 	sendMessage,
 	stop,
 }: ChatInputProps) {
@@ -42,8 +46,9 @@ export function ChatInput({
 	const needsModel = !selection && !locked;
 
 	function submit() {
-		if (!messageDraft || isStreaming || disabled) return;
-		sendMessage(messageDraft);
+		const content = messageDraft.trim();
+		if (!content || isStreaming || disabled) return;
+		sendMessage(content);
 		setMessageDraft("");
 	}
 
@@ -101,7 +106,7 @@ export function ChatInput({
 						onClick={submit}
 						disabled={disabled}
 					>
-						<ArrowUpIcon size={14} />
+						{isSending ? <Spinner className="size-3.5" /> : <ArrowUpIcon size={14} />}
 						<span className="sr-only">Send</span>
 					</InputGroupButton>
 				)}

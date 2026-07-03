@@ -30,7 +30,7 @@ export async function exportBackup({ userId, email }: { userId: string; email: s
 	const [memories, conversations, userSettings] = await Promise.all([
 		prisma.memory.findMany({ where: { ownerId: userId }, orderBy: { id: "asc" } }),
 		prisma.conversation.findMany({
-			where: { ownerId: userId, archived: false },
+			where: { ownerId: userId },
 			orderBy: { updatedAt: "desc" },
 			take: 50,
 			select: { title: true, model: true, messages: true },

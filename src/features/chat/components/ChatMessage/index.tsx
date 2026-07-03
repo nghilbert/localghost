@@ -1,16 +1,24 @@
 import { code } from "@streamdown/code";
 import type { UIMessage } from "@tanstack/ai-client";
-import { CircleAlertIcon } from "lucide-react";
+import { CircleAlertIcon, CopyIcon, RefreshCwIcon } from "lucide-react";
+import { toast } from "sonner";
 import { Streamdown } from "streamdown";
 import { Alert, AlertDescription, AlertTitle } from "#/components/ui/alert";
 import { Bubble, BubbleContent } from "#/components/ui/bubble";
-import { Message, MessageContent } from "#/components/ui/message";
+import { Button } from "#/components/ui/button";
+import { Message, MessageContent, MessageFooter } from "#/components/ui/message";
+import { Tooltip, TooltipContent, TooltipTrigger } from "#/components/ui/tooltip";
 import { Reasoning } from "#/features/chat/components/ChatMessage/Reasoning";
 import { ToolCalls } from "#/features/chat/components/ChatMessage/ToolCalls";
 import { partsText, strandedToolCall } from "#/features/chat/lib/messages";
 
-type ChatMessageProps = { message: UIMessage; isStreaming?: boolean };
-export function ChatMessage({ message, isStreaming }: ChatMessageProps) {
+type ChatMessageProps = {
+	message: UIMessage;
+	isStreaming?: boolean;
+	/** Provided only for the last assistant message; re-requests the response. */
+	onRegenerate?: () => void;
+};
+export function ChatMessage({ message, isStreaming, onRegenerate }: ChatMessageProps) {
 	const content = partsText(message.parts);
 
 	if (message.role === "user") {
@@ -75,6 +83,44 @@ export function ChatMessage({ message, isStreaming }: ChatMessageProps) {
 				)}
 
 				<ToolCalls toolCalls={toolCalls} isStreaming={isStreaming} />
+
+				{!isStreaming && content && (
+					<MessageFooter className="gap-1 opacity-0 transition-opacity focus-within:opacity-100 group-hover/message:opacity-100">
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<Button
+									variant="ghost"
+									size="icon-sm"
+									aria-label="Copy message"
+									onClick={() => {
+										navigator.clipboard
+											.writeText(content)
+											.then(() => toast.success("Copied to clipboard"))
+											.catch(() => toast.error("Couldn't copy to clipboard"));
+									}}
+								>
+									<CopyIcon />
+								</Button>
+							</TooltipTrigger>
+							<TooltipContent>Copy</TooltipContent>
+						</Tooltip>
+						{onRegenerate && (
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<Button
+										variant="ghost"
+										size="icon-sm"
+										aria-label="Regenerate response"
+										onClick={onRegenerate}
+									>
+										<RefreshCwIcon />
+									</Button>
+								</TooltipTrigger>
+								<TooltipContent>Regenerate</TooltipContent>
+							</Tooltip>
+						)}
+					</MessageFooter>
+				)}
 			</MessageContent>
 		</Message>
 	);

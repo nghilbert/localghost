@@ -6,7 +6,7 @@ import {
 	updateConversation,
 } from "#/features/chat/lib/conversation.functions";
 
-/** Conversation list plus the rename / archive / delete mutations. */
+/** Conversation list plus the rename / delete mutations. */
 export function useConversations() {
 	const queryClient = useQueryClient();
 	const invalidate = () => queryClient.invalidateQueries({ queryKey: ["conversations"] });
@@ -17,15 +17,6 @@ export function useConversations() {
 			updateConversation({ data: { id, data: { title } } }),
 		onSuccess: invalidate,
 		onError: (error) => toast.error(`Failed to rename chat: ${error.message}`),
-	});
-
-	const archiveConversationMutation = useMutation({
-		mutationFn: (id: string) => updateConversation({ data: { id, data: { archived: true } } }),
-		onSuccess: () => {
-			invalidate();
-			toast.success("Chat archived");
-		},
-		onError: (error) => toast.error(`Failed to archive chat: ${error.message}`),
 	});
 
 	const deleteConversationMutation = useMutation({
@@ -40,7 +31,6 @@ export function useConversations() {
 	return {
 		conversations,
 		renameConversation: renameConversationMutation,
-		archiveConversation: archiveConversationMutation,
 		deleteConversation: deleteConversationMutation,
 	};
 }
