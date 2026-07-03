@@ -12,6 +12,15 @@
 				]
 			},
 			{
+				"matcher": "Read|Edit|Write|NotebookEdit",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "node ${CLAUDE_PROJECT_DIR}/.claude/hooks/guard-env.ts"
+					}
+				]
+			},
+			{
 				"matcher": "Bash",
 				"hooks": [
 					{
@@ -20,12 +29,12 @@
 					},
 					{
 						"type": "command",
-						"command": "node ${CLAUDE_PROJECT_DIR}/.claude/hooks/pre-commit-gate.ts",
-						"timeout": 300
+						"command": "node ${CLAUDE_PROJECT_DIR}/.claude/hooks/guard-git.ts"
 					}
 				]
 			}
 		],
+
 		"PostToolUse": [
 			{
 				"matcher": "Edit|Write",

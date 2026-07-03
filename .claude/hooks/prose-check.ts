@@ -4,7 +4,7 @@
 // Standalone scanner: `node prose-check.ts --scan [dir]` reports across a tree.
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { onStdin, readToolInputField } from "./hook-input.ts";
+import { isProjectFile, onStdin, readToolInputField } from "./hook-input.ts";
 
 const MAX_COMMENT_LINES = 5;
 
@@ -124,7 +124,9 @@ if (process.argv[2] === "--scan") {
 } else {
 	onStdin((raw) => {
 		const filePath = readToolInputField(raw, "file_path");
-		if (!PROSE_FILE.test(filePath) || SKIP_PATH.test(filePath)) process.exit(0);
+		if (!isProjectFile(filePath) || !PROSE_FILE.test(filePath) || SKIP_PATH.test(filePath)) {
+			process.exit(0);
+		}
 		const added = readToolInputField(raw, "new_string") || readToolInputField(raw, "content");
 		const hits = findTells({ text: added, isMarkdown: filePath.endsWith(".md") });
 		if (hits.length === 0) process.exit(0);

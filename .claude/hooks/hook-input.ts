@@ -1,5 +1,14 @@
+import { resolve, sep } from "node:path";
+
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null;
+}
+
+/** True when the path lives inside the project; plan/memory/scratch files do not. */
+export function isProjectFile(filePath: string): boolean {
+	const projectDir = resolve(process.env.CLAUDE_PROJECT_DIR ?? process.cwd());
+	const resolved = resolve(filePath);
+	return resolved === projectDir || resolved.startsWith(projectDir + sep);
 }
 
 /** Parses the Claude Code hook payload and returns one string field of tool_input. */
