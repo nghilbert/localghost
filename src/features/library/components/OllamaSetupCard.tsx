@@ -43,11 +43,18 @@ export function OllamaSetupCard() {
 				</pre>
 			</CardContent>
 			<CardFooter className="flex-wrap gap-2">
-				<Button variant="link" asChild>
-					<a href="https://ollama.com/download" target="_blank" rel="noopener noreferrer">
-						<ExternalLinkIcon />
-						I'll install it myself
-					</a>
+				<Button
+					variant="link"
+					render={
+						<a
+							href="https://ollama.com/docs/installation"
+							target="_blank"
+							rel="noopener noreferrer"
+						/>
+					}
+				>
+					<ExternalLinkIcon />
+					I'll install it myself
 				</Button>
 				<Button variant="link" onClick={() => setIsRemoteFormOpen(true)}>
 					Connect to a remote or custom URL

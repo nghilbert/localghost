@@ -31,16 +31,14 @@ export function AuthMenu() {
 		<SidebarMenu>
 			<SidebarMenuItem>
 				<DropdownMenu>
-					<DropdownMenuTrigger asChild>
-						<SidebarMenuButton size="lg" tooltip={user.name}>
-							<Avatar>
-								<AvatarFallback>{getFirstTwoInitials(user.name)}</AvatarFallback>
-							</Avatar>
-							<div className="flex flex-col leading-tight">
-								<span className="truncate font-medium">{user.name}</span>
-								<span className="truncate text-xs text-muted-foreground">{user.email}</span>
-							</div>
-						</SidebarMenuButton>
+					<DropdownMenuTrigger render={<SidebarMenuButton size="lg" tooltip={user.name} />}>
+						<Avatar>
+							<AvatarFallback>{getFirstTwoInitials(user.name)}</AvatarFallback>
+						</Avatar>
+						<div className="flex flex-col leading-tight">
+							<span className="truncate font-medium">{user.name}</span>
+							<span className="truncate text-xs text-muted-foreground">{user.email}</span>
+						</div>
 					</DropdownMenuTrigger>
 					<DropdownMenuContent side="top" align="start" className="min-w-56">
 						<DropdownMenuLabel className="font-normal">
@@ -50,17 +48,13 @@ export function AuthMenu() {
 							</div>
 						</DropdownMenuLabel>
 						<DropdownMenuSeparator />
-						<DropdownMenuItem asChild>
-							<Link to="/settings" search={{ tab: "appearance" }}>
-								<PaletteIcon />
-								Appearance
-							</Link>
+						<DropdownMenuItem render={<Link to="/settings" search={{ tab: "appearance" }} />}>
+							<PaletteIcon />
+							Appearance
 						</DropdownMenuItem>
-						<DropdownMenuItem asChild>
-							<Link to="/settings">
-								<SettingsIcon />
-								Settings
-							</Link>
+						<DropdownMenuItem render={<Link to="/settings" />}>
+							<SettingsIcon />
+							Settings
 						</DropdownMenuItem>
 						<DropdownMenuItem disabled={signOut.isPending} onClick={() => signOut.mutate()}>
 							<LogOutIcon />

@@ -92,8 +92,8 @@ function NotFound() {
 				<EmptyDescription>The page you're looking for does not exist.</EmptyDescription>
 			</EmptyHeader>
 			<EmptyContent>
-				<Button variant="ghost" asChild>
-					<Link to="/">Go home</Link>
+				<Button variant="ghost" render={<Link to="/" />}>
+					Go home
 				</Button>
 			</EmptyContent>
 		</Empty>

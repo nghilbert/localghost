@@ -23,11 +23,9 @@ export function DataTableViewOptions<TData>({ table, labels }: DataTableViewOpti
 
 	return (
 		<DropdownMenu>
-			<DropdownMenuTrigger asChild>
-				<Button variant="outline" size="sm" className="h-8">
-					<SlidersHorizontalIcon />
-					Columns
-				</Button>
+			<DropdownMenuTrigger render={<Button variant="outline" size="sm" className="h-8" />}>
+				<SlidersHorizontalIcon />
+				Columns
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="end">
 				<DropdownMenuLabel>Toggle columns</DropdownMenuLabel>

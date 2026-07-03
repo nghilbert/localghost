@@ -40,13 +40,11 @@ function LockedModel({ selection }: { selection: ModelSelection | null }) {
 	return (
 		<Tooltip>
 			{/* Disabled elements swallow pointer events, so the span carries the trigger. */}
-			<TooltipTrigger asChild>
-				<span className="cursor-not-allowed">
-					<Button variant="ghost" size="sm" disabled className="gap-1 truncate opacity-100">
-						<LockIcon size={13} className="shrink-0 text-muted-foreground" />
-						<span className="truncate">{selection?.model ?? "Model unavailable"}</span>
-					</Button>
-				</span>
+			<TooltipTrigger render={<span className="cursor-not-allowed" />}>
+				<Button variant="ghost" size="sm" disabled className="gap-1 truncate opacity-100">
+					<LockIcon size={13} className="shrink-0 text-muted-foreground" />
+					<span className="truncate">{selection?.model ?? "Model unavailable"}</span>
+				</Button>
 			</TooltipTrigger>
 			<TooltipContent>
 				{selection
@@ -78,15 +76,17 @@ function ModelDropdown({ selection, onSelect }: Omit<ModelPickerProps, "locked">
 
 	return (
 		<DropdownMenu open={open} onOpenChange={setOpen}>
-			<DropdownMenuTrigger asChild>
-				<Button
-					variant="outline"
-					size="sm"
-					className={cn("gap-1 truncate", !selection && "text-primary ring-2 ring-primary/40")}
-				>
-					<span className="truncate">{label}</span>
-					<ChevronDownIcon size={14} className="shrink-0" />
-				</Button>
+			<DropdownMenuTrigger
+				render={
+					<Button
+						variant="outline"
+						size="sm"
+						className={cn("gap-1 truncate", !selection && "text-primary ring-2 ring-primary/40")}
+					/>
+				}
+			>
+				<span className="truncate">{label}</span>
+				<ChevronDownIcon size={14} className="shrink-0" />
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="start" className="w-64">
 				{isLoading ? (
@@ -97,21 +97,17 @@ function ModelDropdown({ selection, onSelect }: Omit<ModelPickerProps, "locked">
 				) : isError ? (
 					<DropdownMenuGroup>
 						<DropdownMenuLabel>Couldn't reach endpoint</DropdownMenuLabel>
-						<DropdownMenuItem asChild>
-							<Link to="/settings" search={{ tab: "endpoints" }}>
-								<TriangleAlertIcon />
-								Check provider endpoints
-							</Link>
+						<DropdownMenuItem render={<Link to="/settings" search={{ tab: "endpoints" }} />}>
+							<TriangleAlertIcon />
+							Check provider endpoints
 						</DropdownMenuItem>
 					</DropdownMenuGroup>
 				) : groups.length === 0 ? (
 					<DropdownMenuGroup>
 						<DropdownMenuLabel>No models yet</DropdownMenuLabel>
-						<DropdownMenuItem asChild>
-							<Link to="/library">
-								<LibraryIcon />
-								Browse the Library
-							</Link>
+						<DropdownMenuItem render={<Link to="/library" />}>
+							<LibraryIcon />
+							Browse the Library
 						</DropdownMenuItem>
 					</DropdownMenuGroup>
 				) : (

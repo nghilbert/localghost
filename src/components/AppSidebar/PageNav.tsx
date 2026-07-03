@@ -30,14 +30,12 @@ export function PageNav() {
 					{NAV_ITEMS.map(({ to, label, NavIcon, matches }) => (
 						<SidebarMenuItem key={to}>
 							<SidebarMenuButton
-								asChild
+								render={<Link to={to} />}
 								isActive={matches.some((prefix) => location.startsWith(prefix))}
 								tooltip={label}
 							>
-								<Link to={to}>
-									<NavIcon />
-									<span>{label}</span>
-								</Link>
+								<NavIcon />
+								<span>{label}</span>
 							</SidebarMenuButton>
 						</SidebarMenuItem>
 					))}

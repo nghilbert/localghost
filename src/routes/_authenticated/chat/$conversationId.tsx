@@ -39,8 +39,8 @@ function ConversationError() {
 				<EmptyDescription>It may have been deleted, or the server is unreachable.</EmptyDescription>
 			</EmptyHeader>
 			<EmptyContent>
-				<Button variant="outline" asChild>
-					<Link to="/new">Start a new chat</Link>
+				<Button variant="outline" render={<Link to="/new" />}>
+					Start a new chat
 				</Button>
 			</EmptyContent>
 		</Empty>

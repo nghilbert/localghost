@@ -35,7 +35,7 @@ export function ProviderSetupForm({ onCreated }: ProviderSetupFormProps) {
 				<Select
 					value={providerId}
 					onValueChange={(value) => {
-						if (isProviderId(value)) setProviderId(value);
+						if (value && isProviderId(value)) setProviderId(value);
 					}}
 				>
 					<SelectTrigger id="provider-select">

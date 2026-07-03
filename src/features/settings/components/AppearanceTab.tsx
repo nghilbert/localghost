@@ -17,7 +17,14 @@ export function AppearanceTab() {
 				<FieldDescription>
 					System follows your operating system's light/dark preference.
 				</FieldDescription>
-				<ToggleGroup type="single" variant="outline" value={theme} onValueChange={setTheme}>
+				<ToggleGroup
+					variant="outline"
+					value={[theme]}
+					onValueChange={(value) => {
+						const newValue = value[0];
+						if (newValue) setTheme(newValue);
+					}}
+				>
 					{MODE_OPTIONS.map(({ label, value, ModeIcon }) => (
 						<ToggleGroupItem key={value} value={value} aria-label={label}>
 							<ModeIcon />

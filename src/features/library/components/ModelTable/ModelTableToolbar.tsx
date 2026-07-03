@@ -45,7 +45,7 @@ export function ModelTableToolbar({
 			<Select
 				value={statusFilter}
 				onValueChange={(value) => {
-					if (isModelStatusFilter(value)) onStatusFilterChange(value);
+					if (value && isModelStatusFilter(value)) onStatusFilterChange(value);
 				}}
 			>
 				<SelectTrigger className="h-8 w-36 text-xs">

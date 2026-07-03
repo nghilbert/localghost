@@ -17,7 +17,10 @@ export function SliderField({
 		<FieldShell label={label} description={description} orientation={fieldOrientation}>
 			<Slider
 				value={[field.state.value]}
-				onValueChange={([value]) => field.handleChange(value ?? field.state.value)}
+				onValueChange={(value) => {
+					if (typeof value === "number") field.handleChange(value);
+					else field.handleChange(value[0] ?? field.state.value);
+				}}
 				onBlur={field.handleBlur}
 				aria-invalid={!field.state.meta.isValid}
 				className={cn("min-w-xs", className)}

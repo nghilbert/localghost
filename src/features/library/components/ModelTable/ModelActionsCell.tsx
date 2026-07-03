@@ -44,30 +44,34 @@ export function ModelActionsCell({
 					</span>
 				</div>
 				<Tooltip>
-					<TooltipTrigger asChild>
-						<Button
-							variant="ghost"
-							size="icon-sm"
-							className="text-muted-foreground"
-							onClick={() => onPull(modelId)}
-							aria-label="Retry pull"
-						>
-							<RefreshCwIcon size={12} />
-						</Button>
+					<TooltipTrigger
+						render={
+							<Button
+								variant="ghost"
+								size="icon-sm"
+								className="text-muted-foreground"
+								onClick={() => onPull(modelId)}
+								aria-label="Retry pull"
+							/>
+						}
+					>
+						<RefreshCwIcon size={12} />
 					</TooltipTrigger>
 					<TooltipContent>Retry pull</TooltipContent>
 				</Tooltip>
 				<Tooltip>
-					<TooltipTrigger asChild>
-						<Button
-							variant="ghost"
-							size="icon-sm"
-							className="text-muted-foreground"
-							onClick={() => onDismiss(modelId)}
-							aria-label="Dismiss error"
-						>
-							<XIcon size={12} />
-						</Button>
+					<TooltipTrigger
+						render={
+							<Button
+								variant="ghost"
+								size="icon-sm"
+								className="text-muted-foreground"
+								onClick={() => onDismiss(modelId)}
+								aria-label="Dismiss error"
+							/>
+						}
+					>
+						<XIcon size={12} />
 					</TooltipTrigger>
 					<TooltipContent>Dismiss</TooltipContent>
 				</Tooltip>
@@ -96,16 +100,18 @@ export function ModelActionsCell({
 					)}
 				</div>
 				<Tooltip>
-					<TooltipTrigger asChild>
-						<Button
-							variant="ghost"
-							size="icon-sm"
-							className="text-muted-foreground hover:text-destructive"
-							onClick={() => onStop(modelId)}
-							aria-label="Stop pull"
-						>
-							<SquareIcon size={12} />
-						</Button>
+					<TooltipTrigger
+						render={
+							<Button
+								variant="ghost"
+								size="icon-sm"
+								className="text-muted-foreground hover:text-destructive"
+								onClick={() => onStop(modelId)}
+								aria-label="Stop pull"
+							/>
+						}
+					>
+						<SquareIcon size={12} />
 					</TooltipTrigger>
 					<TooltipContent>Stop pull</TooltipContent>
 				</Tooltip>
@@ -116,16 +122,18 @@ export function ModelActionsCell({
 	if (installed) {
 		return (
 			<Tooltip>
-				<TooltipTrigger asChild>
-					<Button
-						variant="ghost"
-						size="icon-sm"
-						className="text-muted-foreground hover:text-destructive"
-						onClick={() => onDelete?.(modelId)}
-						aria-label="Delete model"
-					>
-						<Trash2Icon size={13} />
-					</Button>
+				<TooltipTrigger
+					render={
+						<Button
+							variant="ghost"
+							size="icon-sm"
+							className="text-muted-foreground hover:text-destructive"
+							onClick={() => onDelete?.(modelId)}
+							aria-label="Delete model"
+						/>
+					}
+				>
+					<Trash2Icon size={13} />
 				</TooltipTrigger>
 				<TooltipContent>Delete model</TooltipContent>
 			</Tooltip>

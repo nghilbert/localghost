@@ -53,19 +53,17 @@ export function ToolsMenu(controls: ToolControls) {
 			<Tooltip>
 				{/* Not natively disabled: that would trip InputGroup's has-disabled
 				    styling and grey out the whole chat input. */}
-				<TooltipTrigger asChild>
-					<span className="cursor-not-allowed">
-						<Button
-							variant="outline"
-							size="sm"
-							className="pointer-events-none gap-1.5 opacity-50"
-							aria-disabled
-							tabIndex={-1}
-						>
-							<SlidersHorizontalIcon size={14} />
-							Tools
-						</Button>
-					</span>
+				<TooltipTrigger render={<span className="cursor-not-allowed" />}>
+					<Button
+						variant="outline"
+						size="sm"
+						className="pointer-events-none gap-1.5 opacity-50"
+						aria-disabled
+						tabIndex={-1}
+					>
+						<SlidersHorizontalIcon size={14} />
+						Tools
+					</Button>
 				</TooltipTrigger>
 				<TooltipContent>This model doesn't support tools.</TooltipContent>
 			</Tooltip>
@@ -74,16 +72,14 @@ export function ToolsMenu(controls: ToolControls) {
 
 	return (
 		<Popover>
-			<PopoverTrigger asChild>
-				<Button variant="outline" size="sm" className="gap-1.5">
-					<SlidersHorizontalIcon size={14} />
-					Tools
-					{activeCount > 0 && (
-						<Badge variant="secondary" className="px-1.5 py-0 text-xs tabular-nums">
-							{activeCount}
-						</Badge>
-					)}
-				</Button>
+			<PopoverTrigger render={<Button variant="outline" size="sm" className="gap-1.5" />}>
+				<SlidersHorizontalIcon size={14} />
+				Tools
+				{activeCount > 0 && (
+					<Badge variant="secondary" className="px-1.5 py-0 text-xs tabular-nums">
+						{activeCount}
+					</Badge>
+				)}
 			</PopoverTrigger>
 			<PopoverContent align="start" className="w-72 p-1">
 				{rows.map((row) => (

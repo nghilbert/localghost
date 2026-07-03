@@ -34,10 +34,8 @@ export function PasswordField({
 				/>
 				<InputGroupAddon align="inline-end">
 					<Tooltip>
-						<TooltipTrigger asChild>
-							<InputGroupButton onClick={() => setShow((prev) => !prev)}>
-								{show ? <EyeOffIcon /> : <EyeIcon />}
-							</InputGroupButton>
+						<TooltipTrigger render={<InputGroupButton onClick={() => setShow((prev) => !prev)} />}>
+							{show ? <EyeOffIcon /> : <EyeIcon />}
 						</TooltipTrigger>
 						<TooltipContent>{show ? "Hide password" : "Show password"}</TooltipContent>
 					</Tooltip>

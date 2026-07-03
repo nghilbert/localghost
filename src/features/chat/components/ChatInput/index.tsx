@@ -88,13 +88,11 @@ export function ChatInput({
 				) : needsModel ? (
 					<Tooltip>
 						{/* Disabled elements swallow pointer events, so the span carries the trigger. */}
-						<TooltipTrigger asChild>
-							<span className="ml-auto">
-								<InputGroupButton type="submit" variant="default" size="icon-sm" disabled>
-									<ArrowUpIcon size={14} />
-									<span className="sr-only">Send</span>
-								</InputGroupButton>
-							</span>
+						<TooltipTrigger render={<span className="ml-auto" />}>
+							<InputGroupButton type="submit" variant="default" size="icon-sm" disabled>
+								<ArrowUpIcon size={14} />
+								<span className="sr-only">Send</span>
+							</InputGroupButton>
 						</TooltipTrigger>
 						<TooltipContent>Pick a model first. Use the model menu on the left.</TooltipContent>
 					</Tooltip>

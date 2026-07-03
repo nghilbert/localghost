@@ -109,11 +109,13 @@ export function AddProviderForm({ definition, onCreated }: AddProviderFormProps)
 					urlField
 				) : (
 					<Collapsible>
-						<CollapsibleTrigger asChild>
-							<Button type="button" variant="ghost" size="sm" className="text-muted-foreground">
-								<ChevronDownIcon />
-								Advanced
-							</Button>
+						<CollapsibleTrigger
+							render={
+								<Button type="button" variant="ghost" size="sm" className="text-muted-foreground" />
+							}
+						>
+							<ChevronDownIcon />
+							Advanced
 						</CollapsibleTrigger>
 						<CollapsibleContent className="pt-2">{urlField}</CollapsibleContent>
 					</Collapsible>

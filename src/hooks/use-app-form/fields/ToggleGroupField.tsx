@@ -20,10 +20,10 @@ export function ToggleGroupField({
 		<FieldShell label={label} description={description} orientation={fieldOrientation}>
 			<ToggleGroup
 				id={field.name}
-				type="single"
-				value={field.state.value}
+				value={[field.state.value]}
 				onValueChange={(value) => {
-					if (value) field.handleChange(value);
+					const newValue = value[0];
+					if (newValue) field.handleChange(newValue);
 				}}
 				onBlur={field.handleBlur}
 				aria-invalid={!field.state.meta.isValid}

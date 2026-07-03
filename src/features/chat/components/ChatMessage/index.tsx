@@ -87,34 +87,38 @@ export function ChatMessage({ message, isStreaming, onRegenerate }: ChatMessageP
 				{!isStreaming && content && (
 					<MessageFooter className="gap-1 opacity-0 transition-opacity focus-within:opacity-100 group-hover/message:opacity-100">
 						<Tooltip>
-							<TooltipTrigger asChild>
-								<Button
-									variant="ghost"
-									size="icon-sm"
-									aria-label="Copy message"
-									onClick={() => {
-										navigator.clipboard
-											.writeText(content)
-											.then(() => toast.success("Copied to clipboard"))
-											.catch(() => toast.error("Couldn't copy to clipboard"));
-									}}
-								>
-									<CopyIcon />
-								</Button>
+							<TooltipTrigger
+								render={
+									<Button
+										variant="ghost"
+										size="icon-sm"
+										aria-label="Copy message"
+										onClick={() => {
+											navigator.clipboard
+												.writeText(content)
+												.then(() => toast.success("Copied to clipboard"))
+												.catch(() => toast.error("Couldn't copy to clipboard"));
+										}}
+									/>
+								}
+							>
+								<CopyIcon />
 							</TooltipTrigger>
 							<TooltipContent>Copy</TooltipContent>
 						</Tooltip>
 						{onRegenerate && (
 							<Tooltip>
-								<TooltipTrigger asChild>
-									<Button
-										variant="ghost"
-										size="icon-sm"
-										aria-label="Regenerate response"
-										onClick={onRegenerate}
-									>
-										<RefreshCwIcon />
-									</Button>
+								<TooltipTrigger
+									render={
+										<Button
+											variant="ghost"
+											size="icon-sm"
+											aria-label="Regenerate response"
+											onClick={onRegenerate}
+										/>
+									}
+								>
+									<RefreshCwIcon />
 								</TooltipTrigger>
 								<TooltipContent>Regenerate</TooltipContent>
 							</Tooltip>

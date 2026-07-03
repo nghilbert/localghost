@@ -79,22 +79,20 @@ export function RecentChatList() {
 								/>
 							) : (
 								<SidebarMenuButton
-									asChild
+									render={
+										<Link to="/chat/$conversationId" params={{ conversationId: conversation.id }} />
+									}
 									isActive={currentConversationId === conversation.id}
 									tooltip={conversation.title}
 									onDoubleClick={() => setRenamingId(conversation.id)}
 								>
-									<Link to="/chat/$conversationId" params={{ conversationId: conversation.id }}>
-										<span className="truncate">{conversation.title}</span>
-									</Link>
+									<span className="truncate">{conversation.title}</span>
 								</SidebarMenuButton>
 							)}
 							<DropdownMenu>
-								<DropdownMenuTrigger asChild>
-									<SidebarMenuAction>
-										<MoreHorizontalIcon size={14} />
-										<span className="sr-only">Chat actions</span>
-									</SidebarMenuAction>
+								<DropdownMenuTrigger render={<SidebarMenuAction />}>
+									<MoreHorizontalIcon size={14} />
+									<span className="sr-only">Chat actions</span>
 								</DropdownMenuTrigger>
 								<DropdownMenuContent side="right" align="start" className="min-w-36">
 									<DropdownMenuItem onClick={() => setRenamingId(conversation.id)}>
