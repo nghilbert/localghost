@@ -7,7 +7,7 @@
 				"hooks": [
 					{
 						"type": "command",
-						"command": "node .claude/hooks/protect-generated.ts"
+						"command": "node ${CLAUDE_PROJECT_DIR}/.claude/hooks/protect-generated.ts"
 					}
 				]
 			},
@@ -16,11 +16,11 @@
 				"hooks": [
 					{
 						"type": "command",
-						"command": "node .claude/hooks/guard-prisma.ts"
+						"command": "node ${CLAUDE_PROJECT_DIR}/.claude/hooks/guard-prisma.ts"
 					},
 					{
 						"type": "command",
-						"command": "node .claude/hooks/pre-commit-gate.ts",
+						"command": "node ${CLAUDE_PROJECT_DIR}/.claude/hooks/pre-commit-gate.ts",
 						"timeout": 300
 					}
 				]
@@ -32,15 +32,15 @@
 				"hooks": [
 					{
 						"type": "command",
-						"command": "node .claude/hooks/biome-fix.ts"
+						"command": "node ${CLAUDE_PROJECT_DIR}/.claude/hooks/biome-fix.ts"
 					},
 					{
 						"type": "command",
-						"command": "node .claude/hooks/prose-check.ts"
+						"command": "node ${CLAUDE_PROJECT_DIR}/.claude/hooks/prose-check.ts"
 					},
 					{
 						"type": "command",
-						"command": "node .claude/hooks/typecheck-stop.ts --mark"
+						"command": "node ${CLAUDE_PROJECT_DIR}/.claude/hooks/typecheck-stop.ts --mark"
 					}
 				]
 			}
@@ -50,7 +50,7 @@
 				"hooks": [
 					{
 						"type": "command",
-						"command": "node .claude/hooks/typecheck-stop.ts",
+						"command": "node ${CLAUDE_PROJECT_DIR}/.claude/hooks/typecheck-stop.ts",
 						"timeout": 150
 					}
 				]
