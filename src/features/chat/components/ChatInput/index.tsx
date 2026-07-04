@@ -59,6 +59,16 @@ export function ChatInput({
 		}
 	}
 
+	const stopping = Boolean(isStreaming && stop);
+	const inactive = !stopping && (needsModel || disabled);
+	const sendIcon = stopping ? (
+		<SquareIcon size={14} />
+	) : isSending ? (
+		<Spinner className="size-3.5" />
+	) : (
+		<ArrowUpIcon size={14} />
+	);
+
 	return (
 		<InputGroup>
 			<InputGroupTextarea
@@ -74,41 +84,27 @@ export function ChatInput({
 			<InputGroupAddon align="block-end" className="p-2">
 				<ModelPicker selection={selection} onSelect={onSelect} locked={locked} />
 				{tools && <ToolsMenu {...tools} />}
-				{isStreaming && stop ? (
-					<InputGroupButton
-						type="submit"
-						variant="outline"
-						size="icon-sm"
-						className="ml-auto"
-						onClick={stop}
+				{/* aria-disabled keeps pointer events, so the button is its own tooltip trigger. */}
+				<Tooltip>
+					<TooltipTrigger
+						render={
+							<InputGroupButton
+								type="submit"
+								variant={stopping ? "outline" : "default"}
+								size="icon-sm"
+								className="ml-auto aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
+								aria-disabled={inactive || undefined}
+								onClick={stopping ? stop : inactive ? undefined : submit}
+							/>
+						}
 					>
-						<SquareIcon size={14} />
-						<span className="sr-only">Stop</span>
-					</InputGroupButton>
-				) : needsModel ? (
-					<Tooltip>
-						{/* Disabled elements swallow pointer events, so the span carries the trigger. */}
-						<TooltipTrigger render={<span className="ml-auto" />}>
-							<InputGroupButton type="submit" variant="default" size="icon-sm" disabled>
-								<ArrowUpIcon size={14} />
-								<span className="sr-only">Send</span>
-							</InputGroupButton>
-						</TooltipTrigger>
+						{sendIcon}
+						<span className="sr-only">{stopping ? "Stop" : "Send"}</span>
+					</TooltipTrigger>
+					{!stopping && needsModel && (
 						<TooltipContent>Pick a model first. Use the model menu on the left.</TooltipContent>
-					</Tooltip>
-				) : (
-					<InputGroupButton
-						type="submit"
-						variant="default"
-						size="icon-sm"
-						className="ml-auto"
-						onClick={submit}
-						disabled={disabled}
-					>
-						{isSending ? <Spinner className="size-3.5" /> : <ArrowUpIcon size={14} />}
-						<span className="sr-only">Send</span>
-					</InputGroupButton>
-				)}
+					)}
+				</Tooltip>
 			</InputGroupAddon>
 		</InputGroup>
 	);

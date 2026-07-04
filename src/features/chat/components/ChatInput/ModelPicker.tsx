@@ -74,6 +74,57 @@ function ModelDropdown({ selection, onSelect }: Omit<ModelPickerProps, "locked">
 	const isLoading = results.some((result) => result.isLoading);
 	const isError = results.some((result) => result.isError);
 
+	function renderItems() {
+		if (isLoading) {
+			return (
+				<DropdownMenuItem disabled>
+					<Spinner className="size-3" />
+					<span className="text-muted-foreground">Loading models…</span>
+				</DropdownMenuItem>
+			);
+		}
+		if (isError) {
+			return (
+				<>
+					<DropdownMenuLabel>Couldn't reach endpoint</DropdownMenuLabel>
+					<DropdownMenuItem render={<Link to="/settings" search={{ tab: "endpoints" }} />}>
+						<TriangleAlertIcon />
+						Check provider endpoints
+					</DropdownMenuItem>
+				</>
+			);
+		}
+		if (groups.length === 0) {
+			return (
+				<>
+					<DropdownMenuLabel>No models yet</DropdownMenuLabel>
+					<DropdownMenuItem render={<Link to="/library" />}>
+						<LibraryIcon />
+						Browse the Library
+					</DropdownMenuItem>
+				</>
+			);
+		}
+		return groups.map(({ endpoint, models }, i) => (
+			<Fragment key={endpoint.id}>
+				{i > 0 && <DropdownMenuSeparator />}
+				<DropdownMenuLabel>{endpoint.name}</DropdownMenuLabel>
+				{models.map((model) => {
+					const isSelected = selection?.endpointId === endpoint.id && selection?.model === model;
+					return (
+						<DropdownMenuItem
+							key={model}
+							onClick={() => onSelect?.({ endpointId: endpoint.id, model })}
+						>
+							<span className="truncate">{model}</span>
+							{isSelected && <CheckIcon size={13} className="ml-auto shrink-0" />}
+						</DropdownMenuItem>
+					);
+				})}
+			</Fragment>
+		));
+	}
+
 	return (
 		<DropdownMenu open={open} onOpenChange={setOpen}>
 			<DropdownMenuTrigger
@@ -89,50 +140,7 @@ function ModelDropdown({ selection, onSelect }: Omit<ModelPickerProps, "locked">
 				<ChevronDownIcon size={14} className="shrink-0" />
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="start" className="w-64">
-				<DropdownMenuGroup>
-					{isLoading ? (
-						<DropdownMenuItem disabled>
-							<Spinner className="size-3" />
-							<span className="text-muted-foreground">Loading models…</span>
-						</DropdownMenuItem>
-					) : isError ? (
-						<>
-							<DropdownMenuLabel>Couldn't reach endpoint</DropdownMenuLabel>
-							<DropdownMenuItem render={<Link to="/settings" search={{ tab: "endpoints" }} />}>
-								<TriangleAlertIcon />
-								Check provider endpoints
-							</DropdownMenuItem>
-						</>
-					) : groups.length === 0 ? (
-						<>
-							<DropdownMenuLabel>No models yet</DropdownMenuLabel>
-							<DropdownMenuItem render={<Link to="/library" />}>
-								<LibraryIcon />
-								Browse the Library
-							</DropdownMenuItem>
-						</>
-					) : (
-						groups.map(({ endpoint, models }) => (
-							<Fragment key={endpoint.id}>
-								<DropdownMenuLabel>{endpoint.name}</DropdownMenuLabel>
-								{models.map((model) => {
-									const isSelected =
-										selection?.endpointId === endpoint.id && selection?.model === model;
-									return (
-										<DropdownMenuItem
-											key={model}
-											onClick={() => onSelect?.({ endpointId: endpoint.id, model })}
-										>
-											<span className="truncate">{model}</span>
-											{isSelected && <CheckIcon size={13} className="ml-auto shrink-0" />}
-										</DropdownMenuItem>
-									);
-								})}
-								<DropdownMenuSeparator />
-							</Fragment>
-						))
-					)}
-				</DropdownMenuGroup>
+				<DropdownMenuGroup>{renderItems()}</DropdownMenuGroup>
 			</DropdownMenuContent>
 		</DropdownMenu>
 	);
