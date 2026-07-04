@@ -4,6 +4,7 @@ import { Avatar, AvatarFallback } from "#/components/ui/avatar";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
+	DropdownMenuGroup,
 	DropdownMenuItem,
 	DropdownMenuLabel,
 	DropdownMenuSeparator,
@@ -41,25 +42,27 @@ export function AuthMenu() {
 						</div>
 					</DropdownMenuTrigger>
 					<DropdownMenuContent side="top" align="start" className="min-w-56">
-						<DropdownMenuLabel className="font-normal">
-							<div className="flex flex-col">
-								<span className="truncate font-medium">{user.name}</span>
-								<span className="truncate text-xs text-muted-foreground">{user.email}</span>
-							</div>
-						</DropdownMenuLabel>
-						<DropdownMenuSeparator />
-						<DropdownMenuItem render={<Link to="/settings" search={{ tab: "appearance" }} />}>
-							<PaletteIcon />
-							Appearance
-						</DropdownMenuItem>
-						<DropdownMenuItem render={<Link to="/settings" />}>
-							<SettingsIcon />
-							Settings
-						</DropdownMenuItem>
-						<DropdownMenuItem disabled={signOut.isPending} onClick={() => signOut.mutate()}>
-							<LogOutIcon />
-							{signOut.isPending ? "Signing out…" : "Sign out"}
-						</DropdownMenuItem>
+						<DropdownMenuGroup>
+							<DropdownMenuLabel className="font-normal">
+								<div className="flex flex-col">
+									<span className="truncate font-medium">{user.name}</span>
+									<span className="truncate text-xs text-muted-foreground">{user.email}</span>
+								</div>
+							</DropdownMenuLabel>
+							<DropdownMenuSeparator />
+							<DropdownMenuItem render={<Link to="/settings" search={{ tab: "appearance" }} />}>
+								<PaletteIcon />
+								Appearance
+							</DropdownMenuItem>
+							<DropdownMenuItem render={<Link to="/settings" />}>
+								<SettingsIcon />
+								Settings
+							</DropdownMenuItem>
+							<DropdownMenuItem disabled={signOut.isPending} onClick={() => signOut.mutate()}>
+								<LogOutIcon />
+								{signOut.isPending ? "Signing out…" : "Sign out"}
+							</DropdownMenuItem>
+						</DropdownMenuGroup>
 					</DropdownMenuContent>
 				</DropdownMenu>
 			</SidebarMenuItem>

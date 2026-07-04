@@ -15,6 +15,7 @@ import {
 import {
 	DropdownMenu,
 	DropdownMenuContent,
+	DropdownMenuGroup,
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "#/components/ui/dropdown-menu";
@@ -76,17 +77,19 @@ export function RecentChatList() {
 									<span className="sr-only">Chat actions</span>
 								</DropdownMenuTrigger>
 								<DropdownMenuContent side="right" align="start" className="min-w-36">
-									<DropdownMenuItem onClick={() => setRenamingId(conversation.id)}>
-										<PencilIcon size={13} className="mr-2" />
-										Rename
-									</DropdownMenuItem>
-									<DropdownMenuItem
-										variant="destructive"
-										onClick={() => setPendingDeleteId(conversation.id)}
-									>
-										<Trash2Icon size={13} className="mr-2" />
-										Delete
-									</DropdownMenuItem>
+									<DropdownMenuGroup>
+										<DropdownMenuItem onClick={() => setRenamingId(conversation.id)}>
+											<PencilIcon size={13} className="mr-2" />
+											Rename
+										</DropdownMenuItem>
+										<DropdownMenuItem
+											variant="destructive"
+											onClick={() => setPendingDeleteId(conversation.id)}
+										>
+											<Trash2Icon size={13} className="mr-2" />
+											Delete
+										</DropdownMenuItem>
+									</DropdownMenuGroup>
 								</DropdownMenuContent>
 							</DropdownMenu>
 						</SidebarMenuItem>

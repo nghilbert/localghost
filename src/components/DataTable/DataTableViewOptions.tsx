@@ -5,6 +5,7 @@ import {
 	DropdownMenu,
 	DropdownMenuCheckboxItem,
 	DropdownMenuContent,
+	DropdownMenuGroup,
 	DropdownMenuLabel,
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
@@ -28,18 +29,20 @@ export function DataTableViewOptions<TData>({ table, labels }: DataTableViewOpti
 				Columns
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="end">
-				<DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
-				<DropdownMenuSeparator />
-				{columns.map((column) => (
-					<DropdownMenuCheckboxItem
-						key={column.id}
-						className="capitalize"
-						checked={column.getIsVisible()}
-						onCheckedChange={(value) => column.toggleVisibility(!!value)}
-					>
-						{labels?.[column.id] ?? column.id}
-					</DropdownMenuCheckboxItem>
-				))}
+				<DropdownMenuGroup>
+					<DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
+					<DropdownMenuSeparator />
+					{columns.map((column) => (
+						<DropdownMenuCheckboxItem
+							key={column.id}
+							className="capitalize"
+							checked={column.getIsVisible()}
+							onCheckedChange={(value) => column.toggleVisibility(!!value)}
+						>
+							{labels?.[column.id] ?? column.id}
+						</DropdownMenuCheckboxItem>
+					))}
+				</DropdownMenuGroup>
 			</DropdownMenuContent>
 		</DropdownMenu>
 	);
