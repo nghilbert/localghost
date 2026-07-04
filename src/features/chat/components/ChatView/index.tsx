@@ -1,5 +1,5 @@
 import { useChat } from "@tanstack/ai-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
 	MessageScroller,
@@ -14,7 +14,10 @@ import { ChatStatus } from "#/features/chat/components/ChatView/ChatStatus";
 import { useConversation } from "#/features/chat/hooks/use-conversation";
 import { createChatOptions } from "#/features/chat/lib/chat-client";
 import { takeChatHandoff } from "#/features/chat/lib/chat-handoff";
-import type { ConversationDetail } from "#/features/chat/lib/conversation.functions";
+import {
+	type ConversationDetail,
+	modelRunStateQueryOptions,
+} from "#/features/chat/lib/conversation.functions";
 import { awaitingAssistantResponse } from "#/features/chat/lib/messages";
 import { ChatMessage } from "../ChatMessage";
 
@@ -46,6 +49,15 @@ export function ChatView({ conversation }: ChatViewProps) {
 		forwardedProps,
 	});
 	const isStreaming = status === "submitted" || status === "streaming";
+
+	// While a response is in flight, poll whether the local model is still loading
+	// so the trail's pending head can read "Warming up" on a cold start.
+	const { data: runState } = useQuery({
+		...modelRunStateQueryOptions(conversation.id),
+		enabled: isStreaming,
+		refetchInterval: 2_000,
+	});
+	const warming = runState === "warming";
 
 	/** Sends, then resets the toggles to defaults so a manual toggle lasts one message. */
 	async function handleSend(content: string) {
@@ -94,6 +106,7 @@ export function ChatView({ conversation }: ChatViewProps) {
 										<ChatMessage
 											message={msg}
 											isStreaming={isStreaming && isLastAssistant}
+											warming={isLastAssistant && warming}
 											onRegenerate={
 												isLastAssistant && !isStreaming ? () => void reload() : undefined
 											}
@@ -103,9 +116,9 @@ export function ChatView({ conversation }: ChatViewProps) {
 							})}
 							<MessageScrollerItem>
 								<ChatStatus
-									conversationId={conversation.id}
 									status={status}
 									messages={messages}
+									warming={warming}
 									error={error}
 									onRetry={reload}
 								/>

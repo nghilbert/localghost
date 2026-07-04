@@ -8,17 +8,18 @@ import { Bubble, BubbleContent } from "#/components/ui/bubble";
 import { Button } from "#/components/ui/button";
 import { Message, MessageContent, MessageFooter } from "#/components/ui/message";
 import { Tooltip, TooltipContent, TooltipTrigger } from "#/components/ui/tooltip";
-import { Reasoning } from "#/features/chat/components/ChatMessage/Reasoning";
-import { ToolCalls } from "#/features/chat/components/ChatMessage/ToolCalls";
+import { ActivityTrail } from "#/features/chat/components/ChatMessage/ActivityTrail";
 import { partsText, strandedToolCall } from "#/features/chat/lib/messages";
 
 type ChatMessageProps = {
 	message: UIMessage;
 	isStreaming?: boolean;
+	/** True while the last assistant message's local model is still loading. */
+	warming?: boolean;
 	/** Provided only for the last assistant message; re-requests the response. */
 	onRegenerate?: () => void;
 };
-export function ChatMessage({ message, isStreaming, onRegenerate }: ChatMessageProps) {
+export function ChatMessage({ message, isStreaming, warming, onRegenerate }: ChatMessageProps) {
 	const content = partsText(message.parts);
 
 	if (message.role === "user") {
@@ -35,9 +36,6 @@ export function ChatMessage({ message, isStreaming, onRegenerate }: ChatMessageP
 		);
 	}
 
-	const thinking = message.parts.filter((p) => p.type === "thinking");
-	const toolCalls = message.parts.filter((p) => p.type === "tool-call");
-	const lastPart = message.parts.at(-1);
 	// A reply that is only a tool-call JSON blob means the model wrote the call
 	// as text instead of invoking it; explain that instead of printing the JSON.
 	const strandedTool = !isStreaming && content ? strandedToolCall(content) : null;
@@ -45,14 +43,7 @@ export function ChatMessage({ message, isStreaming, onRegenerate }: ChatMessageP
 	return (
 		<Message role="article" aria-label="Assistant message">
 			<MessageContent>
-				{thinking.map((part, idx) => (
-					<Reasoning
-						// Thinking parts carry no id; the reconciled part keeps its position.
-						key={`thinking-${idx.toString()}`}
-						content={part.content}
-						isThinking={Boolean(isStreaming && part === lastPart)}
-					/>
-				))}
+				<ActivityTrail message={message} isStreaming={isStreaming} warming={warming} />
 
 				{strandedTool && (
 					<Alert>
@@ -81,8 +72,6 @@ export function ChatMessage({ message, isStreaming, onRegenerate }: ChatMessageP
 						</BubbleContent>
 					</Bubble>
 				)}
-
-				<ToolCalls toolCalls={toolCalls} isStreaming={isStreaming} />
 
 				{!isStreaming && content && (
 					<MessageFooter className="gap-1 opacity-0 transition-opacity focus-within:opacity-100 group-hover/message:opacity-100">

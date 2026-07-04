@@ -1,10 +1,18 @@
 import type { UIMessage } from "@tanstack/ai-client";
-import { BrainIcon, GlobeIcon, LinkIcon, type LucideIcon, TerminalIcon } from "lucide-react";
-import { Textarea } from "#/components/ui/textarea";
+import {
+	BrainIcon,
+	ChevronRightIcon,
+	GlobeIcon,
+	LinkIcon,
+	type LucideIcon,
+	TerminalIcon,
+} from "lucide-react";
+import { useState } from "react";
+import { Marker, MarkerContent, MarkerIcon } from "#/components/ui/marker";
 import { ActivityMarker } from "#/features/chat/components/ActivityMarker";
-import { MessageStep } from "#/features/chat/components/ChatMessage/MessageStep";
+import { useStepDuration } from "#/features/chat/hooks/use-step-duration";
 
-type ToolCall = Extract<UIMessage["parts"][number], { type: "tool-call" }>;
+export type ToolCall = Extract<UIMessage["parts"][number], { type: "tool-call" }>;
 
 /** The call's parsed input, falling back to the raw arguments string mid-stream. */
 function callInput(tc: ToolCall): unknown {
@@ -64,7 +72,7 @@ type ToolDisplay = {
 };
 
 /** Labels each call with what it actually did (query, host, action), not just the tool name. */
-const TOOL_DISPLAY: Record<string, ToolDisplay> = {
+export const TOOL_DISPLAY: Record<string, ToolDisplay> = {
 	web_search: {
 		icon: GlobeIcon,
 		running: (input) => {
@@ -94,7 +102,7 @@ const TOOL_DISPLAY: Record<string, ToolDisplay> = {
 	},
 };
 
-function display(name: string): ToolDisplay {
+export function display(name: string): ToolDisplay {
 	return TOOL_DISPLAY[name] ?? { icon: TerminalIcon, running: () => `${name}…`, done: () => name };
 }
 
@@ -103,33 +111,55 @@ function outputText(output: ToolCall["output"]): string {
 	return typeof output === "string" ? output : JSON.stringify(output, null, 2);
 }
 
-type ToolCallsProps = { toolCalls: ToolCall[]; isStreaming?: boolean };
+type ToolCallStepProps = { toolCall: ToolCall; isStreaming?: boolean };
 
 /**
- * Renders an assistant message's tool calls: a live marker with an elapsed timer
- * while a call is in flight, then a collapsible step with its output once it
+ * One tool step of the train of thought: a live marker with an elapsed timer
+ * while the call runs, then a marker whose output reveals on click once it
  * resolves.
  */
-export function ToolCalls({ toolCalls, isStreaming }: ToolCallsProps) {
-	if (toolCalls.length === 0) return null;
+export function ToolCallStep({ toolCall, isStreaming }: ToolCallStepProps) {
+	const { icon: Icon, running, done } = display(toolCall.name);
+	const input = callInput(toolCall);
+	const active = Boolean(isStreaming) && toolCall.output === undefined;
+	const { seconds } = useStepDuration(active);
+	const [open, setOpen] = useState(false);
+
+	if (active) {
+		return <ActivityMarker label={running(input)} icon={Icon} seconds={seconds} />;
+	}
+
+	const output = outputText(toolCall.output);
+	if (!output) {
+		return (
+			<Marker>
+				<MarkerIcon>
+					<Icon />
+				</MarkerIcon>
+				<MarkerContent>{done(input)}</MarkerContent>
+			</Marker>
+		);
+	}
 
 	return (
-		<>
-			{toolCalls.map((tc) => {
-				const { icon, running, done } = display(tc.name);
-				const input = callInput(tc);
-				return isStreaming && tc.output === undefined ? (
-					<ActivityMarker key={tc.id} label={running(input)} />
-				) : (
-					<MessageStep key={tc.id} icon={icon} title={done(input)}>
-						<Textarea
-							readOnly
-							className="max-h-56 border-t whitespace-pre-wrap wrap-break-word px-3 py-2.5 font-mono leading-relaxed text-muted-foreground"
-							value={outputText(tc.output)}
-						/>
-					</MessageStep>
-				);
-			})}
-		</>
+		<div className="flex flex-col gap-1.5">
+			<Marker render={<button type="button" onClick={() => setOpen(!open)} />}>
+				<MarkerIcon>
+					<Icon />
+				</MarkerIcon>
+				<MarkerContent className="flex items-center gap-1 hover:text-foreground">
+					{done(input)}
+					<ChevronRightIcon
+						className="size-3 transition-transform data-[open=true]:rotate-90"
+						data-open={open}
+					/>
+				</MarkerContent>
+			</Marker>
+			{open && (
+				<pre className="ml-2 max-h-56 overflow-y-auto border-l pl-3 whitespace-pre-wrap wrap-break-word font-mono text-xs leading-relaxed text-muted-foreground">
+					{output}
+				</pre>
+			)}
+		</div>
 	);
 }

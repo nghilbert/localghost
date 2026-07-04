@@ -1,23 +1,31 @@
+import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { Marker, MarkerContent, MarkerIcon } from "#/components/ui/marker";
 import { Spinner } from "#/components/ui/spinner";
 import { useElapsedSeconds } from "#/features/chat/hooks/use-elapsed-seconds";
 
+type ActivityMarkerProps = {
+	label: ReactNode;
+	/** Leading icon; defaults to a spinner. */
+	icon?: LucideIcon;
+	/** Frozen duration for a finished step; omit to tick live from mount. */
+	seconds?: number;
+};
+
 /**
- * The chat's single "work in progress" row: a spinner, a label, and an elapsed
- * timer that starts when the marker mounts. Mount it only while the activity is
- * actually running.
+ * A live "work in progress" row of the train of thought: an icon, a shimmering
+ * label, and an elapsed timer. With no `seconds` it ticks from mount, so mount
+ * it only while the activity is actually running.
  */
-export function ActivityMarker({ label }: { label: ReactNode }) {
-	const seconds = useElapsedSeconds(true);
+export function ActivityMarker({ label, icon: Icon, seconds }: ActivityMarkerProps) {
+	const ticking = useElapsedSeconds(seconds === undefined);
+	const elapsed = seconds ?? ticking;
 	return (
 		<Marker role="status">
-			<MarkerIcon>
-				<Spinner />
-			</MarkerIcon>
-			<MarkerContent>
+			<MarkerIcon>{Icon ? <Icon /> : <Spinner />}</MarkerIcon>
+			<MarkerContent className="shimmer">
 				{label}
-				{seconds ? <span className="tabular-nums opacity-70"> · {seconds}s</span> : null}
+				{elapsed ? <span className="tabular-nums opacity-70"> · {elapsed}s</span> : null}
 			</MarkerContent>
 		</Marker>
 	);

@@ -1,15 +1,13 @@
 import type { ChatClientState, UIMessage } from "@tanstack/ai-client";
-import { useQuery } from "@tanstack/react-query";
 import { RefreshCwIcon, TriangleAlertIcon } from "lucide-react";
 import { Alert, AlertAction, AlertDescription, AlertTitle } from "#/components/ui/alert";
 import { Button } from "#/components/ui/button";
 import { ActivityMarker } from "#/features/chat/components/ActivityMarker";
-import { modelRunStateQueryOptions } from "#/features/chat/lib/conversation.functions";
 
 type ChatStatusProps = {
-	conversationId: string;
 	status: ChatClientState;
 	messages: Array<UIMessage>;
+	warming: boolean;
 	error: Error | undefined;
 	onRetry: () => void;
 };
@@ -32,32 +30,17 @@ function humanizeError(message: string): { title: string; description: string } 
 	return { title: "Something went wrong", description: message };
 }
 
-/** Whether the last message is an assistant reply with anything on screen yet. */
-function hasVisibleOutput(messages: Array<UIMessage>): boolean {
-	const last = messages.at(-1);
-	if (last?.role !== "assistant") return false;
-	return last.parts.some(
-		(part) =>
-			((part.type === "text" || part.type === "thinking") && part.content.length > 0) ||
-			part.type === "tool-call",
-	);
-}
-
 /**
- * Transient status row: a recoverable error alert, or an activity marker from
- * response request until first visible output. While pending, Ollama is polled
- * for whether the model is loaded, so a cold start reads "Warming up".
+ * Trailing status slot: the pending head shown before the assistant message
+ * exists (the in-message trail takes over once it does), or a recoverable error
+ * alert. `warming` reads "Warming up" on a cold local-model start.
  */
-export function ChatStatus({ conversationId, status, messages, error, onRetry }: ChatStatusProps) {
-	const pending = status === "submitted" || (status === "streaming" && !hasVisibleOutput(messages));
-	const { data: runState } = useQuery({
-		...modelRunStateQueryOptions(conversationId),
-		enabled: pending,
-		refetchInterval: 2_000,
-	});
+export function ChatStatus({ status, messages, warming, error, onRetry }: ChatStatusProps) {
+	const awaiting =
+		(status === "submitted" || status === "streaming") && messages.at(-1)?.role !== "assistant";
 
-	if (pending) {
-		return <ActivityMarker label={runState === "warming" ? "Warming up the model" : "Thinking"} />;
+	if (awaiting) {
+		return <ActivityMarker label={warming ? "Warming up the model" : "Thinking"} />;
 	}
 
 	if (status === "error") {
