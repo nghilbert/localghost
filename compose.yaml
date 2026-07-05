@@ -1,6 +1,7 @@
 # Shared config for the prod (web) and dev (web-dev) app services. They are
 # mutually exclusive on port 3000; COMPOSE_PROFILES picks one.
 x-app: &app
+  init: true
   ports:
     - "3000:3000"
   environment: &app-env
@@ -56,7 +57,6 @@ services:
       - /app/node_modules # anonymous volume: keep the image's deps, don't shadow with host's
     environment:
       <<: *app-env
-      CHOKIDAR_USEPOLLING: "true"  # reliable file watching over the bind mount
 
   # Bundled keyless web search, reachable by the app at http://searxng:8080.
   # ./searxng/settings.yml enables the JSON API and disables the limiter (neither
