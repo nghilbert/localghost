@@ -19,7 +19,7 @@ import { Skeleton } from "#/components/ui/skeleton";
 import { HardwareCard } from "#/features/library/components/HardwareCard";
 import { ModelTable } from "#/features/library/components/ModelTable";
 import { OllamaSetupCard } from "#/features/library/components/OllamaSetupCard";
-import { RecommendedModels } from "#/features/library/components/RecommendedModels";
+import { RecommendedModel } from "#/features/library/components/RecommendedModel";
 import { RemoteOllamaForm } from "#/features/library/components/RemoteOllamaForm";
 import { useModelPull } from "#/features/library/hooks/use-model-pull";
 import { useOllama } from "#/features/library/hooks/use-ollama";
@@ -99,9 +99,8 @@ export function LibraryPage() {
 								<Skeleton className="h-72 w-full" />
 							) : (
 								<>
-									<RecommendedModels
+									<RecommendedModel
 										catalog={catalog}
-										hardware={hardware}
 										installedModels={ollamaStatus.installedModels}
 										pulling={pulling}
 										onPull={handlePull}
@@ -110,7 +109,6 @@ export function LibraryPage() {
 									/>
 									<ModelTable
 										catalog={catalog}
-										hardware={hardware}
 										installedModels={ollamaStatus.installedModels}
 										pulling={pulling}
 										onPull={handlePull}

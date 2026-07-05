@@ -10,7 +10,6 @@ import {
 import { buildModelRows } from "#/features/library/lib/model-rows";
 import type {
 	CatalogModel,
-	HardwareInfo,
 	OllamaInstalledModel,
 	PullProgress,
 } from "#/features/library/lib/types";
@@ -18,7 +17,6 @@ import { cn } from "#/lib/utils";
 
 type ModelTableProps = {
 	catalog: CatalogModel[];
-	hardware: HardwareInfo | undefined;
 	installedModels: OllamaInstalledModel[];
 	pulling: Record<string, PullProgress>;
 	onPull: (model: string) => void;
@@ -31,7 +29,6 @@ type ModelTableProps = {
 /** The Library's model table: catalog, installed, and in-flight rows in one place. */
 export function ModelTable({
 	catalog,
-	hardware,
 	installedModels,
 	pulling,
 	onPull,
@@ -44,8 +41,8 @@ export function ModelTable({
 	const [statusFilter, setStatusFilter] = useState<ModelStatusFilter>("all");
 
 	const rows = useMemo(
-		() => buildModelRows({ catalog, installedModels, pulling, hardware }),
-		[catalog, installedModels, pulling, hardware],
+		() => buildModelRows({ catalog, installedModels, pulling }),
+		[catalog, installedModels, pulling],
 	);
 
 	const filteredRows = useMemo(() => {
@@ -55,9 +52,8 @@ export function ModelTable({
 	}, [rows, statusFilter]);
 
 	const columns = useMemo(
-		() =>
-			createModelColumns({ hasHardware: Boolean(hardware), onPull, onStop, onDismiss, onDelete }),
-		[hardware, onPull, onStop, onDismiss, onDelete],
+		() => createModelColumns({ onPull, onStop, onDismiss, onDelete }),
+		[onPull, onStop, onDismiss, onDelete],
 	);
 
 	return (
@@ -65,7 +61,7 @@ export function ModelTable({
 			columns={columns}
 			data={filteredRows}
 			emptyMessage="No models found."
-			initialSorting={[{ id: "fit", desc: true }]}
+			initialSorting={[{ id: "updated", desc: true }]}
 			initialColumnVisibility={initialColumnVisibility}
 			pageSize={25}
 			globalFilter={globalFilter}

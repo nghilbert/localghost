@@ -1,8 +1,5 @@
-import { computeFit } from "#/features/library/lib/catalog";
 import type {
 	CatalogModel,
-	FitScore,
-	HardwareInfo,
 	OllamaInstalledModel,
 	PullProgress,
 } from "#/features/library/lib/types";
@@ -11,7 +8,6 @@ export type ModelRow = {
 	id: string;
 	name: string;
 	catalog: CatalogModel | null;
-	fit: FitScore | null;
 	installed: OllamaInstalledModel | null;
 	pullState: PullProgress | undefined;
 };
@@ -30,12 +26,10 @@ export function buildModelRows({
 	catalog,
 	installedModels,
 	pulling,
-	hardware,
 }: {
 	catalog: CatalogModel[];
 	installedModels: OllamaInstalledModel[];
 	pulling: Record<string, PullProgress>;
-	hardware: HardwareInfo | undefined;
 }): ModelRow[] {
 	const catalogById = new Map(catalog.map((model) => [normalizeId(model.id), model]));
 	const installedById = new Map(installedModels.map((m) => [normalizeId(m.name), m]));
@@ -48,12 +42,10 @@ export function buildModelRows({
 
 	return [...ids].map((id) => {
 		const model = catalogById.get(id) ?? null;
-		const fit = model && hardware ? computeFit({ model, hw: hardware }) : null;
 		return {
 			id,
 			name: model?.name ?? id,
 			catalog: model,
-			fit,
 			installed: installedById.get(id) ?? null,
 			pullState: pulling[id],
 		};

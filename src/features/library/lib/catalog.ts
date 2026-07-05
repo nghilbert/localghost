@@ -1,4 +1,4 @@
-import type { CatalogModel, FitScore, HardwareInfo, ModelTagInfo } from "./types";
+import type { CatalogModel, ModelTagInfo } from "./types";
 
 /**
  * Parses billions of parameters from an Ollama size tag. Handles plain sizes
@@ -110,61 +110,4 @@ export function deriveTags({
 	if (paramB !== null && paramB <= 3) tags.push("fast");
 	if (/cod(e|er)/i.test(`${name} ${description}`)) tags.push("code");
 	return tags;
-}
-
-/**
- * Scores how a model runs on the detected hardware. Mirrors Ollama's layering:
- * fully in VRAM, split across VRAM and RAM (`gpu-partial`), or CPU-only.
- * Null when the model has no known size or parameter count.
- */
-export function computeFit({
-	model,
-	hw,
-}: {
-	model: Pick<CatalogModel, "sizeGb" | "paramB">;
-	hw: HardwareInfo;
-}): FitScore | null {
-	const requiredGb = requiredMemoryGb(model);
-	if (requiredGb === null) return null;
-
-	const bestGpu = hw.gpus?.reduce<NonNullable<typeof hw.gpus>[number] | null>(
-		(best, g) => (g.totalVramMb > (best?.totalVramMb ?? 0) ? g : best),
-		null,
-	);
-	const usableRamGb = hw.totalRamGb - 2;
-	const cpuHeadroomGb = round1(usableRamGb - requiredGb);
-
-	if (bestGpu) {
-		const vramGb = bestGpu.totalVramMb / 1024;
-		if (requiredGb <= vramGb) {
-			const gpuHeadroomPct = Math.round(((vramGb - requiredGb) / vramGb) * 100);
-			const tier = gpuHeadroomPct >= 20 ? "gpu-optimal" : "gpu-tight";
-			const overall =
-				tier === "gpu-optimal"
-					? 90 + Math.min(10, Math.round(gpuHeadroomPct / 10))
-					: 75 + Math.round(gpuHeadroomPct * 0.75);
-			return { tier, gpuHeadroomPct, cpuHeadroomGb, overall };
-		}
-		if (requiredGb <= vramGb + usableRamGb) {
-			// Scored by the fraction of the model living in VRAM: more offload, faster.
-			const overall = Math.round(45 + 25 * (vramGb / requiredGb));
-			return { tier: "gpu-partial", gpuHeadroomPct: null, cpuHeadroomGb, overall };
-		}
-		return tooLarge(cpuHeadroomGb);
-	}
-
-	if (requiredGb <= usableRamGb) {
-		const overall = Math.round(40 + Math.min(30, cpuHeadroomGb * 2));
-		return { tier: "cpu-only", gpuHeadroomPct: null, cpuHeadroomGb, overall };
-	}
-	return tooLarge(cpuHeadroomGb);
-}
-
-function tooLarge(cpuHeadroomGb: number): FitScore {
-	return {
-		tier: "too-large",
-		gpuHeadroomPct: null,
-		cpuHeadroomGb,
-		overall: Math.max(0, Math.round(20 + cpuHeadroomGb * 2)),
-	};
 }

@@ -1,10 +1,8 @@
 import { CheckCircle2Icon } from "lucide-react";
 import { Badge } from "#/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "#/components/ui/tooltip";
-import { FitBadge } from "#/features/library/components/ModelTable/FitBadge";
 import { formatBytes } from "#/features/library/lib/format";
 import type { ModelRow } from "#/features/library/lib/model-rows";
-import type { FitScore } from "#/features/library/lib/types";
 
 /** Em-dash placeholder shown when a cell has no value. */
 export function EmptyCell() {
@@ -73,11 +71,6 @@ export function SizeCell({ row }: { row: ModelRow }) {
 			: null;
 	if (!label) return <EmptyCell />;
 	return <span className="text-xs tabular-nums text-muted-foreground">{label}</span>;
-}
-
-export function FitCell({ fit, hasHardware }: { fit: FitScore | null; hasHardware: boolean }) {
-	if (!hasHardware || !fit) return <EmptyCell />;
-	return <FitBadge tier={fit.tier} overall={fit.overall} />;
 }
 
 export function TextCell({ value }: { value: string | undefined }) {

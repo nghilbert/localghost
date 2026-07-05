@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-	computeFit,
 	deriveTags,
 	enrichCatalogModel,
 	parseParamB,
@@ -8,7 +7,7 @@ import {
 	requiredMemoryGb,
 } from "#/features/library/lib/catalog";
 import type { ModelTagInfo } from "#/features/library/lib/types";
-import { makeHardware as hw, makeGpu, makeCatalogModel as model } from "#/test/factories";
+import { makeCatalogModel as model } from "#/test/factories";
 
 describe("parseParamB", () => {
 	it("parses billion-scale tags", () => {
@@ -135,134 +134,5 @@ describe("enrichCatalogModel", () => {
 	it("returns the model unchanged when its tag is missing from the page", () => {
 		const original = model({ id: "llama3.1:70b", name: "llama3.1", paramB: 70 });
 		expect(enrichCatalogModel({ model: original, tags })).toBe(original);
-	});
-});
-
-const gpu = (totalVramMb: number) => makeGpu({ totalVramMb });
-
-describe("computeFit", () => {
-	it("returns null when the model has no size or parameter count", () => {
-		const result = computeFit({
-			model: model({ sizeGb: null, paramB: null }),
-			hw: hw({ gpus: [gpu(8192)] }),
-		});
-		expect(result).toBeNull();
-	});
-
-	describe("GPU path", () => {
-		it("returns gpu-optimal when VRAM headroom is ≥20%", () => {
-			// sizeGb 4 → required 5.6; 16GB GPU → headroom 65%
-			const result = computeFit({ model: model({ sizeGb: 4 }), hw: hw({ gpus: [gpu(16384)] }) });
-			expect(result?.tier).toBe("gpu-optimal");
-			expect(result?.gpuHeadroomPct).toBe(65);
-			expect(result?.overall).toBeGreaterThanOrEqual(90);
-		});
-
-		it("returns gpu-tight when VRAM headroom is <20%", () => {
-			// sizeGb 6 → required 7.9; 8GB GPU → headroom ≈1%
-			const result = computeFit({ model: model({ sizeGb: 6 }), hw: hw({ gpus: [gpu(8192)] }) });
-			expect(result?.tier).toBe("gpu-tight");
-			expect(result?.gpuHeadroomPct).toBeLessThan(20);
-			expect(result?.overall).toBeGreaterThanOrEqual(75);
-			expect(result?.overall).toBeLessThan(90);
-		});
-
-		it("gpu-optimal at exactly 20% headroom", () => {
-			// sizeGb 6 → required 7.9; 9.875GB (10112MB) GPU → headroom exactly 20%
-			const result = computeFit({ model: model({ sizeGb: 6 }), hw: hw({ gpus: [gpu(10112)] }) });
-			expect(result?.gpuHeadroomPct).toBe(20);
-			expect(result?.tier).toBe("gpu-optimal");
-		});
-
-		it("picks the best GPU when multiple are present", () => {
-			const gpus = [gpu(2048), gpu(16384), gpu(4096)];
-			const result = computeFit({ model: model({ sizeGb: 4 }), hw: hw({ gpus }) });
-			expect(result?.tier).toBe("gpu-optimal");
-			expect(result?.gpuHeadroomPct).toBe(65);
-		});
-
-		it("returns gpu-partial when the model spills from VRAM into RAM", () => {
-			// sizeGb 12 → required 14.8; 8GB GPU + 30GB usable RAM
-			const result = computeFit({
-				model: model({ sizeGb: 12 }),
-				hw: hw({ gpus: [gpu(8192)], totalRamGb: 32 }),
-			});
-			expect(result?.tier).toBe("gpu-partial");
-			expect(result?.gpuHeadroomPct).toBeNull();
-			expect(result?.overall).toBeGreaterThanOrEqual(45);
-			expect(result?.overall).toBeLessThan(75);
-		});
-
-		it("returns too-large when even VRAM plus RAM cannot hold the model", () => {
-			// sizeGb 40 → required 47; 8GB GPU + 14GB usable RAM = 22GB
-			const result = computeFit({
-				model: model({ sizeGb: 40 }),
-				hw: hw({ gpus: [gpu(8192)], totalRamGb: 16 }),
-			});
-			expect(result?.tier).toBe("too-large");
-			expect(result?.overall).toBe(0);
-		});
-	});
-
-	describe("CPU path", () => {
-		it("returns cpu-only when no GPU and RAM is sufficient", () => {
-			// sizeGb 8 → required 10.2; usable RAM 30 → headroom 19.8
-			const result = computeFit({
-				model: model({ sizeGb: 8 }),
-				hw: hw({ gpus: null, totalRamGb: 32 }),
-			});
-			expect(result?.tier).toBe("cpu-only");
-			expect(result?.cpuHeadroomGb).toBeCloseTo(19.8);
-			expect(result?.overall).toBeGreaterThanOrEqual(40);
-			expect(result?.overall).toBeLessThanOrEqual(70);
-		});
-
-		it("returns too-large when RAM is insufficient", () => {
-			// sizeGb 30 → required 35.5; usable RAM 14
-			const result = computeFit({
-				model: model({ sizeGb: 30 }),
-				hw: hw({ gpus: null, totalRamGb: 16 }),
-			});
-			expect(result?.tier).toBe("too-large");
-			expect(result?.overall).toBe(0);
-		});
-
-		it("cpu-only when required memory exactly equals usable RAM", () => {
-			// sizeGb 20 → required 24; totalRamGb 26 → usable 24
-			const result = computeFit({
-				model: model({ sizeGb: 20 }),
-				hw: hw({ gpus: null, totalRamGb: 26 }),
-			});
-			expect(result?.tier).toBe("cpu-only");
-			expect(result?.cpuHeadroomGb).toBe(0);
-		});
-	});
-
-	describe("scoring", () => {
-		it("estimates from paramB when no real size is known", () => {
-			// paramB 8 → required 6.5; 16GB GPU → optimal
-			const result = computeFit({
-				model: model({ paramB: 8, sizeGb: null }),
-				hw: hw({ gpus: [gpu(16384)] }),
-			});
-			expect(result?.tier).toBe("gpu-optimal");
-		});
-
-		it("overall is 90-100 for gpu-optimal and rounds to integer", () => {
-			const result = computeFit({ model: model({ sizeGb: 1 }), hw: hw({ gpus: [gpu(16384)] }) });
-			expect(result?.tier).toBe("gpu-optimal");
-			expect(result?.overall).toBeGreaterThanOrEqual(90);
-			expect(result?.overall).toBeLessThanOrEqual(100);
-			expect(result?.overall).toBe(Math.round(result?.overall ?? 0));
-		});
-
-		it("ranks tiers by score: optimal > partial > too-large", () => {
-			const machine = hw({ gpus: [gpu(8192)], totalRamGb: 32 });
-			const optimal = computeFit({ model: model({ sizeGb: 4 }), hw: machine });
-			const partial = computeFit({ model: model({ sizeGb: 12 }), hw: machine });
-			const tooLarge = computeFit({ model: model({ sizeGb: 80 }), hw: machine });
-			expect(optimal?.overall ?? 0).toBeGreaterThan(partial?.overall ?? 0);
-			expect(partial?.overall ?? 0).toBeGreaterThan(tooLarge?.overall ?? 0);
-		});
 	});
 });

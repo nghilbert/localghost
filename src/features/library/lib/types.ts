@@ -66,15 +66,6 @@ export type ModelTagInfo = {
 	contextK: number | null;
 };
 
-export type FitTier = "gpu-optimal" | "gpu-tight" | "gpu-partial" | "cpu-only" | "too-large";
-
-export type FitScore = {
-	tier: FitTier;
-	gpuHeadroomPct: number | null;
-	cpuHeadroomGb: number;
-	overall: number;
-};
-
 export type PullProgress = {
 	status: string;
 	completed?: number;

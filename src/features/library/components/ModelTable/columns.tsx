@@ -1,7 +1,6 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import { DataTableColumnHeader } from "#/components/DataTable/DataTableColumnHeader";
 import {
-	FitCell,
 	MemoryCell,
 	ModelIdentityCell,
 	ParamsCell,
@@ -13,7 +12,6 @@ import { parsePullCount, requiredMemoryGb } from "#/features/library/lib/catalog
 import type { ModelRow } from "#/features/library/lib/model-rows";
 
 type ModelColumnOptions = {
-	hasHardware: boolean;
 	onPull: (model: string) => void;
 	onStop: (model: string) => void;
 	onDismiss: (model: string) => void;
@@ -28,7 +26,6 @@ export const MODEL_COLUMN_LABELS: Record<string, string> = {
 	size: "Size",
 	pulls: "Pulls",
 	updated: "Updated",
-	fit: "Fit",
 };
 
 /** `null`/`undefined` sort last regardless of direction. */
@@ -37,7 +34,6 @@ function nullableNumber(value: number | null | undefined): number {
 }
 
 export function createModelColumns({
-	hasHardware,
 	onPull,
 	onStop,
 	onDismiss,
@@ -84,12 +80,6 @@ export function createModelColumns({
 			accessorFn: (row) => row.catalog?.updatedAt ?? "",
 			header: ({ column }) => <DataTableColumnHeader column={column} title="Updated" />,
 			cell: ({ row }) => <TextCell value={row.original.catalog?.updated} />,
-		},
-		{
-			id: "fit",
-			accessorFn: (row) => nullableNumber(row.fit?.overall),
-			header: ({ column }) => <DataTableColumnHeader column={column} title="Fit" />,
-			cell: ({ row }) => <FitCell fit={row.original.fit} hasHardware={hasHardware} />,
 		},
 		{
 			id: "actions",
