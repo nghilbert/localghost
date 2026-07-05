@@ -41,6 +41,7 @@ export function ChatRenameForm({ conversation, onDone }: ChatRenameFormProps) {
 					<Input
 						ref={inputRef}
 						aria-label="Chat title"
+						data-testid="chat-rename-input"
 						className="h-7"
 						value={field.state.value}
 						onChange={(event) => field.handleChange(event.target.value)}

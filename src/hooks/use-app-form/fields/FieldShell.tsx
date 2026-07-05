@@ -28,7 +28,11 @@ export function FieldShell({
 	const field = useFieldContext();
 
 	return (
-		<Field orientation={orientation} data-invalid={!field.state.meta.isValid}>
+		<Field
+			orientation={orientation}
+			data-invalid={!field.state.meta.isValid}
+			data-testid={`field-${field.name}`}
+		>
 			<FieldContent>
 				<FieldLabel htmlFor={field.name}>{label}</FieldLabel>
 				{description && <FieldDescription>{description}</FieldDescription>}

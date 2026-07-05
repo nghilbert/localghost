@@ -95,15 +95,20 @@ export function DataTable<TData>({
 								<TableCell
 									colSpan={table.getVisibleFlatColumns().length}
 									className="h-24 text-center text-sm text-muted-foreground"
+									data-testid="data-table-empty"
 								>
 									{emptyMessage}
 								</TableCell>
 							</TableRow>
 						) : (
 							table.getRowModel().rows.map((row) => (
-								<TableRow key={row.id} className={getRowClassName?.(row.original)}>
+								<TableRow
+									key={row.id}
+									data-testid="data-table-row"
+									className={getRowClassName?.(row.original)}
+								>
 									{row.getVisibleCells().map((cell) => (
-										<TableCell key={cell.id} className="py-2">
+										<TableCell key={cell.id} className="py-2" data-testid="data-table-cell">
 											{flexRender(cell.column.columnDef.cell, cell.getContext())}
 										</TableCell>
 									))}

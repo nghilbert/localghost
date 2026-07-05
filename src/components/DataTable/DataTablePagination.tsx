@@ -25,6 +25,7 @@ export function DataTablePagination<TData>({ table }: DataTablePaginationProps<T
 			<PaginationContent>
 				<PaginationItem>
 					<PaginationPrevious
+						data-testid="data-table-prev-page"
 						onClick={() => table.previousPage()}
 						aria-disabled={!table.getCanPreviousPage()}
 						className={!table.getCanPreviousPage() ? "pointer-events-none opacity-50" : undefined}
@@ -32,6 +33,7 @@ export function DataTablePagination<TData>({ table }: DataTablePaginationProps<T
 				</PaginationItem>
 				<PaginationItem>
 					<PaginationNext
+						data-testid="data-table-next-page"
 						onClick={() => table.nextPage()}
 						aria-disabled={!table.getCanNextPage()}
 						className={!table.getCanNextPage() ? "pointer-events-none opacity-50" : undefined}

@@ -9,6 +9,7 @@ import {
 import { Separator } from "#/components/ui/separator";
 import { Spinner } from "#/components/ui/spinner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "#/components/ui/tooltip";
+import { LockedModel } from "#/features/chat/components/ChatInput/LockedModel";
 import { ModelPicker } from "#/features/chat/components/ChatInput/ModelPicker";
 import { type ToolControls, ToolsMenu } from "#/features/chat/components/ChatInput/ToolsMenu";
 import type { ModelSelection } from "#/features/endpoints/lib/types";
@@ -82,7 +83,11 @@ export function ChatInput({
 			/>
 			<Separator />
 			<InputGroupAddon align="block-end" className="p-2">
-				<ModelPicker selection={selection} onSelect={onSelect} locked={locked} />
+				{locked ? (
+					<LockedModel selection={selection} />
+				) : (
+					<ModelPicker selection={selection} onSelect={onSelect} />
+				)}
 				{tools && <ToolsMenu {...tools} />}
 				{/* aria-disabled keeps pointer events, so the button is its own tooltip trigger. */}
 				<Tooltip>

@@ -24,7 +24,7 @@ export function ChatMessage({ message, isStreaming, warming, onRegenerate }: Cha
 
 	if (message.role === "user") {
 		return (
-			<Message align="end" role="article" aria-label="Your message">
+			<Message align="end" role="article" aria-label="Your message" data-testid="chat-message">
 				<MessageContent>
 					<Bubble variant="default">
 						<BubbleContent>
@@ -41,7 +41,7 @@ export function ChatMessage({ message, isStreaming, warming, onRegenerate }: Cha
 	const strandedTool = !isStreaming && content ? strandedToolCall(content) : null;
 
 	return (
-		<Message role="article" aria-label="Assistant message">
+		<Message role="article" aria-label="Assistant message" data-testid="chat-message">
 			<MessageContent>
 				<ActivityTrail message={message} isStreaming={isStreaming} warming={warming} />
 
@@ -82,6 +82,7 @@ export function ChatMessage({ message, isStreaming, warming, onRegenerate }: Cha
 										variant="ghost"
 										size="icon-sm"
 										aria-label="Copy message"
+										data-testid="copy-message-button"
 										onClick={() => {
 											navigator.clipboard
 												.writeText(content)
@@ -103,6 +104,7 @@ export function ChatMessage({ message, isStreaming, warming, onRegenerate }: Cha
 											variant="ghost"
 											size="icon-sm"
 											aria-label="Regenerate response"
+											data-testid="regenerate-button"
 											onClick={onRegenerate}
 										/>
 									}

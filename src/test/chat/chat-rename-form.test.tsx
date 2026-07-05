@@ -19,7 +19,7 @@ describe("ChatRenameForm", () => {
 		const onDone = vi.fn();
 		render(<ChatRenameForm conversation={conversation} onDone={onDone} />);
 
-		const input = screen.getByLabelText("Chat title");
+		const input = screen.getByTestId("chat-rename-input");
 		await user.clear(input);
 		await user.type(input, "New title{Enter}");
 
@@ -32,7 +32,7 @@ describe("ChatRenameForm", () => {
 		const onDone = vi.fn();
 		render(<ChatRenameForm conversation={conversation} onDone={onDone} />);
 
-		await user.type(screen.getByLabelText("Chat title"), "{Enter}");
+		await user.type(screen.getByTestId("chat-rename-input"), "{Enter}");
 
 		expect(mutate).not.toHaveBeenCalled();
 		expect(onDone).toHaveBeenCalled();
@@ -43,7 +43,7 @@ describe("ChatRenameForm", () => {
 		const onDone = vi.fn();
 		render(<ChatRenameForm conversation={conversation} onDone={onDone} />);
 
-		await user.type(screen.getByLabelText("Chat title"), " changed{Escape}");
+		await user.type(screen.getByTestId("chat-rename-input"), " changed{Escape}");
 
 		expect(mutate).not.toHaveBeenCalled();
 		expect(onDone).toHaveBeenCalled();

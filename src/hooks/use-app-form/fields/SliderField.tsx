@@ -16,6 +16,7 @@ export function SliderField({
 	return (
 		<FieldShell label={label} description={description} orientation={fieldOrientation}>
 			<Slider
+				data-testid={`${field.name}-slider`}
 				value={[field.state.value]}
 				onValueChange={(value) => {
 					if (typeof value === "number") field.handleChange(value);

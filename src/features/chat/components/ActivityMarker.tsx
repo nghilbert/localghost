@@ -21,7 +21,7 @@ export function ActivityMarker({ label, icon: Icon, seconds }: ActivityMarkerPro
 	const ticking = useElapsedSeconds(seconds === undefined);
 	const elapsed = seconds ?? ticking;
 	return (
-		<Marker role="status">
+		<Marker role="status" data-testid="activity-marker-status">
 			<MarkerIcon>{Icon ? <Icon /> : <Spinner />}</MarkerIcon>
 			<MarkerContent className="shimmer">
 				{label}

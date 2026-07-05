@@ -1,5 +1,7 @@
+import { code } from "@streamdown/code";
 import { ChevronRightIcon } from "lucide-react";
 import { useState } from "react";
+import { Streamdown } from "streamdown";
 import { Marker, MarkerContent } from "#/components/ui/marker";
 import { ActivityMarker } from "#/features/chat/components/ActivityMarker";
 import { useStepDuration } from "#/features/chat/hooks/use-step-duration";
@@ -32,6 +34,7 @@ export function ReasoningStep({ content, isThinking }: ReasoningStepProps) {
 			) : (
 				<Marker
 					variant="separator"
+					data-testid="activity-trail-marker"
 					render={<button type="button" onClick={() => setOpenOverride(!open)} />}
 				>
 					<MarkerContent className="flex items-center gap-1 hover:text-foreground">
@@ -44,9 +47,14 @@ export function ReasoningStep({ content, isThinking }: ReasoningStepProps) {
 				</Marker>
 			)}
 			{open && content && (
-				<div className="ml-2 border-l pl-3 whitespace-pre-wrap text-xs leading-relaxed text-muted-foreground">
+				<Streamdown
+					plugins={{ code }}
+					linkSafety={{ enabled: false }}
+					isAnimating={isThinking}
+					className="ml-2 border-l pl-3 text-xs leading-relaxed text-muted-foreground"
+				>
 					{content}
-				</div>
+				</Streamdown>
 			)}
 		</div>
 	);

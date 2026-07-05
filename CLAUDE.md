@@ -85,6 +85,15 @@ src/features/<name>/
 - Tests live in `src/test/<area>/`, run with `npm run test -- run`. See the "Test complex work"
   rule above for when and how.
 
+## Testing
+
+Vitest + Testing Library. Patterns (see the "Test complex work" rule for _when_):
+
+- **Test our seams, not our dependencies.** Target logic we wrote (wiring, input parsing, transforms, registries, merge/normalize); never assert a dependency's own behavior. Litmus: if it would still pass with our code deleted, it tests the library.
+- **Extract pure logic, test it plain** (inline inputs, no `render`, no DB): `mergeUserSettings` in `backup.ts`. Beats fighting a library or portal in jsdom.
+- **When you must render, query by `data-testid`** (kebab-case, component-scoped, e.g. `model-picker-trigger`), not role/label/text/`className`. The `test-check` hook flags violations. Exception: an element a library renders that won't forward a testid (Streamdown output, a Base UI Slider thumb). The field/DataTable/ModelPicker tests are the reference.
+- **Derive minimal inputs inline; never commit recorded fixtures.**
+
 ## Feature Map
 
 | Area | Key files |

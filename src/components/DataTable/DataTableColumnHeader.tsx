@@ -20,6 +20,7 @@ export function DataTableColumnHeader<TData, TValue>({
 			variant="ghost"
 			size="sm"
 			className="-ml-2 h-auto gap-1 px-2 py-1 text-xs font-normal text-muted-foreground hover:text-foreground"
+			data-testid={`data-table-sort-${column.id}`}
 			onClick={() => column.toggleSorting(isSorted === "asc")}
 		>
 			{title}

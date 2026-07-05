@@ -30,7 +30,11 @@ export function ToggleGroupField({
 				{...props}
 			>
 				{options.map((option) => (
-					<ToggleGroupItem key={option.value} value={option.value}>
+					<ToggleGroupItem
+						key={option.value}
+						value={option.value}
+						data-testid={`${field.name}-option-${option.value}`}
+					>
 						{option.icon && <option.icon />}
 						{option.label}
 					</ToggleGroupItem>

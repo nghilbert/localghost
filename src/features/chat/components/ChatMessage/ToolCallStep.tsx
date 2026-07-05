@@ -132,7 +132,7 @@ export function ToolCallStep({ toolCall, isStreaming }: ToolCallStepProps) {
 	const output = outputText(toolCall.output);
 	if (!output) {
 		return (
-			<Marker>
+			<Marker data-testid="activity-trail-marker">
 				<MarkerIcon>
 					<Icon />
 				</MarkerIcon>
@@ -143,7 +143,10 @@ export function ToolCallStep({ toolCall, isStreaming }: ToolCallStepProps) {
 
 	return (
 		<div className="flex flex-col gap-1.5">
-			<Marker render={<button type="button" onClick={() => setOpen(!open)} />}>
+			<Marker
+				data-testid="activity-trail-marker"
+				render={<button type="button" onClick={() => setOpen(!open)} />}
+			>
 				<MarkerIcon>
 					<Icon />
 				</MarkerIcon>
@@ -156,7 +159,10 @@ export function ToolCallStep({ toolCall, isStreaming }: ToolCallStepProps) {
 				</MarkerContent>
 			</Marker>
 			{open && (
-				<pre className="ml-2 max-h-56 overflow-y-auto border-l pl-3 whitespace-pre-wrap wrap-break-word font-mono text-xs leading-relaxed text-muted-foreground">
+				<pre
+					data-testid="tool-call-step-output"
+					className="ml-2 max-h-56 overflow-y-auto border-l pl-3 whitespace-pre-wrap wrap-break-word font-mono text-xs leading-relaxed text-muted-foreground"
+				>
 					{output}
 				</pre>
 			)}

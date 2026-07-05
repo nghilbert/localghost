@@ -25,6 +25,7 @@ export function PasswordField({
 			<InputGroup>
 				<InputGroupInput
 					id={field.name}
+					data-testid={`${field.name}-input`}
 					value={field.state.value}
 					onBlur={field.handleBlur}
 					onChange={(event) => field.handleChange(event.target.value)}
@@ -34,7 +35,15 @@ export function PasswordField({
 				/>
 				<InputGroupAddon align="inline-end">
 					<Tooltip>
-						<TooltipTrigger render={<InputGroupButton onClick={() => setShow((prev) => !prev)} />}>
+						<TooltipTrigger
+							render={
+								<InputGroupButton
+									aria-label={show ? "Hide password" : "Show password"}
+									data-testid={`${field.name}-toggle-visibility`}
+									onClick={() => setShow((prev) => !prev)}
+								/>
+							}
+						>
 							{show ? <EyeOffIcon /> : <EyeIcon />}
 						</TooltipTrigger>
 						<TooltipContent>{show ? "Hide password" : "Show password"}</TooltipContent>

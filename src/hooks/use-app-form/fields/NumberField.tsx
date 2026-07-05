@@ -20,6 +20,7 @@ export function NumberField({
 		<FieldShell label={label} description={description} orientation={fieldOrientation}>
 			<Input
 				id={field.name}
+				data-testid={`${field.name}-input`}
 				type="number"
 				inputMode="numeric"
 				value={field.state.value ?? ""}

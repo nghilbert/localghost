@@ -15,6 +15,7 @@ export function InputField({
 		<FieldShell label={label} description={description} orientation={fieldOrientation}>
 			<Input
 				id={field.name}
+				data-testid={`${field.name}-input`}
 				value={field.state.value}
 				onBlur={field.handleBlur}
 				onChange={(event) => field.handleChange(event.target.value)}
