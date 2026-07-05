@@ -29,7 +29,7 @@ services:
     volumes:
       - pg:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-localghost}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-localghost}" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -38,7 +38,7 @@ services:
   web:
     <<: *app
     build: .
-    profiles: [prod]
+    profiles: [ prod ]
 
   # Development: serves Vite with HMR over a bind mount instead of the built
   # bundle. Mutually exclusive with web (both bind 3000); pick one via profile.
@@ -47,13 +47,13 @@ services:
     build:
       context: .
       target: dev
-    profiles: [dev]
+    profiles: [ dev ]
     ports:
       - "3000:3000"
-      - "4206:4206"  # TanStack devtools event bus; unpublished it spams ws errors in the browser
+      - "4206:4206" # TanStack devtools event bus; unpublished it spams ws errors in the browser
     volumes:
-      - .:/app             # live source for HMR
-      - /app/node_modules  # anonymous volume: keep the image's deps, don't shadow with host's
+      - .:/app # live source for HMR
+      - /app/node_modules # anonymous volume: keep the image's deps, don't shadow with host's
     environment:
       <<: *app-env
       CHOKIDAR_USEPOLLING: "true"  # reliable file watching over the bind mount
@@ -71,8 +71,7 @@ services:
       SEARXNG_BASE_URL: http://localhost:8080/
       FORCE_OWNERSHIP: "false"
     healthcheck:
-      test:
-        ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/healthz')"]
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/healthz')" ]
       interval: 10s
       timeout: 5s
       retries: 6
@@ -85,7 +84,7 @@ services:
   # so omitting it falls back to a host-native Ollama.
   ollama:
     image: ollama/ollama
-    profiles: [ollama]
+    profiles: [ ollama ]
     volumes:
       - ollama:/root/.ollama
     restart: unless-stopped
