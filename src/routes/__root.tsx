@@ -11,7 +11,6 @@ import {
 	Scripts,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
-import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { useEffect } from "react";
 import { Button } from "#/components/ui/button";
 import {
@@ -23,6 +22,7 @@ import {
 } from "#/components/ui/empty";
 import { Toaster } from "#/components/ui/sonner";
 import { TooltipProvider } from "#/components/ui/tooltip";
+import { ThemeProvider } from "#/contexts/ThemeContext";
 import { getAuthSession } from "#/features/auth/lib/auth.functions";
 import globalCss from "#/lib/globals.css?url";
 
@@ -53,7 +53,7 @@ function RootDocument() {
 
 			<body className="h-dvh overflow-hidden flex flex-col bg-background text-foreground">
 				<QueryClientProvider client={queryClient}>
-					<NextThemesProvider attribute="class" defaultTheme="system" disableTransitionOnChange>
+					<ThemeProvider defaultTheme="system">
 						<TooltipProvider>
 							<Outlet />
 							<Toaster richColors position="bottom-right" />
@@ -67,7 +67,7 @@ function RootDocument() {
 								eventBusConfig={{ connectToServerBus: true }}
 							/>
 						</TooltipProvider>
-					</NextThemesProvider>
+					</ThemeProvider>
 				</QueryClientProvider>
 
 				<Scripts />
