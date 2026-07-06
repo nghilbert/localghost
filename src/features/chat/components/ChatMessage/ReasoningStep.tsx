@@ -2,6 +2,7 @@ import { code } from "@streamdown/code";
 import { ChevronRightIcon } from "lucide-react";
 import { useState } from "react";
 import { Streamdown } from "streamdown";
+import { Button } from "#/components/ui/button";
 import { Marker, MarkerContent } from "#/components/ui/marker";
 import { ActivityMarker } from "#/features/chat/components/ActivityMarker";
 import { useStepDuration } from "#/features/chat/hooks/use-step-duration";
@@ -35,7 +36,7 @@ export function ReasoningStep({ content, isThinking }: ReasoningStepProps) {
 				<Marker
 					variant="separator"
 					data-testid="activity-trail-marker"
-					render={<button type="button" onClick={() => setOpenOverride(!open)} />}
+					render={<Button variant="ghost" onClick={() => setOpenOverride(!open)} />}
 				>
 					<MarkerContent className="flex items-center gap-1 hover:text-foreground">
 						{label}

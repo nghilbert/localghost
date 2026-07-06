@@ -8,6 +8,7 @@ import {
 	TerminalIcon,
 } from "lucide-react";
 import { useState } from "react";
+import { Button } from "#/components/ui/button";
 import { Marker, MarkerContent, MarkerIcon } from "#/components/ui/marker";
 import { ActivityMarker } from "#/features/chat/components/ActivityMarker";
 import { useStepDuration } from "#/features/chat/hooks/use-step-duration";
@@ -145,7 +146,7 @@ export function ToolCallStep({ toolCall, isStreaming }: ToolCallStepProps) {
 		<div className="flex flex-col gap-1.5">
 			<Marker
 				data-testid="activity-trail-marker"
-				render={<button type="button" onClick={() => setOpen(!open)} />}
+				render={<Button variant="ghost" onClick={() => setOpen(!open)} />}
 			>
 				<MarkerIcon>
 					<Icon />
