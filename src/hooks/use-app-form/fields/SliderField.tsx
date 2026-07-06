@@ -1,6 +1,6 @@
 import { Slider } from "#/components/ui/slider";
 import { cn } from "#/lib/utils";
-import { useFieldContext } from "../context";
+import { useFieldContext } from "..";
 import { FieldShell } from "./FieldShell";
 import type { ComponentFieldProps } from "./types";
 

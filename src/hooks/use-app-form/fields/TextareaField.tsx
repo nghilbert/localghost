@@ -1,5 +1,5 @@
 import { Textarea } from "#/components/ui/textarea";
-import { useFieldContext } from "../context";
+import { useFieldContext } from "..";
 import { FieldShell } from "./FieldShell";
 import type { ComponentFieldProps } from "./types";
 

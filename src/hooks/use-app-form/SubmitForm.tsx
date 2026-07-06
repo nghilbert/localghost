@@ -1,6 +1,6 @@
 import type { ComponentProps, PropsWithChildren } from "react";
 import { FieldGroup } from "#/components/ui/field";
-import { useFormContext } from "./context";
+import { useFormContext } from ".";
 
 export function SubmitForm({
 	children,

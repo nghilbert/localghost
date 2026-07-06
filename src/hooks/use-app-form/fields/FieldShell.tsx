@@ -6,7 +6,7 @@ import {
 	FieldError,
 	FieldLabel,
 } from "#/components/ui/field";
-import { useFieldContext } from "../context";
+import { useFieldContext } from "..";
 
 type FieldShellProps = PropsWithChildren<{
 	label: string;

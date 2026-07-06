@@ -1,7 +1,7 @@
 import type { ComponentProps } from "react";
 import { Button } from "#/components/ui/button";
 import { Spinner } from "#/components/ui/spinner";
-import { useFormContext } from "./context";
+import { useFormContext } from ".";
 
 export function SubmitButton({ children, ...props }: ComponentProps<typeof Button>) {
 	const { Subscribe } = useFormContext();

@@ -1,5 +1,5 @@
 import { Input } from "#/components/ui/input";
-import { useFieldContext } from "../context";
+import { useFieldContext } from "..";
 import { FieldShell } from "./FieldShell";
 import type { ComponentFieldProps } from "./types";
 
