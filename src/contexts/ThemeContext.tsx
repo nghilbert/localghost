@@ -1,4 +1,5 @@
 import { ScriptOnce } from "@tanstack/react-router";
+import { type LucideIcon, MonitorIcon, MoonIcon, SunIcon } from "lucide-react";
 import { createContext, use, useEffect, useState } from "react";
 
 type Theme = "dark" | "light" | "system";
@@ -81,4 +82,77 @@ export function useTheme() {
 	const context = use(ThemeContext);
 	if (context === undefined) throw new Error("useTheme must be used within a ThemeProvider");
 	return context;
+}
+
+export const COLOR_THEMES = [
+	"modern-minimal",
+	"clean-slate",
+	"bold-tech",
+	"elegant-luxury",
+	"mocha-mousse",
+	"amber-minimal",
+	"t3-chat",
+	"kodama-grove",
+	"northern-lights",
+	"sunset-horizon",
+	"ocean-breeze",
+	"nature",
+	"quantum-rose",
+	"midnight-bloom",
+] as const;
+
+export type ColorTheme = (typeof COLOR_THEMES)[number];
+
+export const COLOR_THEME_LABELS: Record<ColorTheme, string> = {
+	"modern-minimal": "Modern Minimal",
+	"clean-slate": "Clean Slate",
+	"bold-tech": "Bold Tech",
+	"elegant-luxury": "Elegant Luxury",
+	"mocha-mousse": "Mocha Mousse",
+	"amber-minimal": "Amber Minimal",
+	"t3-chat": "T3 Chat",
+	"kodama-grove": "Kodama Grove",
+	"northern-lights": "Northern Lights",
+	"sunset-horizon": "Sunset Horizon",
+	"ocean-breeze": "Ocean Breeze",
+	nature: "Nature",
+	"quantum-rose": "Quantum Rose",
+	"midnight-bloom": "Midnight Bloom",
+};
+
+export const MODE_OPTIONS: { label: string; value: string; ModeIcon: LucideIcon }[] = [
+	{ label: "Light", value: "light", ModeIcon: SunIcon },
+	{ label: "Dark", value: "dark", ModeIcon: MoonIcon },
+	{ label: "System", value: "system", ModeIcon: MonitorIcon },
+];
+
+export function isColorTheme(value: string | null | undefined): value is ColorTheme {
+	return COLOR_THEMES.some((t) => t === value);
+}
+
+const STORAGE_KEY = "localghost-color-theme";
+
+export function useColorTheme() {
+	const [colorTheme, setColorThemeState] = useState<ColorTheme | null>(() => {
+		if (typeof window === "undefined") return null;
+		const stored = localStorage.getItem(STORAGE_KEY);
+		return isColorTheme(stored) ? stored : null;
+	});
+
+	useEffect(() => {
+		const root = document.documentElement;
+		for (const themeName of COLOR_THEMES) root.classList.remove(`theme-${themeName}`);
+		if (colorTheme) {
+			root.classList.add(`theme-${colorTheme}`);
+			localStorage.setItem(STORAGE_KEY, colorTheme);
+		} else {
+			localStorage.removeItem(STORAGE_KEY);
+		}
+	}, [colorTheme]);
+
+	function setColorTheme(value: ColorTheme | null) {
+		setColorThemeState(value);
+	}
+
+	return { colorTheme, setColorTheme };
 }

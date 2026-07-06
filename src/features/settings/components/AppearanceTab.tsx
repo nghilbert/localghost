@@ -1,9 +1,14 @@
 import { Field, FieldDescription, FieldLabel, FieldTitle } from "#/components/ui/field";
 import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
-import { useTheme } from "#/contexts/ThemeContext";
+import {
+	COLOR_THEME_LABELS,
+	COLOR_THEMES,
+	isColorTheme,
+	MODE_OPTIONS,
+	useColorTheme,
+	useTheme,
+} from "#/contexts/ThemeContext";
 import { useAppForm } from "#/hooks/use-app-form";
-import { useColorTheme } from "#/hooks/use-color-theme";
-import { COLOR_THEME_LABELS, COLOR_THEMES, isColorTheme, MODE_OPTIONS } from "#/lib/theme";
 import { cn } from "#/lib/utils";
 
 export function AppearanceTab() {
