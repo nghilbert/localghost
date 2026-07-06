@@ -53,7 +53,7 @@ function RootDocument() {
 
 			<body className="h-dvh overflow-hidden flex flex-col bg-background text-foreground">
 				<QueryClientProvider client={queryClient}>
-					<ThemeProvider defaultTheme="system">
+					<ThemeProvider defaultMode="system">
 						<TooltipProvider>
 							<Outlet />
 							<Toaster richColors position="bottom-right" />

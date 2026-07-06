@@ -12,15 +12,15 @@ import { useAppForm } from "#/hooks/use-app-form";
 import { cn } from "#/lib/utils";
 
 export function AppearanceTab() {
-	const { theme, setTheme } = useTheme();
+	const { mode, setMode } = useTheme();
 	const { colorTheme, setColorTheme } = useColorTheme();
 
-	const form = useAppForm({ defaultValues: { mode: theme, colorTheme: colorTheme ?? "none" } });
+	const form = useAppForm({ defaultValues: { mode, colorTheme: colorTheme ?? "none" } });
 
 	return (
 		<form.AppForm>
 			<div className="space-y-6">
-				<form.AppField name="mode" listeners={{ onChange: ({ value }) => setTheme(value) }}>
+				<form.AppField name="mode" listeners={{ onChange: ({ value }) => setMode(value) }}>
 					{(field) => (
 						<field.ToggleGroupField
 							label="Mode"
