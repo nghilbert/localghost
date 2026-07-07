@@ -1,6 +1,12 @@
-import { Link } from "@tanstack/react-router";
-import { CheckIcon, ChevronDownIcon, LibraryIcon, TriangleAlertIcon } from "lucide-react";
-import { type ComponentType, Fragment, useState } from "react";
+import { Link, type LinkProps } from "@tanstack/react-router";
+import {
+	CheckIcon,
+	ChevronDownIcon,
+	LibraryIcon,
+	type LucideIcon,
+	TriangleAlertIcon,
+} from "lucide-react";
+import { Fragment, useState } from "react";
 import { Button } from "#/components/ui/button";
 import {
 	DropdownMenu,
@@ -18,12 +24,50 @@ import type { ModelSelection } from "#/features/endpoints/lib/types";
 import { cn } from "#/lib/utils";
 
 type PickerNotice = {
-	icon: ComponentType<{ className?: string }>;
+	icon: LucideIcon | typeof Spinner;
 	label: string;
 	hint: string;
-	to?: string;
-	search?: Record<string, string>;
+	link?: { to: LinkProps["to"]; search?: LinkProps["search"] };
 };
+
+/**
+ * The one row shown in place of the model list when the list can't be, in priority
+ * order. Null means models are available and the list itself should render.
+ */
+function resolvePickerNotice({
+	isLoading,
+	isError,
+	isEmpty,
+}: {
+	isLoading: boolean;
+	isError: boolean;
+	isEmpty: boolean;
+}): PickerNotice | null {
+	if (isLoading) {
+		return {
+			icon: Spinner,
+			label: "Loading models…",
+			hint: "Fetching available models",
+		};
+	}
+	if (isError) {
+		return {
+			icon: TriangleAlertIcon,
+			label: "Check provider endpoints",
+			hint: "Couldn't reach endpoint",
+			link: { to: "/settings", search: { tab: "endpoints" } },
+		};
+	}
+	if (isEmpty) {
+		return {
+			icon: LibraryIcon,
+			label: "Browse the Library",
+			hint: "No models yet",
+			link: { to: "/library" },
+		};
+	}
+	return null;
+}
 
 type ModelPickerProps = {
 	selection: ModelSelection | null;
@@ -56,12 +100,13 @@ export function ModelPicker({ selection, onSelect }: ModelPickerProps) {
 				<DropdownMenuGroup>
 					{notice ? (
 						<Tooltip>
-							{/* A notice without a link is genuinely disabled, so the span carries the trigger. */}
-							<TooltipTrigger render={<span className={cn(!notice.to && "cursor-not-allowed")} />}>
+							<TooltipTrigger
+								render={<span className={cn(!notice.link && "cursor-not-allowed")} />}
+							>
 								<DropdownMenuItem
-									disabled={!notice.to}
+									disabled={!notice.link}
 									data-testid="model-picker-notice"
-									render={notice.to ? <Link to={notice.to} search={notice.search} /> : undefined}
+									render={notice.link ? <Link {...notice.link} /> : undefined}
 								>
 									<notice.icon />
 									{notice.label}
@@ -97,44 +142,4 @@ export function ModelPicker({ selection, onSelect }: ModelPickerProps) {
 			</DropdownMenuContent>
 		</DropdownMenu>
 	);
-}
-
-/**
- * The one row shown in place of the model list when the list can't be, in priority
- * order. Null means models are available and the list itself should render.
- */
-function resolvePickerNotice({
-	isLoading,
-	isError,
-	isEmpty,
-}: {
-	isLoading: boolean;
-	isError: boolean;
-	isEmpty: boolean;
-}): PickerNotice | null {
-	if (isLoading) {
-		return {
-			icon: Spinner,
-			label: "Loading models…",
-			hint: "Fetching available models",
-		};
-	}
-	if (isError) {
-		return {
-			icon: TriangleAlertIcon,
-			label: "Check provider endpoints",
-			hint: "Couldn't reach endpoint",
-			to: "/settings",
-			search: { tab: "endpoints" },
-		};
-	}
-	if (isEmpty) {
-		return {
-			icon: LibraryIcon,
-			label: "Browse the Library",
-			hint: "No models yet",
-			to: "/library",
-		};
-	}
-	return null;
 }
