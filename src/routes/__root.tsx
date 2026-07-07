@@ -11,7 +11,6 @@ import {
 	Scripts,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
-import { useEffect } from "react";
 import { Button } from "#/components/ui/button";
 import {
 	Empty,
@@ -71,17 +70,9 @@ function RootDocument() {
 				</QueryClientProvider>
 
 				<Scripts />
-				<ServiceWorkerRegistrar />
 			</body>
 		</html>
 	);
-}
-
-function ServiceWorkerRegistrar() {
-	useEffect(() => {
-		if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});
-	}, []);
-	return null;
 }
 
 function NotFound() {
