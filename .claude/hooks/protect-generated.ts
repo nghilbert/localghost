@@ -5,7 +5,7 @@ const PROTECTED = [
 	{
 		pattern: /src[/\\]components[/\\]ui[/\\]/,
 		message:
-			"src/components/ui/* is shadcn-generated — never edit it. Regenerate with `npx shadcn add <component> --overwrite`.",
+			"src/components/ui/* is shadcn-generated — never edit it. Regenerate with `npx shadcn@latest add <component> --overwrite`.",
 	},
 	{
 		pattern: /routeTree\.gen\.ts$/,

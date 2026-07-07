@@ -30,7 +30,7 @@ onStdin((raw) => {
 	if (readPayloadField(raw, "stop_hook_active") === true) process.exit(0);
 
 	try {
-		execSync("npx tsc --noEmit", { stdio: "pipe", timeout: 120_000 });
+		execSync("npm run typecheck", { stdio: "pipe", timeout: 120_000 });
 		process.exit(0);
 	} catch (error) {
 		console.error(

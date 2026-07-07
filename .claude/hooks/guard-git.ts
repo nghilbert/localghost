@@ -8,7 +8,7 @@ onStdin((raw) => {
 	const command = readToolInputField(raw, "command");
 	if (!GIT_WRITE.test(command)) process.exit(0);
 	console.error(
-		"BLOCKED: committing and pushing are Nate's job. Run the checks yourself (npm run check, npx vitest run, npm run build), then end your summary with the suggested git add/commit commands for him.",
+		"BLOCKED: committing and pushing are Nate's job. Run the checks yourself (npm run check, npm test run, npm run build), then end your summary with the suggested git add/commit commands for him.",
 	);
 	process.exit(2);
 });

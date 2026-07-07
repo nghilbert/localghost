@@ -8,7 +8,7 @@ Ship the current branch following this project's SDLC. $ARGUMENTS may describe t
 2. Run all four gates in order, fixing any failures before continuing (re-run after fixes):
    - `npm run fix`
    - `npm run check`
-   - `npx vitest run`
+   - `npm test run`
    - `npm run build`
 3. Commit with a short imperative message (≤70 chars), ending with the Claude co-author trailer.
 4. Push the branch, open the PR with `gh pr create` (summary + test plan), then `gh pr merge --merge --delete-branch`.
