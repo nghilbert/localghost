@@ -1,0 +1,88 @@
+{
+	"hooks": {
+		"PreToolUse": [
+			{
+				"matcher": "Edit|Write",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "node \"$(git rev-parse --show-toplevel)/.codex/run-claude-hook.ts\" protect-generated.ts",
+						"timeout": 30,
+						"statusMessage": "Checking generated-file protection"
+					}
+				]
+			},
+			{
+				"matcher": "Read|Edit|Write",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "node \"$(git rev-parse --show-toplevel)/.codex/run-claude-hook.ts\" guard-env.ts",
+						"timeout": 30,
+						"statusMessage": "Checking env-file access"
+					}
+				]
+			},
+			{
+				"matcher": "Bash",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "node \"$(git rev-parse --show-toplevel)/.codex/run-claude-hook.ts\" guard-prisma.ts",
+						"timeout": 30,
+						"statusMessage": "Checking Prisma command policy"
+					},
+					{
+						"type": "command",
+						"command": "node \"$(git rev-parse --show-toplevel)/.codex/run-claude-hook.ts\" guard-git.ts",
+						"timeout": 30,
+						"statusMessage": "Checking git command policy"
+					}
+				]
+			}
+		],
+		"PostToolUse": [
+			{
+				"matcher": "Edit|Write",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "node \"$(git rev-parse --show-toplevel)/.codex/run-claude-hook.ts\" biome-fix.ts",
+						"timeout": 120,
+						"statusMessage": "Running Biome fix"
+					},
+					{
+						"type": "command",
+						"command": "node \"$(git rev-parse --show-toplevel)/.codex/run-claude-hook.ts\" prose-check.ts",
+						"timeout": 30,
+						"statusMessage": "Checking prose"
+					},
+					{
+						"type": "command",
+						"command": "node \"$(git rev-parse --show-toplevel)/.codex/run-claude-hook.ts\" test-check.ts",
+						"timeout": 30,
+						"statusMessage": "Checking test conventions"
+					},
+					{
+						"type": "command",
+						"command": "node \"$(git rev-parse --show-toplevel)/.codex/run-claude-hook.ts\" typecheck-stop.ts --mark",
+						"timeout": 30,
+						"statusMessage": "Marking typecheck needed"
+					}
+				]
+			}
+		],
+		"Stop": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "node \"$(git rev-parse --show-toplevel)/.codex/run-claude-hook.ts\" typecheck-stop.ts",
+						"timeout": 150,
+						"statusMessage": "Running final typecheck"
+					}
+				]
+			}
+		]
+	}
+}
