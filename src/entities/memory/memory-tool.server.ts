@@ -1,6 +1,5 @@
 import { z } from "zod/v4";
-import { prisma } from "#/shared/lib/db.server";
-import { embed, toVectorLiteral } from "#/shared/lib/tools/embeddings.server";
+import { findMemories, recallMemories, removeMemory, saveMemory } from "./memory.server";
 
 export const manageMemoryArgsSchema = z.object({
 	action: z.enum(["add", "search", "list", "delete"]),
@@ -47,58 +46,9 @@ async function addMemory({
 }): Promise<string> {
 	if (!args.text?.trim()) return "text is required to add a memory";
 
-	const embedding = await embed({ text: args.text, ownerId });
-
-	await prisma.$executeRaw`
-		INSERT INTO memory (text, category, source, owner_id, embedding)
-		VALUES (
-			${args.text},
-			${args.category ?? "fact"},
-			'agent',
-			${ownerId}::uuid,
-			${embedding ? toVectorLiteral(embedding) : null}::vector
-		)`;
+	await saveMemory({ ownerId, text: args.text, category: args.category });
 
 	return `Memory saved: "${args.text.slice(0, 80)}${args.text.length > 80 ? "…" : ""}"`;
-}
-
-export type RecalledMemory = { text: string; category: string };
-
-/**
- * Vector-similarity recall (with a keyword fallback when no embedding endpoint
- * is configured) over the user's memories. Shared by the `manage_memory` search
- * action and the automatic recall injected into every chat's system prompt.
- */
-export async function recallMemories({
-	ownerId,
-	query,
-	limit = 5,
-}: {
-	ownerId: string;
-	query: string;
-	limit?: number;
-}): Promise<RecalledMemory[]> {
-	const trimmed = query.trim();
-	if (!trimmed) return [];
-
-	const capped = Math.min(limit, 20);
-	const embedding = await embed({ text: trimmed, ownerId });
-
-	if (embedding) {
-		// Vector similarity search when embeddings are available.
-		return prisma.$queryRaw<RecalledMemory[]>`
-			SELECT text, category
-			FROM memory
-			WHERE owner_id = ${ownerId}::uuid AND embedding IS NOT NULL
-			ORDER BY embedding <=> ${toVectorLiteral(embedding)}::vector
-			LIMIT ${capped}`;
-	}
-	// Full-text keyword fallback when no embedding endpoint is configured.
-	return prisma.$queryRaw<RecalledMemory[]>`
-		SELECT text, category
-		FROM memory
-		WHERE owner_id = ${ownerId}::uuid AND lower(text) LIKE lower(${`%${trimmed}%`})
-		LIMIT ${capped}`;
 }
 
 async function searchMemory({
@@ -123,13 +73,7 @@ async function listMemories({
 	args: ManageMemoryArgs;
 	ownerId: string;
 }): Promise<string> {
-	const limit = Math.min(args.limit ?? 10, 50);
-	const memories = await prisma.memory.findMany({
-		where: { ownerId },
-		orderBy: { id: "desc" },
-		take: limit,
-		select: { id: true, text: true, category: true },
-	});
+	const memories = await findMemories({ ownerId, limit: Math.min(args.limit ?? 10, 50) });
 
 	if (memories.length === 0) return "No memories saved yet.";
 	return memories.map((m, i) => `[${i + 1}] (${m.category}) ${m.text}`).join("\n");
@@ -143,6 +87,6 @@ async function deleteMemory({
 	ownerId: string;
 }): Promise<string> {
 	if (!args.id) return "id is required to delete a memory";
-	const deleted = await prisma.memory.deleteMany({ where: { id: args.id, ownerId } });
-	return deleted.count > 0 ? "Memory deleted." : "Memory not found.";
+	const deleted = await removeMemory({ id: args.id, ownerId });
+	return deleted ? "Memory deleted." : "Memory not found.";
 }

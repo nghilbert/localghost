@@ -1,7 +1,7 @@
 import type { ServerTool } from "@tanstack/ai";
 import { toolDefinition } from "@tanstack/ai";
 import type { z } from "zod";
-import { manageMemory, manageMemoryArgsSchema } from "#/shared/lib/tools/manage_memory";
+import { manageMemory, manageMemoryArgsSchema } from "#/entities/memory/memory-tool.server";
 import { readUrl, readUrlArgsSchema } from "#/shared/lib/tools/read_url";
 import { webSearch, webSearchArgsSchema } from "#/shared/lib/tools/web_search";
 
