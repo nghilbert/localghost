@@ -2,6 +2,9 @@ import { z } from "zod/v4";
 
 const uuid = z.uuid();
 
+/** A chosen model on a specific endpoint. The unit the composer reads and writes. */
+export const modelSelectionSchema = z.object({ endpointId: uuid, model: z.string().min(1) });
+
 /**
  * Per-endpoint generation settings mirroring the Ollama SDK `Options` interface.
  * Every field is optional; absent means "use Ollama's own default", so an
@@ -47,7 +50,7 @@ export const createEndpointSchema = z.object({
 export const updateEndpointSchema = createEndpointSchema.partial();
 
 export const endpointIdInput = z.object({ id: uuid });
-export const getEndpointModelsInput = z.object({ endpointId: uuid });
+export const listEndpointModelsInput = z.object({ endpointId: uuid });
 export const modelCapabilitiesInput = z.object({ endpointId: uuid, model: z.string().min(1) });
 export const testEndpointInput = z.object({
 	url: z.url().max(2048),

@@ -8,7 +8,7 @@ import { listModels, probeEndpoint } from "#/lib/llm.server";
 import {
 	createEndpointSchema,
 	endpointIdInput,
-	getEndpointModelsInput,
+	listEndpointModelsInput,
 	modelCapabilitiesInput,
 	testEndpointInput,
 	updateEndpointInput,
@@ -90,7 +90,7 @@ export const deleteEndpoint = createServerFn({ method: "POST" })
 	});
 
 export const listEndpointModels = createServerFn({ method: "POST" })
-	.validator(getEndpointModelsInput)
+	.validator(listEndpointModelsInput)
 	.handler(async ({ data: { endpointId } }) => {
 		const userId = await getCurrentUserId();
 		const endpoint = await prisma.modelEndpoint.findFirst({

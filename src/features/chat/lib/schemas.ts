@@ -1,9 +1,7 @@
 import { z } from "zod/v4";
+import { modelSelectionSchema } from "#/features/endpoints/lib/schemas";
 
 const uuid = z.uuid();
-
-/** A chosen model on a specific endpoint: the unit a conversation is locked to. */
-export const modelSelectionSchema = z.object({ endpointId: uuid, model: z.string().min(1) });
 
 export const updateConversationSchema = z.object({
 	title: z.string().min(1).optional(),
