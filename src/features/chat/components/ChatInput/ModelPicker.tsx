@@ -18,7 +18,6 @@ import {
 	DropdownMenuTrigger,
 } from "#/components/ui/dropdown-menu";
 import { Spinner } from "#/components/ui/spinner";
-import { Tooltip, TooltipContent, TooltipTrigger } from "#/components/ui/tooltip";
 import { useEndpointModelGroups } from "#/features/endpoints/hooks/use-endpoint-model-groups";
 import type { ModelSelection } from "#/features/endpoints/lib/types";
 import { cn } from "#/lib/utils";
@@ -99,21 +98,17 @@ export function ModelPicker({ selection, onSelect }: ModelPickerProps) {
 			<DropdownMenuContent align="start" className="w-64" data-testid="model-picker-menu">
 				<DropdownMenuGroup>
 					{notice ? (
-						<Tooltip>
-							<TooltipTrigger
-								render={<span className={cn(!notice.link && "cursor-not-allowed")} />}
+						<>
+							<DropdownMenuLabel>{notice.hint}</DropdownMenuLabel>
+							<DropdownMenuItem
+								disabled={!notice.link}
+								data-testid="model-picker-notice"
+								render={notice.link ? <Link {...notice.link} /> : undefined}
 							>
-								<DropdownMenuItem
-									disabled={!notice.link}
-									data-testid="model-picker-notice"
-									render={notice.link ? <Link {...notice.link} /> : undefined}
-								>
-									<notice.icon />
-									{notice.label}
-								</DropdownMenuItem>
-							</TooltipTrigger>
-							<TooltipContent>{notice.hint}</TooltipContent>
-						</Tooltip>
+								<notice.icon />
+								{notice.label}
+							</DropdownMenuItem>
+						</>
 					) : (
 						groups.map(({ endpoint, models }, i) => (
 							<Fragment key={endpoint.id}>
