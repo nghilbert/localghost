@@ -6,14 +6,14 @@ import { deleteSavedMemory } from "#/features/settings/lib/memory.functions";
 export function useMemories() {
 	const queryClient = useQueryClient();
 
-	const deleteMemory = useMutation({
+	const deleteMemoryMutation = useMutation({
 		mutationFn: (id: string) => deleteSavedMemory({ data: { id } }),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["saved-memories"] });
 			toast.success("Memory deleted");
 		},
-		onError: () => toast.error("Failed to delete memory"),
+		onError: (error) => toast.error("Failed to delete memory", { description: error.message }),
 	});
 
-	return { deleteMemory };
+	return { deleteMemoryMutation };
 }

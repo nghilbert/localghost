@@ -57,7 +57,7 @@ Copy `.env.example` to `.env`. Required: `POSTGRES_PASSWORD`, `BETTER_AUTH_SECRE
 
 ## Forms
 
-`useAppForm` (TanStack Form) in `src/hooks/use-app-form/`. Field components in `src/components/appForm/`; never hand-wire `useState`-per-field + `Input` for submit forms. Validate with Zod v4 via `validators: { onDynamic: Schema }`. Submit via `form.handleSubmit()`. Need a new field type? Add a field component — don't hand-wire.
+`useAppForm` (TanStack Form) in `src/hooks/use-app-form/`. Field components in `src/hooks/use-app-form/fields/`; never hand-wire `useState`-per-field + `Input` for submit forms. Validate with Zod v4 via `validators: { onDynamic: Schema }`. Submit via `form.handleSubmit()`. Need a new field type? Add a field component, don't hand-wire.
 
 **Submitting:** a form's `onSubmit` awaits a regular `mutation.mutate(value)` — never `mutateAsync`. The mutation owns its feedback: define both `onSuccess` and `onError` on the `useMutation` (firing `toast.success` / `toast.error` there), so submit handlers stay a one-line `await xMutation.mutate(value)` and nothing is wired per-call. Don't surface the same submit error twice — the mutation's `onError` toast is the error channel; reserve inline `FormError` for inline affordances (e.g. a "Test connection" result), not for re-printing the submit mutation's error.
 
@@ -80,8 +80,18 @@ src/features/<name>/
 ```
 
 - Large components (250+ lines or with sub-components) become `ComponentName/index.tsx` folders.
-- File suffixes: `*.functions.ts` (server fns), `*.server.ts` (server-only), `*.client.ts` (client-only). Type files: `types.ts`.
+- **Colocate by cohesion:** a hook, helper, or type used by exactly one component lives in that component's folder, not the feature's `hooks/`/`lib/`. The role folders are for pieces shared across the feature. A small feature skips them (theme is one `ThemeContext.tsx` plus `lib/theme.ts`, no empty `components/hooks/` skeleton).
+- File suffixes are **build-environment boundaries**, not decoration: `*.functions.ts` (the `createServerFn` RPC boundary), `*.server.ts` (server-only, stripped from the client bundle), `*.client.ts` (client-only, stripped from the server bundle). Type files: `types.ts`; Zod schemas: `schemas.ts`.
 - `src/components/DataTable/`: the only table implementation; never hand-roll `useReactTable`.
+
+### Naming
+
+The mechanical rules (Zod schemas are camelCase values, the `.client.ts` suffix is banned) are enforced by `.claude/hooks/naming-check.ts`. The judgment calls it cannot decide:
+
+- **Files:** domain-noun where an entity exists (`conversation.functions.ts`); role-based for infra that is not a model (`db.server.ts`, `llm.server.ts`). Never force infra into an entity name.
+- **Server fns:** `list*` returns an array, `get*` a single entity or aggregate, `create*`/`update*`/`delete*` mutate, action verbs (`scan`/`test`/`register`) where CRUD does not fit.
+- **Layering verbs:** a helper and the fn wrapping it may differ in verb (`probeEndpoint` becomes `testEndpoint`) but share the noun and never collide on the exact name.
+- **Isomorphic client modules** (`auth-client.ts`) keep a plain hyphenated name: `.client.ts`/`.server.ts` are build boundaries that would break their SSR use.
 - Tests live in `src/test/<area>/`, run with `npm run test -- run`. See the "Test complex work"
   rule above for when and how.
 

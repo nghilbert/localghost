@@ -14,7 +14,7 @@ import { savedMemoriesQueryOptions } from "#/features/settings/lib/memory.functi
 
 export function MemoryTab() {
 	const { data: memories } = useSuspenseQuery(savedMemoriesQueryOptions());
-	const { deleteMemory } = useMemories();
+	const { deleteMemoryMutation } = useMemories();
 
 	return (
 		<div className="space-y-6">
@@ -41,7 +41,7 @@ export function MemoryTab() {
 										variant="ghost"
 										size="icon"
 										className="h-6 w-6 text-destructive hover:text-destructive"
-										onClick={() => deleteMemory.mutate(memory.id)}
+										onClick={() => deleteMemoryMutation.mutate(memory.id)}
 										aria-label="Delete memory"
 									>
 										<TrashIcon size={13} />

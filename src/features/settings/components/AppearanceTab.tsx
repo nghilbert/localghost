@@ -1,7 +1,7 @@
 import { Field, FieldDescription, FieldLabel, FieldTitle } from "#/components/ui/field";
 import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
-import { useTheme } from "#/features/theme/ThemeContext";
-import { isTheme, MODE_OPTIONS, THEMES } from "#/features/theme/theme";
+import { useTheme } from "#/features/theme/components/ThemeContext";
+import { isTheme, MODE_OPTIONS, THEMES } from "#/features/theme/lib/theme";
 import { useAppForm } from "#/hooks/use-app-form";
 import { cn } from "#/lib/utils";
 

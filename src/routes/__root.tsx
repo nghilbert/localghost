@@ -22,7 +22,7 @@ import {
 import { Toaster } from "#/components/ui/sonner";
 import { TooltipProvider } from "#/components/ui/tooltip";
 import { getAuthSession } from "#/features/auth/lib/auth.functions";
-import { ThemeProvider } from "#/features/theme/ThemeContext";
+import { ThemeProvider } from "#/features/theme/components/ThemeContext";
 import globalCss from "#/lib/globals.css?url";
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({

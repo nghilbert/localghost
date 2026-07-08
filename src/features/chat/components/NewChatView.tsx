@@ -38,7 +38,7 @@ export function NewChatView() {
 
 	const { controls } = useChatTools({ selection });
 
-	const start = useMutation({
+	const startChatMutation = useMutation({
 		mutationFn: async (firstMessage: string) => {
 			if (!selection) throw new Error("No model selected");
 			return createConversation({ data: { selection, firstMessage } });
@@ -61,13 +61,13 @@ export function NewChatView() {
 			</EmptyHeader>
 			<EmptyContent className="max-w-xl">
 				<ChatInput
-					disabled={!selection || start.isPending}
+					disabled={!selection || startChatMutation.isPending}
 					isStreaming={false}
 					selection={selection}
 					onSelect={setOverride}
 					tools={controls}
-					isSending={start.isPending}
-					sendMessage={(content) => start.mutate(content)}
+					isSending={startChatMutation.isPending}
+					sendMessage={(content) => startChatMutation.mutate(content)}
 				/>
 			</EmptyContent>
 		</Empty>

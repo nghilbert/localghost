@@ -18,8 +18,6 @@ export const THEMES = [
 ] as const;
 export type Theme = (typeof THEMES)[number]["id"];
 
-export const THEME_IDS: Theme[] = THEMES.map((theme) => theme.id);
-
 export const MODE_OPTIONS: { label: string; value: string; ModeIcon: LucideIcon }[] = [
 	{ label: "Light", value: "light", ModeIcon: SunIcon },
 	{ label: "Dark", value: "dark", ModeIcon: MoonIcon },

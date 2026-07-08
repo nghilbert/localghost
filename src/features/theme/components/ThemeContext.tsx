@@ -1,6 +1,6 @@
 import { ScriptOnce } from "@tanstack/react-router";
 import { createContext, type ReactNode, use, useEffect, useState } from "react";
-import { isTheme, THEMES, type Theme } from "./theme";
+import { isTheme, THEMES, type Theme } from "../lib/theme";
 
 type ThemeMode = "dark" | "light" | "system";
 
