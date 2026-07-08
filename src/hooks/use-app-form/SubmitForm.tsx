@@ -1,11 +1,9 @@
-import type { ComponentProps, PropsWithChildren } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { FieldGroup } from "#/components/ui/field";
 import { useFormContext } from ".";
 
-export function SubmitForm({
-	children,
-	...props
-}: PropsWithChildren<ComponentProps<typeof FieldGroup>>) {
+type SubmitFormProps = ComponentProps<typeof FieldGroup> & { children: ReactNode };
+export function SubmitForm({ children, ...props }: SubmitFormProps) {
 	const { handleSubmit } = useFormContext();
 
 	return (

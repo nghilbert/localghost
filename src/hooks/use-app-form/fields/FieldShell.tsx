@@ -1,4 +1,4 @@
-import type { ComponentProps, PropsWithChildren } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import {
 	Field,
 	FieldContent,
@@ -8,11 +8,12 @@ import {
 } from "#/components/ui/field";
 import { useFieldContext } from "..";
 
-type FieldShellProps = PropsWithChildren<{
+type FieldShellProps = {
 	label: string;
 	description?: string;
 	orientation: ComponentProps<typeof Field>["orientation"];
-}>;
+	children: ReactNode;
+};
 
 /**
  * Wraps a field control with its label, optional description, and validation

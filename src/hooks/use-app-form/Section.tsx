@@ -1,14 +1,13 @@
-import type { ComponentProps, PropsWithChildren, ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { FieldDescription, FieldGroup, FieldLegend, FieldSet } from "#/components/ui/field";
 
-export function Section({
-	legend,
-	description,
-	children,
-	...props
-}: PropsWithChildren<
-	ComponentProps<typeof FieldSet> & { legend: ReactNode; description?: ReactNode }
->) {
+type SectionProps = ComponentProps<typeof FieldSet> & {
+	legend: ReactNode;
+	description?: ReactNode;
+	children: ReactNode;
+};
+
+export function Section({ legend, description, children, ...props }: SectionProps) {
 	return (
 		<FieldSet {...props}>
 			<FieldLegend>{legend}</FieldLegend>
