@@ -16,7 +16,7 @@ export function useConversations() {
 		mutationFn: ({ id, title }: { id: string; title: string }) =>
 			updateConversation({ data: { id, data: { title } } }),
 		onSuccess: invalidate,
-		onError: (error) => toast.error(`Failed to rename chat: ${error.message}`),
+		onError: (error) => toast.error("Failed to rename chat", { description: error.message }),
 	});
 
 	const deleteConversationMutation = useMutation({
@@ -25,7 +25,7 @@ export function useConversations() {
 			invalidate();
 			toast.success("Chat deleted");
 		},
-		onError: (error) => toast.error(`Failed to delete chat: ${error.message}`),
+		onError: (error) => toast.error("Failed to delete chat", { description: error.message }),
 	});
 
 	return {

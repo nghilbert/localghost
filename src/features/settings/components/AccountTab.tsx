@@ -8,7 +8,7 @@ import { useSignOut } from "#/features/auth/hooks/use-sign-out";
 import { userSettingsQueryOptions } from "#/features/settings/lib/user-settings.functions";
 import { useAppForm } from "#/hooks/use-app-form";
 import { useUpdateAccount } from "../hooks/use-update-account";
-import { AccountFormSchema } from "../lib/schemas";
+import { accountFormSchema } from "../lib/schemas";
 
 export function AccountTab() {
 	const {
@@ -21,7 +21,7 @@ export function AccountTab() {
 
 	const form = useAppForm({
 		defaultValues: { name: user?.name ?? "", systemPrompt: settings.systemPrompt ?? "" },
-		validators: { onDynamic: AccountFormSchema },
+		validators: { onDynamic: accountFormSchema },
 		validationLogic: revalidateLogic(),
 		onSubmit: async ({ value }) => {
 			await updateMutation.mutate({

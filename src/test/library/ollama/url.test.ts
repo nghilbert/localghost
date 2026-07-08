@@ -1,21 +1,21 @@
 import { describe, expect, it } from "vitest";
-import { OllamaUrlSchema } from "#/features/library/lib/ollama/url";
+import { ollamaUrlSchema } from "#/features/library/lib/ollama/url";
 
-describe("OllamaUrlSchema", () => {
+describe("ollamaUrlSchema", () => {
 	it.each([
 		"http://localhost:11434",
 		"https://ollama.example.com",
 		"http://192.168.1.50:11434",
 	])("accepts %s", (url) => {
-		expect(OllamaUrlSchema.safeParse({ url }).success).toBe(true);
+		expect(ollamaUrlSchema.safeParse({ url }).success).toBe(true);
 	});
 
 	it.each(["not-a-url", "ftp://host", "localhost:11434", ""])("rejects %j", (url) => {
-		expect(OllamaUrlSchema.safeParse({ url }).success).toBe(false);
+		expect(ollamaUrlSchema.safeParse({ url }).success).toBe(false);
 	});
 
 	it("normalizes to the origin so paths can be appended", () => {
-		expect(OllamaUrlSchema.parse({ url: "http://localhost:11434/" }).url).toBe(
+		expect(ollamaUrlSchema.parse({ url: "http://localhost:11434/" }).url).toBe(
 			"http://localhost:11434",
 		);
 	});

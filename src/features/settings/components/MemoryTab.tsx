@@ -10,10 +10,10 @@ import {
 	ItemTitle,
 } from "#/components/ui/item";
 import { useMemories } from "#/features/settings/hooks/use-memories";
-import { savedMemoriesQueryOptions } from "#/features/settings/lib/memory.functions";
+import { memoriesQueryOptions } from "#/features/settings/lib/memory.functions";
 
 export function MemoryTab() {
-	const { data: memories } = useSuspenseQuery(savedMemoriesQueryOptions());
+	const { data: memories } = useSuspenseQuery(memoriesQueryOptions());
 	const { deleteMemoryMutation } = useMemories();
 
 	return (

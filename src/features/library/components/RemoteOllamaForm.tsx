@@ -4,7 +4,7 @@ import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "#/components/ui/card";
 import { Field } from "#/components/ui/field";
 import { useOllama } from "#/features/library/hooks/use-ollama";
-import { OllamaUrlSchema } from "#/features/library/lib/ollama/url";
+import { ollamaUrlSchema } from "#/features/library/lib/ollama/url";
 import { useAppForm } from "#/hooks/use-app-form";
 
 export function RemoteOllamaForm({ onBack }: { onBack: () => void }) {
@@ -12,7 +12,7 @@ export function RemoteOllamaForm({ onBack }: { onBack: () => void }) {
 
 	const form = useAppForm({
 		defaultValues: { url: "" },
-		validators: { onDynamic: OllamaUrlSchema },
+		validators: { onDynamic: ollamaUrlSchema },
 		validationLogic: revalidateLogic(),
 		onSubmit: async ({ value }) => {
 			await connectRemote.mutate({ url: value.url });
@@ -20,7 +20,7 @@ export function RemoteOllamaForm({ onBack }: { onBack: () => void }) {
 	});
 
 	function handleTest() {
-		const parsed = OllamaUrlSchema.safeParse(form.state.values);
+		const parsed = ollamaUrlSchema.safeParse(form.state.values);
 		if (!parsed.success) {
 			toast.error("Enter a valid URL first");
 			return;

@@ -15,10 +15,10 @@ import {
 } from "#/features/library/lib/ollama/discovery.server";
 import {
 	cancelPull,
-	getActivePulls as readActivePulls,
+	listActivePulls as readActivePulls,
 	startPull,
 } from "#/features/library/lib/ollama/pull-registry.server";
-import { OllamaConnectionSchema, OllamaUrlSchema } from "#/features/library/lib/ollama/url";
+import { ollamaConnectionSchema, ollamaUrlSchema } from "#/features/library/lib/ollama/url";
 import type { OllamaStatus } from "#/features/library/lib/types";
 
 export const getHardware = createServerFn({ method: "GET" }).handler(async () => {
@@ -57,7 +57,7 @@ export const deleteModel = createServerFn({ method: "POST" })
 	});
 
 export const testRemoteOllama = createServerFn({ method: "POST" })
-	.validator(OllamaUrlSchema)
+	.validator(ollamaUrlSchema)
 	.handler(async ({ data }) => {
 		await getCurrentUserId();
 		const probe = await probeOllama({ url: data.url });
@@ -65,7 +65,7 @@ export const testRemoteOllama = createServerFn({ method: "POST" })
 	});
 
 export const registerRemoteOllama = createServerFn({ method: "POST" })
-	.validator(OllamaConnectionSchema)
+	.validator(ollamaConnectionSchema)
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		const probe = await probeOllama({ url: data.url });
@@ -90,7 +90,7 @@ export const cancelModelPull = createServerFn({ method: "POST" })
 		cancelPull({ userId, model: data.model });
 	});
 
-export const getActivePulls = createServerFn({ method: "GET" }).handler(async () => {
+export const listActivePulls = createServerFn({ method: "GET" }).handler(async () => {
 	const userId = await getCurrentUserId();
 	return readActivePulls(userId);
 });
@@ -106,7 +106,7 @@ export const libraryStatusQueryOptions = () =>
 export const activePullsQueryOptions = () =>
 	queryOptions({
 		queryKey: ["library", "active-pulls"],
-		queryFn: () => getActivePulls(),
+		queryFn: () => listActivePulls(),
 		// Poll while a pull is in flight; idle otherwise so there's no wasted traffic.
 		refetchInterval: (query) => (query.state.data && query.state.data.length > 0 ? 600 : false),
 	});

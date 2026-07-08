@@ -1,9 +1,9 @@
 import { Trash2Icon } from "lucide-react";
 import { Button } from "#/components/ui/button";
 import { Item, ItemActions, ItemContent, ItemDescription, ItemTitle } from "#/components/ui/item";
-import type { getEndpoints } from "#/features/endpoints/lib/endpoint.functions";
+import type { listEndpoints } from "#/features/endpoints/lib/endpoint.functions";
 
-type Endpoint = Awaited<ReturnType<typeof getEndpoints>>[number];
+type Endpoint = Awaited<ReturnType<typeof listEndpoints>>[number];
 
 /** A configured provider endpoint: name, URL, key status, and delete. */
 export function EndpointItem({ endpoint, onDelete }: { endpoint: Endpoint; onDelete: () => void }) {

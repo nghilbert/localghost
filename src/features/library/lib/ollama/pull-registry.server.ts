@@ -1,6 +1,6 @@
 /**
  * In-memory source of truth for in-flight Ollama model pulls. Pulls run
- * server-side, surviving client disconnects; clients poll {@link getActivePulls}
+ * server-side, surviving client disconnects; clients poll {@link listActivePulls}
  * and cancel via {@link cancelPull}. Compose runs one server, so no shared store.
  */
 
@@ -87,7 +87,7 @@ export function cancelPull({ userId, model }: { userId: string; model: string })
  * Live snapshots of the user's pulls, including recently finished ones (so the
  * client can fire a completion toast) until they age out.
  */
-export function getActivePulls(userId: string): PullSnapshot[] {
+export function listActivePulls(userId: string): PullSnapshot[] {
 	const prefix = `${userId}:`;
 	const now = Date.now();
 	const snapshots: PullSnapshot[] = [];

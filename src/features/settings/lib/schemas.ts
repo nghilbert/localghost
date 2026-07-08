@@ -9,11 +9,11 @@ export function isTabValue(value: string): value is TabValue {
 	return TAB_VALUES.some((tab) => tab === value);
 }
 
-export const SettingsSearchSchema = z.object({
+export const settingsSearchSchema = z.object({
 	tab: z.enum(TAB_VALUES).optional().catch(undefined),
 });
 
-export const AccountFormSchema = z.object({
+export const accountFormSchema = z.object({
 	name: z.string().trim().min(1, "Name is required"),
 	systemPrompt: z.string().max(10000),
 });

@@ -25,7 +25,8 @@ export function useEndpoints() {
 			invalidate();
 			toast.success("Provider endpoint added");
 		},
-		onError: (error) => toast.error(`Failed to add provider endpoint: ${error.message}`),
+		onError: (error) =>
+			toast.error("Failed to add provider endpoint", { description: error.message }),
 	});
 
 	const updateEndpointMutation = useMutation({
@@ -35,7 +36,8 @@ export function useEndpoints() {
 			invalidate();
 			toast.success("Provider endpoint updated");
 		},
-		onError: (error) => toast.error(`Failed to update provider endpoint: ${error.message}`),
+		onError: (error) =>
+			toast.error("Failed to update provider endpoint", { description: error.message }),
 	});
 
 	const deleteEndpointMutation = useMutation({
@@ -44,7 +46,8 @@ export function useEndpoints() {
 			invalidate();
 			toast.success("Provider endpoint removed");
 		},
-		onError: (error) => toast.error(`Failed to remove provider endpoint: ${error.message}`),
+		onError: (error) =>
+			toast.error("Failed to remove provider endpoint", { description: error.message }),
 	});
 
 	const testEndpointMutation = useMutation({

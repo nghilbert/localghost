@@ -4,15 +4,15 @@ import { useState } from "react";
 import { FieldError } from "#/components/ui/field";
 import { authClient } from "#/features/auth/lib/auth-client";
 import { useAppForm } from "#/hooks/use-app-form";
-import { SignInDefaults, SignInSchema } from "../lib/schemas";
+import { signInDefaults, signInSchema } from "../lib/schemas";
 
 export function SignInForm() {
 	const navigate = useNavigate();
 	const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
 	const form = useAppForm({
-		defaultValues: SignInDefaults,
-		validators: { onDynamic: SignInSchema },
+		defaultValues: signInDefaults,
+		validators: { onDynamic: signInSchema },
 		validationLogic: revalidateLogic(),
 		onSubmit: async ({ value }) => {
 			setErrorMsg(null);

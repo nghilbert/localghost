@@ -27,6 +27,6 @@ export function useUpdateAccount() {
 			queryClient.invalidateQueries({ queryKey: ["user-settings"] });
 			toast.success("Account saved");
 		},
-		onError: (error) => toast.error(error.message),
+		onError: (error) => toast.error("Failed to save account", { description: error.message }),
 	});
 }

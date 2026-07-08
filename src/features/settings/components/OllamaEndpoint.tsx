@@ -8,7 +8,7 @@ import { Button } from "#/components/ui/button";
 import { Field, FieldDescription, FieldLegend, FieldSet } from "#/components/ui/field";
 import { useOllama } from "#/features/library/hooks/use-ollama";
 import { libraryStatusQueryOptions } from "#/features/library/lib/library.functions";
-import { OllamaConnectionFormSchema, OllamaUrlSchema } from "#/features/library/lib/ollama/url";
+import { ollamaConnectionFormSchema, ollamaUrlSchema } from "#/features/library/lib/ollama/url";
 import { useAppForm } from "#/hooks/use-app-form";
 
 const DEFAULT_OLLAMA_URL = "http://localhost:11434";
@@ -61,13 +61,13 @@ function OllamaConnectionForm({
 }) {
 	const { connectRemote, testRemote } = useOllama();
 
-	const defaultValues: z.input<typeof OllamaConnectionFormSchema> = {
+	const defaultValues: z.input<typeof ollamaConnectionFormSchema> = {
 		url: currentUrl,
 		numCtx: currentNumCtx ?? undefined,
 	};
 	const form = useAppForm({
 		defaultValues,
-		validators: { onDynamic: OllamaConnectionFormSchema },
+		validators: { onDynamic: ollamaConnectionFormSchema },
 		validationLogic: revalidateLogic(),
 		onSubmit: async ({ value }) => {
 			// An emptied field sends null so a saved override is cleared, not kept.
@@ -76,7 +76,7 @@ function OllamaConnectionForm({
 	});
 
 	function handleTest() {
-		const parsed = OllamaUrlSchema.safeParse(form.state.values);
+		const parsed = ollamaUrlSchema.safeParse(form.state.values);
 		if (!parsed.success) {
 			toast.error("Enter a valid URL first");
 			return;

@@ -50,7 +50,7 @@ export function NewChatView() {
 			});
 			navigate({ to: "/chat/$conversationId", params: { conversationId: id } });
 		},
-		onError: () => toast.error("Couldn't start the chat"),
+		onError: (error) => toast.error("Failed to start the chat", { description: error.message }),
 	});
 
 	return (

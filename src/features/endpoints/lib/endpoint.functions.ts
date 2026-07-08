@@ -19,7 +19,7 @@ import type { ModelSelection } from "./types";
  * The current user's configured endpoints.
  * @returns Each endpoint with its encrypted key stripped and a `hasApiKey` flag instead.
  */
-export const getEndpoints = createServerFn({ method: "GET" }).handler(async () => {
+export const listEndpoints = createServerFn({ method: "GET" }).handler(async () => {
 	const userId = await getCurrentUserId();
 	const endpoints = await prisma.modelEndpoint.findMany({
 		where: { ownerId: userId },
@@ -89,7 +89,7 @@ export const deleteEndpoint = createServerFn({ method: "POST" })
 		await prisma.modelEndpoint.deleteMany({ where: { id, ownerId: userId } });
 	});
 
-export const getEndpointModels = createServerFn({ method: "POST" })
+export const listEndpointModels = createServerFn({ method: "POST" })
 	.validator(getEndpointModelsInput)
 	.handler(async ({ data: { endpointId } }) => {
 		const userId = await getCurrentUserId();
@@ -135,12 +135,12 @@ export const getModelCapabilities = createServerFn({ method: "POST" })
 // ── Query options (for TanStack Query) ───────────────────────
 
 export const endpointsQueryOptions = () =>
-	queryOptions({ queryKey: ["endpoints"], queryFn: () => getEndpoints() });
+	queryOptions({ queryKey: ["endpoints"], queryFn: () => listEndpoints() });
 
 export const endpointModelsQueryOptions = (endpointId: string) =>
 	queryOptions({
 		queryKey: ["endpoint-models", endpointId],
-		queryFn: () => getEndpointModels({ data: { endpointId } }),
+		queryFn: () => listEndpointModels({ data: { endpointId } }),
 		staleTime: 30_000,
 	});
 
