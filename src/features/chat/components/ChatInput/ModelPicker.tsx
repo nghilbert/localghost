@@ -1,10 +1,9 @@
-import { Link, type LinkProps } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import {
 	CheckIcon,
 	ChevronDownIcon,
 	ChevronUpIcon,
 	LibraryIcon,
-	type LucideIcon,
 	TriangleAlertIcon,
 } from "lucide-react";
 import { Fragment, useState } from "react";
@@ -23,43 +22,6 @@ import { useEndpointModelGroups } from "#/features/endpoints/hooks/use-endpoint-
 import type { ModelSelection } from "#/features/endpoints/lib/types";
 import { cn } from "#/lib/utils";
 
-type PickerNotice = {
-	icon: LucideIcon;
-	label: string;
-	hint: string;
-	link?: { to: LinkProps["to"]; search?: LinkProps["search"] };
-};
-
-/**
- * The one row shown in place of the model list when the list can't be, in priority
- * order. Null means models are available and the list itself should render.
- */
-function resolvePickerNotice({
-	isError,
-	isEmpty,
-}: {
-	isError: boolean;
-	isEmpty: boolean;
-}): PickerNotice | null {
-	if (isError) {
-		return {
-			icon: TriangleAlertIcon,
-			label: "Check provider endpoints",
-			hint: "Couldn't reach endpoint",
-			link: { to: "/settings", search: { tab: "endpoints" } },
-		};
-	}
-	if (isEmpty) {
-		return {
-			icon: LibraryIcon,
-			label: "Browse the Library",
-			hint: "No models yet",
-			link: { to: "/library" },
-		};
-	}
-	return null;
-}
-
 type ModelPickerProps = {
 	selection: ModelSelection | null;
 	onSelect?: (selection: ModelSelection) => void;
@@ -70,8 +32,6 @@ export function ModelPicker({ selection, onSelect }: ModelPickerProps) {
 	const [open, setOpen] = useState(false);
 	const label = selection?.model ?? "Select model";
 	const { groups, isLoading, isError } = useEndpointModelGroups(open);
-	const isEmpty = groups.length === 0;
-	const notice = resolvePickerNotice({ isError, isEmpty });
 
 	return (
 		<DropdownMenu open={open} onOpenChange={setOpen}>
@@ -95,16 +55,23 @@ export function ModelPicker({ selection, onSelect }: ModelPickerProps) {
 				data-testid="model-picker-menu"
 			>
 				<DropdownMenuGroup>
-					{notice ? (
+					{isError ? (
 						<>
-							<DropdownMenuLabel>{notice.hint}</DropdownMenuLabel>
+							<DropdownMenuLabel>Couldn't reach endpoint</DropdownMenuLabel>
 							<DropdownMenuItem
-								disabled={!notice.link}
 								data-testid="model-picker-notice"
-								render={notice.link ? <Link {...notice.link} /> : undefined}
+								render={<Link to="/settings" search={{ tab: "endpoints" }} />}
 							>
-								<notice.icon />
-								{notice.label}
+								<TriangleAlertIcon />
+								Check provider endpoints
+							</DropdownMenuItem>
+						</>
+					) : groups.length === 0 ? (
+						<>
+							<DropdownMenuLabel>No models yet</DropdownMenuLabel>
+							<DropdownMenuItem data-testid="model-picker-notice" render={<Link to="/library" />}>
+								<LibraryIcon />
+								Browse the Library
 							</DropdownMenuItem>
 						</>
 					) : (
