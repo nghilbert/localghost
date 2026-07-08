@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { exportBackup, importBackup } from "#/shared/lib/backup.server";
+import { exportBackup, importBackup } from "#/routes/api/backup/-backup.server";
 
 const {
 	memoryFindMany,

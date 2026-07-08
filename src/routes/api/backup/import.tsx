@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { auth } from "#/shared/lib/auth.server";
-import { importBackup, importPayloadSchema } from "#/shared/lib/backup.server";
+import { importBackup, importPayloadSchema } from "./-backup.server";
 
 export const Route = createFileRoute("/api/backup/import")({
 	server: {

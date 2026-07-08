@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { auth } from "#/shared/lib/auth.server";
-import { exportBackup } from "#/shared/lib/backup.server";
+import { exportBackup } from "./-backup.server";
 
 export const Route = createFileRoute("/api/backup/export")({
 	server: {
