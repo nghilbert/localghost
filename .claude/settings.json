@@ -58,6 +58,19 @@
 					{
 						"type": "command",
 						"command": "node ${CLAUDE_PROJECT_DIR}/.claude/hooks/typecheck-stop.ts --mark"
+					},
+					{
+						"type": "command",
+						"command": "node ${CLAUDE_PROJECT_DIR}/.claude/hooks/commit-suggestion.ts --mark"
+					}
+				]
+			},
+			{
+				"matcher": "Bash",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "node ${CLAUDE_PROJECT_DIR}/.claude/hooks/commit-suggestion.ts --mark"
 					}
 				]
 			}
@@ -69,6 +82,10 @@
 						"type": "command",
 						"command": "node ${CLAUDE_PROJECT_DIR}/.claude/hooks/typecheck-stop.ts",
 						"timeout": 150
+					},
+					{
+						"type": "command",
+						"command": "node ${CLAUDE_PROJECT_DIR}/.claude/hooks/commit-suggestion.ts"
 					}
 				]
 			}
