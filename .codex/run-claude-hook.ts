@@ -62,10 +62,16 @@ function claudePayload(raw: string): string {
 
 function onStdin(handler: (raw: string) => void): void {
 	let raw = "";
-	process.stdin.on("data", (chunk: Buffer) => {
+	const onData = (chunk: Buffer) => {
 		raw += chunk.toString();
-	});
-	process.stdin.on("end", () => handler(raw));
+	};
+	const onEnd = () => {
+		process.stdin.off("data", onData);
+		process.stdin.off("end", onEnd);
+		handler(raw);
+	};
+	process.stdin.on("data", onData);
+	process.stdin.once("end", onEnd);
 }
 
 const [hookName, ...hookArgs] = process.argv.slice(2);

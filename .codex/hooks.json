@@ -65,6 +65,12 @@
 					},
 					{
 						"type": "command",
+						"command": "node \"$(git rev-parse --show-toplevel)/.codex/run-claude-hook.ts\" naming-check.ts",
+						"timeout": 30,
+						"statusMessage": "Checking naming conventions"
+					},
+					{
+						"type": "command",
 						"command": "node \"$(git rev-parse --show-toplevel)/.codex/run-claude-hook.ts\" typecheck-stop.ts --mark",
 						"timeout": 30,
 						"statusMessage": "Marking typecheck needed"
