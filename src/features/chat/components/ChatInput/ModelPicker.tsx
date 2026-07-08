@@ -2,6 +2,7 @@ import { Link, type LinkProps } from "@tanstack/react-router";
 import {
 	CheckIcon,
 	ChevronDownIcon,
+	ChevronUpIcon,
 	LibraryIcon,
 	type LucideIcon,
 	TriangleAlertIcon,
@@ -23,7 +24,7 @@ import type { ModelSelection } from "#/features/endpoints/lib/types";
 import { cn } from "#/lib/utils";
 
 type PickerNotice = {
-	icon: LucideIcon | typeof Spinner;
+	icon: LucideIcon;
 	label: string;
 	hint: string;
 	link?: { to: LinkProps["to"]; search?: LinkProps["search"] };
@@ -34,21 +35,12 @@ type PickerNotice = {
  * order. Null means models are available and the list itself should render.
  */
 function resolvePickerNotice({
-	isLoading,
 	isError,
 	isEmpty,
 }: {
-	isLoading: boolean;
 	isError: boolean;
 	isEmpty: boolean;
 }): PickerNotice | null {
-	if (isLoading) {
-		return {
-			icon: Spinner,
-			label: "Loading models…",
-			hint: "Fetching available models",
-		};
-	}
 	if (isError) {
 		return {
 			icon: TriangleAlertIcon,
@@ -78,7 +70,8 @@ export function ModelPicker({ selection, onSelect }: ModelPickerProps) {
 	const [open, setOpen] = useState(false);
 	const label = selection?.model ?? "Select model";
 	const { groups, isLoading, isError } = useEndpointModelGroups(open);
-	const notice = resolvePickerNotice({ isLoading, isError, isEmpty: groups.length === 0 });
+	const isEmpty = groups.length === 0;
+	const notice = resolvePickerNotice({ isError, isEmpty });
 
 	return (
 		<DropdownMenu open={open} onOpenChange={setOpen}>
@@ -93,9 +86,14 @@ export function ModelPicker({ selection, onSelect }: ModelPickerProps) {
 				}
 			>
 				<span className="truncate">{label}</span>
-				<ChevronDownIcon size={14} className="shrink-0" />
+				{isLoading ? <Spinner /> : open ? <ChevronUpIcon /> : <ChevronDownIcon />}
 			</DropdownMenuTrigger>
-			<DropdownMenuContent align="start" className="w-64" data-testid="model-picker-menu">
+			<DropdownMenuContent
+				hidden={isLoading}
+				align="start"
+				className="w-64"
+				data-testid="model-picker-menu"
+			>
 				<DropdownMenuGroup>
 					{notice ? (
 						<>

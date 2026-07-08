@@ -52,6 +52,7 @@ export function AccountTab() {
 										description="Instructions prepended to every chat."
 										placeholder="You are a helpful assistant…"
 										rows={4}
+										fieldOrientation="vertical"
 									/>
 								)}
 							</form.AppField>
