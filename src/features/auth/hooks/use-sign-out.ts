@@ -1,7 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { authClient } from "#/features/auth/lib/auth-client";
+import { authClient } from "#/shared/lib/auth-client";
 
 /** Signs the user out and returns them to the sign-in page. */
 export function useSignOut() {

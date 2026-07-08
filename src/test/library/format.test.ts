@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatBytes, formatBytesPerSec, formatDuration } from "#/features/library/lib/format";
+import { formatBytes, formatBytesPerSec, formatDuration } from "#/features/pull-model/lib/format";
 
 describe("formatBytes", () => {
 	it("formats gigabytes with one decimal", () => {

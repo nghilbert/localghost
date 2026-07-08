@@ -3,7 +3,7 @@ import {
 	buildOllamaCandidateUrls,
 	getOllamaUrl,
 	upsertOllamaEndpoint,
-} from "#/features/library/lib/ollama/discovery.server";
+} from "#/features/pull-model/lib/ollama/discovery.server";
 
 const { findFirst, findMany, create, update } = vi.hoisted(() => ({
 	findFirst: vi.fn(),
@@ -12,7 +12,7 @@ const { findFirst, findMany, create, update } = vi.hoisted(() => ({
 	update: vi.fn(),
 }));
 
-vi.mock("#/lib/db.server", () => ({
+vi.mock("#/shared/lib/db.server", () => ({
 	prisma: { modelEndpoint: { findFirst, findMany, create, update } },
 }));
 

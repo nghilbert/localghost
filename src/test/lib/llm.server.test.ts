@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { detectProvider } from "#/lib/llm.server";
+import { detectProvider } from "#/shared/lib/llm.server";
 
 describe("llm.server", () => {
 	describe("detectProvider", () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { toVectorLiteral } from "#/lib/tools/embeddings.server";
+import { toVectorLiteral } from "#/shared/lib/tools/embeddings.server";
 
 describe("toVectorLiteral", () => {
 	it("formats an empty array", () => {

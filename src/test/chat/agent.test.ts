@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildChatTools } from "#/features/chat/lib/agent.server";
+import { buildChatTools } from "#/features/send-message/lib/agent.server";
 
 const OWNER = "test-user-id";
 

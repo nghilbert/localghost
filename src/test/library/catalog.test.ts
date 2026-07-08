@@ -5,8 +5,8 @@ import {
 	parseParamB,
 	parsePullCount,
 	requiredMemoryGb,
-} from "#/features/library/lib/catalog";
-import type { ModelTagInfo } from "#/features/library/lib/types";
+} from "#/features/pull-model/lib/catalog";
+import type { ModelTagInfo } from "#/features/pull-model/lib/types";
 import { makeCatalogModel as model } from "#/test/factories";
 
 describe("parseParamB", () => {

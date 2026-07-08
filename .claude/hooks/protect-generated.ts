@@ -3,9 +3,11 @@ import { onStdin, readToolInputField } from "./hook-input.ts";
 
 const PROTECTED = [
 	{
-		pattern: /src[/\\]components[/\\]ui[/\\]/,
+		// shadcn primitives are the flat files in shared/ui; our own components (DataTable,
+		// RouteErrorScreen) live in subfolders and stay editable.
+		pattern: /src[/\\]shared[/\\]ui[/\\][^/\\]+$/,
 		message:
-			"src/components/ui/* is shadcn-generated — never edit it. Regenerate with `npx shadcn@latest add <component> --overwrite`.",
+			"src/shared/ui/* is shadcn-generated — never edit it. Regenerate with `npx shadcn@latest add <component> --overwrite`.",
 	},
 	{
 		pattern: /routeTree\.gen\.ts$/,

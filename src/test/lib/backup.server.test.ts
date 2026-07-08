@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { exportBackup, importBackup } from "#/lib/backup.server";
+import { exportBackup, importBackup } from "#/shared/lib/backup.server";
 
 const {
 	memoryFindMany,
@@ -17,7 +17,7 @@ const {
 	userUpdate: vi.fn(),
 }));
 
-vi.mock("#/lib/db.server", () => ({
+vi.mock("#/shared/lib/db.server", () => ({
 	prisma: {
 		memory: { findMany: memoryFindMany, createMany: memoryCreateMany },
 		conversation: { findMany: conversationFindMany, createMany: conversationCreateMany },

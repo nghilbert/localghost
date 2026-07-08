@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { NewChatView } from "#/features/chat/components/NewChatView";
+import { NewChatView } from "./-page/NewChatView";
 
 export const Route = createFileRoute("/_authenticated/new")({
 	head: () => ({ meta: [{ title: "New chat · localghost" }] }),

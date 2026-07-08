@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
-import {
-	buildEndpointFormSchema,
-	dbProviderFor,
-	PROVIDERS,
-} from "#/features/endpoints/lib/providers";
-import { detectProvider } from "#/lib/llm.server";
+import { buildEndpointFormSchema, dbProviderFor, PROVIDERS } from "#/entities/endpoint/providers";
+import { detectProvider } from "#/shared/lib/llm.server";
 
 describe("provider registry", () => {
 	it("default base urls round-trip through detectProvider", () => {

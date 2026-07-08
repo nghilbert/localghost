@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { orderEndpointsForDefault } from "#/features/chat/lib/default-selection";
+import { orderEndpointsForDefault } from "#/entities/endpoint/default-selection";
 
 describe("orderEndpointsForDefault", () => {
 	it("puts the built-in ollama endpoint first", () => {

@@ -1,10 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import {
-	ConversationError,
-	ConversationPage,
-	ConversationPending,
-} from "#/features/chat/components/ConversationPage";
-import { conversationQueryOptions } from "#/features/chat/lib/conversation.functions";
+import { conversationQueryOptions } from "#/entities/conversation/conversation.functions";
+import { ConversationError, ConversationPage, ConversationPending } from "./-page/ConversationPage";
 
 export const Route = createFileRoute("/_authenticated/chat/$conversationId")({
 	loader: async ({ params, context }) => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseCatalogHtml, parseTagsHtml } from "#/features/library/lib/ollama/catalog.server";
+import { parseCatalogHtml, parseTagsHtml } from "#/features/pull-model/lib/ollama/catalog.server";
 
 // A trimmed but faithful slice of the ollama.com/library markup: a multi-size
 // model with a capability, and an embedding model that has no size tags.

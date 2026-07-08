@@ -1,9 +1,9 @@
 import { revalidateLogic } from "@tanstack/react-form";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { FieldError } from "#/components/ui/field";
-import { authClient } from "#/features/auth/lib/auth-client";
-import { useAppForm } from "#/hooks/use-app-form";
+import { useAppForm } from "#/shared/hooks/use-app-form";
+import { authClient } from "#/shared/lib/auth-client";
+import { FieldError } from "#/shared/ui/field";
 import { signUpDefaults, signUpSchema } from "../lib/schemas";
 
 export function SignUpForm() {

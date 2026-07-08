@@ -1,6 +1,6 @@
 import { faker } from "@faker-js/faker";
-import { auth } from "#/features/auth/lib/auth.server";
-import { prisma } from "#/lib/db.server";
+import { auth } from "#/shared/lib/auth.server";
+import { prisma } from "#/shared/lib/db.server";
 
 /**
  * Dev-only seed: provisions a known login plus a spread of realistic chat

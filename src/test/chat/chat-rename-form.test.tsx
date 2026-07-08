@@ -1,11 +1,11 @@
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ChatRenameForm } from "#/components/AppSidebar/ChatRenameForm";
+import { ChatRenameForm } from "#/routes/_authenticated/-components/AppSidebar/ChatRenameForm";
 import { render, screen } from "#/test/utils";
 
 const { mutate } = vi.hoisted(() => ({ mutate: vi.fn() }));
 
-vi.mock("#/features/chat/hooks/use-conversations", () => ({
+vi.mock("#/features/send-message/hooks/use-conversations", () => ({
 	useConversations: () => ({ renameConversation: { mutate } }),
 }));
 

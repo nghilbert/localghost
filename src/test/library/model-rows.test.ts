@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { buildModelRows } from "#/features/library/lib/model-rows";
-import type { PullProgress } from "#/features/library/lib/types";
+import { buildModelRows } from "#/features/pull-model/lib/model-rows";
+import type { PullProgress } from "#/features/pull-model/lib/types";
 import { makeCatalogModel, makeInstalledModel } from "#/test/factories";
 
 function rowById(rows: ReturnType<typeof buildModelRows>, id: string) {

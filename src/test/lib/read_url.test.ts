@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { readUrl } from "#/lib/tools/read_url";
+import { readUrl } from "#/shared/lib/tools/read_url";
 
 const ARTICLE_HTML = `<!doctype html>
 <html>

@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { buildChatSystemPrompt, currentDateTimeLine } from "#/features/chat/lib/system-prompt";
+import {
+	buildChatSystemPrompt,
+	currentDateTimeLine,
+} from "#/features/send-message/lib/system-prompt";
 
 describe("currentDateTimeLine", () => {
 	it("formats in the given IANA timezone with the zone name", () => {

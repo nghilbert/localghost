@@ -2,7 +2,7 @@ import { revalidateLogic } from "@tanstack/react-form";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod/v4";
-import { useAppForm } from "#/hooks/use-app-form";
+import { useAppForm } from "#/shared/hooks/use-app-form";
 import { render, screen, within } from "#/test/utils";
 
 const TRANSPORT_OPTIONS = [

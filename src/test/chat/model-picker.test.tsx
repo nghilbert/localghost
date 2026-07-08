@@ -1,6 +1,6 @@
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { ModelPicker } from "#/features/chat/components/ChatInput/ModelPicker";
+import { ModelPicker } from "#/features/send-message/components/ChatInput/ModelPicker";
 import { render, screen } from "#/test/utils";
 
 const endpoints = [
@@ -8,7 +8,7 @@ const endpoints = [
 	{ id: "e2", name: "Cloud" },
 ];
 
-vi.mock("#/features/endpoints/hooks/use-endpoints", () => ({
+vi.mock("#/entities/endpoint/use-endpoints", () => ({
 	useEndpoints: () => ({ endpoints }),
 }));
 

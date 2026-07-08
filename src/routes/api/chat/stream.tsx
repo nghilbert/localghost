@@ -5,15 +5,15 @@ import {
 } from "@tanstack/ai";
 import { EventType } from "@tanstack/ai/client";
 import { createFileRoute } from "@tanstack/react-router";
-import { auth } from "#/features/auth/lib/auth.server";
-import { buildChatTools } from "#/features/chat/lib/agent.server";
-import { trimHistory } from "#/features/chat/lib/messages";
-import { chatStreamForwardedPropsSchema } from "#/features/chat/lib/schemas";
-import { buildChatSystemPrompt } from "#/features/chat/lib/system-prompt";
-import { ollamaOptionsSchema } from "#/features/endpoints/lib/schemas";
-import { decrypt } from "#/lib/crypto.server";
-import { prisma } from "#/lib/db.server";
-import { streamLLMEvents } from "#/lib/llm.server";
+import { trimHistory } from "#/entities/conversation/messages";
+import { ollamaOptionsSchema } from "#/entities/endpoint/schemas";
+import { buildChatTools } from "#/features/send-message/lib/agent.server";
+import { chatStreamForwardedPropsSchema } from "#/features/send-message/lib/schemas";
+import { buildChatSystemPrompt } from "#/features/send-message/lib/system-prompt";
+import { auth } from "#/shared/lib/auth.server";
+import { decrypt } from "#/shared/lib/crypto.server";
+import { prisma } from "#/shared/lib/db.server";
+import { streamLLMEvents } from "#/shared/lib/llm.server";
 
 /**
  * Pure chat stream: the client owns persistence, so this route writes nothing

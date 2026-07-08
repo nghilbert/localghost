@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { SettingsPage } from "#/features/settings/components/SettingsPage";
-import { memoriesQueryOptions } from "#/features/settings/lib/memory.functions";
-import { settingsSearchSchema } from "#/features/settings/lib/schemas";
-import { userSettingsQueryOptions } from "#/features/settings/lib/user-settings.functions";
+import { memoriesQueryOptions } from "#/entities/memory/memory.functions";
+import { userSettingsQueryOptions } from "#/entities/user-settings/user-settings.functions";
+import { SettingsPage } from "./-page/settings/SettingsPage";
+import { settingsSearchSchema } from "./-page/settings/schemas";
 
 export const Route = createFileRoute("/_authenticated/settings")({
 	head: () => ({ meta: [{ title: "Settings · localghost" }] }),

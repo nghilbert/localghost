@@ -1,6 +1,6 @@
 import { type RenderOptions, render } from "@testing-library/react";
 import type { ReactElement, ReactNode } from "react";
-import { TooltipProvider } from "#/components/ui/tooltip";
+import { TooltipProvider } from "#/shared/ui/tooltip";
 
 function Providers({ children }: { children: ReactNode }) {
 	return <TooltipProvider>{children}</TooltipProvider>;

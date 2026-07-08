@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
-import { APP_NAME } from "#/lib/constants";
+import { APP_NAME } from "#/shared/lib/constants";
 
 export const Route = createFileRoute("/_public")({
 	beforeLoad: ({ context }) => {

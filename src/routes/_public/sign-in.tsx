@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { SignInForm } from "#/features/auth/components/SignInForm";
 import {
 	Card,
 	CardContent,
@@ -6,8 +7,7 @@ import {
 	CardFooter,
 	CardHeader,
 	CardTitle,
-} from "#/components/ui/card";
-import { SignInForm } from "#/features/auth/components/SignInForm";
+} from "#/shared/ui/card";
 
 export const Route = createFileRoute("/_public/sign-in")({ component: SignInPage });
 

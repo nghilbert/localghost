@@ -1,7 +1,7 @@
 import type { UIMessage } from "@tanstack/ai-client";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
-import { ChatMessage } from "#/features/chat/components/ChatMessage";
+import { ChatMessage } from "#/features/send-message/components/ChatMessage";
 import { render, screen } from "#/test/utils";
 
 function userMessage(content: string): UIMessage {
