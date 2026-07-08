@@ -46,7 +46,7 @@ function applyMode(mode: ThemeMode) {
 
 function applyTheme(theme: Theme | null) {
 	const root = document.documentElement;
-	for (const name of THEMES) root.classList.remove(`theme-${name}`);
+	for (const { id } of THEMES) root.classList.remove(`theme-${id}`);
 	if (theme) root.classList.add(`theme-${theme}`);
 }
 
