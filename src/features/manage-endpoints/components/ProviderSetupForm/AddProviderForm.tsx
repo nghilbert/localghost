@@ -1,12 +1,12 @@
 import { revalidateLogic } from "@tanstack/react-form";
 import { ChevronDownIcon, PlusIcon } from "lucide-react";
 import { toast } from "sonner";
+import { useEndpoints } from "#/entities/endpoint/use-endpoints";
 import {
 	buildEndpointFormSchema,
 	dbProviderFor,
 	type ProviderDefinition,
-} from "#/entities/endpoint/providers";
-import { useEndpoints } from "#/entities/endpoint/use-endpoints";
+} from "#/features/manage-endpoints/lib/providers";
 import { useAppForm } from "#/shared/hooks/use-app-form";
 import { Button } from "#/shared/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "#/shared/ui/collapsible";

@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { PROVIDERS, type ProviderId } from "#/entities/endpoint/providers";
 import { AddProviderForm } from "#/features/manage-endpoints/components/ProviderSetupForm/AddProviderForm";
+import { PROVIDERS, type ProviderId } from "#/features/manage-endpoints/lib/providers";
 import { Field, FieldDescription, FieldLabel } from "#/shared/ui/field";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "#/shared/ui/select";
 

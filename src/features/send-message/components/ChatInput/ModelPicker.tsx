@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { Fragment, useState } from "react";
 import type { ModelSelection } from "#/entities/endpoint/types";
-import { useEndpointModelGroups } from "#/entities/endpoint/use-endpoint-model-groups";
+import { useEndpointModelGroups } from "#/features/send-message/components/ChatInput/use-endpoint-model-groups";
 import { cn } from "#/shared/lib/utils";
 import { Button } from "#/shared/ui/button";
 import {

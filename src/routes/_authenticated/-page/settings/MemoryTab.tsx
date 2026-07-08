@@ -1,7 +1,6 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { TrashIcon } from "lucide-react";
 import { memoriesQueryOptions } from "#/entities/memory/memory.functions";
-import { useMemories } from "#/features/manage-memory/hooks/use-memories";
 import { Button } from "#/shared/ui/button";
 import {
 	Item,
@@ -11,6 +10,7 @@ import {
 	ItemGroup,
 	ItemTitle,
 } from "#/shared/ui/item";
+import { useMemories } from "./use-memories";
 
 export function MemoryTab() {
 	const { data: memories } = useSuspenseQuery(memoriesQueryOptions());

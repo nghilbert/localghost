@@ -3,12 +3,12 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { useRouteContext } from "@tanstack/react-router";
 import { userSettingsQueryOptions } from "#/entities/user-settings/user-settings.functions";
 import { useSignOut } from "#/features/auth/hooks/use-sign-out";
-import { useUpdateAccount } from "#/features/update-account/hooks/use-update-account";
-import { accountFormSchema } from "#/features/update-account/lib/schemas";
 import { useAppForm } from "#/shared/hooks/use-app-form";
 import { Button } from "#/shared/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "#/shared/ui/card";
 import { Field, FieldLabel } from "#/shared/ui/field";
+import { accountFormSchema } from "./schemas";
+import { useUpdateAccount } from "./use-update-account";
 
 export function AccountTab() {
 	const {

@@ -12,3 +12,8 @@ export function isTabValue(value: string): value is TabValue {
 export const settingsSearchSchema = z.object({
 	tab: z.enum(TAB_VALUES).optional().catch(undefined),
 });
+
+export const accountFormSchema = z.object({
+	name: z.string().trim().min(1, "Name is required"),
+	systemPrompt: z.string().max(10000),
+});

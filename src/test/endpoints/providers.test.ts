@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { buildEndpointFormSchema, dbProviderFor, PROVIDERS } from "#/entities/endpoint/providers";
+import {
+	buildEndpointFormSchema,
+	dbProviderFor,
+	PROVIDERS,
+} from "#/features/manage-endpoints/lib/providers";
 import { detectProvider } from "#/shared/lib/llm.server";
 
 describe("provider registry", () => {
