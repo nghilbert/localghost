@@ -3,7 +3,7 @@ import { useCallback, useState } from "react";
 import { modelCapabilitiesQueryOptions } from "#/entities/endpoint/endpoint.functions";
 import type { ModelSelection } from "#/entities/endpoint/types";
 import type { ToolControls } from "#/features/send-message/components/ChatInput/ToolsMenu";
-import { DEFAULT_ENABLED_TOOLS } from "#/shared/lib/tools/catalog";
+import { DEFAULT_ENABLED_TOOLS } from "#/features/send-message/lib/tool-catalog";
 
 /**
  * The ephemeral per-message tool state shared by the New-chat draft page and an

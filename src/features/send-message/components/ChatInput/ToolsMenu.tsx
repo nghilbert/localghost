@@ -1,5 +1,5 @@
 import { type LucideIcon, SlidersHorizontalIcon } from "lucide-react";
-import { TOOL_CATALOG } from "#/shared/lib/tools/catalog";
+import { TOOL_CATALOG } from "#/features/send-message/lib/tool-catalog";
 import { Badge } from "#/shared/ui/badge";
 import { Button } from "#/shared/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "#/shared/ui/popover";
