@@ -1,10 +1,7 @@
 import type { UIMessage } from "@tanstack/ai-client";
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
-import { orderEndpointsForDefault } from "#/entities/endpoint/default-selection";
-import { decrypt } from "#/shared/lib/crypto.server";
 import { prisma } from "#/shared/lib/db.server";
-import { listModels } from "#/shared/lib/llm.server";
 import { ollamaClient } from "#/shared/lib/ollama/client.server";
 import { getCurrentUserId } from "#/shared/lib/session.server";
 import { buildFirstUserMessage, deriveConversationTitle, storedMessages } from "./messages";
@@ -48,27 +45,20 @@ export type ConversationDetail = Omit<Awaited<ReturnType<typeof getConversation>
 
 /**
  * The endpoint and model the New-chat draft page pre-fills, persisting nothing.
- * Prefers the built-in Ollama, then the oldest endpoint, picking only one that
- * returns a model. A fully null selection means the page prompts the user.
+ * Prefers the user's most recently used model. A fully null selection means the
+ * page prompts the user.
  */
 export const getDefaultSelection = createServerFn({ method: "GET" }).handler(
 	async (): Promise<{ endpointId: string | null; model: string | null }> => {
 		const userId = await getCurrentUserId();
-		const endpoints = await prisma.modelEndpoint.findMany({
-			where: { ownerId: userId },
-			orderBy: { id: "asc" },
+		const recent = await prisma.conversation.findFirst({
+			where: { ownerId: userId, endpointId: { not: null }, model: { not: null } },
+			orderBy: { updatedAt: "desc" },
+			select: { endpointId: true, model: true },
 		});
-
-		for (const endpoint of orderEndpointsForDefault(endpoints)) {
-			try {
-				const apiKey = endpoint.apiKeyEncrypted ? decrypt(endpoint.apiKeyEncrypted) : undefined;
-				const [model] = await listModels({ url: endpoint.url, apiKey });
-				if (model) return { endpointId: endpoint.id, model };
-			} catch {
-				// Unreachable or rejected; fall through to the next endpoint.
-			}
-		}
-		return { endpointId: null, model: null };
+		return recent?.endpointId && recent.model
+			? { endpointId: recent.endpointId, model: recent.model }
+			: { endpointId: null, model: null };
 	},
 );
 
