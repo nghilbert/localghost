@@ -13,7 +13,7 @@ import { buildChatSystemPrompt } from "#/features/send-message/lib/system-prompt
 import { auth } from "#/shared/lib/auth.server";
 import { decrypt } from "#/shared/lib/crypto.server";
 import { prisma } from "#/shared/lib/db.server";
-import { streamLLMEvents } from "#/shared/lib/llm.server";
+import { asLLMProvider, streamLLMEvents } from "#/shared/lib/llm.server";
 
 /**
  * Pure chat stream: the client owns persistence, so this route writes nothing
@@ -55,6 +55,7 @@ export const Route = createFileRoute("/api/chat/stream")({
 
 				const source = streamLLMEvents({
 					url: endpoint.url,
+					provider: asLLMProvider(endpoint.provider),
 					apiKey,
 					model: conversation.model,
 					// `chat()` accepts the wire messages as-is and converts internally.

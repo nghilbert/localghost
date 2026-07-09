@@ -11,11 +11,22 @@ import { createGeminiChat } from "@tanstack/ai-gemini";
 import { createOllamaChat } from "@tanstack/ai-ollama";
 import { openaiCompatibleText } from "@tanstack/ai-openai/compatible";
 import { trimPathRight } from "@tanstack/react-router";
+import { z } from "zod/v4";
 
 export type LLMProvider = "anthropic" | "ollama" | "openai" | "openrouter" | "groq" | "gemini";
 
+const llmProviderSchema = z.enum(["anthropic", "ollama", "openai", "openrouter", "groq", "gemini"]);
+
+/** Narrows a stored `ModelEndpoint.provider` string to {@link LLMProvider}, or `undefined` if unrecognized. */
+export function asLLMProvider(value: string): LLMProvider | undefined {
+	const parsed = llmProviderSchema.safeParse(value);
+	return parsed.success ? parsed.data : undefined;
+}
+
 export type StreamLLMOptions = {
 	url: string;
+	/** The endpoint's stored provider; falls back to URL sniffing only when absent. */
+	provider?: LLMProvider;
 	apiKey?: string;
 	model: string;
 	/** Conversation history as wire messages; `chat()` converts internally (no system role). */
@@ -213,7 +224,7 @@ export function detectProvider(url: string): LLMProvider {
  * `MAX_AGENT_ROUNDS`).
  */
 function baseChatOptions(opts: StreamLLMOptions) {
-	const config = PROVIDERS[detectProvider(opts.url)];
+	const config = PROVIDERS[opts.provider ?? detectProvider(opts.url)];
 	const adapter = config.buildAdapter({
 		model: opts.model,
 		apiKey: opts.apiKey ?? "",
@@ -247,6 +258,26 @@ export function streamLLMEvents(opts: StreamLLMOptions): AsyncIterable<StreamChu
 
 export type EndpointProbeResult = { ok: true; modelCount: number } | { ok: false; error: string };
 
+/** Strips a trailing `/v1` so `modelsUrl`, which appends its own `/v1/...`, doesn't double it. */
+function stripTrailingApiVersion(url: string): string {
+	return trimPathRight(url).replace(/\/v1$/, "");
+}
+
+/** The model-list request for an endpoint, extracted from {@link listModels} for testing. */
+export function buildModelsRequest({
+	url,
+	apiKey,
+	provider,
+}: {
+	url: string;
+	apiKey?: string;
+	provider?: LLMProvider;
+}): { url: string; headers: Record<string, string> } {
+	const config = PROVIDERS[provider ?? detectProvider(url)];
+	const base = stripTrailingApiVersion(url);
+	return { url: config.modelsUrl({ base, apiKey }), headers: config.modelsHeaders(apiKey) };
+}
+
 /**
  * Lists the model ids advertised by an endpoint. An empty array means the
  * endpoint responded OK with no models.
@@ -255,14 +286,17 @@ export type EndpointProbeResult = { ok: true; modelCount: number } | { ok: false
 export async function listModels({
 	url,
 	apiKey,
+	provider,
 }: {
 	url: string;
 	apiKey?: string;
+	/** The endpoint's stored provider; falls back to URL sniffing only when absent. */
+	provider?: LLMProvider;
 }): Promise<string[]> {
-	const config = PROVIDERS[detectProvider(url)];
-	const base = trimPathRight(url);
-	const res = await fetch(config.modelsUrl({ base, apiKey }), {
-		headers: config.modelsHeaders(apiKey),
+	const config = PROVIDERS[provider ?? detectProvider(url)];
+	const request = buildModelsRequest({ url, apiKey, provider });
+	const res = await fetch(request.url, {
+		headers: request.headers,
 		signal: AbortSignal.timeout(8000),
 	});
 	if (!res.ok) {

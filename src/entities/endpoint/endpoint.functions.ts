@@ -2,7 +2,7 @@ import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 import { decrypt, encrypt } from "#/shared/lib/crypto.server";
 import { prisma } from "#/shared/lib/db.server";
-import { listModels, probeEndpoint } from "#/shared/lib/llm.server";
+import { asLLMProvider, listModels, probeEndpoint } from "#/shared/lib/llm.server";
 import { ollamaClient } from "#/shared/lib/ollama/client.server";
 import { getCurrentUserId } from "#/shared/lib/session.server";
 import {
@@ -98,7 +98,7 @@ export const listEndpointModels = createServerFn({ method: "POST" })
 		});
 		if (!endpoint) throw new Error("Not found");
 		const apiKey = endpoint.apiKeyEncrypted ? decrypt(endpoint.apiKeyEncrypted) : undefined;
-		return listModels({ url: endpoint.url, apiKey });
+		return listModels({ url: endpoint.url, apiKey, provider: asLLMProvider(endpoint.provider) });
 	});
 
 export const testEndpoint = createServerFn({ method: "POST" })
