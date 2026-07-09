@@ -5,7 +5,7 @@ export const manageMemoryArgsSchema = z.object({
 	action: z.enum(["add", "search", "list", "delete"]),
 	text: z.string().optional(),
 	query: z.string().optional(),
-	id: z.string().optional(),
+	id: z.uuid().optional(),
 	category: z.string().optional(),
 	limit: z.coerce.number().optional(),
 });
@@ -63,7 +63,7 @@ async function searchMemory({
 
 	const rows = await recallMemories({ ownerId, query, limit: args.limit ?? 5 });
 	if (rows.length === 0) return "No matching memories found.";
-	return rows.map((r, i) => `[${i + 1}] (${r.category}) ${r.text}`).join("\n");
+	return rows.map((r) => `[${r.id}] (${r.category}) ${r.text}`).join("\n");
 }
 
 async function listMemories({
@@ -76,7 +76,7 @@ async function listMemories({
 	const memories = await findMemories({ ownerId, limit: Math.min(args.limit ?? 10, 50) });
 
 	if (memories.length === 0) return "No memories saved yet.";
-	return memories.map((m, i) => `[${i + 1}] (${m.category}) ${m.text}`).join("\n");
+	return memories.map((m) => `[${m.id}] (${m.category}) ${m.text}`).join("\n");
 }
 
 async function deleteMemory({

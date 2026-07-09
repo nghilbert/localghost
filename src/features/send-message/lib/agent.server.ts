@@ -83,7 +83,7 @@ function manageMemoryTool(ownerId: string): ServerTool {
 			"conversation or asks what you remember. Use add ONLY when the user shares a durable fact " +
 			"worth remembering across sessions (a stable preference, personal detail, ongoing project, " +
 			"or an explicit 'remember this'). Never save trivial or ephemeral conversation details. " +
-			"Use list or delete to manage saved memories.",
+			"Use list or search to find a memory's id, then delete with that id to remove it.",
 		inputSchema: {
 			type: "object",
 			properties: {
@@ -94,7 +94,10 @@ function manageMemoryTool(ownerId: string): ServerTool {
 				},
 				text: { type: "string", description: "Memory text (required for add)" },
 				query: { type: "string", description: "Search query (required for search)" },
-				id: { type: "string", description: "Memory ID (required for delete)" },
+				id: {
+					type: "string",
+					description: "Memory ID from a prior list or search result (required for delete)",
+				},
 				category: {
 					type: "string",
 					description: "Category hint: fact, preference, contact, project, instruction",

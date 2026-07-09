@@ -1,7 +1,7 @@
 import { prisma } from "#/shared/lib/db.server";
 import { embed, toVectorLiteral } from "./embeddings.server";
 
-export type RecalledMemory = { text: string; category: string };
+export type RecalledMemory = { id: string; text: string; category: string };
 
 /**
  * Persists one memory with its embedding (source `"agent"`). Raw SQL because
@@ -49,20 +49,37 @@ export async function recallMemories({
 	const embedding = await embed({ text: trimmed, ownerId });
 
 	if (embedding) {
-		// Vector similarity search when embeddings are available.
-		return prisma.$queryRaw<RecalledMemory[]>`
-			SELECT text, category
-			FROM memory
-			WHERE owner_id = ${ownerId}::uuid AND embedding IS NOT NULL
-			ORDER BY embedding <=> ${toVectorLiteral(embedding)}::vector
-			LIMIT ${capped}`;
+		try {
+			// Vector similarity search when embeddings are available.
+			return await prisma.$queryRaw<RecalledMemory[]>`
+				SELECT id, text, category
+				FROM memory
+				WHERE owner_id = ${ownerId}::uuid AND embedding IS NOT NULL
+				ORDER BY embedding <=> ${toVectorLiteral(embedding)}::vector
+				LIMIT ${capped}`;
+		} catch {
+			// A stored embedding from a different model/dimension makes pgvector's
+			// `<=>` throw; degrade to keyword search instead of failing the chat run.
+		}
 	}
-	// Full-text keyword fallback when no embedding endpoint is configured.
+	return keywordRecall({ ownerId, query: trimmed, limit: capped });
+}
+
+/** Full-text keyword fallback used when no embedding endpoint is configured or recall fails. */
+function keywordRecall({
+	ownerId,
+	query,
+	limit,
+}: {
+	ownerId: string;
+	query: string;
+	limit: number;
+}): Promise<RecalledMemory[]> {
 	return prisma.$queryRaw<RecalledMemory[]>`
-		SELECT text, category
+		SELECT id, text, category
 		FROM memory
-		WHERE owner_id = ${ownerId}::uuid AND lower(text) LIKE lower(${`%${trimmed}%`})
-		LIMIT ${capped}`;
+		WHERE owner_id = ${ownerId}::uuid AND lower(text) LIKE lower(${`%${query}%`})
+		LIMIT ${limit}`;
 }
 
 /** The user's memories, newest first, optionally capped. */
