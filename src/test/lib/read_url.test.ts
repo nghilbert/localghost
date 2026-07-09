@@ -1,6 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { readUrl } from "#/shared/lib/tools/read_url";
 
+vi.mock("#/shared/lib/ssrf-guard.server", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("#/shared/lib/ssrf-guard.server")>();
+	return { ...actual, resolvePublicUrl: async (input: string) => new URL(input) };
+});
+
 const ARTICLE_HTML = `<!doctype html>
 <html>
 	<head><title>Test Article</title></head>
@@ -16,13 +21,21 @@ const ARTICLE_HTML = `<!doctype html>
 	</body>
 </html>`;
 
+/** A minimal `fetch` Response stand-in with a real `Headers` for redirect checks. */
+function mockResponse(init: { ok: boolean; status?: number; text?: () => Promise<string> }) {
+	return { ...init, headers: new Headers() };
+}
+
 describe("readUrl", () => {
 	afterEach(() => {
 		vi.restoreAllMocks();
 	});
 
 	it("extracts the main content as text", async () => {
-		vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, text: async () => ARTICLE_HTML }));
+		vi.stubGlobal(
+			"fetch",
+			vi.fn().mockResolvedValue(mockResponse({ ok: true, text: async () => ARTICLE_HTML })),
+		);
 
 		const result = await readUrl("https://example.com/article");
 		expect(result).toContain("Test Article");
@@ -31,7 +44,7 @@ describe("readUrl", () => {
 	});
 
 	it("returns a friendly message on HTTP error", async () => {
-		vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 404 }));
+		vi.stubGlobal("fetch", vi.fn().mockResolvedValue(mockResponse({ ok: false, status: 404 })));
 		const result = await readUrl("https://example.com/missing");
 		expect(result).toBe("Failed to fetch page: HTTP 404");
 	});
