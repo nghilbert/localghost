@@ -1,5 +1,23 @@
 import { describe, expect, it } from "vitest";
-import { toVectorLiteral } from "#/entities/memory/embeddings.server";
+import { embeddingModelFor, toVectorLiteral } from "#/entities/memory/embeddings.server";
+
+describe("embeddingModelFor", () => {
+	it("picks a local embedding model for ollama, not the chat model", () => {
+		expect(embeddingModelFor("ollama")).toBe("nomic-embed-text");
+	});
+
+	it("picks an OpenAI-compatible embedding model for openai/openrouter/groq", () => {
+		expect(embeddingModelFor("openai")).toBe("text-embedding-3-small");
+		expect(embeddingModelFor("openrouter")).toBe("text-embedding-3-small");
+		expect(embeddingModelFor("groq")).toBe("text-embedding-3-small");
+	});
+
+	it("returns null for providers with no OpenAI-compatible embeddings endpoint", () => {
+		expect(embeddingModelFor("anthropic")).toBeNull();
+		expect(embeddingModelFor("gemini")).toBeNull();
+		expect(embeddingModelFor(undefined)).toBeNull();
+	});
+});
 
 describe("toVectorLiteral", () => {
 	it("formats an empty array", () => {

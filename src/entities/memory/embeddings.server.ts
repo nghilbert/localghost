@@ -2,14 +2,34 @@ import { trimPathRight } from "@tanstack/react-router";
 import { z } from "zod/v4";
 import { decrypt } from "#/shared/lib/crypto.server";
 import { prisma } from "#/shared/lib/db.server";
+import { asLLMProvider, type LLMProvider } from "#/shared/lib/llm.server";
 
 const embeddingResponseSchema = z.object({
 	data: z.array(z.object({ embedding: z.array(z.number()) })).optional(),
 });
 
 /**
- * Fetches a text embedding from the user's first endpoint supporting
- * `/v1/embeddings`, in creation order.
+ * The `/v1/embeddings` model per provider family. `null` means the provider has
+ * no OpenAI-compatible embeddings endpoint, so `embed` skips it rather than
+ * wasting a round trip that would 404.
+ */
+export function embeddingModelFor(provider: LLMProvider | undefined): string | null {
+	switch (provider) {
+		case "ollama":
+			// A small, widely-pulled local embedding model; not the chat model.
+			return "nomic-embed-text";
+		case "openai":
+		case "openrouter":
+		case "groq":
+			return "text-embedding-3-small";
+		default:
+			return null;
+	}
+}
+
+/**
+ * Fetches a text embedding from the user's first endpoint whose provider
+ * supports OpenAI-compatible embeddings, in creation order.
  * @returns The vector, or `null` when no endpoint succeeds (callers degrade).
  */
 export async function embed({
@@ -25,6 +45,9 @@ export async function embed({
 	});
 
 	for (const ep of endpoints) {
+		const model = embeddingModelFor(asLLMProvider(ep.provider));
+		if (!model) continue;
+
 		const apiKey = ep.apiKeyEncrypted ? decrypt(ep.apiKeyEncrypted) : undefined;
 		const base = trimPathRight(ep.url).replace(/\/v1$/, "");
 		const embeddingUrl = `${base}/v1/embeddings`;
@@ -36,7 +59,7 @@ export async function embed({
 					"Content-Type": "application/json",
 					...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
 				},
-				body: JSON.stringify({ input: text, model: "text-embedding-3-small" }),
+				body: JSON.stringify({ input: text, model }),
 				signal: AbortSignal.timeout(10_000),
 			});
 
