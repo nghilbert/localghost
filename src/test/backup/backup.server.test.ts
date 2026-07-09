@@ -25,6 +25,9 @@ vi.mock("#/shared/lib/db.server", () => ({
 	},
 }));
 
+// `memoryFindMany`/`conversationFindMany` back both exportBackup's row select
+// and importBackup's dedup lookup; each describe block below sets what it needs.
+
 beforeEach(() => {
 	vi.clearAllMocks();
 	memoryFindMany.mockResolvedValue([]);
@@ -133,6 +136,23 @@ describe("importBackup: memories", () => {
 		expect(memoryCreateMany).not.toHaveBeenCalled();
 		expect(result.memories).toBe(0);
 	});
+
+	it("skips memories that already exist for the owner (re-import is a no-op)", async () => {
+		memoryFindMany.mockResolvedValue([{ text: "already saved", category: "fact" }]);
+		memoryCreateMany.mockResolvedValue({ count: 1 });
+
+		const result = await importBackup({
+			userId: "owner-1",
+			payload: {
+				memories: [{ text: "already saved", category: "fact" }, { text: "new one" }],
+			},
+		});
+
+		expect(memoryCreateMany).toHaveBeenCalledWith({
+			data: [{ text: "new one", category: "fact", source: "import", ownerId: "owner-1" }],
+		});
+		expect(result).toMatchObject({ memories: 1, skippedMemories: 1 });
+	});
 });
 
 describe("importBackup: conversations", () => {
@@ -163,5 +183,25 @@ describe("importBackup: conversations", () => {
 		expect(conversationCreateMany).toHaveBeenCalledWith({
 			data: [{ title: "Trip", model: "llama3", messages: [], ownerId: "o" }],
 		});
+	});
+
+	it("skips conversations already present by title and message content", async () => {
+		conversationFindMany.mockResolvedValue([{ title: "Trip", messages: [{ id: "m1" }] }]);
+		conversationCreateMany.mockResolvedValue({ count: 1 });
+
+		const result = await importBackup({
+			userId: "owner-1",
+			payload: {
+				conversations: [
+					{ title: "Trip", model: "llama3", messages: [{ id: "m1" }] },
+					{ title: "New chat", model: "llama3", messages: [{ id: "m2" }] },
+				],
+			},
+		});
+
+		expect(conversationCreateMany).toHaveBeenCalledWith({
+			data: [{ title: "New chat", model: "llama3", messages: [{ id: "m2" }], ownerId: "owner-1" }],
+		});
+		expect(result).toMatchObject({ conversations: 1, skippedConversations: 1 });
 	});
 });
