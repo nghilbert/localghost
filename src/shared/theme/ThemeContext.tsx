@@ -24,7 +24,7 @@ function getThemeScript(defaultMode: ThemeMode) {
 	const modeKey = JSON.stringify(MODE_STORAGE_KEY);
 	const themeKey = JSON.stringify(THEME_STORAGE_KEY);
 	const fallback = JSON.stringify(defaultMode);
-	const themes = JSON.stringify(THEMES);
+	const themes = JSON.stringify(THEMES.map(({ id }) => id));
 
 	return `(function(){try{var e=document.documentElement;var m=localStorage.getItem(${modeKey});if(m!=='light'&&m!=='dark'&&m!=='system'){m=${fallback}}var d=matchMedia('(prefers-color-scheme: dark)').matches;var r=m==='system'?(d?'dark':'light'):m;e.classList.add(r);e.style.colorScheme=r;var c=localStorage.getItem(${themeKey});if(c&&${themes}.indexOf(c)>-1){e.classList.add('theme-'+c)}}catch(e){}})();`;
 }
