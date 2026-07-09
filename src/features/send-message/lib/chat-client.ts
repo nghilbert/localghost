@@ -1,4 +1,4 @@
-import type { ChatClientPersistence } from "@tanstack/ai-client";
+import type { ChatClientPersistence, UIMessage } from "@tanstack/ai-client";
 import { createChatClientOptions, fetchServerSentEvents } from "@tanstack/ai-client";
 import type { QueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -16,14 +16,51 @@ function clone<T>(value: T): T {
 	return JSON.parse(JSON.stringify(value));
 }
 
+type PendingSave = {
+	timer: ReturnType<typeof setTimeout>;
+	snapshot: UIMessage[];
+	queryClient: QueryClient;
+};
+
+// Module-level (not per-persistence-instance) so the flush listeners below are
+// registered exactly once, even though `ChatView` remounts a fresh persistence
+// object on every conversation switch.
+const pending = new Map<string, PendingSave>();
+
+function commit(id: string) {
+	const entry = pending.get(id);
+	if (!entry) return;
+	pending.delete(id);
+	const { snapshot, queryClient } = entry;
+	saveConversationMessages({ data: { id, messages: snapshot } })
+		.then(() => {
+			queryClient.setQueryData(conversationQueryOptions(id).queryKey, (prev) =>
+				prev ? { ...prev, messages: snapshot } : prev,
+			);
+		})
+		.catch(() => toast.error("Failed to save the conversation"));
+}
+
+function flushAll() {
+	for (const [id, { timer }] of pending) {
+		clearTimeout(timer);
+		commit(id);
+	}
+}
+
+if (typeof document !== "undefined") {
+	document.addEventListener("visibilitychange", () => {
+		if (document.visibilityState === "hidden") flushAll();
+	});
+	window.addEventListener("pagehide", flushAll);
+}
+
 /**
  * {@link ChatClientPersistence} backed by the conversation query cache: `getItem`
- * answers synchronously from the loader-primed cache (no hydration race), and the
- * per-delta `setItem` calls debounce into one save per burst.
+ * answers synchronously from the loader-primed cache, and `setItem` debounces
+ * into one save per burst, flushed immediately on tab hide/close.
  */
 function createChatPersistence(queryClient: QueryClient): ChatClientPersistence {
-	const saveTimers = new Map<string, ReturnType<typeof setTimeout>>();
-
 	return {
 		getItem: (id) => {
 			const cached = queryClient.getQueryData(conversationQueryOptions(id).queryKey);
@@ -34,23 +71,13 @@ function createChatPersistence(queryClient: QueryClient): ChatClientPersistence 
 		},
 		setItem: (id, messages) => {
 			const snapshot = clone(messages);
-			clearTimeout(saveTimers.get(id));
-			saveTimers.set(
-				id,
-				setTimeout(() => {
-					saveTimers.delete(id);
-					saveConversationMessages({ data: { id, messages: snapshot } }).catch(() =>
-						toast.error("Failed to save the conversation"),
-					);
-					queryClient.setQueryData(conversationQueryOptions(id).queryKey, (prev) =>
-						prev ? { ...prev, messages: snapshot } : prev,
-					);
-				}, SAVE_DEBOUNCE_MS),
-			);
+			clearTimeout(pending.get(id)?.timer);
+			const timer = setTimeout(() => commit(id), SAVE_DEBOUNCE_MS);
+			pending.set(id, { timer, snapshot, queryClient });
 		},
 		removeItem: async (id) => {
-			clearTimeout(saveTimers.get(id));
-			saveTimers.delete(id);
+			clearTimeout(pending.get(id)?.timer);
+			pending.delete(id);
 			await deleteConversation({ data: { id } });
 			queryClient.removeQueries({ queryKey: conversationQueryOptions(id).queryKey });
 		},
