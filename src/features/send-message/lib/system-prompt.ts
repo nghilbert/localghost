@@ -2,6 +2,10 @@ const WEB_SEARCH_DIRECTIVE =
 	"The user enabled web search for this message. Use the web_search tool when current or " +
 	"external information would improve the answer.";
 
+const MEMORY_DIRECTIVE =
+	"The user enabled long-term memory for this message. Use the manage_memory tool to search " +
+	"when past context would help, and to add durable facts the user shares.";
+
 /**
  * Grounds the model in the current date and time, formatted for the client's
  * timezone. An invalid or missing zone falls back to the server's.
@@ -34,6 +38,7 @@ export function buildChatSystemPrompt({
 		currentDateTimeLine(timeZone),
 		userPrompt?.trim(),
 		enabledTools.includes("web_search") && WEB_SEARCH_DIRECTIVE,
+		enabledTools.includes("memory") && MEMORY_DIRECTIVE,
 	]
 		.filter(Boolean)
 		.join("\n\n");
