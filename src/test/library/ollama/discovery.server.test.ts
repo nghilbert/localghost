@@ -13,7 +13,7 @@ const { findFirst, findMany, create, update } = vi.hoisted(() => ({
 }));
 
 vi.mock("#/shared/lib/db.server", () => ({
-	prisma: { modelEndpoint: { findFirst, findMany, create, update } },
+	prisma: { endpoint: { findFirst, findMany, create, update } },
 }));
 
 describe("getOllamaUrl", () => {

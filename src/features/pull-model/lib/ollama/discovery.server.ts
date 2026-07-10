@@ -19,7 +19,7 @@ const WELL_KNOWN_URLS = [
  * then localhost.
  */
 export async function getOllamaUrl(userId: string): Promise<string> {
-	const endpoint = await prisma.modelEndpoint.findFirst({
+	const endpoint = await prisma.endpoint.findFirst({
 		where: { ownerId: userId, provider: "ollama" },
 		orderBy: { id: "asc" },
 	});
@@ -80,7 +80,7 @@ export type OllamaScanResult = {
  * instance in priority order wins.
  */
 export async function scanForOllama(userId: string): Promise<OllamaScanResult | null> {
-	const saved = await prisma.modelEndpoint.findMany({
+	const saved = await prisma.endpoint.findMany({
 		where: { ownerId: userId, provider: "ollama" },
 		orderBy: { id: "asc" },
 		select: { id: true, url: true, options: true },
@@ -120,14 +120,14 @@ export async function upsertOllamaEndpoint({
 	const resolved =
 		existing !== undefined
 			? existing
-			: await prisma.modelEndpoint.findFirst({
+			: await prisma.endpoint.findFirst({
 					where: { ownerId: userId, provider: "ollama" },
 					orderBy: { id: "asc" },
 					select: { id: true, url: true, options: true },
 				});
 
 	if (!resolved) {
-		await prisma.modelEndpoint.create({
+		await prisma.endpoint.create({
 			data: {
 				name: "Ollama (local)",
 				url: normalizedUrl,
@@ -142,7 +142,7 @@ export async function upsertOllamaEndpoint({
 	const nextOptions =
 		numCtx === undefined ? undefined : mergeNumCtx({ options: resolved.options, numCtx });
 	if (resolved.url === normalizedUrl && nextOptions === undefined) return;
-	await prisma.modelEndpoint.update({
+	await prisma.endpoint.update({
 		where: { id: resolved.id },
 		data: {
 			url: normalizedUrl,

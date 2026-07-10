@@ -95,7 +95,7 @@ export const PROVIDERS: ProviderDefinition[] = [
 	},
 ];
 
-/** Maps a picker choice onto the provider value stored on ModelEndpoint. */
+/** Maps a picker choice onto the provider value stored on Endpoint. */
 export function dbProviderFor(id: ProviderId): DbProvider {
 	return id === "custom" ? "openai" : id;
 }

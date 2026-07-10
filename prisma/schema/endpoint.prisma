@@ -1,4 +1,4 @@
-model ModelEndpoint {
+model Endpoint {
   id              String         @id @default(dbgenerated("uuidv7()")) @db.Uuid
   name            String
   url             String
@@ -11,5 +11,5 @@ model ModelEndpoint {
   updatedAt       DateTime       @updatedAt @map("updated_at")
 
   @@index([ownerId])
-  @@map("model_endpoint")
+  @@map("endpoint")
 }

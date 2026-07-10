@@ -17,7 +17,7 @@ export type LLMProvider = "anthropic" | "ollama" | "openai" | "openrouter" | "gr
 
 const llmProviderSchema = z.enum(["anthropic", "ollama", "openai", "openrouter", "groq", "gemini"]);
 
-/** Narrows a stored `ModelEndpoint.provider` string to {@link LLMProvider}, or `undefined` if unrecognized. */
+/** Narrows a stored `Endpoint.provider` string to {@link LLMProvider}, or `undefined` if unrecognized. */
 export function asLLMProvider(value: string): LLMProvider | undefined {
 	const parsed = llmProviderSchema.safeParse(value);
 	return parsed.success ? parsed.data : undefined;

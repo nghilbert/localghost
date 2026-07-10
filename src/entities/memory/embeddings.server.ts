@@ -39,7 +39,7 @@ export async function embed({
 	text: string;
 	ownerId: string;
 }): Promise<number[] | null> {
-	const endpoints = await prisma.modelEndpoint.findMany({
+	const endpoints = await prisma.endpoint.findMany({
 		where: { ownerId },
 		orderBy: { id: "asc" },
 	});

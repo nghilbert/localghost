@@ -34,19 +34,7 @@ CREATE TABLE "conversation" (
 );
 
 -- CreateTable
-CREATE TABLE "memory" (
-    "id" UUID NOT NULL DEFAULT uuidv7(),
-    "text" TEXT NOT NULL,
-    "embedding" vector,
-    "category" TEXT NOT NULL DEFAULT 'fact',
-    "source" TEXT NOT NULL DEFAULT 'user',
-    "owner_id" UUID NOT NULL,
-
-    CONSTRAINT "memory_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "model_endpoint" (
+CREATE TABLE "endpoint" (
     "id" UUID NOT NULL DEFAULT uuidv7(),
     "name" TEXT NOT NULL,
     "url" TEXT NOT NULL,
@@ -56,7 +44,19 @@ CREATE TABLE "model_endpoint" (
     "owner_id" UUID NOT NULL,
     "updated_at" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "model_endpoint_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "endpoint_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "memory" (
+    "id" UUID NOT NULL DEFAULT uuidv7(),
+    "text" TEXT NOT NULL,
+    "embedding" vector,
+    "category" TEXT NOT NULL DEFAULT 'fact',
+    "source" TEXT NOT NULL DEFAULT 'user',
+    "owner_id" UUID NOT NULL,
+
+    CONSTRAINT "memory_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -107,10 +107,10 @@ CREATE INDEX "account_user_id_idx" ON "account"("user_id");
 CREATE INDEX "conversation_owner_id_idx" ON "conversation"("owner_id");
 
 -- CreateIndex
-CREATE INDEX "memory_owner_id_idx" ON "memory"("owner_id");
+CREATE INDEX "endpoint_owner_id_idx" ON "endpoint"("owner_id");
 
 -- CreateIndex
-CREATE INDEX "model_endpoint_owner_id_idx" ON "model_endpoint"("owner_id");
+CREATE INDEX "memory_owner_id_idx" ON "memory"("owner_id");
 
 -- CreateIndex
 CREATE INDEX "session_user_id_idx" ON "session"("user_id");
@@ -131,13 +131,13 @@ ALTER TABLE "account" ADD CONSTRAINT "account_user_id_fkey" FOREIGN KEY ("user_i
 ALTER TABLE "conversation" ADD CONSTRAINT "conversation_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "conversation" ADD CONSTRAINT "conversation_endpoint_id_fkey" FOREIGN KEY ("endpoint_id") REFERENCES "model_endpoint"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "conversation" ADD CONSTRAINT "conversation_endpoint_id_fkey" FOREIGN KEY ("endpoint_id") REFERENCES "endpoint"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "endpoint" ADD CONSTRAINT "endpoint_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "memory" ADD CONSTRAINT "memory_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "model_endpoint" ADD CONSTRAINT "model_endpoint_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "session" ADD CONSTRAINT "session_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;

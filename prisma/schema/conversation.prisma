@@ -2,15 +2,15 @@
 /// The client owns persistence via the framework's ChatClientPersistence
 /// adapter (getItem/setItem/removeItem), so the stream route never writes here.
 model Conversation {
-  id         String         @id @default(dbgenerated("uuidv7()")) @db.Uuid
-  ownerId    String         @map("owner_id") @db.Uuid
-  owner      User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  title      String         @default("New Chat")
-  endpointId String?        @map("endpoint_id") @db.Uuid
-  endpoint   ModelEndpoint? @relation(fields: [endpointId], references: [id], onDelete: SetNull)
+  id         String    @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  ownerId    String    @map("owner_id") @db.Uuid
+  owner      User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  title      String    @default("New Chat")
+  endpointId String?   @map("endpoint_id") @db.Uuid
+  endpoint   Endpoint? @relation(fields: [endpointId], references: [id], onDelete: SetNull)
   model      String?
-  messages   Json           @default("[]") /// @tanstack/ai UIMessage[] — the full conversation transcript.
-  updatedAt  DateTime       @updatedAt @map("updated_at")
+  messages   Json      @default("[]") /// @tanstack/ai UIMessage[] — the full conversation transcript.
+  updatedAt  DateTime  @updatedAt @map("updated_at")
 
   @@index([ownerId])
   @@map("conversation")
