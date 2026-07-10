@@ -45,13 +45,13 @@ Copy `.env.example` to `.env`. Required: `POSTGRES_PASSWORD`, `BETTER_AUTH_SECRE
 ## Architecture
 
 - **Framework:** TanStack Start (SSR React, Vite + Hono); file-based routing. Import alias `#/` → `src/`.
-- **Routes = the pages layer.** `_authenticated.tsx` guards auth and renders the colocated `AppSidebar` shell (`_authenticated/-components/AppSidebar/`). Route files are thin: the `Route` export wiring loader/head/search to one page component. Page compositions live beside the route in a `-page/` folder, hidden from route generation by the `-` prefix (`routeFileIgnorePrefix`, default `-`): `_authenticated/-page/{LibraryPage,NewChatView,settings/*}` and `_authenticated/chat/-page/ConversationPage`. The bound component is named `<RouteSubject>Page`. The building blocks it composes keep descriptive names (`SignInForm`, `AccountTab`, `ChatView`).
+- **Routes = the pages layer.** `_authenticated.tsx` guards auth and renders the colocated `AppSidebar` shell (`_authenticated/-components/AppSidebar/`). A route file owns the `Route` export (loader/head/search wiring) **and** its page component, named `<RouteSubject>Page` (`library.tsx` defines `LibraryPage`). Multi-file building blocks colocate in a `-`-prefixed sibling folder hidden from route generation (`routeFileIgnorePrefix`, default `-`): `_authenticated/-settings/` (tabs + hooks + schemas), `_authenticated/-components/AppSidebar/`. Building blocks keep descriptive names (`SignInForm`, `AccountTab`, `ChatView`).
 - **Auth:** better-auth (email/password). Session resolved at root `beforeLoad`.
-- **Data:** TanStack Query + `createServerFn` in co-located `*.functions.ts`. Call as `fn({ data: { ... } })`.
+- **Data:** TanStack Query + `createServerFn` in co-located `*.functions.ts`. Call as `fn({ data: { ... } })`. A `*.functions.ts` is a **thin RPC boundary**: validate input, resolve the user, delegate to the sibling `<noun>.server.ts` (which owns prisma/crypto/external calls); its `queryOptions` colocate at the bottom of the same file. `memory` is the reference split.
 - **Database:** Prisma 7 + `@prisma/adapter-pg`. Multi-file schema in `prisma/schema/`. Generated client in `src/generated/prisma/`. Import `prisma` — never alias.
 - **Styling:** Tailwind v4. `src/shared/lib/globals.css` is the single CSS entry. Light/dark via `.dark` on `<html>`. `cn()` in `src/shared/lib/utils.ts`. Disabled gotcha: `InputGroup` greys the whole group if any descendant is `disabled` (`has-disabled:`); for a control blocked by fixable state use `aria-disabled` instead (skips greying, keeps pointer events so it can trigger its own tooltip). A genuinely disabled control that needs a tooltip needs a span-`render` trigger, since disabled elements swallow pointer events (see `LockedModel`, `ToolsMenu`).
 - **LLM:** `src/shared/lib/llm.server.ts`: `streamLLMEvents(opts)` returns `AsyncIterable<StreamChunk>`; include `tools: ServerTool[]` in the options to run the agent loop. A data-driven `PROVIDERS` registry handles per-provider URL/header/model-list/options quirks; provider auto-detected from URL. Wraps `@tanstack/ai`'s `chat()` with native adapters.
-- **Tools:** `src/features/send-message/lib/agent.server.ts`: `buildChatTools()` assembles the built-in `ServerTool[]` (`web_search`, `read_url`, `manage_memory`); `chat()` auto-executes them. There is **one** chat — no separate "agent mode". Every tool is **opt-in per request**: the client sends the selection via `forwardedProps` (not persisted), so an untouched send hands the model no tools — keeping small models reliable.
+- **Tools:** `src/features/send-message/lib/agent.server.ts`: `buildChatTools()` assembles the built-in `ServerTool[]` (`web_search`, `read_url`, `manage_memory`); `chat()` auto-executes them. There is **one** chat, no separate "agent mode". The client sends the per-request selection via `forwardedProps` (not persisted). Default: **web search starts enabled whenever the server offers it** (`SEARXNG_URL` set, surfaced via `getToolAvailability`); every other tool starts off, keeping small models reliable.
 - **Chat persistence:** one `Conversation` row = one `UIMessage[]` blob (`messages` JSONB). The **client** owns persistence via `ChatClientPersistence` (`src/features/send-message/lib/chat-client.ts`), so `/api/chat/stream` performs **zero DB writes**.
 
 ## Forms
@@ -80,16 +80,15 @@ src/
     lib/         #   utils, crypto/db/llm/auth/session infra (*.server.ts), ollama SDK client, constants, globals.css
     hooks/       #   use-app-form/, use-is-mobile
     theme/       #   ThemeContext provider + theme.ts (app-wide, so shared, not a feature)
-  entities/      # domain nouns; server api + schemas + query hooks, files kept flat
+  entities/      # domain nouns, files kept flat: <noun>.server.ts (data access) + <noun>.functions.ts (thin RPC + queryOptions) + schemas
     endpoint/    #   the core noun other entities lean on (conversation imports it)
     conversation/   memory/   user-settings/
   features/      # user interactions (verbs), one slice each; keep components/hooks/lib segment folders
     auth/  send-message/  pull-model/  manage-endpoints/
-  routes/        # TanStack routing == the pages layer
+  routes/        # TanStack routing == the pages layer; each route file owns Route + its <X>Page component
     _authenticated/
       -components/AppSidebar/       # the shell, colocated (the `-` prefix hides it from route gen)
-      -page/{LibraryPage,NewChatView,settings/}
-      chat/-page/ConversationPage/
+      -settings/                    # settings.tsx's building blocks: tabs + hooks + schemas
 ```
 
 - **One-way deps, by convention.** No imports between features; share downward through `entities/` or `shared/`. Cross-entity imports stay rare (`conversation → endpoint` is the only one today). Pages (routes) compose anything below them.
@@ -98,7 +97,7 @@ src/
   2. Part of one user interaction → that feature's `components/`/`hooks/`/`lib/`.
   3. Domain data used by two or more features (server fns, schemas, query hooks for a noun) → `entities/<noun>`, files flat.
   4. Domain-free infra or UI (crypto, db, llm, shadcn, form kit) → `shared/`.
-  5. Page composition or multi-feature orchestration (a settings tab composing two features) → `routes/**/-page/` beside its route.
+  5. Page composition or multi-feature orchestration → the route file itself; its multi-file building blocks (a settings tab composing two features) → a `-`-prefixed folder beside the route.
 - **No per-slice barrel/`index.ts` public API.** Import the specific module (`#/features/send-message/lib/chat-client`), not a slice root. Barrels hurt Vite HMR and tree-shaking. `ComponentName/index.tsx` is a single-component folder, not a re-export barrel.
 - **Entities are flat; features keep `components/hooks/lib`.** A feature earns its folder by being a real multi-file interaction; a lone hook serving one page lives beside that page, not in a feature.
 - Large components (250+ lines or with sub-components) become `ComponentName/index.tsx` folders.
@@ -130,12 +129,12 @@ Vitest + Testing Library. Patterns (see the "Test complex work" rule for _when_)
 
 | Area | Key files |
 |------|-----------|
-| Chat + streaming | feature `src/features/send-message/` (`lib/agent.server.ts`, `lib/chat-client.ts`), entity `src/entities/conversation/`, page `src/routes/_authenticated/chat/-page/ConversationPage/`, `src/routes/api/chat/stream.tsx` |
-| Library (core) | feature `src/features/pull-model/` (`lib/ollama/catalog.server.ts` scrapes ollama.com, `lib/catalog.ts` scores hardware fit, `lib/hardware.server.ts` probes the host), page `src/routes/_authenticated/-page/LibraryPage.tsx`: browse and install local models |
-| Endpoints / providers | entity `src/entities/endpoint/` (the kernel: `ModelEndpoint` api, schemas, query hooks), feature `src/features/manage-endpoints/` (the config UI + `lib/providers.ts` registry) |
+| Chat + streaming | feature `src/features/send-message/` (`lib/agent.server.ts`, `lib/chat-client.ts`), entity `src/entities/conversation/`, page `src/routes/_authenticated/chat/$conversationId.tsx`, `src/routes/api/chat/stream.tsx` |
+| Library (core) | feature `src/features/pull-model/` (`lib/ollama/catalog.server.ts` scrapes ollama.com, `lib/catalog.ts` scores hardware fit, `lib/hardware.server.ts` probes the host), page `src/routes/_authenticated/library.tsx`: browse and install local models |
+| Endpoints / providers | entity `src/entities/endpoint/` (the kernel: endpoint api, schemas, query hooks), feature `src/features/manage-endpoints/` (the config UI + `lib/providers.ts` registry) |
 | Memory (pgvector) | entity `src/entities/memory/` (`memory.functions.ts` RPC, `memory.server.ts` data access, `memory-tool.server.ts` agent tool, `embeddings.server.ts`); opt-in per-message tool, browse/delete in Settings |
-| Built-in agent tools | wired in `src/features/send-message/lib/agent.server.ts`; handlers in `src/shared/lib/tools/{web_search,read_url}.ts` + `src/entities/memory/memory-tool.server.ts`; client toggle list in `send-message/lib/tool-catalog.ts` |
-| Settings | page `src/routes/_authenticated/-page/settings/` (tabs + their hooks: account, memory, `manage-endpoints`, theme) |
+| Built-in agent tools | wired in `src/features/send-message/lib/agent.server.ts`; handlers in `src/shared/lib/tools/{web-search,read-url}.server.ts` + `src/entities/memory/memory-tool.server.ts`; client toggle list in `send-message/lib/tool-catalog.ts`, availability in `send-message/lib/tools.functions.ts` |
+| Settings | page `src/routes/_authenticated/settings.tsx` + `-settings/` (tabs + their hooks: account, memory, `manage-endpoints`, theme) |
 | Backup/import | `src/routes/api/backup/` (handlers + colocated `-backup.server.ts`): non-destructive merge |
 | Auth | feature `src/features/auth/` (UI + sign-in/out fns), session infra `src/shared/lib/{auth,session}.server.ts` |
 | Theme | `src/shared/theme/` (provider + constants), Appearance tab in Settings |
