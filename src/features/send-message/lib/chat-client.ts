@@ -27,12 +27,22 @@ type PendingSave = {
 // object on every conversation switch.
 const pending = new Map<string, PendingSave>();
 
-function commit(id: string) {
+/**
+ * A `fetch` that survives document unload, for the tab-hide/close flush so an
+ * abandoned document doesn't drop the request. Mind the ~64KB keepalive body
+ * cap; a very large `messages` blob may exceed it.
+ */
+const keepaliveFetch: typeof fetch = (input, init) => fetch(input, { ...init, keepalive: true });
+
+function commit(id: string, { keepalive = false }: { keepalive?: boolean } = {}) {
 	const entry = pending.get(id);
 	if (!entry) return;
 	pending.delete(id);
 	const { snapshot, queryClient } = entry;
-	saveConversationMessages({ data: { id, messages: snapshot } })
+	saveConversationMessages({
+		data: { id, messages: snapshot },
+		...(keepalive ? { fetch: keepaliveFetch } : {}),
+	})
 		.then(() => {
 			queryClient.setQueryData(conversationQueryOptions(id).queryKey, (prev) =>
 				prev ? { ...prev, messages: snapshot } : prev,
@@ -41,10 +51,11 @@ function commit(id: string) {
 		.catch(() => toast.error("Failed to save the conversation"));
 }
 
-function flushAll() {
+/** Commits every pending save with a keepalive fetch; runs on tab hide/close. */
+export function flushAll() {
 	for (const [id, { timer }] of pending) {
 		clearTimeout(timer);
-		commit(id);
+		commit(id, { keepalive: true });
 	}
 }
 
@@ -60,7 +71,7 @@ if (typeof document !== "undefined") {
  * answers synchronously from the loader-primed cache, and `setItem` debounces
  * into one save per burst, flushed immediately on tab hide/close.
  */
-function createChatPersistence(queryClient: QueryClient): ChatClientPersistence {
+export function createChatPersistence(queryClient: QueryClient): ChatClientPersistence {
 	return {
 		getItem: (id) => {
 			const cached = queryClient.getQueryData(conversationQueryOptions(id).queryKey);
