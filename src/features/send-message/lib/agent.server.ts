@@ -2,8 +2,8 @@ import type { ServerTool } from "@tanstack/ai";
 import { toolDefinition } from "@tanstack/ai";
 import type { z } from "zod";
 import { manageMemory, manageMemoryArgsSchema } from "#/entities/memory/memory-tool.server";
-import { readUrl, readUrlArgsSchema } from "#/shared/lib/tools/read_url";
-import { webSearch, webSearchArgsSchema } from "#/shared/lib/tools/web_search";
+import { readUrl, readUrlArgsSchema } from "#/shared/lib/tools/read-url.server";
+import { webSearch, webSearchArgsSchema } from "#/shared/lib/tools/web-search.server";
 
 /**
  * A short corrective message a model can act on. A thrown ZodError would abort
@@ -131,8 +131,8 @@ type BuildChatToolsOptions = {
 
 /**
  * Assembles the `ServerTool[]` for one chat run from the per-send selection,
- * skipping any unknown ids. Nothing is always-on; an untouched send hands the
- * model no tools, which keeps small models reliable. `chat()` auto-executes them.
+ * skipping unknown ids. Only what the client sent is built; the client defaults
+ * to web search on when available, the rest opt-in. `chat()` auto-executes them.
  */
 export function buildChatTools({ ownerId, enabledTools }: BuildChatToolsOptions): ServerTool[] {
 	return enabledTools.flatMap((id) => TOOL_BUILDERS[id]?.(ownerId) ?? []);
