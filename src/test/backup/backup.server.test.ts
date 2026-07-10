@@ -3,14 +3,14 @@ import { exportBackup, importBackup } from "#/routes/api/backup/-backup.server";
 
 const {
 	memoryFindMany,
-	memoryCreateMany,
+	saveMemory,
 	conversationFindMany,
 	conversationCreateMany,
 	userFindUnique,
 	userUpdate,
 } = vi.hoisted(() => ({
 	memoryFindMany: vi.fn(),
-	memoryCreateMany: vi.fn(),
+	saveMemory: vi.fn(),
 	conversationFindMany: vi.fn(),
 	conversationCreateMany: vi.fn(),
 	userFindUnique: vi.fn(),
@@ -19,11 +19,13 @@ const {
 
 vi.mock("#/shared/lib/db.server", () => ({
 	prisma: {
-		memory: { findMany: memoryFindMany, createMany: memoryCreateMany },
+		memory: { findMany: memoryFindMany },
 		conversation: { findMany: conversationFindMany, createMany: conversationCreateMany },
 		user: { findUnique: userFindUnique, update: userUpdate },
 	},
 }));
+
+vi.mock("#/entities/memory/memory.server", () => ({ saveMemory }));
 
 // `memoryFindMany`/`conversationFindMany` back both exportBackup's row select
 // and importBackup's dedup lookup; each describe block below sets what it needs.
@@ -31,7 +33,7 @@ vi.mock("#/shared/lib/db.server", () => ({
 beforeEach(() => {
 	vi.clearAllMocks();
 	memoryFindMany.mockResolvedValue([]);
-	memoryCreateMany.mockResolvedValue({ count: 0 });
+	saveMemory.mockResolvedValue(undefined);
 	conversationFindMany.mockResolvedValue([]);
 	conversationCreateMany.mockResolvedValue({ count: 0 });
 	userFindUnique.mockResolvedValue(null);
@@ -111,7 +113,7 @@ describe("importBackup: user settings merge", () => {
 });
 
 describe("importBackup: memories", () => {
-	it("drops empty-text memories and defaults category and source", async () => {
+	it("drops empty-text memories and saves the rest through saveMemory with an embedding", async () => {
 		await importBackup({
 			userId: "owner-1",
 			payload: {
@@ -123,23 +125,29 @@ describe("importBackup: memories", () => {
 			},
 		});
 
-		expect(memoryCreateMany).toHaveBeenCalledWith({
-			data: [
-				{ text: "remember this", category: "fact", source: "import", ownerId: "owner-1" },
-				{ text: "curated", category: "note", source: "manual", ownerId: "owner-1" },
-			],
+		expect(saveMemory).toHaveBeenCalledTimes(2);
+		expect(saveMemory).toHaveBeenCalledWith({
+			ownerId: "owner-1",
+			text: "remember this",
+			category: "fact",
+			source: "import",
+		});
+		expect(saveMemory).toHaveBeenCalledWith({
+			ownerId: "owner-1",
+			text: "curated",
+			category: "note",
+			source: "manual",
 		});
 	});
 
-	it("skips the insert entirely when the payload has no memories", async () => {
+	it("saves nothing when the payload has no memories", async () => {
 		const result = await importBackup({ userId: "o", payload: {} });
-		expect(memoryCreateMany).not.toHaveBeenCalled();
+		expect(saveMemory).not.toHaveBeenCalled();
 		expect(result.memories).toBe(0);
 	});
 
 	it("skips memories that already exist for the owner (re-import is a no-op)", async () => {
 		memoryFindMany.mockResolvedValue([{ text: "already saved", category: "fact" }]);
-		memoryCreateMany.mockResolvedValue({ count: 1 });
 
 		const result = await importBackup({
 			userId: "owner-1",
@@ -148,8 +156,12 @@ describe("importBackup: memories", () => {
 			},
 		});
 
-		expect(memoryCreateMany).toHaveBeenCalledWith({
-			data: [{ text: "new one", category: "fact", source: "import", ownerId: "owner-1" }],
+		expect(saveMemory).toHaveBeenCalledTimes(1);
+		expect(saveMemory).toHaveBeenCalledWith({
+			ownerId: "owner-1",
+			text: "new one",
+			category: "fact",
+			source: "import",
 		});
 		expect(result).toMatchObject({ memories: 1, skippedMemories: 1 });
 	});

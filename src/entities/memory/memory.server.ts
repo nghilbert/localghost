@@ -4,17 +4,20 @@ import { embed, toVectorLiteral } from "./embeddings.server";
 export type RecalledMemory = { id: string; text: string; category: string };
 
 /**
- * Persists one memory with its embedding (source `"agent"`). Raw SQL because
- * Prisma has no native pgvector type.
+ * Persists one memory with its embedding (raw SQL: Prisma has no pgvector type).
+ * A failed embedding stores a NULL vector rather than aborting the write.
+ * @param source Provenance; defaults to `"agent"`, overridden on import.
  */
 export async function saveMemory({
 	ownerId,
 	text,
 	category,
+	source = "agent",
 }: {
 	ownerId: string;
 	text: string;
 	category?: string;
+	source?: string;
 }): Promise<void> {
 	const embedding = await embed({ text, ownerId });
 
@@ -23,7 +26,7 @@ export async function saveMemory({
 		VALUES (
 			${text},
 			${category ?? "fact"},
-			'agent',
+			${source},
 			${ownerId}::uuid,
 			${embedding ? toVectorLiteral(embedding) : null}::vector
 		)`;
