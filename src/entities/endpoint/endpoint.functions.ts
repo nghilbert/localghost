@@ -1,10 +1,15 @@
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
-import { decrypt, encrypt } from "#/shared/lib/crypto.server";
-import { prisma } from "#/shared/lib/db.server";
-import { asLLMProvider, listModels, probeEndpoint } from "#/shared/lib/llm.server";
-import { ollamaClient } from "#/shared/lib/ollama/client.server";
+import { probeEndpoint } from "#/shared/lib/llm.server";
 import { getCurrentUserId } from "#/shared/lib/session.server";
+import {
+	fetchEndpointModels,
+	findEndpoints,
+	insertEndpoint,
+	patchEndpoint,
+	probeModelCapabilities,
+	removeEndpoint,
+} from "./endpoint.server";
 import {
 	createEndpointSchema,
 	endpointIdInput,
@@ -21,32 +26,14 @@ import type { ModelSelection } from "./types";
  */
 export const listEndpoints = createServerFn({ method: "GET" }).handler(async () => {
 	const userId = await getCurrentUserId();
-	const endpoints = await prisma.modelEndpoint.findMany({
-		where: { ownerId: userId },
-		orderBy: { id: "asc" },
-	});
-	return endpoints.map((e) => ({
-		...e,
-		apiKeyEncrypted: undefined,
-		hasApiKey: !!e.apiKeyEncrypted,
-	}));
+	return findEndpoints({ ownerId: userId });
 });
 
 export const createEndpoint = createServerFn({ method: "POST" })
 	.validator(createEndpointSchema)
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
-		const endpoint = await prisma.modelEndpoint.create({
-			data: {
-				name: data.name,
-				url: data.url,
-				apiKeyEncrypted: data.apiKey ? encrypt(data.apiKey) : null,
-				provider: data.provider,
-				ownerId: userId,
-				...(data.options && { options: data.options }),
-			},
-		});
-		return { ...endpoint, apiKeyEncrypted: undefined, hasApiKey: !!endpoint.apiKeyEncrypted };
+		return insertEndpoint({ ownerId: userId, data });
 	});
 
 /**
@@ -58,47 +45,21 @@ export const updateEndpoint = createServerFn({ method: "POST" })
 	.validator(updateEndpointInput)
 	.handler(async ({ data: { id, data: patch } }) => {
 		const userId = await getCurrentUserId();
-		const existing = await prisma.modelEndpoint.findFirst({ where: { id, ownerId: userId } });
-		if (!existing) throw new Error("Not found");
-		const endpoint = await prisma.modelEndpoint.update({
-			where: { id },
-			data: {
-				...(patch.name !== undefined && { name: patch.name }),
-				...(patch.url !== undefined && { url: patch.url }),
-				...(patch.provider !== undefined && { provider: patch.provider }),
-				...(patch.apiKey !== undefined && {
-					apiKeyEncrypted: patch.apiKey ? encrypt(patch.apiKey) : null,
-				}),
-				...(patch.options !== undefined && { options: patch.options }),
-			},
-		});
-		return { ...endpoint, apiKeyEncrypted: undefined, hasApiKey: !!endpoint.apiKeyEncrypted };
+		return patchEndpoint({ id, ownerId: userId, patch });
 	});
 
 export const deleteEndpoint = createServerFn({ method: "POST" })
 	.validator(endpointIdInput)
 	.handler(async ({ data: { id } }) => {
 		const userId = await getCurrentUserId();
-		// Clear the model on conversations using this endpoint so the (endpointId, model)
-		// pair goes null together; the FK's SetNull only nulls endpointId. Keeps history,
-		// reopening the chat to a fresh model pick instead of an orphaned model string.
-		await prisma.conversation.updateMany({
-			where: { endpointId: id, ownerId: userId },
-			data: { model: null },
-		});
-		await prisma.modelEndpoint.deleteMany({ where: { id, ownerId: userId } });
+		await removeEndpoint({ id, ownerId: userId });
 	});
 
 export const listEndpointModels = createServerFn({ method: "POST" })
 	.validator(listEndpointModelsInput)
 	.handler(async ({ data: { endpointId } }) => {
 		const userId = await getCurrentUserId();
-		const endpoint = await prisma.modelEndpoint.findFirst({
-			where: { id: endpointId, ownerId: userId },
-		});
-		if (!endpoint) throw new Error("Not found");
-		const apiKey = endpoint.apiKeyEncrypted ? decrypt(endpoint.apiKeyEncrypted) : undefined;
-		return listModels({ url: endpoint.url, apiKey, provider: asLLMProvider(endpoint.provider) });
+		return fetchEndpointModels({ endpointId, ownerId: userId });
 	});
 
 export const testEndpoint = createServerFn({ method: "POST" })
@@ -108,28 +69,12 @@ export const testEndpoint = createServerFn({ method: "POST" })
 		return probeEndpoint({ url: data.url, apiKey: data.apiKey });
 	});
 
-/**
- * Whether a model can use tools, so the chat UI can disable the tool picker.
- * Only local Ollama models are checked (via `/api/show`); cloud providers and
- * any unknown case are assumed capable, never wrongly blocking a working model.
- */
+/** Whether a model can use tools, so the chat UI can disable the tool picker. */
 export const getModelCapabilities = createServerFn({ method: "POST" })
 	.validator(modelCapabilitiesInput)
-	.handler(async ({ data }): Promise<{ supportsTools: boolean }> => {
+	.handler(async ({ data: { endpointId, model } }) => {
 		const userId = await getCurrentUserId();
-		const endpoint = await prisma.modelEndpoint.findFirst({
-			where: { id: data.endpointId, ownerId: userId },
-		});
-		if (endpoint?.provider !== "ollama") return { supportsTools: true };
-
-		try {
-			const { capabilities } = await ollamaClient({ host: endpoint.url, timeoutMs: 5000 }).show({
-				model: data.model,
-			});
-			return { supportsTools: capabilities.includes("tools") };
-		} catch {
-			return { supportsTools: true };
-		}
+		return probeModelCapabilities({ endpointId, ownerId: userId, model });
 	});
 
 // ── Query options (for TanStack Query) ───────────────────────

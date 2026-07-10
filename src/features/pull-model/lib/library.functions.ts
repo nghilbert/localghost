@@ -11,13 +11,13 @@ import {
 	scanForOllama,
 	upsertOllamaEndpoint,
 } from "#/features/pull-model/lib/ollama/discovery.server";
+import { removeInstalledModel } from "#/features/pull-model/lib/ollama/models.server";
 import {
 	cancelPull,
 	listActivePulls as readActivePulls,
 	startPull,
 } from "#/features/pull-model/lib/ollama/pull-registry.server";
 import type { OllamaStatus } from "#/features/pull-model/lib/types";
-import { ollamaClient } from "#/shared/lib/ollama/client.server";
 import { ollamaConnectionSchema, ollamaUrlSchema } from "#/shared/lib/ollama/url";
 import { getCurrentUserId } from "#/shared/lib/session.server";
 
@@ -52,8 +52,7 @@ export const deleteModel = createServerFn({ method: "POST" })
 	.validator(z.object({ model: z.string().min(1) }))
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
-		const ollamaUrl = await getOllamaUrl(userId);
-		await ollamaClient({ host: ollamaUrl }).delete({ model: data.model });
+		await removeInstalledModel({ userId, model: data.model });
 	});
 
 export const testRemoteOllama = createServerFn({ method: "POST" })

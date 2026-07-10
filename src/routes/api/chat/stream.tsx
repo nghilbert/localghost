@@ -5,14 +5,15 @@ import {
 } from "@tanstack/ai";
 import { EventType } from "@tanstack/ai/client";
 import { createFileRoute } from "@tanstack/react-router";
+import { findConversationWithEndpoint } from "#/entities/conversation/conversation.server";
 import { trimHistory } from "#/entities/conversation/messages";
+import { endpointApiKey } from "#/entities/endpoint/endpoint.server";
 import { ollamaOptionsSchema } from "#/entities/endpoint/schemas";
+import { findUserSettings } from "#/entities/user-settings/user-settings.server";
 import { buildChatTools } from "#/features/send-message/lib/agent.server";
 import { chatStreamForwardedPropsSchema } from "#/features/send-message/lib/schemas";
 import { buildChatSystemPrompt } from "#/features/send-message/lib/system-prompt";
 import { auth } from "#/shared/lib/auth.server";
-import { decrypt } from "#/shared/lib/crypto.server";
-import { prisma } from "#/shared/lib/db.server";
 import { asLLMProvider, streamLLMEvents } from "#/shared/lib/llm.server";
 
 /**
@@ -33,39 +34,35 @@ export const Route = createFileRoute("/api/chat/stream")({
 				if (!forwarded.success) return new Response("Bad request", { status: 400 });
 				const { conversationId, enabledTools, timeZone } = forwarded.data;
 
-				const conversation = await prisma.conversation.findFirst({
-					where: { id: conversationId, ownerId: userId },
-					include: { endpoint: true },
+				const conversation = await findConversationWithEndpoint({
+					id: conversationId,
+					ownerId: userId,
 				});
 				if (!conversation) return new Response("Conversation not found", { status: 404 });
 				if (!conversation.endpoint || !conversation.model)
 					return new Response("No provider endpoint configured", { status: 400 });
 
 				const endpoint = conversation.endpoint;
-				const apiKey = endpoint.apiKeyEncrypted ? decrypt(endpoint.apiKeyEncrypted) : undefined;
 
 				// System prompt + temperature are global per-user chat defaults stored on the
 				// user row; per-endpoint generation options (Ollama) override them where set.
-				const userSettings = await prisma.user.findUnique({
-					where: { id: userId },
-					select: { systemPrompt: true, temperature: true },
-				});
+				const userSettings = await findUserSettings({ ownerId: userId });
 				const tools = buildChatTools({ ownerId: userId, enabledTools });
 				const endpointOptions = ollamaOptionsSchema.safeParse(endpoint.options);
 
 				const source = streamLLMEvents({
 					url: endpoint.url,
 					provider: asLLMProvider(endpoint.provider),
-					apiKey,
+					apiKey: endpointApiKey(endpoint),
 					model: conversation.model,
 					// `chat()` accepts the wire messages as-is and converts internally.
 					messages: trimHistory(params.messages),
 					systemPrompt: buildChatSystemPrompt({
-						userPrompt: userSettings?.systemPrompt,
+						userPrompt: userSettings.systemPrompt,
 						enabledTools,
 						timeZone,
 					}),
-					temperature: userSettings?.temperature ?? undefined,
+					temperature: userSettings.temperature ?? undefined,
 					options: endpointOptions.success ? endpointOptions.data : undefined,
 					threadId: params.threadId,
 					runId: params.runId,

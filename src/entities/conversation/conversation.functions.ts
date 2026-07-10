@@ -1,10 +1,18 @@
 import type { UIMessage } from "@tanstack/ai-client";
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
-import { prisma } from "#/shared/lib/db.server";
-import { ollamaClient } from "#/shared/lib/ollama/client.server";
 import { getCurrentUserId } from "#/shared/lib/session.server";
-import { buildFirstUserMessage, deriveConversationTitle, storedMessages } from "./messages";
+import {
+	findConversation,
+	findConversations,
+	findDefaultSelection,
+	insertConversation,
+	patchConversation,
+	probeModelRunState,
+	removeConversation,
+	saveMessages,
+} from "./conversation.server";
+import { storedMessages } from "./messages";
 import {
 	conversationIdInput,
 	createConversationInput,
@@ -15,11 +23,7 @@ import {
 /** Sidebar list: only the fields needed to render and order conversation links. */
 export const listConversations = createServerFn({ method: "GET" }).handler(async () => {
 	const userId = await getCurrentUserId();
-	return prisma.conversation.findMany({
-		where: { ownerId: userId },
-		orderBy: { updatedAt: "desc" },
-		select: { id: true, title: true, model: true, endpointId: true, updatedAt: true },
-	});
+	return findConversations({ ownerId: userId });
 });
 
 /**
@@ -30,10 +34,7 @@ export const getConversation = createServerFn({ method: "POST" })
 	.validator(conversationIdInput)
 	.handler(async ({ data: { id } }) => {
 		const userId = await getCurrentUserId();
-		const conversation = await prisma.conversation.findFirst({
-			where: { id, ownerId: userId },
-			include: { endpoint: { select: { id: true, name: true, url: true, provider: true } } },
-		});
+		const conversation = await findConversation({ id, ownerId: userId });
 		if (!conversation) throw new Error("Not found");
 		return conversation;
 	});
@@ -48,19 +49,10 @@ export type ConversationDetail = Omit<Awaited<ReturnType<typeof getConversation>
  * Prefers the user's most recently used model. A fully null selection means the
  * page prompts the user.
  */
-export const getDefaultSelection = createServerFn({ method: "GET" }).handler(
-	async (): Promise<{ endpointId: string | null; model: string | null }> => {
-		const userId = await getCurrentUserId();
-		const recent = await prisma.conversation.findFirst({
-			where: { ownerId: userId, endpointId: { not: null }, model: { not: null } },
-			orderBy: { updatedAt: "desc" },
-			select: { endpointId: true, model: true },
-		});
-		return recent?.endpointId && recent.model
-			? { endpointId: recent.endpointId, model: recent.model }
-			: { endpointId: null, model: null };
-	},
-);
+export const getDefaultSelection = createServerFn({ method: "GET" }).handler(async () => {
+	const userId = await getCurrentUserId();
+	return findDefaultSelection({ ownerId: userId });
+});
 
 /**
  * Creates a conversation locked to the model selection, seeded with the first
@@ -71,18 +63,12 @@ export const createConversation = createServerFn({ method: "POST" })
 	.validator(createConversationInput)
 	.handler(async ({ data: { selection, firstMessage } }) => {
 		const userId = await getCurrentUserId();
-		const message = buildFirstUserMessage(firstMessage);
-		const conversation = await prisma.conversation.create({
-			data: {
-				ownerId: userId,
-				endpointId: selection.endpointId,
-				model: selection.model,
-				title: deriveConversationTitle(firstMessage) ?? undefined,
-				messages: JSON.parse(JSON.stringify([message])),
-			},
-			select: { id: true },
+		return insertConversation({
+			ownerId: userId,
+			endpointId: selection.endpointId,
+			model: selection.model,
+			firstMessage,
 		});
-		return { id: conversation.id };
 	});
 
 /**
@@ -94,10 +80,7 @@ export const saveConversationMessages = createServerFn({ method: "POST" })
 	.validator(saveMessagesInput)
 	.handler(async ({ data: { id, messages } }) => {
 		const userId = await getCurrentUserId();
-		await prisma.conversation.updateMany({
-			where: { id, ownerId: userId },
-			data: { messages: JSON.parse(JSON.stringify(messages)) },
-		});
+		await saveMessages({ id, ownerId: userId, messages });
 	});
 
 /**
@@ -109,41 +92,15 @@ export const updateConversation = createServerFn({ method: "POST" })
 	.validator(updateConversationInput)
 	.handler(async ({ data: { id, data: patch } }) => {
 		const userId = await getCurrentUserId();
-		const existing = await prisma.conversation.findFirst({ where: { id, ownerId: userId } });
-		if (!existing) throw new Error("Not found");
-		return prisma.conversation.update({
-			where: { id },
-			data: { ...(patch.title !== undefined && { title: patch.title }) },
-			include: { endpoint: { select: { id: true, name: true, url: true, provider: true } } },
-		});
+		return patchConversation({ id, ownerId: userId, patch });
 	});
 
-/**
- * Whether the conversation's model is still loading. Only Ollama has a warm-up
- * (first use loads the model into memory; `ps()` reports what's loaded); other
- * providers and unknown states read "ready".
- */
+/** Whether the conversation's model is still loading into memory (Ollama warm-up). */
 export const getModelRunState = createServerFn({ method: "POST" })
 	.validator(conversationIdInput)
-	.handler(async ({ data: { id } }): Promise<"warming" | "ready"> => {
+	.handler(async ({ data: { id } }) => {
 		const userId = await getCurrentUserId();
-		const conversation = await prisma.conversation.findFirst({
-			where: { id, ownerId: userId },
-			select: { model: true, endpoint: { select: { url: true, provider: true } } },
-		});
-		if (!conversation?.model || conversation.endpoint?.provider !== "ollama") return "ready";
-		try {
-			const { models } = await ollamaClient({
-				host: conversation.endpoint.url,
-				timeoutMs: 3_000,
-			}).ps();
-			const loaded = models.some(({ name, model }) =>
-				[name, model].includes(conversation.model ?? ""),
-			);
-			return loaded ? "ready" : "warming";
-		} catch {
-			return "ready";
-		}
+		return probeModelRunState({ id, ownerId: userId });
 	});
 
 /** Delete a conversation by id. No-op when the id isn't owned by the current user. */
@@ -151,7 +108,7 @@ export const deleteConversation = createServerFn({ method: "POST" })
 	.validator(conversationIdInput)
 	.handler(async ({ data: { id } }) => {
 		const userId = await getCurrentUserId();
-		await prisma.conversation.deleteMany({ where: { id, ownerId: userId } });
+		await removeConversation({ id, ownerId: userId });
 	});
 
 // ── Query options (for TanStack Query) ───────────────────────
