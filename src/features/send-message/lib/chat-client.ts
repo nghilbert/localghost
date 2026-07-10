@@ -11,9 +11,9 @@ import {
 /** Delay between a message change and its persistence write; each burst saves once. */
 const SAVE_DEBOUNCE_MS = 500;
 
-/** Deep-copies through JSON so live chat state and the query cache never share objects. */
+/** Deep-copies so live chat state and the query cache never share objects. */
 function clone<T>(value: T): T {
-	return JSON.parse(JSON.stringify(value));
+	return structuredClone(value);
 }
 
 type PendingSave = {
