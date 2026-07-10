@@ -41,8 +41,9 @@ export function toolRows(controls: ToolControls): ToolRow[] {
 
 /**
  * Inline per-message tool controls. One button opens a popover of labeled switches;
- * the trigger shows how many are active. Selections apply to the next message only and
- * reset after sending. Disabled wholesale when the model can't use tools.
+ * the trigger shows how many are active. Selections apply to the next message only,
+ * resetting to the defaults after sending. Disabled wholesale when the model can't
+ * use tools.
  */
 export function ToolsMenu(controls: ToolControls) {
 	const rows = toolRows(controls);

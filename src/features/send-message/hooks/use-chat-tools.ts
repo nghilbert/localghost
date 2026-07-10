@@ -3,35 +3,39 @@ import { useCallback, useState } from "react";
 import { modelCapabilitiesQueryOptions } from "#/entities/endpoint/endpoint.functions";
 import type { ModelSelection } from "#/entities/endpoint/types";
 import type { ToolControls } from "#/features/send-message/components/ChatInput/ToolsMenu";
-import { DEFAULT_ENABLED_TOOLS } from "#/features/send-message/lib/tool-catalog";
+import { defaultEnabledTools } from "#/features/send-message/lib/tool-catalog";
+import { toolAvailabilityQueryOptions } from "#/features/send-message/lib/tools.functions";
 
 /**
  * The ephemeral per-message tool state shared by the New-chat draft page and an
- * active conversation: the model's tool capability plus the opt-in toggles. Seeds
- * accept the draft's handoff so the first message keeps the choices made before send.
+ * active conversation: the model's tool capability plus the toggles. Untouched,
+ * the enabled set is the default: web search on when the server offers it.
  */
-export function useChatTools({
-	selection,
-	initialEnabledTools = DEFAULT_ENABLED_TOOLS,
-}: {
-	selection: ModelSelection | null;
-	initialEnabledTools?: string[];
-}) {
+export function useChatTools({ selection }: { selection: ModelSelection | null }) {
 	const { data: capabilities } = useQuery({
 		...modelCapabilitiesQueryOptions(selection ?? { endpointId: "", model: "" }),
 		enabled: Boolean(selection),
 	});
 	const supportsTools = capabilities?.supportsTools ?? true;
 
-	const [enabledTools, setEnabledTools] = useState<string[]>(initialEnabledTools);
+	const { data: availability } = useQuery(toolAvailabilityQueryOptions());
+	const webSearchAvailable = availability?.webSearch ?? false;
+
+	// `null` means untouched: the defaults apply, and keep applying if availability
+	// resolves late. An explicit toggle overrides until the next reset.
+	const [override, setOverride] = useState<string[] | null>(null);
+	const enabledTools = defaultEnabledTools({
+		webSearchAvailable,
+		initialEnabledTools: override ?? undefined,
+	});
 	const resetTools = useCallback(() => {
-		setEnabledTools(DEFAULT_ENABLED_TOOLS);
+		setOverride(null);
 	}, []);
 
 	const controls: ToolControls = {
 		enabledTools,
 		supportsTools,
-		onEnabledToolsChange: setEnabledTools,
+		onEnabledToolsChange: setOverride,
 	};
 
 	return {

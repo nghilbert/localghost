@@ -2,8 +2,8 @@ import { BrainIcon, GlobeIcon } from "lucide-react";
 
 /**
  * The user-toggleable built-in tools, as client-safe metadata (no server
- * imports). Every tool is opt-in per message; an untouched send hands the
- * model no tools, which keeps small models reliable.
+ * imports). Web search starts enabled whenever the server offers it; every
+ * other tool is opt-in per message, which keeps small models reliable.
  */
 export const TOOL_CATALOG = [
 	{
@@ -22,5 +22,16 @@ export const TOOL_CATALOG = [
 
 export type ToolCatalogId = (typeof TOOL_CATALOG)[number]["id"];
 
-/** The catalog ids enabled by default at the start of every message. */
-export const DEFAULT_ENABLED_TOOLS: ToolCatalogId[] = [];
+/**
+ * Resolves a message's enabled tools. An explicit draft handoff takes precedence;
+ * otherwise web search starts on only when the server offers it.
+ */
+export function defaultEnabledTools({
+	webSearchAvailable,
+	initialEnabledTools,
+}: {
+	webSearchAvailable: boolean;
+	initialEnabledTools?: string[];
+}): string[] {
+	return initialEnabledTools ?? (webSearchAvailable ? ["web_search"] : []);
+}
