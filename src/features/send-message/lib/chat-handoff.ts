@@ -1,7 +1,11 @@
+import { z } from "zod/v4";
+
 /** Draft-page tool toggles carried to the new conversation. */
-export type ChatHandoff = {
-	enabledTools: string[];
-};
+export const chatHandoffSchema = z.object({
+	enabledTools: z.array(z.string()),
+});
+
+export type ChatHandoff = z.infer<typeof chatHandoffSchema>;
 
 const handoffKey = (conversationId: string) => `chat-handoff:${conversationId}`;
 
@@ -27,7 +31,8 @@ export function takeChatHandoff(conversationId: string): ChatHandoff | null {
 	if (!raw) return null;
 	sessionStorage.removeItem(handoffKey(conversationId));
 	try {
-		return JSON.parse(raw);
+		const parsed = chatHandoffSchema.safeParse(JSON.parse(raw));
+		return parsed.success ? parsed.data : null;
 	} catch {
 		return null;
 	}
