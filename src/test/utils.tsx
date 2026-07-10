@@ -1,14 +1,14 @@
-import { type RenderOptions, render } from "@testing-library/react";
-import type { ReactElement, ReactNode } from "react";
+import type { ReactNode } from "react";
+import { render as baseRender, type ComponentRenderOptions } from "vitest-browser-react";
 import { TooltipProvider } from "#/shared/ui/tooltip";
 
 function Providers({ children }: { children: ReactNode }) {
 	return <TooltipProvider>{children}</TooltipProvider>;
 }
 
-function customRender(ui: ReactElement, options?: Omit<RenderOptions, "wrapper">) {
-	return render(ui, { wrapper: Providers, ...options });
+/** Browser-mode render wrapped in the app-wide providers (currently `TooltipProvider`). */
+export function render(ui: ReactNode, options?: Omit<ComponentRenderOptions, "wrapper">) {
+	return baseRender(ui, { wrapper: Providers, ...options });
 }
 
-export * from "@testing-library/react";
-export { customRender as render };
+export { renderHook } from "vitest-browser-react";

@@ -1,9 +1,9 @@
 import type { ColumnDef } from "@tanstack/react-table";
-import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
+import type { RenderResult } from "vitest-browser-react";
 import { DataTable } from "#/shared/ui/DataTable";
 import { DataTableColumnHeader } from "#/shared/ui/DataTable/DataTableColumnHeader";
-import { render, screen, within } from "#/test/utils";
+import { render } from "#/test/utils";
 
 type Fruit = { name: string; count: number };
 
@@ -26,83 +26,97 @@ const columns: ColumnDef<Fruit>[] = [
 	},
 ];
 
-function getRowTexts() {
+/** First-cell text of every rendered row, i.e. the visible row order. */
+function rowTexts(screen: RenderResult) {
 	return screen
-		.getAllByTestId("data-table-row")
-		.map((row) => within(row).getAllByTestId("data-table-cell")[0]?.textContent);
+		.getByTestId("data-table-row")
+		.all()
+		.map((row) => row.getByTestId("data-table-cell").first().element().textContent);
 }
 
 describe("DataTable", () => {
-	it("renders one row per data item", () => {
-		render(<DataTable columns={columns} data={fruits} />);
-		expect(getRowTexts()).toEqual(["banana", "apple", "cherry"]);
+	it("renders one row per data item in the given order", async () => {
+		const screen = await render(<DataTable columns={columns} data={fruits} />);
+
+		await expect.poll(() => rowTexts(screen)).toEqual(["banana", "apple", "cherry"]);
 	});
 
-	it("shows the empty message when there is no data", () => {
-		render(<DataTable columns={columns} data={[]} emptyMessage="Nothing here." />);
-		expect(screen.getByTestId("data-table-empty")).toHaveTextContent("Nothing here.");
+	it("shows the empty message when there is no data", async () => {
+		const screen = await render(
+			<DataTable columns={columns} data={[]} emptyMessage="Nothing here." />,
+		);
+
+		await expect.element(screen.getByTestId("data-table-empty")).toHaveTextContent("Nothing here.");
 	});
 
-	it("applies initial sorting", () => {
-		render(
+	it("applies initial sorting", async () => {
+		const screen = await render(
 			<DataTable columns={columns} data={fruits} initialSorting={[{ id: "count", desc: true }]} />,
 		);
-		expect(getRowTexts()).toEqual(["cherry", "banana", "apple"]);
+
+		await expect.poll(() => rowTexts(screen)).toEqual(["cherry", "banana", "apple"]);
 	});
 
-	it("sorts when a sortable column header is clicked", async () => {
-		render(<DataTable columns={columns} data={fruits} />);
-		await userEvent.click(screen.getByTestId("data-table-sort-count"));
-		expect(getRowTexts()).toEqual(["apple", "banana", "cherry"]);
+	it("sorts ascending when a sortable column header is clicked", async () => {
+		const screen = await render(<DataTable columns={columns} data={fruits} />);
+
+		await screen.getByTestId("data-table-sort-count").click();
+
+		await expect.poll(() => rowTexts(screen)).toEqual(["apple", "banana", "cherry"]);
 	});
 
-	it("filters rows via the controlled global filter", () => {
-		render(<DataTable columns={columns} data={fruits} globalFilter="cher" />);
-		expect(getRowTexts()).toEqual(["cherry"]);
+	it("filters rows via the controlled global filter", async () => {
+		const screen = await render(<DataTable columns={columns} data={fruits} globalFilter="cher" />);
+
+		await expect.poll(() => rowTexts(screen)).toEqual(["cherry"]);
 	});
 
-	it("applies getRowClassName to data rows", () => {
-		render(
+	it("applies getRowClassName to data rows", async () => {
+		const screen = await render(
 			<DataTable
 				columns={columns}
 				data={fruits}
 				getRowClassName={(row) => (row.name === "apple" ? "test-highlight" : undefined)}
 			/>,
 		);
-		const rows = screen.getAllByTestId("data-table-row");
+
+		const rows = screen.getByTestId("data-table-row").elements();
 		const appleRow = rows.find((row) => row.textContent?.includes("apple"));
-		expect(appleRow).toHaveClass("test-highlight");
+		if (!appleRow) throw new Error("expected a row for apple");
+		expect(appleRow.classList.contains("test-highlight")).toBe(true);
 	});
 
 	it("paginates rows and advances page via the next-page control", async () => {
-		const user = userEvent.setup();
-		render(<DataTable columns={columns} data={fruits} pageSize={2} />);
+		const screen = await render(<DataTable columns={columns} data={fruits} pageSize={2} />);
 
-		expect(getRowTexts()).toEqual(["banana", "apple"]);
+		await expect.poll(() => rowTexts(screen)).toEqual(["banana", "apple"]);
 
 		// Pagination renders above and below the table, so two identical controls exist.
-		const [nextButton] = screen.getAllByTestId("data-table-next-page");
-		if (!nextButton) throw new Error("expected a next-page control");
-		await user.click(nextButton);
-		expect(getRowTexts()).toEqual(["cherry"]);
+		await screen.getByTestId("data-table-next-page").first().click();
+
+		await expect.poll(() => rowTexts(screen)).toEqual(["cherry"]);
 	});
 
-	it("hides columns listed in initialColumnVisibility", () => {
-		render(
+	it("hides columns listed in initialColumnVisibility while others keep rendering", async () => {
+		const screen = await render(
 			<DataTable columns={columns} data={fruits} initialColumnVisibility={{ count: false }} />,
 		);
-		expect(screen.queryByTestId("data-table-sort-count")).not.toBeInTheDocument();
-		expect(screen.getByText("Name")).toBeInTheDocument();
+
+		await expect.poll(() => rowTexts(screen)).toEqual(["banana", "apple", "cherry"]);
+		await expect.element(screen.getByTestId("data-table-sort-count")).not.toBeInTheDocument();
 	});
 
-	it("renders the toolbar above the table with a live table instance", () => {
-		render(
+	it("renders the toolbar with a live table instance", async () => {
+		const screen = await render(
 			<DataTable
 				columns={columns}
 				data={fruits}
-				toolbar={(table) => <div>{table.getRowModel().rows.length} rows</div>}
+				toolbar={(table) => (
+					<div data-testid="toolbar-probe">{table.getRowModel().rows.length} rows</div>
+				)}
 			/>,
 		);
-		expect(screen.getByText("3 rows")).toBeInTheDocument();
+
+		await expect.element(screen.getByTestId("toolbar-probe")).toHaveTextContent("3 rows");
 	});
 });

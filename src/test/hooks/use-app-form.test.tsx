@@ -1,9 +1,10 @@
 import { revalidateLogic } from "@tanstack/react-form";
-import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import { userEvent } from "vitest/browser";
+import type { RenderResult } from "vitest-browser-react";
 import { z } from "zod/v4";
 import { useAppForm } from "#/shared/hooks/use-app-form";
-import { render, screen, within } from "#/test/utils";
+import { render } from "#/test/utils";
 
 const TRANSPORT_OPTIONS = [
 	{ value: "http", label: "HTTP" },
@@ -25,25 +26,28 @@ function FieldsHarness() {
 	);
 }
 
-function getValues() {
-	return JSON.parse(screen.getByTestId("values").textContent ?? "{}");
+function getValues(screen: RenderResult) {
+	return JSON.parse(screen.getByTestId("values").element().textContent ?? "{}");
 }
 
 describe("ToggleGroupField", () => {
 	it("renders the options and selects on click", async () => {
-		const user = userEvent.setup();
-		render(<FieldsHarness />);
-		expect(screen.getByTestId("transport-option-http")).toBeInTheDocument();
-		await user.click(screen.getByTestId("transport-option-sse"));
-		expect(getValues().transport).toBe("sse");
+		const screen = await render(<FieldsHarness />);
+
+		await expect.element(screen.getByTestId("transport-option-http")).toBeVisible();
+
+		await screen.getByTestId("transport-option-sse").click();
+
+		await expect.poll(() => getValues(screen).transport).toBe("sse");
 	});
 
 	it("keeps the current value when the selected item is clicked again", async () => {
-		const user = userEvent.setup();
-		render(<FieldsHarness />);
-		await user.click(screen.getByTestId("transport-option-sse"));
-		await user.click(screen.getByTestId("transport-option-sse"));
-		expect(getValues().transport).toBe("sse");
+		const screen = await render(<FieldsHarness />);
+
+		await screen.getByTestId("transport-option-sse").click();
+		await screen.getByTestId("transport-option-sse").click();
+
+		await expect.poll(() => getValues(screen).transport).toBe("sse");
 	});
 });
 
@@ -75,21 +79,23 @@ function SubmitHarness({ onSubmit }: { onSubmit: (name: string) => void }) {
 
 describe("useAppForm zod validation", () => {
 	it("blocks submit and shows the field error when the schema fails", async () => {
-		const user = userEvent.setup();
 		const handleSubmit = vi.fn();
-		render(<SubmitHarness onSubmit={handleSubmit} />);
-		await user.click(screen.getByTestId("submit-button"));
-		expect(await screen.findByText("Name is required")).toBeInTheDocument();
+		const screen = await render(<SubmitHarness onSubmit={handleSubmit} />);
+
+		await screen.getByTestId("submit-button").click();
+
+		await expect.element(screen.getByTestId("field-name")).toHaveTextContent("Name is required");
 		expect(handleSubmit).not.toHaveBeenCalled();
 	});
 
 	it("submits the value when the schema passes", async () => {
-		const user = userEvent.setup();
 		const handleSubmit = vi.fn();
-		render(<SubmitHarness onSubmit={handleSubmit} />);
-		await user.type(screen.getByTestId("name-input"), "Odysseus");
-		await user.click(screen.getByTestId("submit-button"));
-		expect(handleSubmit).toHaveBeenCalledWith("Odysseus");
+		const screen = await render(<SubmitHarness onSubmit={handleSubmit} />);
+
+		await screen.getByTestId("name-input").fill("Odysseus");
+		await screen.getByTestId("submit-button").click();
+
+		await expect.poll(() => handleSubmit.mock.calls).toEqual([["Odysseus"]]);
 	});
 });
 
@@ -106,14 +112,14 @@ function PasswordHarness() {
 
 describe("PasswordField", () => {
 	it("masks input by default and reveals it via the show/hide toggle", async () => {
-		const user = userEvent.setup();
-		render(<PasswordHarness />);
+		const screen = await render(<PasswordHarness />);
 
 		const input = screen.getByTestId("password-input");
-		expect(input).toHaveAttribute("type", "password");
+		await expect.element(input).toHaveAttribute("type", "password");
 
-		await user.click(screen.getByTestId("password-toggle-visibility"));
-		expect(input).toHaveAttribute("type", "text");
+		await screen.getByTestId("password-toggle-visibility").click();
+
+		await expect.element(input).toHaveAttribute("type", "text");
 	});
 });
 
@@ -131,15 +137,14 @@ function NumberHarness() {
 
 describe("NumberField", () => {
 	it("stores a typed value as a number and clearing it as undefined", async () => {
-		const user = userEvent.setup();
-		render(<NumberHarness />);
-
+		const screen = await render(<NumberHarness />);
 		const input = screen.getByTestId("amount-input");
-		await user.type(input, "42");
-		expect(getValues().amount).toBe(42);
 
-		await user.clear(input);
-		expect(getValues().amount).toBeUndefined();
+		await input.fill("42");
+		await expect.poll(() => getValues(screen).amount).toBe(42);
+
+		await input.clear();
+		await expect.poll(() => getValues(screen).amount).toBeUndefined();
 	});
 });
 
@@ -159,13 +164,15 @@ function SliderHarness() {
 
 describe("SliderField", () => {
 	it("increases the value by one step on ArrowRight", async () => {
-		render(<SliderHarness />);
+		const screen = await render(<SliderHarness />);
 
 		// Base UI renders the focusable thumb (role="slider") inside our Slider root;
 		// our data-testid scopes to it since we can't add one inside the library's markup.
-		within(screen.getByTestId("volume-slider")).getByRole("slider", { hidden: true }).focus();
-		await userEvent.setup().keyboard("{ArrowRight}");
-		expect(getValues().volume).toBe(60);
+		const thumb = screen.getByTestId("volume-slider").getByRole("slider", { includeHidden: true });
+		thumb.element().focus();
+		await userEvent.keyboard("{ArrowRight}");
+
+		await expect.poll(() => getValues(screen).volume).toBe(60);
 	});
 });
 
@@ -183,10 +190,10 @@ function TextareaHarness() {
 
 describe("TextareaField", () => {
 	it("preserves newlines in the form value", async () => {
-		const user = userEvent.setup();
-		render(<TextareaHarness />);
+		const screen = await render(<TextareaHarness />);
 
-		await user.type(screen.getByTestId("notes-input"), "line one{Enter}line two");
-		expect(getValues().notes).toBe("line one\nline two");
+		await screen.getByTestId("notes-input").fill("line one\nline two");
+
+		await expect.poll(() => getValues(screen).notes).toBe("line one\nline two");
 	});
 });

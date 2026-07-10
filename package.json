@@ -22,7 +22,7 @@
 	},
 	"dependencies": {
 		"@base-ui/react": "^1.6.0",
-		"@dotenvx/dotenvx": "^2.3.4",
+		"@dotenvx/dotenvx": "^2.4.1",
 		"@fontsource-variable/geist": "^5.2.9",
 		"@modelcontextprotocol/sdk": "^1.29.0",
 		"@prisma/adapter-pg": "^7.8.0",
@@ -75,20 +75,17 @@
 		"@tanstack/react-form-devtools": "^0.2.30",
 		"@tanstack/react-query-devtools": "^5.101.2",
 		"@tanstack/react-router-devtools": "^1.167.0",
-		"@testing-library/dom": "^10.4.1",
-		"@testing-library/jest-dom": "^6.9.1",
-		"@testing-library/react": "^16.3.2",
-		"@testing-library/user-event": "^14.6.1",
 		"@types/node": "^24.13.3",
 		"@types/react": "^19.2.17",
 		"@types/react-dom": "^19.2.3",
 		"@vitejs/plugin-react": "^6.0.3",
-		"jsdom": "^29.1.1",
+		"@vitest/browser-playwright": "^4.1.10",
 		"shadcn": "^4.13.0",
 		"tsx": "^4.23.0",
 		"typescript": "~7.0.2",
 		"vite": "^8.1.4",
-		"vitest": "^4.1.10"
+		"vitest": "^4.1.10",
+		"vitest-browser-react": "^2.2.0"
 	},
 	"overrides": {
 		"@hono/node-server": "~1.19.13"

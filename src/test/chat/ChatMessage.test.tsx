@@ -1,8 +1,7 @@
 import type { UIMessage } from "@tanstack/ai-client";
-import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { ChatMessage } from "#/features/send-message/components/ChatMessage";
-import { render, screen } from "#/test/utils";
+import { render } from "#/test/utils";
 
 function userMessage(content: string): UIMessage {
 	return { id: "u1", role: "user", parts: [{ type: "text", content }] };
@@ -14,59 +13,76 @@ function assistantMessage(content: string): UIMessage {
 
 describe("ChatMessage", () => {
 	describe("user messages", () => {
-		it("should render content as plain text", () => {
-			render(<ChatMessage message={userMessage("Hello world")} />);
-			expect(screen.getByText("Hello world")).toBeInTheDocument();
+		it("renders the content as plain text", async () => {
+			const screen = await render(<ChatMessage message={userMessage("Hello world")} />);
+
+			await expect.element(screen.getByTestId("chat-message")).toHaveTextContent("Hello world");
 		});
 
-		it("should render with an article landmark", () => {
-			render(<ChatMessage message={userMessage("Hi")} />);
-			expect(screen.getByTestId("chat-message")).toHaveAttribute("role", "article");
+		it("renders with an article landmark", async () => {
+			const screen = await render(<ChatMessage message={userMessage("Hi")} />);
+
+			await expect.element(screen.getByTestId("chat-message")).toHaveAttribute("role", "article");
 		});
 
-		it("should render markdown syntax literally (not parsed)", () => {
-			render(<ChatMessage message={userMessage("**bold** text")} />);
-			expect(screen.getByText("**bold** text")).toBeInTheDocument();
+		it("renders markdown syntax literally, not parsed", async () => {
+			const screen = await render(<ChatMessage message={userMessage("**bold** text")} />);
+
+			await expect.element(screen.getByTestId("chat-message")).toHaveTextContent("**bold** text");
 		});
 
-		it("preserves newlines in the message text", () => {
-			render(<ChatMessage message={userMessage("line one\nline two")} />);
-			expect(screen.getByTestId("chat-message").textContent).toBe("line one\nline two");
+		it("preserves newlines in the message text", async () => {
+			const screen = await render(<ChatMessage message={userMessage("line one\nline two")} />);
+
+			expect(screen.getByTestId("chat-message").element().textContent).toBe("line one\nline two");
 		});
 	});
 
 	describe("assistant messages", () => {
-		it("should render markdown content as formatted HTML", () => {
-			render(<ChatMessage message={assistantMessage("**bold text**")} />);
-			expect(screen.getByText("bold text")).toHaveAttribute("data-streamdown", "strong");
+		// Markdown output is rendered by Streamdown, which won't forward testids,
+		// so these assertions query the library-rendered text directly.
+		it("renders markdown content as formatted HTML", async () => {
+			const screen = await render(<ChatMessage message={assistantMessage("**bold text**")} />);
+
+			await expect
+				.element(screen.getByText("bold text"))
+				.toHaveAttribute("data-streamdown", "strong");
 		});
 
-		it("should render with an article landmark", () => {
-			render(<ChatMessage message={assistantMessage("Hello")} />);
-			expect(screen.getByTestId("chat-message")).toHaveAttribute("role", "article");
+		it("renders with an article landmark", async () => {
+			const screen = await render(<ChatMessage message={assistantMessage("Hello")} />);
+
+			await expect.element(screen.getByTestId("chat-message")).toHaveAttribute("role", "article");
 		});
 
-		it("should render links with safe attributes", () => {
-			render(<ChatMessage message={assistantMessage("[Link](https://example.com)")} />);
+		it("renders links that open in a new tab without leaking the opener", async () => {
+			const screen = await render(
+				<ChatMessage message={assistantMessage("[Link](https://example.com)")} />,
+			);
+
 			const link = screen.getByText("Link");
-			expect(link).toHaveAttribute("href", "https://example.com/");
-			expect(link).toHaveAttribute("target", "_blank");
-			expect(link).toHaveAttribute("rel", "noopener noreferrer");
+			await expect.element(link).toHaveAttribute("href", "https://example.com/");
+			await expect.element(link).toHaveAttribute("target", "_blank");
+			await expect.element(link).toHaveAttribute("rel", "noopener noreferrer");
 		});
 
-		it("should render inline code", () => {
-			render(<ChatMessage message={assistantMessage("`console.log()`")} />);
-			expect(screen.getByText("console.log()")).toBeInTheDocument();
+		it("renders inline code", async () => {
+			const screen = await render(<ChatMessage message={assistantMessage("`console.log()`")} />);
+
+			await expect.element(screen.getByText("console.log()")).toBeVisible();
 		});
 
-		it("should render fenced code blocks", () => {
-			render(<ChatMessage message={assistantMessage("```js\nconsole.log()\n```")} />);
-			expect(screen.getByText("console.log()")).toBeInTheDocument();
+		it("renders fenced code blocks", async () => {
+			const screen = await render(
+				<ChatMessage message={assistantMessage("```js\nconsole.log()\n```")} />,
+			);
+
+			await expect.element(screen.getByText("console.log()")).toBeVisible();
 		});
 	});
 
 	describe("tool calls", () => {
-		it("should render a tool-call/result pair as a collapsible with a friendly label", () => {
+		it("renders a tool-call/result pair as a collapsible with a friendly label", async () => {
 			const message: UIMessage = {
 				id: "a1",
 				role: "assistant",
@@ -76,13 +92,17 @@ describe("ChatMessage", () => {
 					{ type: "tool-result", toolCallId: "c1", content: "result body", state: "complete" },
 				],
 			};
-			render(<ChatMessage message={message} />);
+
+			const screen = await render(<ChatMessage message={message} />);
+
 			// The result lives in a collapsed Collapsible (unmounted until opened),
 			// so the friendly-labelled trigger is what proves the block rendered.
-			expect(screen.getByTestId("activity-trail-marker")).toHaveTextContent("Searched the web");
+			await expect
+				.element(screen.getByTestId("activity-trail-marker"))
+				.toHaveTextContent("Searched the web");
 		});
 
-		it("should show a running indicator for an in-flight tool call while streaming", () => {
+		it("shows a running indicator for an in-flight tool call while streaming", async () => {
 			const message: UIMessage = {
 				id: "a1",
 				role: "assistant",
@@ -96,51 +116,47 @@ describe("ChatMessage", () => {
 					},
 				],
 			};
-			render(<ChatMessage message={message} isStreaming />);
-			expect(screen.getByTestId("activity-marker-status")).toHaveTextContent("Searching the web");
+
+			const screen = await render(<ChatMessage message={message} isStreaming />);
+
+			await expect
+				.element(screen.getByTestId("activity-marker-status"))
+				.toHaveTextContent("Searching the web");
 		});
 	});
 
 	describe("reasoning", () => {
-		it("should render a reasoning block when thinking parts are present", () => {
-			const message: UIMessage = {
-				id: "a1",
-				role: "assistant",
-				parts: [
-					{ type: "thinking", content: "considering options" },
-					{ type: "text", content: "answer" },
-				],
-			};
-			render(<ChatMessage message={message} />);
-			// Reasoning text sits collapsed behind a marker; the trigger label
-			// proves the block rendered.
-			expect(screen.getByTestId("activity-trail-marker")).toHaveTextContent("Reasoning");
+		const message: UIMessage = {
+			id: "a1",
+			role: "assistant",
+			parts: [
+				{ type: "thinking", content: "considering options" },
+				{ type: "text", content: "answer" },
+			],
+		};
+
+		it("renders a collapsed reasoning block when thinking parts are present", async () => {
+			const screen = await render(<ChatMessage message={message} />);
+
+			await expect
+				.element(screen.getByTestId("activity-trail-marker"))
+				.toHaveTextContent("Reasoning");
 		});
 
 		it("reveals the reasoning text on click and collapses again on a second click", async () => {
-			const user = userEvent.setup();
-			const message: UIMessage = {
-				id: "a1",
-				role: "assistant",
-				parts: [
-					{ type: "thinking", content: "considering options" },
-					{ type: "text", content: "answer" },
-				],
-			};
-			render(<ChatMessage message={message} />);
-
+			const screen = await render(<ChatMessage message={message} />);
 			const trigger = screen.getByTestId("activity-trail-marker");
-			await user.click(trigger);
-			expect(screen.getByText("considering options")).toBeInTheDocument();
 
-			await user.click(trigger);
-			expect(screen.queryByText("considering options")).not.toBeInTheDocument();
+			await trigger.click();
+			await expect.element(screen.getByText("considering options")).toBeVisible();
+
+			await trigger.click();
+			await expect.element(screen.getByText("considering options")).not.toBeInTheDocument();
 		});
 	});
 
 	describe("tool call output", () => {
 		it("reveals the tool output on click and collapses again on a second click", async () => {
-			const user = userEvent.setup();
 			const message: UIMessage = {
 				id: "a1",
 				role: "assistant",
@@ -155,19 +171,22 @@ describe("ChatMessage", () => {
 					},
 				],
 			};
-			render(<ChatMessage message={message} />);
 
+			const screen = await render(<ChatMessage message={message} />);
 			const trigger = screen.getByTestId("activity-trail-marker");
-			await user.click(trigger);
-			expect(screen.getByTestId("tool-call-step-output")).toHaveTextContent("top result: otters");
 
-			await user.click(trigger);
-			expect(screen.queryByTestId("tool-call-step-output")).not.toBeInTheDocument();
+			await trigger.click();
+			await expect
+				.element(screen.getByTestId("tool-call-step-output"))
+				.toHaveTextContent("top result: otters");
+
+			await trigger.click();
+			await expect.element(screen.getByTestId("tool-call-step-output")).not.toBeInTheDocument();
 		});
 	});
 
 	describe("activity trail ordering", () => {
-		it("renders interleaved reasoning and tool steps in document order", () => {
+		it("renders interleaved reasoning and tool steps in document order", async () => {
 			const message: UIMessage = {
 				id: "a1",
 				role: "assistant",
@@ -185,9 +204,10 @@ describe("ChatMessage", () => {
 					{ type: "text", content: "answer" },
 				],
 			};
-			render(<ChatMessage message={message} />);
 
-			const markers = screen.getAllByTestId("activity-trail-marker");
+			const screen = await render(<ChatMessage message={message} />);
+
+			const markers = screen.getByTestId("activity-trail-marker").elements();
 			expect(markers.map((el) => el.textContent)).toEqual([
 				expect.stringContaining("Reasoning"),
 				expect.stringContaining("Searched the web"),
@@ -197,12 +217,14 @@ describe("ChatMessage", () => {
 	});
 
 	describe("warming", () => {
-		it("shows 'Warming up the model' instead of 'Thinking' while the local model loads", () => {
+		it("shows 'Warming up the model' instead of 'Thinking' while the local model loads", async () => {
 			const message: UIMessage = { id: "a1", role: "assistant", parts: [] };
-			render(<ChatMessage message={message} isStreaming warming />);
-			expect(screen.getByTestId("activity-marker-status")).toHaveTextContent(
-				"Warming up the model",
-			);
+
+			const screen = await render(<ChatMessage message={message} isStreaming warming />);
+
+			await expect
+				.element(screen.getByTestId("activity-marker-status"))
+				.toHaveTextContent("Warming up the model");
 		});
 	});
 });

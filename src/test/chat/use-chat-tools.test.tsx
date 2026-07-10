@@ -1,9 +1,9 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, renderHook } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { useChatTools } from "#/features/send-message/hooks/use-chat-tools";
 import { defaultEnabledTools } from "#/features/send-message/lib/tool-catalog";
+import { renderHook } from "#/test/utils";
 
 vi.mock("#/entities/endpoint/endpoint.functions", () => ({
 	modelCapabilitiesQueryOptions: () => ({
@@ -43,21 +43,21 @@ describe("defaultEnabledTools", () => {
 });
 
 describe("useChatTools", () => {
-	it("starts with web search enabled when available", () => {
-		const { result } = renderChatTools({ webSearch: true });
+	it("starts with web search enabled when available", async () => {
+		const { result } = await renderChatTools({ webSearch: true });
 		expect(result.current.controls.enabledTools).toEqual(["web_search"]);
 	});
 
-	it("starts with no tools when web search is unavailable", () => {
-		const { result } = renderChatTools({ webSearch: false });
+	it("starts with no tools when web search is unavailable", async () => {
+		const { result } = await renderChatTools({ webSearch: false });
 		expect(result.current.controls.enabledTools).toEqual([]);
 	});
 
-	it("reset returns to the defaults after an explicit toggle", () => {
-		const { result } = renderChatTools({ webSearch: true });
-		act(() => result.current.controls.onEnabledToolsChange(["memory"]));
+	it("reset returns to the defaults after an explicit toggle", async () => {
+		const { result, act } = await renderChatTools({ webSearch: true });
+		await act(() => result.current.controls.onEnabledToolsChange(["memory"]));
 		expect(result.current.controls.enabledTools).toEqual(["memory"]);
-		act(() => result.current.resetTools());
+		await act(() => result.current.resetTools());
 		expect(result.current.controls.enabledTools).toEqual(["web_search"]);
 	});
 });

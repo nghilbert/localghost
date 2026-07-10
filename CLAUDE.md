@@ -118,10 +118,10 @@ The mechanical rules (camelCase Zod schemas, the banned `.client.ts` suffix) are
 
 ## Testing
 
-Vitest + Testing Library in `src/test/<area>/`, run with `npm run test -- run` (see the "Test complex work" rule for _when_). `.claude/hooks/text-check.ts` enforces the mechanical patterns (userEvent over `fireEvent`, no casts, query by `data-testid` not role/label/text). The judgment:
+Vitest in `src/test/<area>/` (folders by domain, never by test type), run with `npm run test -- run` (see the "Test complex work" rule for _when_). Two projects split by extension: `*.test.ts` runs in node (`unit`), `*.test.tsx` in headless Chromium via browser mode (`browser`). Browser tests use `render`/`renderHook` from `#/test/utils` (wraps `vitest-browser-react`; both async), interactions via locators (`await screen.getByTestId(...).click()`) or `userEvent` from `vitest/browser`, assertions via `await expect.element(...)` / `expect.poll`. `.claude/hooks/text-check.ts` enforces the mechanical patterns (userEvent over `fireEvent`, no casts, query by `data-testid` not role/label/text). The judgment:
 
 - **Test our seams, not our dependencies.** Target logic we wrote (wiring, input parsing, transforms, registries, merge/normalize). Litmus: if it would still pass with our code deleted, it tests the library.
-- **Extract pure logic, test it plain** (inline inputs, no `render`, no DB): `toolRows` in `ToolsMenu.tsx`. Beats fighting a portal in jsdom.
+- **Extract pure logic, test it plain** (inline inputs, no `render`, no DB): `toolRows` in `ToolsMenu.tsx`. A `.test.ts` in node beats a browser render it doesn't need.
 - `data-testid` is kebab-case and component-scoped (`model-picker-trigger`); the field/DataTable/ModelPicker tests are the reference. The testid exception: an element a library renders that won't forward one (Streamdown output, a Base UI Slider thumb).
 - **Derive minimal inputs inline; never commit recorded fixtures.**
 
