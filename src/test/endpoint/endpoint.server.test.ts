@@ -22,6 +22,7 @@ function makeEndpoint(overrides: Partial<Endpoint> = {}): Endpoint {
 		options: null,
 		ownerId: "owner-1",
 		updatedAt: new Date(),
+		discovered: null,
 		...overrides,
 	};
 }

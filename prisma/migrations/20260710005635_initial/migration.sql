@@ -43,6 +43,7 @@ CREATE TABLE "endpoint" (
     "options" JSONB,
     "owner_id" UUID NOT NULL,
     "updated_at" TIMESTAMP(3) NOT NULL,
+    "discovered" BOOLEAN,
 
     CONSTRAINT "endpoint_pkey" PRIMARY KEY ("id")
 );
@@ -108,6 +109,9 @@ CREATE INDEX "conversation_owner_id_idx" ON "conversation"("owner_id");
 
 -- CreateIndex
 CREATE INDEX "endpoint_owner_id_idx" ON "endpoint"("owner_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "endpoint_owner_id_discovered_key" ON "endpoint"("owner_id", "discovered");
 
 -- CreateIndex
 CREATE INDEX "memory_owner_id_idx" ON "memory"("owner_id");

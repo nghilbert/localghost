@@ -5,15 +5,15 @@ import {
 	upsertOllamaEndpoint,
 } from "#/features/pull-model/lib/ollama/discovery.server";
 
-const { findFirst, findMany, create, update } = vi.hoisted(() => ({
+const { findFirst, findMany, upsert, update } = vi.hoisted(() => ({
 	findFirst: vi.fn(),
 	findMany: vi.fn(),
-	create: vi.fn(),
+	upsert: vi.fn(),
 	update: vi.fn(),
 }));
 
 vi.mock("#/shared/lib/db.server", () => ({
-	prisma: { endpoint: { findFirst, findMany, create, update } },
+	prisma: { endpoint: { findFirst, findMany, upsert, update } },
 }));
 
 describe("getOllamaUrl", () => {
@@ -71,20 +71,23 @@ describe("buildOllamaCandidateUrls", () => {
 describe("upsertOllamaEndpoint", () => {
 	beforeEach(() => {
 		findFirst.mockReset();
-		create.mockReset();
+		upsert.mockReset();
 		update.mockReset();
 	});
 
-	it("creates an ollama endpoint on first detection", async () => {
+	it("upserts on the discovered-row unique on first detection", async () => {
 		findFirst.mockResolvedValue(null);
 		await upsertOllamaEndpoint({ userId: "user-1", url: "http://localhost:11434/" });
-		expect(create).toHaveBeenCalledWith({
-			data: {
+		expect(upsert).toHaveBeenCalledWith({
+			where: { ownerId_discovered: { ownerId: "user-1", discovered: true } },
+			create: {
 				name: "Ollama (local)",
 				url: "http://localhost:11434",
 				provider: "ollama",
 				ownerId: "user-1",
+				discovered: true,
 			},
+			update: { url: "http://localhost:11434" },
 		});
 		expect(update).not.toHaveBeenCalled();
 	});
@@ -96,13 +99,13 @@ describe("upsertOllamaEndpoint", () => {
 			where: { id: "ep-1" },
 			data: { url: "http://localhost:11434" },
 		});
-		expect(create).not.toHaveBeenCalled();
+		expect(upsert).not.toHaveBeenCalled();
 	});
 
 	it("does nothing when the saved url already matches", async () => {
 		findFirst.mockResolvedValue({ id: "ep-1", url: "http://localhost:11434" });
 		await upsertOllamaEndpoint({ userId: "user-1", url: "http://localhost:11434/" });
-		expect(create).not.toHaveBeenCalled();
+		expect(upsert).not.toHaveBeenCalled();
 		expect(update).not.toHaveBeenCalled();
 	});
 });

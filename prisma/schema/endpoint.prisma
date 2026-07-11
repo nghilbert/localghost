@@ -9,7 +9,11 @@ model Endpoint {
   owner           User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   conversations   Conversation[]
   updatedAt       DateTime       @updatedAt @map("updated_at")
+  /// True only on the machine-managed "Ollama (local)" row; null on user-added
+  /// endpoints, which the unique below therefore never constrains.
+  discovered      Boolean?
 
+  @@unique([ownerId, discovered])
   @@index([ownerId])
   @@map("endpoint")
 }

@@ -127,12 +127,20 @@ export async function upsertOllamaEndpoint({
 				});
 
 	if (!resolved) {
-		await prisma.endpoint.create({
-			data: {
+		// Upsert on the (ownerId, discovered) unique: concurrent first-time scans
+		// both land here, and the loser must update instead of inserting a duplicate.
+		await prisma.endpoint.upsert({
+			where: { ownerId_discovered: { ownerId: userId, discovered: true } },
+			create: {
 				name: "Ollama (local)",
 				url: normalizedUrl,
 				provider: "ollama",
 				ownerId: userId,
+				discovered: true,
+				...(typeof numCtx === "number" ? { options: { num_ctx: numCtx } } : {}),
+			},
+			update: {
+				url: normalizedUrl,
 				...(typeof numCtx === "number" ? { options: { num_ctx: numCtx } } : {}),
 			},
 		});
