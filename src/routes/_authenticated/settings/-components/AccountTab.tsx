@@ -7,8 +7,8 @@ import { useAppForm } from "#/shared/hooks/use-app-form";
 import { Button } from "#/shared/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "#/shared/ui/card";
 import { Field, FieldLabel } from "#/shared/ui/field";
-import { accountFormSchema } from "./schemas";
-import { useUpdateAccount } from "./use-update-account";
+import { useUpdateAccount } from "../-hooks/use-update-account";
+import { accountFormSchema } from "../-lib/schemas";
 
 export function AccountTab() {
 	const {

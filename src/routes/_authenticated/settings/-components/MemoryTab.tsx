@@ -10,7 +10,7 @@ import {
 	ItemGroup,
 	ItemTitle,
 } from "#/shared/ui/item";
-import { useMemories } from "./use-memories";
+import { useMemories } from "../-hooks/use-memories";
 
 export function MemoryTab() {
 	const { data: memories } = useSuspenseQuery(memoriesQueryOptions());
