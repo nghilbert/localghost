@@ -52,4 +52,14 @@ describe("endpointApiKey", () => {
 		expect(endpointApiKey({ apiKeyEncrypted: null })).toBeUndefined();
 		expect(decrypt).not.toHaveBeenCalled();
 	});
+
+	it("logs and rethrows a readable error when the key can't be decrypted", () => {
+		const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+		decrypt.mockImplementation(() => {
+			throw new Error("Unsupported state or unable to authenticate data");
+		});
+
+		expect(() => endpointApiKey({ apiKeyEncrypted: "corrupt" })).toThrow(/re-enter the key/i);
+		expect(consoleError).toHaveBeenCalledOnce();
+	});
 });

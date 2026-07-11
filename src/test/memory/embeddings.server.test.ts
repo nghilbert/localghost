@@ -1,5 +1,11 @@
-import { describe, expect, it } from "vitest";
-import { embeddingModelFor, toVectorLiteral } from "#/entities/memory/embeddings.server";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+const { decrypt, findMany } = vi.hoisted(() => ({ decrypt: vi.fn(), findMany: vi.fn() }));
+
+vi.mock("#/shared/lib/crypto.server", () => ({ decrypt, encrypt: vi.fn() }));
+vi.mock("#/shared/lib/db.server", () => ({ prisma: { endpoint: { findMany } } }));
+
+import { embed, embeddingModelFor, toVectorLiteral } from "#/entities/memory/embeddings.server";
 
 describe("embeddingModelFor", () => {
 	it("picks a local embedding model for ollama, not the chat model", () => {
@@ -16,6 +22,43 @@ describe("embeddingModelFor", () => {
 		expect(embeddingModelFor("anthropic")).toBeNull();
 		expect(embeddingModelFor("gemini")).toBeNull();
 		expect(embeddingModelFor(undefined)).toBeNull();
+	});
+});
+
+describe("embed", () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		vi.spyOn(console, "error").mockImplementation(() => {});
+		vi.stubGlobal(
+			"fetch",
+			vi.fn().mockResolvedValue(
+				new Response(JSON.stringify({ data: [{ embedding: [0.1, 0.2] }] }), {
+					headers: { "Content-Type": "application/json" },
+				}),
+			),
+		);
+	});
+
+	afterEach(() => {
+		vi.unstubAllGlobals();
+		vi.restoreAllMocks();
+	});
+
+	it("skips an endpoint whose key can't be decrypted and uses the next one", async () => {
+		findMany.mockResolvedValue([
+			{ id: "e1", url: "https://one.test", provider: "openai", apiKeyEncrypted: "corrupt" },
+			{ id: "e2", url: "https://two.test", provider: "openai", apiKeyEncrypted: "good" },
+		]);
+		decrypt.mockImplementation((ciphertext: string) => {
+			if (ciphertext === "corrupt") throw new Error("bad auth tag");
+			return "plain-key";
+		});
+
+		await expect(embed({ text: "hello", ownerId: "u1" })).resolves.toEqual([0.1, 0.2]);
+
+		const fetchMock = vi.mocked(fetch);
+		expect(fetchMock).toHaveBeenCalledOnce();
+		expect(fetchMock.mock.calls[0]?.[0]).toBe("https://two.test/v1/embeddings");
 	});
 });
 

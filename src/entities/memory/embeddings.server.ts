@@ -1,6 +1,6 @@
 import { trimPathRight } from "@tanstack/react-router";
 import { z } from "zod/v4";
-import { decrypt } from "#/shared/lib/crypto.server";
+import { endpointApiKey } from "#/entities/endpoint/endpoint.server";
 import { prisma } from "#/shared/lib/db.server";
 import { asLLMProvider, type LLMProvider } from "#/shared/lib/llm.server";
 
@@ -48,7 +48,13 @@ export async function embed({
 		const model = embeddingModelFor(asLLMProvider(ep.provider));
 		if (!model) continue;
 
-		const apiKey = ep.apiKeyEncrypted ? decrypt(ep.apiKeyEncrypted) : undefined;
+		let apiKey: string | undefined;
+		try {
+			apiKey = endpointApiKey(ep);
+		} catch {
+			// endpointApiKey already logged the decrypt failure; try the next endpoint.
+			continue;
+		}
 		const base = trimPathRight(ep.url).replace(/\/v1$/, "");
 		const embeddingUrl = `${base}/v1/embeddings`;
 

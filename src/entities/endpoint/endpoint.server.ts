@@ -11,9 +11,23 @@ export function toClientEndpoint(endpoint: Endpoint) {
 	return { ...endpoint, apiKeyEncrypted: undefined, hasApiKey: !!endpoint.apiKeyEncrypted };
 }
 
-/** The endpoint's decrypted API key, or undefined when none is stored. */
+/**
+ * The endpoint's decrypted API key, or undefined when none is stored.
+ * @throws A user-readable error when the stored key cannot be decrypted
+ * (typically after an `ENCRYPTION_KEY` rotation); the raw crypto failure is logged.
+ */
 export function endpointApiKey(endpoint: Pick<Endpoint, "apiKeyEncrypted">) {
-	return endpoint.apiKeyEncrypted ? decrypt(endpoint.apiKeyEncrypted) : undefined;
+	if (!endpoint.apiKeyEncrypted) return undefined;
+	try {
+		return decrypt(endpoint.apiKeyEncrypted);
+	} catch (error) {
+		console.error("Failed to decrypt a stored endpoint API key (was ENCRYPTION_KEY rotated?)", {
+			error,
+		});
+		throw new Error(
+			"This endpoint's stored API key can't be decrypted. Re-enter the key in Settings.",
+		);
+	}
 }
 
 /** The user's endpoints, keys stripped. */
