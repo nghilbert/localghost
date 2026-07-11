@@ -66,27 +66,35 @@ export function ChatView({ conversation }: ChatViewProps) {
 	}
 
 	// Apply the draft page's tool-toggle handoff exactly once, client-side only.
-	// State-based so the response request below waits a render for the toggles to
-	// land in `forwardedProps` before it fires.
-	const [handoffApplied, setHandoffApplied] = useState(false);
+	// The presence of a handoff also marks this mount as the new-chat handoff: only
+	// then do we auto-request the first response. `null` means not yet checked, so
+	// the response request below waits a render for the toggles to land in
+	// `forwardedProps` and for intent to be known.
+	const [autoRespond, setAutoRespond] = useState<boolean | null>(null);
 	useEffect(() => {
-		if (handoffApplied) return;
+		if (autoRespond !== null) return;
 		const handoff = takeChatHandoff(conversation.id);
 		if (handoff) {
 			controls.onEnabledToolsChange(handoff.enabledTools);
 		}
-		setHandoffApplied(true);
+		setAutoRespond(handoff !== null);
 	});
 
 	// The draft page persists the first user message at creation; once the transcript
-	// hydrates ending on it (also after a refresh mid-handoff), request the response.
+	// hydrates ending on it, request the response. Gated on the handoff so reopening a
+	// stored conversation that happens to end on a user turn does not silently generate.
 	const responseRequested = useRef(false);
 	useEffect(() => {
-		if (!handoffApplied || responseRequested.current) return;
+		if (autoRespond !== true || responseRequested.current) return;
 		if (status !== "ready" || !awaitingAssistantResponse(messages)) return;
 		responseRequested.current = true;
 		void reload().then(resetTools);
 	});
+
+	// A stored transcript ending on a user turn (a prior run errored, was stopped, or
+	// the tab closed before the reply persisted) gets an explicit affordance instead.
+	const canGenerate =
+		autoRespond === false && status === "ready" && awaitingAssistantResponse(messages);
 
 	return (
 		<div className="flex h-full min-h-0 flex-col">
@@ -121,6 +129,7 @@ export function ChatView({ conversation }: ChatViewProps) {
 									warming={warming}
 									error={error}
 									onRetry={reload}
+									onGenerate={canGenerate ? () => void reload() : undefined}
 								/>
 							</MessageScrollerItem>
 						</MessageScrollerContent>

@@ -1,5 +1,5 @@
 import type { ChatClientState, UIMessage } from "@tanstack/ai-client";
-import { RefreshCwIcon, TriangleAlertIcon } from "lucide-react";
+import { RefreshCwIcon, SparklesIcon, TriangleAlertIcon } from "lucide-react";
 import { ActivityMarker } from "#/features/send-message/components/ActivityMarker";
 import { Alert, AlertAction, AlertDescription, AlertTitle } from "#/shared/ui/alert";
 import { Button } from "#/shared/ui/button";
@@ -10,6 +10,8 @@ type ChatStatusProps = {
 	warming: boolean;
 	error: Error | undefined;
 	onRetry: () => void;
+	/** When set, the transcript ends on an unanswered user turn: offer to generate a reply. */
+	onGenerate?: () => void;
 };
 
 /** Turns a raw runner/provider error into a short, human explanation; a crashed local runner surfaces as `unexpected EOF` and is recoverable on retry. */
@@ -35,12 +37,35 @@ function humanizeError(message: string): { title: string; description: string } 
  * exists (the in-message trail takes over once it does), or a recoverable error
  * alert. `warming` reads "Warming up" on a cold local-model start.
  */
-export function ChatStatus({ status, messages, warming, error, onRetry }: ChatStatusProps) {
+export function ChatStatus({
+	status,
+	messages,
+	warming,
+	error,
+	onRetry,
+	onGenerate,
+}: ChatStatusProps) {
 	const awaiting =
 		(status === "submitted" || status === "streaming") && messages.at(-1)?.role !== "assistant";
 
 	if (awaiting) {
 		return <ActivityMarker label={warming ? "Warming up the model" : "Thinking"} />;
+	}
+
+	if (onGenerate) {
+		return (
+			<Alert>
+				<SparklesIcon />
+				<AlertTitle>This conversation is waiting on a response</AlertTitle>
+				<AlertDescription>Generate a reply to your last message.</AlertDescription>
+				<AlertAction>
+					<Button size="sm" variant="outline" onClick={onGenerate}>
+						<SparklesIcon />
+						Generate response
+					</Button>
+				</AlertAction>
+			</Alert>
+		);
 	}
 
 	if (status === "error") {
