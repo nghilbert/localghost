@@ -32,6 +32,11 @@ import { Skeleton } from "#/shared/ui/skeleton";
 
 export const Route = createFileRoute("/_authenticated/library")({
 	head: () => ({ meta: [{ title: "Library · localghost" }] }),
+	loader: ({ context }) => {
+		context.queryClient.prefetchQuery(hardwareQueryOptions());
+		context.queryClient.prefetchQuery(libraryStatusQueryOptions());
+		context.queryClient.prefetchQuery(catalogQueryOptions());
+	},
 	component: LibraryPage,
 });
 

@@ -14,6 +14,7 @@ import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from "
 
 export const Route = createFileRoute("/_authenticated/new")({
 	head: () => ({ meta: [{ title: "New chat · localghost" }] }),
+	loader: ({ context }) => context.queryClient.ensureQueryData(defaultSelectionQueryOptions()),
 	component: NewChatPage,
 });
 
