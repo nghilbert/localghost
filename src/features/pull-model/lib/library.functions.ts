@@ -15,6 +15,7 @@ import { removeInstalledModel } from "#/features/pull-model/lib/ollama/models.se
 import {
 	cancelPull,
 	listActivePulls as readActivePulls,
+	resumeOrphanedPulls,
 	startPull,
 } from "#/features/pull-model/lib/ollama/pull-registry.server";
 import type { OllamaStatus } from "#/features/pull-model/lib/types";
@@ -79,7 +80,7 @@ export const startModelPull = createServerFn({ method: "POST" })
 	.handler(async ({ data }) => {
 		const userId = await getCurrentUserId();
 		const ollamaUrl = data.ollamaUrl ? trimPathRight(data.ollamaUrl) : await getOllamaUrl(userId);
-		startPull({ userId, model: data.model, ollamaUrl });
+		await startPull({ userId, model: data.model, ollamaUrl });
 	});
 
 export const cancelModelPull = createServerFn({ method: "POST" })
@@ -91,6 +92,9 @@ export const cancelModelPull = createServerFn({ method: "POST" })
 
 export const listActivePulls = createServerFn({ method: "GET" }).handler(async () => {
 	const userId = await getCurrentUserId();
+	// Re-attach pulls a server restart orphaned before reporting, so the Library
+	// regains its progress view instead of staying blind until the daemon finishes.
+	await resumeOrphanedPulls(userId);
 	return readActivePulls(userId);
 });
 

@@ -1,11 +1,22 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { ollamaClient } = vi.hoisted(() => ({ ollamaClient: vi.fn() }));
+const { ollamaClient, pullUpsert, pullDeleteMany, pullFindMany } = vi.hoisted(() => ({
+	ollamaClient: vi.fn(),
+	pullUpsert: vi.fn(),
+	pullDeleteMany: vi.fn(),
+	pullFindMany: vi.fn(),
+}));
 vi.mock("#/shared/lib/ollama/client.server", () => ({ ollamaClient }));
+vi.mock("#/shared/lib/db.server", () => ({
+	prisma: {
+		ollamaPull: { upsert: pullUpsert, deleteMany: pullDeleteMany, findMany: pullFindMany },
+	},
+}));
 
 import {
 	cancelPull,
 	listActivePulls,
+	resumeOrphanedPulls,
 	startPull,
 } from "#/features/pull-model/lib/ollama/pull-registry.server";
 
@@ -79,6 +90,9 @@ const args = { userId: "u", model: "llama3", ollamaUrl: "http://x" };
 
 beforeEach(() => {
 	vi.clearAllMocks();
+	pullUpsert.mockResolvedValue(undefined);
+	pullDeleteMany.mockResolvedValue({ count: 0 });
+	pullFindMany.mockResolvedValue([]);
 	vi.useFakeTimers();
 });
 
@@ -142,6 +156,47 @@ describe("startPull + listActivePulls", () => {
 		await tick();
 
 		expect(listActivePulls("someone-else")).toEqual([]);
+	});
+});
+
+describe("pull persistence + resume after restart", () => {
+	it("persists a starting pull and clears the record on terminal success", async () => {
+		const ctrl = controllableStream();
+		mockPullResolving(ctrl.stream);
+
+		void startPull(args);
+		await tick();
+		expect(pullUpsert).toHaveBeenCalledWith({
+			where: { ownerId_model: { ownerId: "u", model: "llama3" } },
+			create: { ownerId: "u", model: "llama3", ollamaUrl: "http://x" },
+			update: { ollamaUrl: "http://x" },
+		});
+
+		ctrl.push({ status: "success" });
+		await tick();
+		expect(pullDeleteMany).toHaveBeenCalledWith({ where: { ownerId: "u", model: "llama3" } });
+	});
+
+	it("restarts persisted pulls when the registry lost them (server restart)", async () => {
+		mockPullResolving(controllableStream().stream);
+		pullFindMany.mockResolvedValue([{ model: "phi3", ollamaUrl: "http://x" }]);
+
+		await resumeOrphanedPulls("u2");
+		await tick();
+
+		expect(listActivePulls("u2")[0]).toMatchObject({ model: "phi3", done: false });
+		cancelPull({ userId: "u2", model: "phi3" });
+	});
+
+	it("skips the resume lookup while the user already has a live entry", async () => {
+		mockPullResolving(controllableStream().stream);
+		void startPull({ userId: "u3", model: "llama3", ollamaUrl: "http://x" });
+		await tick();
+
+		await resumeOrphanedPulls("u3");
+
+		expect(pullFindMany).not.toHaveBeenCalled();
+		cancelPull({ userId: "u3", model: "llama3" });
 	});
 });
 

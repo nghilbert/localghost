@@ -1,9 +1,10 @@
 /**
- * In-memory source of truth for in-flight Ollama model pulls. Pulls run
- * server-side, surviving client disconnects; clients poll {@link listActivePulls}
- * and cancel via {@link cancelPull}. Compose runs one server, so no shared store.
+ * In-memory registry of in-flight Ollama pulls; clients poll {@link listActivePulls},
+ * cancel via {@link cancelPull}. Compose runs one server, so no shared store. Pulls
+ * also persist to the database so {@link resumeOrphanedPulls} can re-attach after a restart.
  */
 
+import { prisma } from "#/shared/lib/db.server";
 import { ollamaClient } from "#/shared/lib/ollama/client.server";
 
 /** Live progress for one model pull, as exposed to clients. */
@@ -49,7 +50,7 @@ const keyFor = ({ userId, model }: { userId: string; model: string }) => `${user
  * already running (a caller returning to the page attaches to the live pull
  * rather than starting a second download).
  */
-export function startPull({
+export async function startPull({
 	userId,
 	model,
 	ollamaUrl,
@@ -57,14 +58,53 @@ export function startPull({
 	userId: string;
 	model: string;
 	ollamaUrl: string;
-}): void {
+}): Promise<void> {
 	const key = keyFor({ userId, model });
 	const existing = pulls.get(key);
 	if (existing && !existing.done) return;
 
 	const entry: PullEntry = { status: "Starting…", done: false, abort: () => {}, canceled: false };
 	pulls.set(key, entry);
-	void drivePull({ key, entry, model, ollamaUrl });
+	try {
+		// Persist before driving so a restart mid-download can resume this pull.
+		await prisma.ollamaPull.upsert({
+			where: { ownerId_model: { ownerId: userId, model } },
+			create: { ownerId: userId, model, ollamaUrl },
+			update: { ollamaUrl },
+		});
+	} catch (error) {
+		console.error("Failed to persist a pull record; it won't resume after a restart", {
+			model,
+			error,
+		});
+	}
+	void drivePull({ key, entry, model, ollamaUrl, userId });
+}
+
+/**
+ * Restarts pulls persisted as in-flight but missing from the registry (a
+ * restart wiped it). Ollama caches completed layers, so re-issuing the same
+ * pull resumes the remaining download instead of starting over.
+ */
+export async function resumeOrphanedPulls(userId: string): Promise<void> {
+	const prefix = `${userId}:`;
+	for (const key of pulls.keys()) {
+		// Any live entry means the registry survived; nothing was orphaned.
+		if (key.startsWith(prefix)) return;
+	}
+	const rows = await prisma.ollamaPull.findMany({ where: { ownerId: userId } });
+	for (const row of rows) {
+		await startPull({ userId, model: row.model, ollamaUrl: row.ollamaUrl });
+	}
+}
+
+/** Drops the persisted record once a pull is no longer worth resuming. */
+async function forgetPull({ userId, model }: { userId: string; model: string }): Promise<void> {
+	try {
+		await prisma.ollamaPull.deleteMany({ where: { ownerId: userId, model } });
+	} catch (error) {
+		console.error("Failed to clear a persisted pull record", { model, error });
+	}
 }
 
 /**
@@ -118,11 +158,13 @@ async function drivePull({
 	entry,
 	model,
 	ollamaUrl,
+	userId,
 }: {
 	key: string;
 	entry: PullEntry;
 	model: string;
 	ollamaUrl: string;
+	userId: string;
 }): Promise<void> {
 	try {
 		const stream = await ollamaClient({ host: ollamaUrl }).pull({ model, stream: true });
@@ -151,6 +193,9 @@ async function drivePull({
 			entry,
 			terminal: { status: "Error", error: err instanceof Error ? err.message : "Pull failed" },
 		});
+	} finally {
+		// Every exit is terminal (success, error, or cancel): stop resuming it.
+		void forgetPull({ userId, model });
 	}
 }
 
