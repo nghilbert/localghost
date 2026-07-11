@@ -12,6 +12,7 @@ vi.mock("#/entities/conversation/conversation.functions", () => ({
 	saveConversationMessages,
 	deleteConversation,
 	conversationQueryOptions: (id: string) => ({ queryKey: ["conversation", id] }),
+	conversationsQueryOptions: () => ({ queryKey: ["conversations"] }),
 }));
 
 vi.mock("sonner", () => ({ toast: { error: toastError, success: vi.fn() } }));
@@ -134,6 +135,61 @@ describe("createChatPersistence: removeItem", () => {
 		expect(saveConversationMessages).not.toHaveBeenCalled();
 		expect(deleteConversation).toHaveBeenCalledWith({ data: { id: "c1" } });
 		expect(queryClient.getQueryData(queryKey("c1"))).toBeUndefined();
+	});
+});
+
+describe("createChatPersistence: concurrent saves", () => {
+	/** Makes each save hang until its matching `release` is called, exposing resolve order. */
+	function deferredSaves() {
+		const releases: Array<() => void> = [];
+		saveConversationMessages.mockImplementation(
+			() => new Promise<void>((resolve) => releases.push(resolve)),
+		);
+		return releases;
+	}
+
+	it("serializes overlapping saves so the newest snapshot lands last, not the last to resolve", async () => {
+		const releases = deferredSaves();
+		const queryClient = new QueryClient();
+		queryClient.setQueryData(queryKey("c9"), { id: "c9", messages: [] });
+		const persistence = createChatPersistence(queryClient);
+
+		// First save is dispatched and left in flight.
+		persistence.setItem("c9", [message("m1", "a")]);
+		await vi.advanceTimersByTimeAsync(500);
+		expect(saveConversationMessages).toHaveBeenCalledTimes(1);
+
+		// A newer save is committed while the first is still pending: it must wait.
+		persistence.setItem("c9", [message("m1", "a"), message("m2", "b")]);
+		await vi.advanceTimersByTimeAsync(500);
+		expect(saveConversationMessages).toHaveBeenCalledTimes(1);
+
+		// Resolving the first save releases the second, which only now dispatches.
+		releases[0]?.();
+		await vi.advanceTimersByTimeAsync(0);
+		expect(saveConversationMessages).toHaveBeenCalledTimes(2);
+		// The stale first save must not clobber the cache with its older snapshot.
+		expect(queryClient.getQueryData(queryKey("c9"))).toEqual({ id: "c9", messages: [] });
+
+		releases[1]?.();
+		await vi.advanceTimersByTimeAsync(0);
+		expect(queryClient.getQueryData(queryKey("c9"))).toEqual({
+			id: "c9",
+			messages: [message("m1", "a"), message("m2", "b")],
+		});
+	});
+});
+
+describe("createChatPersistence: sidebar reorder", () => {
+	it("invalidates the conversations list after a successful save so Recent Chats re-sorts", async () => {
+		const queryClient = new QueryClient();
+		const invalidate = vi.spyOn(queryClient, "invalidateQueries");
+		const persistence = createChatPersistence(queryClient);
+
+		persistence.setItem("c8", [message("m1", "a")]);
+		await vi.advanceTimersByTimeAsync(500);
+
+		expect(invalidate).toHaveBeenCalledWith({ queryKey: ["conversations"] });
 	});
 });
 
