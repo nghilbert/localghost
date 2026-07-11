@@ -7,7 +7,8 @@ import { Button } from "#/shared/ui/button";
 type ChatStatusProps = {
 	status: ChatClientState;
 	messages: Array<UIMessage>;
-	warming: boolean;
+	/** Overrides the pending head's "Thinking" label (warming up, host unreachable). */
+	pendingLabel?: string;
 	error: Error | undefined;
 	onRetry: () => void;
 	/** When set, the transcript ends on an unanswered user turn: offer to generate a reply. */
@@ -23,6 +24,18 @@ function humanizeError(message: string): { title: string; description: string } 
 				"The model runner crashed mid-response and is likely reloading. Give it a few seconds, then try again.",
 		};
 	}
+	// OpenAI-compat: "does not support tools"; OpenRouter: "No endpoints found that support tool use".
+	if (
+		/(not |n't )support(s|ed)? tool|tools? (is |are |use )?not supported|no endpoints found that support tool/i.test(
+			message,
+		)
+	) {
+		return {
+			title: "This model can't use tools",
+			description:
+				"Turn the tools off in the Tools menu for this message, or switch to a tool-capable model, then try again.",
+		};
+	}
 	if (/unauthorized|\b401\b/i.test(message)) {
 		return {
 			title: "Your session expired",
@@ -35,12 +48,12 @@ function humanizeError(message: string): { title: string; description: string } 
 /**
  * Trailing status slot: the pending head shown before the assistant message
  * exists (the in-message trail takes over once it does), or a recoverable error
- * alert. `warming` reads "Warming up" on a cold local-model start.
+ * alert. `pendingLabel` replaces "Thinking" on a cold local-model start.
  */
 export function ChatStatus({
 	status,
 	messages,
-	warming,
+	pendingLabel,
 	error,
 	onRetry,
 	onGenerate,
@@ -49,7 +62,7 @@ export function ChatStatus({
 		(status === "submitted" || status === "streaming") && messages.at(-1)?.role !== "assistant";
 
 	if (awaiting) {
-		return <ActivityMarker label={warming ? "Warming up the model" : "Thinking"} />;
+		return <ActivityMarker label={pendingLabel ?? "Thinking"} />;
 	}
 
 	if (onGenerate) {

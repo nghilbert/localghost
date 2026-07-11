@@ -216,11 +216,13 @@ describe("ChatMessage", () => {
 		});
 	});
 
-	describe("warming", () => {
-		it("shows 'Warming up the model' instead of 'Thinking' while the local model loads", async () => {
+	describe("pending head label", () => {
+		it("shows the pending label instead of 'Thinking' while the local model loads", async () => {
 			const message: UIMessage = { id: "a1", role: "assistant", parts: [] };
 
-			const screen = await render(<ChatMessage message={message} isStreaming warming />);
+			const screen = await render(
+				<ChatMessage message={message} isStreaming pendingLabel="Warming up the model" />,
+			);
 
 			await expect
 				.element(screen.getByTestId("activity-marker-status"))

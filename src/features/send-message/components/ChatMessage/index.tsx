@@ -14,12 +14,17 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "#/shared/ui/tooltip";
 type ChatMessageProps = {
 	message: UIMessage;
 	isStreaming?: boolean;
-	/** True while the last assistant message's local model is still loading. */
-	warming?: boolean;
+	/** Overrides the pending head's "Thinking" label (warming up, host unreachable). */
+	pendingLabel?: string;
 	/** Provided only for the last assistant message; re-requests the response. */
 	onRegenerate?: () => void;
 };
-export function ChatMessage({ message, isStreaming, warming, onRegenerate }: ChatMessageProps) {
+export function ChatMessage({
+	message,
+	isStreaming,
+	pendingLabel,
+	onRegenerate,
+}: ChatMessageProps) {
 	const content = partsText(message.parts);
 
 	if (message.role === "user") {
@@ -43,7 +48,7 @@ export function ChatMessage({ message, isStreaming, warming, onRegenerate }: Cha
 	return (
 		<Message role="article" aria-label="Assistant message" data-testid="chat-message">
 			<MessageContent>
-				<ActivityTrail message={message} isStreaming={isStreaming} warming={warming} />
+				<ActivityTrail message={message} isStreaming={isStreaming} pendingLabel={pendingLabel} />
 
 				{strandedTool && (
 					<Alert>

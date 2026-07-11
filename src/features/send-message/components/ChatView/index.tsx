@@ -66,13 +66,19 @@ export function ChatView({ conversation }: ChatViewProps) {
 	const isStreaming = status === "submitted" || status === "streaming";
 
 	// While a response is in flight, poll whether the local model is still loading
-	// so the trail's pending head can read "Warming up" on a cold start.
+	// so the trail's pending head can read "Warming up" on a cold start. Once it
+	// reports ready it stays loaded; stop polling until the next cold start.
 	const { data: runState } = useQuery({
 		...modelRunStateQueryOptions(conversation.id),
 		enabled: isStreaming,
-		refetchInterval: 2_000,
+		refetchInterval: (query) => (query.state.data === "ready" ? false : 2_000),
 	});
-	const warming = runState === "warming";
+	const pendingLabel =
+		runState === "warming"
+			? "Warming up the model"
+			: runState === "unreachable"
+				? "Waiting for the model server, which isn't responding"
+				: undefined;
 
 	/** Sends, then resets the toggles to defaults so a manual toggle lasts one message. */
 	async function handleSend(content: string) {
@@ -131,7 +137,7 @@ export function ChatView({ conversation }: ChatViewProps) {
 											<ChatMessage
 												message={msg}
 												isStreaming={isStreaming && isLastAssistant}
-												warming={isLastAssistant && warming}
+												pendingLabel={isLastAssistant ? pendingLabel : undefined}
 												onRegenerate={
 													isLastAssistant && !isStreaming ? () => void reload() : undefined
 												}
@@ -144,7 +150,7 @@ export function ChatView({ conversation }: ChatViewProps) {
 								<ChatStatus
 									status={status}
 									messages={messages}
-									warming={warming}
+									pendingLabel={pendingLabel}
 									error={error}
 									onRetry={reload}
 									onGenerate={canGenerate ? () => void reload() : undefined}

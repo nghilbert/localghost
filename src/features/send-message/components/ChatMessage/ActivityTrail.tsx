@@ -6,8 +6,8 @@ import { ToolCallStep } from "#/features/send-message/components/ChatMessage/Too
 type ActivityTrailProps = {
 	message: UIMessage;
 	isStreaming?: boolean;
-	/** Whether the local model is still loading, shown on the pending head. */
-	warming?: boolean;
+	/** Overrides the pending head's "Thinking" label (warming up, host unreachable). */
+	pendingLabel?: string;
 };
 
 /**
@@ -15,7 +15,7 @@ type ActivityTrailProps = {
  * order as markers, capped by a live "Thinking" head while the model works
  * between steps. The answer text is rendered separately by the caller.
  */
-export function ActivityTrail({ message, isStreaming, warming }: ActivityTrailProps) {
+export function ActivityTrail({ message, isStreaming, pendingLabel }: ActivityTrailProps) {
 	const { parts } = message;
 	const lastPart = parts.at(-1);
 	// A step is "live" when it owns the spinner itself, so the head stays hidden.
@@ -47,7 +47,7 @@ export function ActivityTrail({ message, isStreaming, warming }: ActivityTrailPr
 	return (
 		<div className="flex flex-col gap-2">
 			{steps}
-			{showHead && <ActivityMarker label={warming ? "Warming up the model" : "Thinking"} />}
+			{showHead && <ActivityMarker label={pendingLabel ?? "Thinking"} />}
 		</div>
 	);
 }

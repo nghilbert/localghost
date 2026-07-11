@@ -106,9 +106,12 @@ export async function patchConversation({
 	});
 }
 
+export type ModelRunState = "warming" | "ready" | "unreachable";
+
 /**
  * Whether the conversation's model is still loading. Only Ollama has a warm-up
- * (`ps()` reports what's loaded); other providers and unknown states read "ready".
+ * (`ps()` reports what's loaded); other providers read "ready". A failed probe
+ * is "unreachable": reporting a down host as "ready" would hide the problem.
  */
 export async function probeModelRunState({
 	id,
@@ -116,7 +119,7 @@ export async function probeModelRunState({
 }: {
 	id: string;
 	ownerId: string;
-}): Promise<"warming" | "ready"> {
+}): Promise<ModelRunState> {
 	const conversation = await prisma.conversation.findFirst({
 		where: { id, ownerId },
 		select: { model: true, endpoint: { select: { url: true, provider: true } } },
@@ -132,7 +135,7 @@ export async function probeModelRunState({
 		);
 		return loaded ? "ready" : "warming";
 	} catch {
-		return "ready";
+		return "unreachable";
 	}
 }
 
