@@ -11,9 +11,9 @@ import type {
 	OllamaInstalledModel,
 	PullProgress,
 } from "#/features/pull-model/lib/types";
+import { DataTable } from "#/shared/components/DataTable";
+import { fuzzyFilter } from "#/shared/components/DataTable/fuzzyFilter";
 import { cn } from "#/shared/lib/utils";
-import { DataTable } from "#/shared/ui/DataTable";
-import { fuzzyFilter } from "#/shared/ui/DataTable/fuzzyFilter";
 
 type ModelTableProps = {
 	catalog: CatalogModel[];

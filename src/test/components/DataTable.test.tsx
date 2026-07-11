@@ -1,8 +1,8 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import { describe, expect, it } from "vitest";
 import type { RenderResult } from "vitest-browser-react";
-import { DataTable } from "#/shared/ui/DataTable";
-import { DataTableColumnHeader } from "#/shared/ui/DataTable/DataTableColumnHeader";
+import { DataTable } from "#/shared/components/DataTable";
+import { DataTableColumnHeader } from "#/shared/components/DataTable/DataTableColumnHeader";
 import { render } from "#/test/utils";
 
 type Fruit = { name: string; count: number };

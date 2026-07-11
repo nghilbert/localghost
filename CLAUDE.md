@@ -5,7 +5,7 @@ Guidance for Claude Code working in this repository.
 ## Non-negotiable Rules
 
 - **Work with the framework:** never hand-roll what a dependency does; no parallel implementation, bridge, or shim. Adopt the library's native model (types, persistence, helpers) even if the diff grows.
-- **shadcn-first:** compose shadcn primitives (consult the MCP registry); no raw HTML where a shadcn equivalent exists, no forking `ui/`. Stack is shadcn on Base UI (`@base-ui/react/*`), not Radix: compose with the `render={<El/>}` prop (Base UI's `asChild`). Themeable via CSS variables only, no hardcoded colors.
+- **shadcn-first:** compose shadcn primitives (consult the MCP registry); no raw HTML where a shadcn equivalent exists, no forking `ui/`. Stack is shadcn on Base UI (`@base-ui/react/*`), not Radix: compose with the `render={<El/>}` prop (Base UI's `asChild`). Themeable via CSS variables only, no hardcoded colors. `src/shared/ui/*` is registry output: prefer regenerating (`npx shadcn@latest add <component> --overwrite`) over hand-editing; a hand-edit is allowed rarely and only with a stated reason (`sonner.tsx`'s `ThemeContext` wiring is the precedent).
 - **Prisma:** app model IDs `@default(dbgenerated("uuidv7()")) @db.Uuid`; auth-table IDs `@id @db.Uuid` with no `@default`; all FKs `@db.Uuid`; all camelCase fields `@map("snake_case")`.
 - **Biome:** never `biome-ignore`; fix the real issue.
 - **Server-only:** never import `.server.ts` from client code.
@@ -45,7 +45,7 @@ Commits, pushes, and prisma commands are the user's job (a PreToolUse guard bloc
 - Before finishing, verify your edits: `npm run check`, plus `npm run build` for types.
 - End the summary with one section per logical change: a fenced `git add <paths>`, then the commit message in its own fenced block (imperative subject under 70 chars, one to three sentences of what and why). No co-author or generated-with lines.
 - Prisma: edit `prisma/schema/` only, then tell the user what to run.
-- Never edit generated output (`src/generated/`, `routeTree.gen.ts`, the flat `src/shared/ui/*` files); change the source and regenerate.
+- Never edit generated output (`src/generated/`, `routeTree.gen.ts`); change the source and regenerate. `src/shared/ui/*` is regenerable too, but a rare, stated-reason hand-edit is fine (see shadcn-first above).
 
 ## Environment
 
@@ -54,7 +54,7 @@ Copy `.env.example` to `.env`. Required: `POSTGRES_PASSWORD`, `BETTER_AUTH_SECRE
 ## Architecture
 
 - **Framework:** TanStack Start (SSR React, Vite + Hono); file-based routing. Alias `#/` maps to `src/`.
-- **Routes = the pages layer.** `_authenticated.tsx` guards auth and renders the colocated `AppSidebar` shell. A route file owns the `Route` export (loader/head/search) and its page component `<RouteSubject>Page` (`library.tsx` defines `LibraryPage`). Multi-file building blocks colocate in a `-`-prefixed sibling folder hidden from route gen (`_authenticated/-settings/`, `-components/AppSidebar/`); they keep descriptive names (`SignInForm`, `AccountTab`).
+- **Routes = the pages layer.** `_authenticated.tsx` guards auth and renders the colocated `AppSidebar` shell. A route file owns the `Route` export (loader/head/search) and its page component `<RouteSubject>Page` (`library.tsx` defines `LibraryPage`). A route with multi-file building blocks owns a route directory (`settings.tsx` → `settings/index.tsx`) with kind-based `-`-prefixed segments hidden from route gen (`-components/`, `-hooks/`, `-lib/`), mirroring features' segment folders (`settings/-components/AccountTab.tsx`, `_authenticated/-components/AppSidebar/`); a `-components/` folder is fine with a single member. Server-only logic shared by sibling API route handlers is one `-<name>.server.ts` file (`api/backup/-backup.server.ts`).
 - **Auth:** better-auth (email/password); session resolved at root `beforeLoad`.
 - **Data:** TanStack Query + `createServerFn` in co-located `*.functions.ts`, called as `fn({ data })`. A `*.functions.ts` is a thin RPC boundary: validate input, resolve the user, delegate to the sibling `<noun>.server.ts` (owns prisma/crypto/external calls); `queryOptions` colocate at the file bottom. `memory` is the reference split.
 - **Database:** Prisma 7 + `@prisma/adapter-pg`. Multi-file schema in `prisma/schema/`, client in `src/generated/prisma/`. Import `prisma`, never alias.
@@ -74,7 +74,7 @@ Copy `.env.example` to `.env`. Required: `POSTGRES_PASSWORD`, `BETTER_AUTH_SECRE
 - Derive values during render. Never mirror props or query data into `useState` synced by `useEffect`; effects are only for real external systems (DOM APIs, subscriptions, timers).
 - List `key`s come from data ids, never array indexes.
 - Mutations invalidate the queries they touch in `onSuccess` via `queryClient.invalidateQueries`; no manual refetching, no local copies of server state.
-- Route-level data loads through shared `queryOptions()` used by both the route loader and `useQuery`; components never ad-hoc `fetch`.
+- Route-level data loads through shared `queryOptions()` used by both the route loader and `useQuery`; components never ad-hoc `fetch`. Every route with queries defines a loader: `context.queryClient.ensureQueryData(...)` (awaited) for fast first-paint data, an un-awaited `prefetchQuery(...)` for slow scans the page already renders skeletons for.
 - One Zod schema per shape, shared by the form validator and the server fn input; never declare the same shape twice.
 - Annotate exported function signatures; let locals and obvious generics infer.
 
@@ -85,7 +85,8 @@ Four folders, one convention: dependencies flow **one way** `shared → entities
 ```
 src/
   shared/        # framework-agnostic reusables, zero domain knowledge
-    ui/          #   shadcn primitives (flat files, generated) + our own components as subfolders (DataTable/, RouteErrorScreen/)
+    ui/          #   shadcn primitives only (flat files, generated); regenerate, don't fork
+    components/  #   our own reusable components (DataTable/, RouteErrorScreen/)
     lib/         #   utils, crypto/db/llm/auth/session infra (*.server.ts), ollama SDK client, constants, globals.css
     hooks/       #   use-app-form/, use-is-mobile
     theme/       #   ThemeContext provider + theme.ts (app-wide, so shared, not a feature)
@@ -97,7 +98,7 @@ src/
   routes/        # TanStack routing == the pages layer; each route file owns Route + its <X>Page component
     _authenticated/
       -components/AppSidebar/       # the shell, colocated (the `-` prefix hides it from route gen)
-      -settings/                    # settings.tsx's building blocks: tabs + hooks + schemas
+      settings/                     # a route directory: index.tsx + -components/ -hooks/ -lib/
 ```
 
 - **One-way deps, by convention.** No imports between features; share downward through `entities/` or `shared/`. Cross-entity imports stay rare (`conversation` importing `endpoint` is the only one today). Routes compose anything below them.
@@ -105,7 +106,7 @@ src/
 - **No barrels.** Import the specific module (`#/features/send-message/lib/chat-client`), not a slice root; barrels hurt Vite HMR and tree-shaking. `ComponentName/index.tsx` is a single component, not a re-export.
 - **Entities are flat; features keep `components/hooks/lib`.** A lone hook serving one page lives beside that page, not in a feature. Components at 250+ lines or with sub-components become `ComponentName/index.tsx` folders.
 - **File suffixes are build boundaries:** `*.functions.ts` (the `createServerFn` RPC boundary), `*.server.ts` (server-only, stripped from the client bundle); `types.ts` for types, `schemas.ts` for Zod. The `.client.ts` suffix is banned (breaks SSR for isomorphic modules).
-- `src/shared/ui/DataTable/` is the only table; never hand-roll `useReactTable`.
+- `src/shared/components/DataTable/` is the only table; never hand-roll `useReactTable`.
 
 ### Naming
 
@@ -118,11 +119,12 @@ The mechanical rules (camelCase Zod schemas, the banned `.client.ts` suffix) are
 
 ## Testing
 
-Vitest in `src/test/<area>/` (folders by domain, never by test type), run with `npm run test -- run` (see the "Test complex work" rule for _when_). Two projects split by extension: `*.test.ts` runs in node (`unit`), `*.test.tsx` in headless Chromium via browser mode (`browser`). Browser tests use `render`/`renderHook` from `#/test/utils` (wraps `vitest-browser-react`; both async), interactions via locators (`await screen.getByTestId(...).click()`) or `userEvent` from `vitest/browser`, assertions via `await expect.element(...)` / `expect.poll`. `.claude/hooks/text-check.ts` enforces the mechanical patterns (userEvent over `fireEvent`, no casts, query by `data-testid` not role/label/text). The judgment:
+Vitest in `src/test/<area>/` (folders named for the slice they test: the feature verb or entity noun, e.g. `send-message/`, `pull-model/`, `endpoint/`, never by test type), run with `npm run test -- run` (see the "Test complex work" rule for _when_). Two projects split by extension: `*.test.ts` runs in node (`unit`), `*.test.tsx` in headless Chromium via browser mode (`browser`). Browser tests use `render`/`renderHook` from `#/test/utils` (wraps `vitest-browser-react`; both async), interactions via locators (`await screen.getByTestId(...).click()`) or `userEvent` from `vitest/browser`, assertions via `await expect.element(...)` / `expect.poll`. `.claude/hooks/text-check.ts` enforces the mechanical patterns (userEvent over `fireEvent`, no casts, query by `data-testid` not role/label/text). The judgment:
 
 - **Test our seams, not our dependencies.** Target logic we wrote (wiring, input parsing, transforms, registries, merge/normalize). Litmus: if it would still pass with our code deleted, it tests the library.
 - **Extract pure logic, test it plain** (inline inputs, no `render`, no DB): `toolRows` in `ToolsMenu.tsx`. A `.test.ts` in node beats a browser render it doesn't need.
 - `data-testid` is kebab-case and component-scoped (`model-picker-trigger`); the field/DataTable/ModelPicker tests are the reference. The testid exception: an element a library renders that won't forward one (Streamdown output, a Base UI Slider thumb).
+- Folder = slice: `src/test/pull-model/` tests `src/features/pull-model/`, `src/test/endpoint/` tests `src/entities/endpoint/`. Domain-free infra keeps its `shared/lib` name (`src/test/lib/ollama-url.test.ts`).
 - **Derive minimal inputs inline; never commit recorded fixtures.**
 
 ## Feature Map
@@ -134,7 +136,7 @@ Vitest in `src/test/<area>/` (folders by domain, never by test type), run with `
 | Endpoints / providers | entity `src/entities/endpoint/` (the kernel: endpoint api, schemas, query hooks), feature `src/features/manage-endpoints/` (the config UI + `lib/providers.ts` registry) |
 | Memory (pgvector) | entity `src/entities/memory/` (`memory.functions.ts` RPC, `memory.server.ts` data access, `memory-tool.server.ts` agent tool, `embeddings.server.ts`); opt-in per-message tool, browse/delete in Settings |
 | Built-in agent tools | wired in `src/features/send-message/lib/agent.server.ts`; handlers in `src/shared/lib/tools/{web-search,read-url}.server.ts` + `src/entities/memory/memory-tool.server.ts`; client toggle list in `send-message/lib/tool-catalog.ts`, availability in `send-message/lib/tools.functions.ts` |
-| Settings | page `src/routes/_authenticated/settings.tsx` + `-settings/` (tabs + their hooks: account, memory, `manage-endpoints`, theme) |
+| Settings | page `src/routes/_authenticated/settings/` (`index.tsx` + `-components/` tabs + `-hooks/`: account, memory, `manage-endpoints`, theme) |
 | Backup/import | `src/routes/api/backup/` (handlers + colocated `-backup.server.ts`): non-destructive merge |
 | Auth | feature `src/features/auth/` (UI + sign-in/out fns), session infra `src/shared/lib/{auth,session}.server.ts` |
 | Theme | `src/shared/theme/` (provider + constants), Appearance tab in Settings |

@@ -13,13 +13,6 @@ function block(message: string): never {
 
 const GENERATED = [
 	{
-		// shadcn primitives are the flat files in shared/ui; our own components (DataTable,
-		// RouteErrorScreen) live in subfolders and stay editable.
-		pattern: /src[/\\]shared[/\\]ui[/\\][^/\\]+$/,
-		message:
-			"src/shared/ui/* is shadcn-generated, never edit it. Regenerate with `npx shadcn@latest add <component> --overwrite`.",
-	},
-	{
 		pattern: /routeTree\.gen\.ts$/,
 		message:
 			"src/routeTree.gen.ts is auto-generated. Run the dev server briefly (`timeout 15 npm run dev`) to regenerate it.",

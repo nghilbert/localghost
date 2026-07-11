@@ -9,7 +9,7 @@ import {
 import { ModelActionsCell } from "#/features/pull-model/components/ModelTable/ModelActionsCell";
 import { parsePullCount, requiredMemoryGb } from "#/features/pull-model/lib/catalog";
 import type { ModelRow } from "#/features/pull-model/lib/model-rows";
-import { DataTableColumnHeader } from "#/shared/ui/DataTable/DataTableColumnHeader";
+import { DataTableColumnHeader } from "#/shared/components/DataTable/DataTableColumnHeader";
 
 type ModelColumnOptions = {
 	onPull: (model: string) => void;

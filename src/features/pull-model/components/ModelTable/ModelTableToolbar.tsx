@@ -1,7 +1,7 @@
 import type { Table } from "@tanstack/react-table";
 import { MODEL_COLUMN_LABELS } from "#/features/pull-model/components/ModelTable/columns";
 import type { ModelRow } from "#/features/pull-model/lib/model-rows";
-import { DataTableViewOptions } from "#/shared/ui/DataTable/DataTableViewOptions";
+import { DataTableViewOptions } from "#/shared/components/DataTable/DataTableViewOptions";
 import { Input } from "#/shared/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "#/shared/ui/select";
 

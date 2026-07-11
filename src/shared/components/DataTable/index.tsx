@@ -12,7 +12,7 @@ import {
 	type VisibilityState,
 } from "@tanstack/react-table";
 import { useState } from "react";
-import { DataTablePagination } from "#/shared/ui/DataTable/DataTablePagination";
+import { DataTablePagination } from "#/shared/components/DataTable/DataTablePagination";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "#/shared/ui/table";
 
 type DataTableProps<TData> = {
