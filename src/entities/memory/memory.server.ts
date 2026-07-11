@@ -1,10 +1,42 @@
+import type { Prisma } from "#/generated/prisma/client";
 import { prisma } from "#/shared/lib/db.server";
 import { embed, toVectorLiteral } from "./embeddings.server";
 
 export type RecalledMemory = { id: string; text: string; category: string };
 
 /**
- * Persists one memory with its embedding (raw SQL: Prisma has no pgvector type).
+ * Inserts one memory row with a precomputed embedding (raw SQL: Prisma has no
+ * pgvector type). Takes the client so callers can batch rows inside a
+ * transaction; embed beforehand, external calls don't belong in one.
+ */
+export async function insertMemory({
+	db,
+	ownerId,
+	text,
+	category,
+	source,
+	embedding,
+}: {
+	db: Prisma.TransactionClient;
+	ownerId: string;
+	text: string;
+	category?: string;
+	source: string;
+	embedding: number[] | null;
+}): Promise<void> {
+	await db.$executeRaw`
+		INSERT INTO memory (text, category, source, owner_id, embedding)
+		VALUES (
+			${text},
+			${category ?? "fact"},
+			${source},
+			${ownerId}::uuid,
+			${embedding ? toVectorLiteral(embedding) : null}::vector
+		)`;
+}
+
+/**
+ * Persists one memory with its embedding.
  * A failed embedding stores a NULL vector rather than aborting the write.
  * @param source Provenance; defaults to `"agent"`, overridden on import.
  */
@@ -20,16 +52,7 @@ export async function saveMemory({
 	source?: string;
 }): Promise<void> {
 	const embedding = await embed({ text, ownerId });
-
-	await prisma.$executeRaw`
-		INSERT INTO memory (text, category, source, owner_id, embedding)
-		VALUES (
-			${text},
-			${category ?? "fact"},
-			${source},
-			${ownerId}::uuid,
-			${embedding ? toVectorLiteral(embedding) : null}::vector
-		)`;
+	await insertMemory({ db: prisma, ownerId, text, category, source, embedding });
 }
 
 /**

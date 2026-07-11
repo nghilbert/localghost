@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { auth } from "#/shared/lib/auth.server";
-import { importBackup, importPayloadSchema } from "./-backup.server";
+import { BACKUP_VERSION, importBackup, importPayloadSchema } from "./-backup.server";
 
 export const Route = createFileRoute("/api/backup/import")({
 	server: {
@@ -19,6 +19,12 @@ export const Route = createFileRoute("/api/backup/import")({
 				const parsed = importPayloadSchema.safeParse(raw);
 				if (!parsed.success) {
 					return new Response("Invalid backup format", { status: 400 });
+				}
+				if ((parsed.data.version ?? BACKUP_VERSION) > BACKUP_VERSION) {
+					return new Response(
+						`This backup is format version ${parsed.data.version}, newer than this app supports. Update the app, then import again.`,
+						{ status: 400 },
+					);
 				}
 
 				const imported = await importBackup({ userId: session.user.id, payload: parsed.data });

@@ -25,5 +25,6 @@ export const importBackupResultSchema = z.object({
 		conversations: z.number(),
 		skippedMemories: z.number(),
 		skippedConversations: z.number(),
+		invalidConversations: z.number(),
 	}),
 });

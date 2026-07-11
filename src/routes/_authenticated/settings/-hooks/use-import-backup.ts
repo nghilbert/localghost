@@ -23,9 +23,13 @@ export function useImportBackup() {
 			queryClient.invalidateQueries({ queryKey: ["memories"] });
 			queryClient.invalidateQueries({ queryKey: ["user-settings"] });
 			const skipped = imported.skippedMemories + imported.skippedConversations;
-			toast.success("Backup imported", {
-				description: `${imported.memories} memories and ${imported.conversations} conversations added; ${skipped} duplicates skipped.`,
-			});
+			const summary = [
+				`${imported.memories} memories and ${imported.conversations} conversations added; ${skipped} duplicates skipped.`,
+			];
+			if (imported.invalidConversations > 0) {
+				summary.push(`${imported.invalidConversations} unreadable conversations were ignored.`);
+			}
+			toast.success("Backup imported", { description: summary.join(" ") });
 		},
 		onError: (error) => toast.error("Failed to import backup", { description: error.message }),
 	});

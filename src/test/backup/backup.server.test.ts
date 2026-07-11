@@ -3,29 +3,39 @@ import { exportBackup, importBackup } from "#/routes/api/backup/-backup.server";
 
 const {
 	memoryFindMany,
-	saveMemory,
+	insertMemory,
+	embed,
 	conversationFindMany,
 	conversationCreateMany,
 	userFindUnique,
 	userUpdate,
 } = vi.hoisted(() => ({
 	memoryFindMany: vi.fn(),
-	saveMemory: vi.fn(),
+	insertMemory: vi.fn(),
+	embed: vi.fn(),
 	conversationFindMany: vi.fn(),
 	conversationCreateMany: vi.fn(),
 	userFindUnique: vi.fn(),
 	userUpdate: vi.fn(),
 }));
 
-vi.mock("#/shared/lib/db.server", () => ({
-	prisma: {
-		memory: { findMany: memoryFindMany },
-		conversation: { findMany: conversationFindMany, createMany: conversationCreateMany },
+vi.mock("#/shared/lib/db.server", () => {
+	const tx = {
 		user: { findUnique: userFindUnique, update: userUpdate },
-	},
-}));
+		conversation: { createMany: conversationCreateMany },
+	};
+	return {
+		prisma: {
+			memory: { findMany: memoryFindMany },
+			conversation: { findMany: conversationFindMany, createMany: conversationCreateMany },
+			user: { findUnique: userFindUnique, update: userUpdate },
+			$transaction: (fn: (client: typeof tx) => unknown) => fn(tx),
+		},
+	};
+});
 
-vi.mock("#/entities/memory/memory.server", () => ({ saveMemory }));
+vi.mock("#/entities/memory/memory.server", () => ({ insertMemory }));
+vi.mock("#/entities/memory/embeddings.server", () => ({ embed }));
 
 // `memoryFindMany`/`conversationFindMany` back both exportBackup's row select
 // and importBackup's dedup lookup; each describe block below sets what it needs.
@@ -33,7 +43,8 @@ vi.mock("#/entities/memory/memory.server", () => ({ saveMemory }));
 beforeEach(() => {
 	vi.clearAllMocks();
 	memoryFindMany.mockResolvedValue([]);
-	saveMemory.mockResolvedValue(undefined);
+	insertMemory.mockResolvedValue(undefined);
+	embed.mockResolvedValue(null);
 	conversationFindMany.mockResolvedValue([]);
 	conversationCreateMany.mockResolvedValue({ count: 0 });
 	userFindUnique.mockResolvedValue(null);
@@ -113,7 +124,11 @@ describe("importBackup: user settings merge", () => {
 });
 
 describe("importBackup: memories", () => {
-	it("drops empty-text memories and saves the rest through saveMemory with an embedding", async () => {
+	it("drops empty-text memories and inserts the rest with their embedding", async () => {
+		embed.mockImplementation(({ text }: { text: string }) =>
+			Promise.resolve(text === "remember this" ? [0.1] : [0.2]),
+		);
+
 		await importBackup({
 			userId: "owner-1",
 			payload: {
@@ -125,24 +140,28 @@ describe("importBackup: memories", () => {
 			},
 		});
 
-		expect(saveMemory).toHaveBeenCalledTimes(2);
-		expect(saveMemory).toHaveBeenCalledWith({
+		expect(insertMemory).toHaveBeenCalledTimes(2);
+		expect(insertMemory).toHaveBeenCalledWith({
+			db: expect.anything(),
 			ownerId: "owner-1",
 			text: "remember this",
 			category: "fact",
 			source: "import",
+			embedding: [0.1],
 		});
-		expect(saveMemory).toHaveBeenCalledWith({
+		expect(insertMemory).toHaveBeenCalledWith({
+			db: expect.anything(),
 			ownerId: "owner-1",
 			text: "curated",
 			category: "note",
 			source: "manual",
+			embedding: [0.2],
 		});
 	});
 
 	it("saves nothing when the payload has no memories", async () => {
 		const result = await importBackup({ userId: "o", payload: {} });
-		expect(saveMemory).not.toHaveBeenCalled();
+		expect(insertMemory).not.toHaveBeenCalled();
 		expect(result.memories).toBe(0);
 	});
 
@@ -156,12 +175,14 @@ describe("importBackup: memories", () => {
 			},
 		});
 
-		expect(saveMemory).toHaveBeenCalledTimes(1);
-		expect(saveMemory).toHaveBeenCalledWith({
+		expect(insertMemory).toHaveBeenCalledTimes(1);
+		expect(insertMemory).toHaveBeenCalledWith({
+			db: expect.anything(),
 			ownerId: "owner-1",
 			text: "new one",
 			category: "fact",
 			source: "import",
+			embedding: null,
 		});
 		expect(result).toMatchObject({ memories: 1, skippedMemories: 1 });
 	});
@@ -198,22 +219,44 @@ describe("importBackup: conversations", () => {
 	});
 
 	it("skips conversations already present by title and message content", async () => {
-		conversationFindMany.mockResolvedValue([{ title: "Trip", messages: [{ id: "m1" }] }]);
+		const trip = [{ id: "m1", role: "user", parts: [{ type: "text", content: "hi" }] }];
+		const fresh = [{ id: "m2", role: "user", parts: [{ type: "text", content: "yo" }] }];
+		conversationFindMany.mockResolvedValue([{ title: "Trip", messages: trip }]);
 		conversationCreateMany.mockResolvedValue({ count: 1 });
 
 		const result = await importBackup({
 			userId: "owner-1",
 			payload: {
 				conversations: [
-					{ title: "Trip", model: "llama3", messages: [{ id: "m1" }] },
-					{ title: "New chat", model: "llama3", messages: [{ id: "m2" }] },
+					{ title: "Trip", model: "llama3", messages: trip },
+					{ title: "New chat", model: "llama3", messages: fresh },
 				],
 			},
 		});
 
 		expect(conversationCreateMany).toHaveBeenCalledWith({
-			data: [{ title: "New chat", model: "llama3", messages: [{ id: "m2" }], ownerId: "owner-1" }],
+			data: [{ title: "New chat", model: "llama3", messages: fresh, ownerId: "owner-1" }],
 		});
 		expect(result).toMatchObject({ conversations: 1, skippedConversations: 1 });
+	});
+
+	it("counts and skips conversations whose transcript isn't UIMessage-shaped", async () => {
+		const valid = [{ id: "m1", role: "user", parts: [] }];
+
+		const result = await importBackup({
+			userId: "owner-1",
+			payload: {
+				conversations: [
+					{ title: "Broken", messages: [{ note: "not a message" }] },
+					{ title: "Also broken", messages: "garbage" },
+					{ title: "Fine", messages: valid },
+				],
+			},
+		});
+
+		expect(conversationCreateMany).toHaveBeenCalledWith({
+			data: [{ title: "Fine", model: "", messages: valid, ownerId: "owner-1" }],
+		});
+		expect(result).toMatchObject({ invalidConversations: 2, skippedConversations: 0 });
 	});
 });
