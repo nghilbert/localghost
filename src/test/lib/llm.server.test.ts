@@ -1,9 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
 	asLLMProvider,
 	buildModelsRequest,
 	chatBaseUrl,
 	detectProvider,
+	modelSupportsTools,
 } from "#/shared/lib/llm.server";
 
 describe("llm.server", () => {
@@ -104,6 +105,65 @@ describe("llm.server", () => {
 			expect(
 				chatBaseUrl({ url: "https://generativelanguage.googleapis.com", provider: "gemini" }),
 			).toBe("https://generativelanguage.googleapis.com");
+		});
+	});
+
+	describe("modelSupportsTools", () => {
+		afterEach(() => {
+			vi.unstubAllGlobals();
+		});
+
+		function stubModels(data: Array<{ id: string; supported_parameters?: string[] }>) {
+			// A fresh Response per call: a body is single-read.
+			vi.stubGlobal(
+				"fetch",
+				vi.fn().mockImplementation(() => Promise.resolve(new Response(JSON.stringify({ data })))),
+			);
+		}
+
+		it("reads openrouter tool support from supported_parameters", async () => {
+			stubModels([
+				{ id: "meta/tool-model", supported_parameters: ["tools", "temperature"] },
+				{ id: "meta/plain-model", supported_parameters: ["temperature"] },
+			]);
+			const url = "https://openrouter.ai/api";
+			await expect(
+				modelSupportsTools({ url, provider: "openrouter", model: "meta/tool-model" }),
+			).resolves.toBe(true);
+			await expect(
+				modelSupportsTools({ url, provider: "openrouter", model: "meta/plain-model" }),
+			).resolves.toBe(false);
+		});
+
+		it("assumes capable when the model is missing from the list", async () => {
+			stubModels([]);
+			await expect(
+				modelSupportsTools({
+					url: "https://openrouter.ai/api",
+					provider: "openrouter",
+					model: "unlisted",
+				}),
+			).resolves.toBe(true);
+		});
+
+		it("assumes capable without fetching for providers with no capability metadata", async () => {
+			const fetchSpy = vi.fn();
+			vi.stubGlobal("fetch", fetchSpy);
+			await expect(
+				modelSupportsTools({ url: "https://api.openai.com", provider: "openai", model: "gpt-x" }),
+			).resolves.toBe(true);
+			expect(fetchSpy).not.toHaveBeenCalled();
+		});
+
+		it("assumes capable when the model-list fetch fails", async () => {
+			vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("down")));
+			await expect(
+				modelSupportsTools({
+					url: "https://openrouter.ai/api",
+					provider: "openrouter",
+					model: "meta/tool-model",
+				}),
+			).resolves.toBe(true);
 		});
 	});
 

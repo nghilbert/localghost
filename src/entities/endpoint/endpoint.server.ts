@@ -2,7 +2,7 @@ import type { z } from "zod/v4";
 import type { Endpoint } from "#/generated/prisma/client";
 import { decrypt, encrypt } from "#/shared/lib/crypto.server";
 import { prisma } from "#/shared/lib/db.server";
-import { asLLMProvider, listModels } from "#/shared/lib/llm.server";
+import { asLLMProvider, listModels, modelSupportsTools } from "#/shared/lib/llm.server";
 import { ollamaClient } from "#/shared/lib/ollama/client.server";
 import type { createEndpointSchema, updateEndpointSchema } from "./schemas";
 
@@ -122,8 +122,8 @@ export async function fetchEndpointModels({
 }
 
 /**
- * Whether a model can use tools. Only local Ollama models are checked (via
- * `/api/show`); cloud providers and any unknown case are assumed capable,
+ * Whether a model can use tools: Ollama via `/api/show`, cloud providers via
+ * {@link modelSupportsTools}. Any unknown or failing case is assumed capable,
  * never wrongly blocking a working model.
  */
 export async function probeModelCapabilities({
@@ -136,13 +136,28 @@ export async function probeModelCapabilities({
 	model: string;
 }): Promise<{ supportsTools: boolean }> {
 	const endpoint = await prisma.endpoint.findFirst({ where: { id: endpointId, ownerId } });
-	if (endpoint?.provider !== "ollama") return { supportsTools: true };
+	if (!endpoint) return { supportsTools: true };
+	if (endpoint.provider === "ollama") {
+		try {
+			const { capabilities } = await ollamaClient({ host: endpoint.url, timeoutMs: 5000 }).show({
+				model,
+			});
+			return { supportsTools: capabilities.includes("tools") };
+		} catch {
+			return { supportsTools: true };
+		}
+	}
 	try {
-		const { capabilities } = await ollamaClient({ host: endpoint.url, timeoutMs: 5000 }).show({
+		const supportsTools = await modelSupportsTools({
+			url: endpoint.url,
+			apiKey: endpointApiKey(endpoint),
+			provider: asLLMProvider(endpoint.provider),
 			model,
 		});
-		return { supportsTools: capabilities.includes("tools") };
+		return { supportsTools };
 	} catch {
+		// endpointApiKey throws on an undecryptable key; stay optimistic here and
+		// let model listing surface that error.
 		return { supportsTools: true };
 	}
 }

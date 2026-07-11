@@ -53,7 +53,7 @@ const DEFAULT_OLLAMA_NUM_CTX = 8192;
 
 /** Shape of the model-list responses across providers (OpenAI `data`, Ollama/Gemini `models`). */
 type ModelsResponse = {
-	data?: Array<{ id: string }>;
+	data?: Array<{ id: string; supported_parameters?: string[] }>;
 	models?: Array<{ name: string }>;
 };
 
@@ -84,6 +84,11 @@ type ProviderConfig = {
 	modelsUrl: (args: { base: string; apiKey?: string }) => string;
 	/** Extracts the advertised model ids from a model-list response. */
 	parseModels: (json: ModelsResponse) => string[];
+	/**
+	 * Reads whether `model` can call tools from the model-list response.
+	 * Absent when the provider publishes no capability metadata: assume it can.
+	 */
+	parseToolSupport?: (args: { json: ModelsResponse; model: string }) => boolean;
 };
 
 /** Clamps a temperature into Anthropic's accepted `[0, 1]` range. */
@@ -199,6 +204,10 @@ const PROVIDERS: Record<LLMProvider, ProviderConfig> = {
 				baseUrl,
 				defaultHeaders: { "HTTP-Referer": OPENROUTER_REFERER },
 			}),
+		parseToolSupport: ({ json, model }) => {
+			const entry = (json.data ?? []).find((m) => m.id === model);
+			return entry?.supported_parameters?.includes("tools") ?? true;
+		},
 	},
 	groq: OPENAI_COMPATIBLE,
 	openai: OPENAI_COMPATIBLE,
@@ -310,6 +319,38 @@ export async function listModels({
 	}
 	const data: ModelsResponse = await res.json();
 	return config.parseModels(data);
+}
+
+/**
+ * Whether a model can call tools, per the provider's model-list metadata.
+ * Providers without such metadata, and any fetch failure, read as capable:
+ * capability gating must never wrongly block a working model.
+ */
+export async function modelSupportsTools({
+	url,
+	apiKey,
+	provider,
+	model,
+}: {
+	url: string;
+	apiKey?: string;
+	provider?: LLMProvider;
+	model: string;
+}): Promise<boolean> {
+	const config = PROVIDERS[provider ?? detectProvider(url)];
+	if (!config.parseToolSupport) return true;
+	try {
+		const request = buildModelsRequest({ url, apiKey, provider });
+		const res = await fetch(request.url, {
+			headers: request.headers,
+			signal: AbortSignal.timeout(8000),
+		});
+		if (!res.ok) return true;
+		const json: ModelsResponse = await res.json();
+		return config.parseToolSupport({ json, model });
+	} catch {
+		return true;
+	}
 }
 
 /**
