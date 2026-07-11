@@ -1,13 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
+	availableMemoryGb,
 	deriveTags,
 	enrichCatalogModel,
+	fitsHardware,
 	parseParamB,
 	parsePullCount,
 	requiredMemoryGb,
 } from "#/features/pull-model/lib/catalog";
 import type { ModelTagInfo } from "#/features/pull-model/lib/types";
-import { makeCatalogModel as model } from "#/test/factories";
+import { makeGpu, makeHardware, makeCatalogModel as model } from "#/test/factories";
 
 describe("parseParamB", () => {
 	it("parses billion-scale tags", () => {
@@ -63,6 +65,38 @@ describe("requiredMemoryGb", () => {
 
 	it("is null when neither size nor parameter count is known", () => {
 		expect(requiredMemoryGb({ sizeGb: null, paramB: null })).toBeNull();
+	});
+});
+
+describe("availableMemoryGb", () => {
+	it("uses free RAM when no GPU is detected", () => {
+		expect(availableMemoryGb(makeHardware({ freeRamGb: 16, gpus: null }))).toBe(16);
+	});
+
+	it("uses the best GPU's free VRAM over RAM when a GPU is present", () => {
+		const hardware = makeHardware({
+			freeRamGb: 16,
+			gpus: [makeGpu({ freeVramMb: 4096 }), makeGpu({ freeVramMb: 12_288 })],
+		});
+		expect(availableMemoryGb(hardware)).toBe(12);
+	});
+});
+
+describe("fitsHardware", () => {
+	it("fits when the required memory is within what's available", () => {
+		const hardware = makeHardware({ freeRamGb: 16, gpus: null });
+		// 8b * 0.6 = 4.8 weights → 4.8 * 1.15 + 1 = 6.52 ≈ 6.5, well under 16
+		expect(fitsHardware({ model: { sizeGb: null, paramB: 8 }, hardware })).toBe(true);
+	});
+
+	it("does not fit when the required memory exceeds what's available", () => {
+		const hardware = makeHardware({ freeRamGb: 4, gpus: null });
+		expect(fitsHardware({ model: { sizeGb: null, paramB: 70 }, hardware })).toBe(false);
+	});
+
+	it("does not fit when the memory requirement is unknown", () => {
+		const hardware = makeHardware({ freeRamGb: 999, gpus: null });
+		expect(fitsHardware({ model: { sizeGb: null, paramB: null }, hardware })).toBe(false);
 	});
 });
 

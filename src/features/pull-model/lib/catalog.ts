@@ -1,4 +1,4 @@
-import type { CatalogModel, ModelTagInfo } from "./types";
+import type { CatalogModel, GpuInfo, HardwareInfo, ModelTagInfo } from "./types";
 
 /**
  * Parses billions of parameters from an Ollama size tag. Handles plain sizes
@@ -51,6 +51,30 @@ export function requiredMemoryGb({
 	const weightsGb = sizeGb ?? (paramB !== null ? round1(paramB * Q4_GB_PER_B) : null);
 	if (weightsGb === null) return null;
 	return round1(weightsGb * 1.15 + 1);
+}
+
+/**
+ * Memory available to load a model into: the best GPU's free VRAM when a GPU is
+ * detected (Ollama offloads there first), otherwise free system RAM.
+ */
+export function availableMemoryGb(hardware: HardwareInfo): number {
+	const bestGpu = (hardware.gpus ?? []).reduce<GpuInfo | null>(
+		(best, gpu) => (gpu.freeVramMb > (best?.freeVramMb ?? 0) ? gpu : best),
+		null,
+	);
+	return bestGpu ? bestGpu.freeVramMb / 1024 : hardware.freeRamGb;
+}
+
+/** Whether a model's estimated memory need fits in the host's available memory. */
+export function fitsHardware({
+	model,
+	hardware,
+}: {
+	model: Pick<CatalogModel, "sizeGb" | "paramB">;
+	hardware: HardwareInfo;
+}): boolean {
+	const required = requiredMemoryGb(model);
+	return required !== null && required <= availableMemoryGb(hardware);
 }
 
 /**

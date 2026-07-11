@@ -113,6 +113,7 @@ function LibraryPage() {
 									<RecommendedModel
 										catalog={catalog}
 										installedModels={ollamaStatus.installedModels}
+										hardware={hardware}
 										pulling={pulling}
 										onPull={handlePull}
 										onStop={stop}
