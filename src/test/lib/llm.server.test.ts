@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { asLLMProvider, buildModelsRequest, detectProvider } from "#/shared/lib/llm.server";
+import {
+	asLLMProvider,
+	buildModelsRequest,
+	chatBaseUrl,
+	detectProvider,
+} from "#/shared/lib/llm.server";
 
 describe("llm.server", () => {
 	describe("asLLMProvider", () => {
@@ -28,6 +33,77 @@ describe("llm.server", () => {
 			expect(buildModelsRequest({ url: "http://localhost:1234", provider: "openai" }).url).toBe(
 				"http://localhost:1234/v1/models",
 			);
+		});
+	});
+
+	describe("buildModelsRequest: per-provider auth headers", () => {
+		it("sends anthropic auth via x-api-key plus the anthropic-version header", () => {
+			const { headers } = buildModelsRequest({
+				url: "https://api.anthropic.com/v1",
+				provider: "anthropic",
+				apiKey: "sk-ant",
+			});
+			expect(headers["x-api-key"]).toBe("sk-ant");
+			expect(headers["anthropic-version"]).toBe("2023-06-01");
+			expect(headers.Authorization).toBeUndefined();
+		});
+
+		it("sends openai-compatible auth via a bearer token", () => {
+			const { headers } = buildModelsRequest({
+				url: "https://api.openai.com/v1",
+				provider: "openai",
+				apiKey: "sk-oai",
+			});
+			expect(headers.Authorization).toBe("Bearer sk-oai");
+		});
+
+		it("omits auth headers for gemini, authenticating via the URL instead", () => {
+			const { url, headers } = buildModelsRequest({
+				url: "https://generativelanguage.googleapis.com",
+				provider: "gemini",
+				apiKey: "gm-key",
+			});
+			expect(headers.Authorization).toBeUndefined();
+			expect(headers["x-api-key"]).toBeUndefined();
+			expect(url).toContain("key=gm-key");
+		});
+
+		it("sends no auth header for ollama", () => {
+			const { headers } = buildModelsRequest({ url: "http://localhost:11434", provider: "ollama" });
+			expect(headers.Authorization).toBeUndefined();
+			expect(Object.keys(headers)).toEqual(["Content-Type"]);
+		});
+	});
+
+	describe("chatBaseUrl", () => {
+		it("dedupes a /v1 suffix and strips a trailing /chat/completions for openai-compatible providers", () => {
+			expect(chatBaseUrl({ url: "https://api.openai.com/v1", provider: "openai" })).toBe(
+				"https://api.openai.com/v1",
+			);
+			expect(
+				chatBaseUrl({ url: "https://api.groq.com/openai/v1/chat/completions", provider: "groq" }),
+			).toBe("https://api.groq.com/openai/v1");
+			expect(chatBaseUrl({ url: "https://my-proxy.example.com", provider: "openai" })).toBe(
+				"https://my-proxy.example.com/v1",
+			);
+		});
+
+		it("strips a trailing /v1 for anthropic", () => {
+			expect(chatBaseUrl({ url: "https://api.anthropic.com/v1", provider: "anthropic" })).toBe(
+				"https://api.anthropic.com",
+			);
+		});
+
+		it("strips a trailing /api for ollama", () => {
+			expect(chatBaseUrl({ url: "http://localhost:11434/api", provider: "ollama" })).toBe(
+				"http://localhost:11434",
+			);
+		});
+
+		it("leaves the gemini base URL untouched", () => {
+			expect(
+				chatBaseUrl({ url: "https://generativelanguage.googleapis.com", provider: "gemini" }),
+			).toBe("https://generativelanguage.googleapis.com");
 		});
 	});
 

@@ -218,6 +218,11 @@ export function detectProvider(url: string): LLMProvider {
 	return "openai";
 }
 
+/** The provider's normalized chat base URL, extracted from {@link baseChatOptions} for testing. */
+export function chatBaseUrl({ url, provider }: { url: string; provider?: LLMProvider }): string {
+	return PROVIDERS[provider ?? detectProvider(url)].chatBaseUrl(url);
+}
+
 /**
  * Assembles the provider-resolved `chat()` options: adapter, base URL,
  * `modelOptions` shape, and the agent loop (server tools auto-execute up to
@@ -228,7 +233,7 @@ function baseChatOptions(opts: StreamLLMOptions) {
 	const adapter = config.buildAdapter({
 		model: opts.model,
 		apiKey: opts.apiKey ?? "",
-		baseUrl: config.chatBaseUrl(opts.url),
+		baseUrl: chatBaseUrl({ url: opts.url, provider: opts.provider }),
 	});
 	return {
 		adapter,
