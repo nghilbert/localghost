@@ -1,11 +1,11 @@
 import { useChat } from "@tanstack/ai-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import {
 	type ConversationDetail,
 	modelRunStateQueryOptions,
 } from "#/entities/conversation/conversation.functions";
-import { awaitingAssistantResponse } from "#/entities/conversation/messages";
+import { awaitingAssistantResponse, historyStartIndex } from "#/entities/conversation/messages";
 import { ChatInput } from "#/features/send-message/components/ChatInput";
 import { ChatStatus } from "#/features/send-message/components/ChatView/ChatStatus";
 import { useConversation } from "#/features/send-message/hooks/use-conversation";
@@ -19,7 +19,22 @@ import {
 	MessageScrollerProvider,
 	MessageScrollerViewport,
 } from "#/shared/ui/message-scroller";
+import { Separator } from "#/shared/ui/separator";
 import { ChatMessage } from "../ChatMessage";
+
+/** Marks the history-trim cut: messages above it are no longer sent to the model. */
+function HistoryTrimDivider() {
+	return (
+		<div
+			data-testid="history-trim-divider"
+			className="flex items-center gap-3 py-2 text-xs text-muted-foreground"
+		>
+			<Separator className="flex-1" />
+			Earlier messages aren't sent to the model
+			<Separator className="flex-1" />
+		</div>
+	);
+}
 
 type ChatViewProps = { conversation: ConversationDetail };
 export function ChatView({ conversation }: ChatViewProps) {
@@ -96,6 +111,10 @@ export function ChatView({ conversation }: ChatViewProps) {
 	const canGenerate =
 		autoRespond === false && status === "ready" && awaitingAssistantResponse(messages);
 
+	// Where the server's history trim will cut the next request; a divider above
+	// that message tells the user the model no longer sees what came before.
+	const historyStart = historyStartIndex(messages);
+
 	return (
 		<div className="flex h-full min-h-0 flex-col">
 			<MessageScrollerProvider autoScroll defaultScrollPosition="last-anchor">
@@ -106,20 +125,19 @@ export function ChatView({ conversation }: ChatViewProps) {
 								const isLast = idx === messages.length - 1;
 								const isLastAssistant = isLast && msg.role === "assistant";
 								return (
-									<MessageScrollerItem
-										key={msg.id}
-										messageId={msg.id}
-										scrollAnchor={msg.role === "user"}
-									>
-										<ChatMessage
-											message={msg}
-											isStreaming={isStreaming && isLastAssistant}
-											warming={isLastAssistant && warming}
-											onRegenerate={
-												isLastAssistant && !isStreaming ? () => void reload() : undefined
-											}
-										/>
-									</MessageScrollerItem>
+									<Fragment key={msg.id}>
+										{historyStart > 0 && idx === historyStart && <HistoryTrimDivider />}
+										<MessageScrollerItem messageId={msg.id} scrollAnchor={msg.role === "user"}>
+											<ChatMessage
+												message={msg}
+												isStreaming={isStreaming && isLastAssistant}
+												warming={isLastAssistant && warming}
+												onRegenerate={
+													isLastAssistant && !isStreaming ? () => void reload() : undefined
+												}
+											/>
+										</MessageScrollerItem>
+									</Fragment>
 								);
 							})}
 							<MessageScrollerItem>

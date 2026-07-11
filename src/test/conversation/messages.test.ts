@@ -90,6 +90,32 @@ describe("trimHistory", () => {
 		expect(trimmed[0]).toBe(messages[5]);
 		expect(trimmed[39]).toBe(messages[44]);
 	});
+
+	it("advances the cut to a user message instead of starting mid-turn", () => {
+		// 43 user/assistant pairs plus a trailing user message (87 total): a plain
+		// slice(-40) would start on the assistant at index 47, mid-turn.
+		const messages = [
+			...Array.from({ length: 43 }, (_, i) => [
+				userMessage(`q${i}`),
+				assistantMessage(`a${i}`),
+			]).flat(),
+			userMessage("latest"),
+		];
+		const trimmed = trimHistory(messages);
+		expect(trimmed[0]?.role).toBe("user");
+		expect(trimmed[0]).toBe(messages[48]);
+		expect(trimmed).toHaveLength(39);
+	});
+
+	it("keeps the whole last user turn when the cap window has no user message", () => {
+		const messages = [
+			...Array.from({ length: 5 }, (_, i) => userMessage(`q${i}`)),
+			...Array.from({ length: 45 }, (_, i) => assistantMessage(`tool-loop-${i}`)),
+		];
+		const trimmed = trimHistory(messages);
+		expect(trimmed[0]).toBe(messages[4]);
+		expect(trimmed).toHaveLength(46);
+	});
 });
 
 describe("strandedToolCall", () => {

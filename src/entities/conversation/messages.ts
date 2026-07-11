@@ -4,12 +4,28 @@ import type { UIMessage } from "@tanstack/ai-client";
 const MAX_HISTORY_MESSAGES = 40;
 
 /**
- * Caps history to the most recent N entries. Operates on whole wire messages,
- * so a UIMessage turn keeps its tool-call parts intact across the cut.
+ * The index of the first message still sent to the model, 0 when nothing is
+ * trimmed. The cut only lands on a user message: starting mid-turn can sever a
+ * tool call from its result, which OpenAI-compatible providers 400 on.
  */
+export function historyStartIndex(messages: Array<UIMessage | ModelMessage>): number {
+	if (messages.length <= MAX_HISTORY_MESSAGES) return 0;
+	const windowStart = messages.length - MAX_HISTORY_MESSAGES;
+	for (let i = windowStart; i < messages.length; i++) {
+		if (messages[i]?.role === "user") return i;
+	}
+	// No user turn inside the window (one giant tool loop): keep the whole last
+	// user turn even though it runs over the cap; severing it is worse.
+	for (let i = windowStart - 1; i >= 0; i--) {
+		if (messages[i]?.role === "user") return i;
+	}
+	return windowStart;
+}
+
+/** Caps history to the window {@link historyStartIndex} chooses. */
 export function trimHistory(messages: Array<UIMessage | ModelMessage>) {
-	if (messages.length <= MAX_HISTORY_MESSAGES) return messages;
-	return messages.slice(-MAX_HISTORY_MESSAGES);
+	const start = historyStartIndex(messages);
+	return start === 0 ? messages : messages.slice(start);
 }
 
 /**
