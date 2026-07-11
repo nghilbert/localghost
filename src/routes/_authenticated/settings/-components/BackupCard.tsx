@@ -1,0 +1,50 @@
+import { DownloadIcon, UploadIcon } from "lucide-react";
+import { useRef } from "react";
+import { Button } from "#/shared/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "#/shared/ui/card";
+import { useImportBackup } from "../-hooks/use-import-backup";
+
+export function BackupCard() {
+	const importBackup = useImportBackup();
+	const fileInput = useRef<HTMLInputElement>(null);
+
+	return (
+		<Card>
+			<CardHeader>
+				<CardTitle>Backup</CardTitle>
+				<CardDescription>
+					Export your memories, chats, and chat defaults as JSON, or merge a backup file back in.
+					Importing skips anything already present.
+				</CardDescription>
+			</CardHeader>
+			<CardContent className="flex gap-2">
+				<Button variant="outline" size="sm" render={<a href="/api/backup/export" download />}>
+					<DownloadIcon size={13} />
+					Export backup
+				</Button>
+				<Button
+					variant="outline"
+					size="sm"
+					disabled={importBackup.isPending}
+					onClick={() => fileInput.current?.click()}
+				>
+					<UploadIcon size={13} />
+					{importBackup.isPending ? "Importing…" : "Import backup"}
+				</Button>
+				<input
+					ref={fileInput}
+					data-testid="backup-import-input"
+					type="file"
+					accept="application/json,.json"
+					className="sr-only"
+					onChange={(event) => {
+						const file = event.target.files?.[0];
+						if (file) importBackup.mutate(file);
+						// Reset so picking the same file again re-fires change.
+						event.target.value = "";
+					}}
+				/>
+			</CardContent>
+		</Card>
+	);
+}

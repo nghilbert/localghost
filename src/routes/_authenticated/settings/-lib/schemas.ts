@@ -17,3 +17,13 @@ export const accountFormSchema = z.object({
 	name: z.string().trim().min(1, "Name is required"),
 	systemPrompt: z.string().max(10000),
 });
+
+/** What `POST /api/backup/import` answers with: merge counts per kind. */
+export const importBackupResultSchema = z.object({
+	imported: z.object({
+		memories: z.number(),
+		conversations: z.number(),
+		skippedMemories: z.number(),
+		skippedConversations: z.number(),
+	}),
+});

@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "#/shared/ui/card";
 import { Field, FieldLabel } from "#/shared/ui/field";
 import { useUpdateAccount } from "../-hooks/use-update-account";
 import { accountFormSchema } from "../-lib/schemas";
+import { BackupCard } from "./BackupCard";
 
 export function AccountTab() {
 	const {
@@ -66,6 +67,8 @@ export function AccountTab() {
 					</Field>
 				</CardContent>
 			</Card>
+
+			<BackupCard />
 
 			<Card>
 				<CardHeader>
