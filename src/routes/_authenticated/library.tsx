@@ -123,6 +123,8 @@ function LibraryPage() {
 										catalog={catalog}
 										installedModels={ollamaStatus.installedModels}
 										pulling={pulling}
+										hardware={hardware}
+										endpointId={ollamaStatus.endpointId}
 										onPull={handlePull}
 										onStop={stop}
 										onDismiss={dismiss}

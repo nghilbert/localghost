@@ -111,6 +111,7 @@ export function enrichCatalogModel({
 			paramB,
 			capabilities: model.capabilities,
 		}),
+		variants: tags,
 	};
 }
 

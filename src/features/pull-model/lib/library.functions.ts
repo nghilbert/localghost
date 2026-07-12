@@ -36,15 +36,22 @@ export const scanOllamaStatus = createServerFn({ method: "GET" }).handler(
 	async (): Promise<OllamaStatus> => {
 		const userId = await getCurrentUserId();
 		const found = await scanForOllama(userId);
-		if (!found) return { found: false, ollamaUrl: null, installedModels: [], numCtx: null };
+		if (!found) {
+			return { found: false, ollamaUrl: null, installedModels: [], numCtx: null, endpointId: null };
+		}
 
-		await upsertOllamaEndpoint({ userId, url: found.url, existing: found.savedEndpoint });
+		const endpointId = await upsertOllamaEndpoint({
+			userId,
+			url: found.url,
+			existing: found.savedEndpoint,
+		});
 		const options = ollamaOptionsSchema.safeParse(found.savedEndpoint?.options);
 		return {
 			found: true,
 			ollamaUrl: found.url,
 			installedModels: found.installedModels,
 			numCtx: options.success ? (options.data.num_ctx ?? null) : null,
+			endpointId,
 		};
 	},
 );

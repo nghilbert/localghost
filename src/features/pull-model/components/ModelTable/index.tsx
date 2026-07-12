@@ -1,6 +1,7 @@
 import type { VisibilityState } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
 import { createModelColumns } from "#/features/pull-model/components/ModelTable/columns";
+import { ModelDetailPanel } from "#/features/pull-model/components/ModelTable/ModelDetailPanel";
 import {
 	type ModelStatusFilter,
 	ModelTableToolbar,
@@ -8,6 +9,7 @@ import {
 import { buildModelRows } from "#/features/pull-model/lib/model-rows";
 import type {
 	CatalogModel,
+	HardwareInfo,
 	OllamaInstalledModel,
 	PullProgress,
 } from "#/features/pull-model/lib/types";
@@ -19,6 +21,9 @@ type ModelTableProps = {
 	catalog: CatalogModel[];
 	installedModels: OllamaInstalledModel[];
 	pulling: Record<string, PullProgress>;
+	hardware: HardwareInfo | undefined;
+	/** The local Ollama endpoint's id, for the expanded row's per-model settings. */
+	endpointId: string;
 	onPull: (model: string) => void;
 	onStop: (model: string) => void;
 	onDismiss: (model: string) => void;
@@ -31,6 +36,8 @@ export function ModelTable({
 	catalog,
 	installedModels,
 	pulling,
+	hardware,
+	endpointId,
 	onPull,
 	onStop,
 	onDismiss,
@@ -67,6 +74,16 @@ export function ModelTable({
 			globalFilter={globalFilter}
 			globalFilterFn={fuzzyFilter}
 			getRowClassName={(row) => cn(row.installed && "bg-success/5")}
+			renderDetail={(row) => (
+				<ModelDetailPanel
+					row={row}
+					hardware={hardware}
+					endpointId={endpointId}
+					onPull={onPull}
+					onStop={onStop}
+					onDismiss={onDismiss}
+				/>
+			)}
 			toolbar={(table) => (
 				<ModelTableToolbar
 					table={table}

@@ -30,8 +30,16 @@ export type OllamaStatus =
 			installedModels: OllamaInstalledModel[];
 			/** The endpoint's saved num_ctx override, null when using the default. */
 			numCtx: number | null;
+			/** The discovered Ollama endpoint's id, for per-model settings scoping. */
+			endpointId: string;
 	  }
-	| { found: false; ollamaUrl: null; installedModels: OllamaInstalledModel[]; numCtx: null };
+	| {
+			found: false;
+			ollamaUrl: null;
+			installedModels: OllamaInstalledModel[];
+			numCtx: null;
+			endpointId: null;
+	  };
 
 export type CatalogModel = {
 	/** The exact `ollama pull` id, e.g. "llama3.1:8b". */
@@ -55,6 +63,8 @@ export type CatalogModel = {
 	updated: string;
 	/** Exact update timestamp (ISO) parsed from the row title, when present. */
 	updatedAt?: string;
+	/** Every quant/size tag on the model's tags page, for the variant picker. */
+	variants?: ModelTagInfo[];
 };
 
 /** One tag row parsed from a model's ollama.com tags page. */

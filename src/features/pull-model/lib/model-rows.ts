@@ -3,6 +3,7 @@ import type {
 	OllamaInstalledModel,
 	PullProgress,
 } from "#/features/pull-model/lib/types";
+import { normalizeModelId } from "#/shared/lib/utils";
 
 export type ModelRow = {
 	id: string;
@@ -11,11 +12,6 @@ export type ModelRow = {
 	installed: OllamaInstalledModel | null;
 	pullState: PullProgress | undefined;
 };
-
-/** Strips Ollama's implicit `:latest` so bare-name catalog ids match installs. */
-function normalizeId(id: string): string {
-	return id.replace(/:latest$/, "");
-}
 
 /**
  * Unions the catalog with installed models and in-flight pulls into one row per
@@ -31,13 +27,13 @@ export function buildModelRows({
 	installedModels: OllamaInstalledModel[];
 	pulling: Record<string, PullProgress>;
 }): ModelRow[] {
-	const catalogById = new Map(catalog.map((model) => [normalizeId(model.id), model]));
-	const installedById = new Map(installedModels.map((m) => [normalizeId(m.name), m]));
+	const catalogById = new Map(catalog.map((model) => [normalizeModelId(model.id), model]));
+	const installedById = new Map(installedModels.map((m) => [normalizeModelId(m.name), m]));
 
 	const ids = new Set([
 		...catalogById.keys(),
 		...installedById.keys(),
-		...Object.keys(pulling).map(normalizeId),
+		...Object.keys(pulling).map(normalizeModelId),
 	]);
 
 	return [...ids].map((id) => {

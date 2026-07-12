@@ -119,4 +119,52 @@ describe("DataTable", () => {
 
 		await expect.element(screen.getByTestId("toolbar-probe")).toHaveTextContent("3 rows");
 	});
+
+	describe("row expansion", () => {
+		it("renders no detail rows or expand toggles when renderDetail is omitted", async () => {
+			const screen = await render(<DataTable columns={columns} data={fruits} />);
+
+			await expect.element(screen.getByTestId("data-table-row").first()).toBeInTheDocument();
+			await expect
+				.element(screen.getByTestId("data-table-expand-toggle").first())
+				.not.toBeInTheDocument();
+		});
+
+		it("expands a row's detail panel on toggle click and collapses on a second click", async () => {
+			const screen = await render(
+				<DataTable
+					columns={columns}
+					data={fruits}
+					renderDetail={(row) => <div data-testid="detail-content">{row.name} details</div>}
+				/>,
+			);
+
+			await expect.element(screen.getByTestId("data-table-detail-row")).not.toBeInTheDocument();
+
+			await screen.getByTestId("data-table-expand-toggle").first().click();
+
+			await expect.element(screen.getByTestId("data-table-detail-row")).toBeInTheDocument();
+			await expect
+				.element(screen.getByTestId("detail-content"))
+				.toHaveTextContent("banana details");
+
+			await screen.getByTestId("data-table-expand-toggle").first().click();
+
+			await expect.element(screen.getByTestId("data-table-detail-row")).not.toBeInTheDocument();
+		});
+
+		it("expands a row when the row itself is clicked, not just the toggle", async () => {
+			const screen = await render(
+				<DataTable
+					columns={columns}
+					data={fruits}
+					renderDetail={(row) => <div data-testid="detail-content">{row.name} details</div>}
+				/>,
+			);
+
+			await screen.getByTestId("data-table-row").first().click();
+
+			await expect.element(screen.getByTestId("data-table-detail-row")).toBeInTheDocument();
+		});
+	});
 });

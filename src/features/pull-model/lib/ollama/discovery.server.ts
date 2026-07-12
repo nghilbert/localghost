@@ -115,7 +115,7 @@ export async function upsertOllamaEndpoint({
 	url: string;
 	existing?: SavedOllamaEndpoint | null;
 	numCtx?: number | null;
-}): Promise<void> {
+}): Promise<string> {
 	const normalizedUrl = trimPathRight(url);
 	const resolved =
 		existing !== undefined
@@ -129,7 +129,7 @@ export async function upsertOllamaEndpoint({
 	if (!resolved) {
 		// Upsert on the (ownerId, discovered) unique: concurrent first-time scans
 		// both land here, and the loser must update instead of inserting a duplicate.
-		await prisma.endpoint.upsert({
+		const endpoint = await prisma.endpoint.upsert({
 			where: { ownerId_discovered: { ownerId: userId, discovered: true } },
 			create: {
 				name: "Ollama (local)",
@@ -143,13 +143,14 @@ export async function upsertOllamaEndpoint({
 				url: normalizedUrl,
 				...(typeof numCtx === "number" ? { options: { num_ctx: numCtx } } : {}),
 			},
+			select: { id: true },
 		});
-		return;
+		return endpoint.id;
 	}
 
 	const nextOptions =
 		numCtx === undefined ? undefined : mergeNumCtx({ options: resolved.options, numCtx });
-	if (resolved.url === normalizedUrl && nextOptions === undefined) return;
+	if (resolved.url === normalizedUrl && nextOptions === undefined) return resolved.id;
 	await prisma.endpoint.update({
 		where: { id: resolved.id },
 		data: {
@@ -157,6 +158,7 @@ export async function upsertOllamaEndpoint({
 			...(nextOptions !== undefined ? { options: nextOptions } : {}),
 		},
 	});
+	return resolved.id;
 }
 
 /** Sets or clears num_ctx on an endpoint's options blob, keeping the other keys. */

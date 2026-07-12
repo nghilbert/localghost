@@ -141,6 +141,7 @@ describe("enrichCatalogModel", () => {
 		expect(enriched.sizeGb).toBe(243);
 		expect(enriched.contextK).toBe(128);
 		expect(enriched.paramB).toBe(405);
+		expect(enriched.variants).toBe(tags);
 	});
 
 	it("maps a bare id to `latest` and recovers paramB via the digest", () => {

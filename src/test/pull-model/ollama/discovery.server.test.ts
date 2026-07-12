@@ -77,6 +77,7 @@ describe("upsertOllamaEndpoint", () => {
 
 	it("upserts on the discovered-row unique on first detection", async () => {
 		findFirst.mockResolvedValue(null);
+		upsert.mockResolvedValue({ id: "ep-new" });
 		await upsertOllamaEndpoint({ userId: "user-1", url: "http://localhost:11434/" });
 		expect(upsert).toHaveBeenCalledWith({
 			where: { ownerId_discovered: { ownerId: "user-1", discovered: true } },
@@ -88,6 +89,7 @@ describe("upsertOllamaEndpoint", () => {
 				discovered: true,
 			},
 			update: { url: "http://localhost:11434" },
+			select: { id: true },
 		});
 		expect(update).not.toHaveBeenCalled();
 	});
