@@ -1,3 +1,4 @@
+import { Trash2Icon } from "lucide-react";
 import { useState } from "react";
 import { ModelActionsCell } from "#/features/pull-model/components/ModelTable/ModelActionsCell";
 import { ModelSettingsForm } from "#/features/pull-model/components/ModelTable/ModelSettingsForm";
@@ -6,6 +7,7 @@ import type { ModelRow } from "#/features/pull-model/lib/model-rows";
 import type { HardwareInfo } from "#/features/pull-model/lib/types";
 import { cn } from "#/shared/lib/utils";
 import { Badge } from "#/shared/ui/badge";
+import { Button } from "#/shared/ui/button";
 
 type ModelDetailPanelProps = {
 	row: ModelRow;
@@ -15,6 +17,7 @@ type ModelDetailPanelProps = {
 	onPull: (model: string) => void;
 	onStop: (model: string) => void;
 	onDismiss: (model: string) => void;
+	onDelete: (model: string) => void;
 };
 
 /** A model row's expanded detail: metadata, hardware fit, variant picker, and actions. */
@@ -25,6 +28,7 @@ export function ModelDetailPanel({
 	onPull,
 	onStop,
 	onDismiss,
+	onDelete,
 }: ModelDetailPanelProps) {
 	const { catalog, installed, pullState } = row;
 	const variants = catalog?.variants ?? [];
@@ -102,9 +106,21 @@ export function ModelDetailPanel({
 				)}
 			</div>
 
-			<div>
+			<div className="space-y-3">
 				{installed ? (
-					<ModelSettingsForm endpointId={endpointId} model={row.id} showNumCtx />
+					<>
+						<ModelSettingsForm endpointId={endpointId} model={row.id} showNumCtx />
+						<Button
+							type="button"
+							variant="outline"
+							size="sm"
+							className="text-destructive hover:text-destructive"
+							onClick={() => onDelete(row.id)}
+						>
+							<Trash2Icon />
+							Delete model
+						</Button>
+					</>
 				) : (
 					<ModelActionsCell
 						modelId={targetModel}

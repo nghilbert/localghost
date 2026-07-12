@@ -166,5 +166,25 @@ describe("DataTable", () => {
 
 			await expect.element(screen.getByTestId("data-table-detail-row")).toBeInTheDocument();
 		});
+
+		it("closes the previously expanded row when another row is expanded", async () => {
+			const screen = await render(
+				<DataTable
+					columns={columns}
+					data={fruits}
+					renderDetail={(row) => <div data-testid="detail-content">{row.name} details</div>}
+				/>,
+			);
+
+			await screen.getByTestId("data-table-row").first().click();
+			await expect
+				.element(screen.getByTestId("detail-content"))
+				.toHaveTextContent("banana details");
+
+			await screen.getByTestId("data-table-row").nth(1).click();
+
+			await expect.poll(() => screen.getByTestId("data-table-detail-row").all().length).toBe(1);
+			await expect.element(screen.getByTestId("detail-content")).toHaveTextContent("apple details");
+		});
 	});
 });

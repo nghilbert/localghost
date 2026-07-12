@@ -58,10 +58,7 @@ export function ModelTable({
 		return rows;
 	}, [rows, statusFilter]);
 
-	const columns = useMemo(
-		() => createModelColumns({ onPull, onStop, onDismiss, onDelete }),
-		[onPull, onStop, onDismiss, onDelete],
-	);
+	const columns = useMemo(() => createModelColumns(), []);
 
 	return (
 		<DataTable
@@ -82,6 +79,7 @@ export function ModelTable({
 					onPull={onPull}
 					onStop={onStop}
 					onDismiss={onDismiss}
+					onDelete={onDelete}
 				/>
 			)}
 			toolbar={(table) => (

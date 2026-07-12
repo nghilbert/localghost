@@ -2,7 +2,6 @@ import { CheckCircle2Icon } from "lucide-react";
 import { formatBytes } from "#/features/pull-model/lib/format";
 import type { ModelRow } from "#/features/pull-model/lib/model-rows";
 import { Badge } from "#/shared/ui/badge";
-import { Tooltip, TooltipContent, TooltipTrigger } from "#/shared/ui/tooltip";
 
 /** Em-dash placeholder shown when a cell has no value. */
 export function EmptyCell() {
@@ -29,14 +28,9 @@ export function ModelIdentityCell({ row }: { row: ModelRow }) {
 					<span className="text-xs text-muted-foreground">installing</span>
 				)}
 			</div>
-			<Tooltip>
-				<TooltipTrigger>
-					<p className="text-xs text-muted-foreground truncate max-w-xs">
-						{catalog?.description || id}
-					</p>
-				</TooltipTrigger>
-				<TooltipContent side="right">{catalog?.description || id}</TooltipContent>
-			</Tooltip>
+			<p className="text-xs text-muted-foreground truncate max-w-xs">
+				{catalog?.description || id}
+			</p>
 			{catalog && catalog.tags.length > 0 && (
 				<div className="mt-1 flex flex-wrap gap-0.5">
 					{catalog.tags.map((tag) => (

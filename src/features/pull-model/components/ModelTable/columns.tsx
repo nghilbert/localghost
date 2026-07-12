@@ -6,17 +6,9 @@ import {
 	SizeCell,
 	TextCell,
 } from "#/features/pull-model/components/ModelCells";
-import { ModelActionsCell } from "#/features/pull-model/components/ModelTable/ModelActionsCell";
 import { parsePullCount, requiredMemoryGb } from "#/features/pull-model/lib/catalog";
 import type { ModelRow } from "#/features/pull-model/lib/model-rows";
 import { DataTableColumnHeader } from "#/shared/components/DataTable/DataTableColumnHeader";
-
-type ModelColumnOptions = {
-	onPull: (model: string) => void;
-	onStop: (model: string) => void;
-	onDismiss: (model: string) => void;
-	onDelete: (model: string) => void;
-};
 
 /** Display names for the column-visibility menu, keyed by column id. */
 export const MODEL_COLUMN_LABELS: Record<string, string> = {
@@ -33,12 +25,7 @@ function nullableNumber(value: number | null | undefined): number {
 	return value ?? Number.NEGATIVE_INFINITY;
 }
 
-export function createModelColumns({
-	onPull,
-	onStop,
-	onDismiss,
-	onDelete,
-}: ModelColumnOptions): ColumnDef<ModelRow>[] {
+export function createModelColumns(): ColumnDef<ModelRow>[] {
 	return [
 		{
 			id: "name",
@@ -80,22 +67,6 @@ export function createModelColumns({
 			accessorFn: (row) => row.catalog?.updatedAt ?? "",
 			header: ({ column }) => <DataTableColumnHeader column={column} title="Updated" />,
 			cell: ({ row }) => <TextCell value={row.original.catalog?.updated} />,
-		},
-		{
-			id: "actions",
-			enableHiding: false,
-			header: "",
-			cell: ({ row }) => (
-				<ModelActionsCell
-					modelId={row.original.id}
-					installed={row.original.installed}
-					pullState={row.original.pullState}
-					onStop={onStop}
-					onPull={onPull}
-					onDismiss={onDismiss}
-					onDelete={onDelete}
-				/>
-			),
 		},
 	];
 }

@@ -59,7 +59,12 @@ export function DataTable<TData>({
 	const [sorting, setSorting] = useState<SortingState>(initialSorting);
 	const [columnVisibility, setColumnVisibility] =
 		useState<VisibilityState>(initialColumnVisibility);
-	const [expanded, setExpanded] = useState<ExpandedState>({});
+	/** Only one row's detail panel is open at a time, so this tracks a single id rather than a set. */
+	const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
+	const expanded = useMemo<ExpandedState>(
+		() => (expandedRowId ? { [expandedRowId]: true } : {}),
+		[expandedRowId],
+	);
 
 	const tableColumns = useMemo(
 		() => (renderDetail ? [buildExpandColumn<TData>(), ...columns] : columns),
@@ -72,7 +77,16 @@ export function DataTable<TData>({
 		state: { sorting, globalFilter, columnVisibility, expanded },
 		onSortingChange: setSorting,
 		onColumnVisibilityChange: setColumnVisibility,
-		onExpandedChange: setExpanded,
+		onExpandedChange: (updater) => {
+			const current: Record<string, boolean> = expandedRowId ? { [expandedRowId]: true } : {};
+			const nextState = typeof updater === "function" ? updater(current) : updater;
+			const next = typeof nextState === "boolean" ? {} : nextState;
+			const changedId = [...new Set([...Object.keys(current), ...Object.keys(next)])].find(
+				(id) => !!next[id] !== !!current[id],
+			);
+			if (!changedId) return;
+			setExpandedRowId(next[changedId] ? changedId : null);
+		},
 		getCoreRowModel: getCoreRowModel(),
 		getSortedRowModel: getSortedRowModel(),
 		getFilteredRowModel: getFilteredRowModel(),
@@ -119,15 +133,26 @@ export function DataTable<TData>({
 									<TableRow
 										key={row.id}
 										data-testid="data-table-row"
+										role={renderDetail ? "button" : undefined}
+										tabIndex={renderDetail ? 0 : undefined}
 										aria-expanded={renderDetail ? row.getIsExpanded() : undefined}
 										className={cn(
-											renderDetail && "cursor-pointer",
+											renderDetail &&
+												"cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
 											getRowClassName?.(row.original),
 										)}
 										onClick={(event) => {
 											if (!renderDetail) return;
 											const target = event.target as HTMLElement;
-											if (target.closest('button, a, input, [role="button"]')) return;
+											const interactive = target.closest('button, a, input, [role="button"]');
+											if (interactive && interactive !== event.currentTarget) return;
+											row.toggleExpanded();
+										}}
+										onKeyDown={(event) => {
+											if (!renderDetail) return;
+											if (event.target !== event.currentTarget) return;
+											if (event.key !== "Enter" && event.key !== " ") return;
+											event.preventDefault();
 											row.toggleExpanded();
 										}}
 									>
@@ -166,22 +191,16 @@ function buildExpandColumn<TData>(): ColumnDef<TData> {
 		enableSorting: false,
 		size: 32,
 		cell: ({ row }) => (
-			<button
-				type="button"
+			<span
 				data-testid="data-table-expand-toggle"
-				aria-expanded={row.getIsExpanded()}
-				aria-label={row.getIsExpanded() ? "Collapse row details" : "Expand row details"}
-				className="flex size-6 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-				onClick={(event) => {
-					event.stopPropagation();
-					row.toggleExpanded();
-				}}
+				aria-hidden="true"
+				className="flex size-6 items-center justify-center text-muted-foreground"
 			>
 				<ChevronRightIcon
 					size={14}
 					className={cn("transition-transform", row.getIsExpanded() && "rotate-90")}
 				/>
-			</button>
+			</span>
 		),
 	};
 }
