@@ -7,7 +7,7 @@ import {
 	Trash2Icon,
 	XIcon,
 } from "lucide-react";
-import { formatBytes, formatBytesPerSec, formatDuration } from "#/features/pull-model/lib/format";
+import { formatPullDetail } from "#/features/pull-model/lib/format";
 import type { OllamaInstalledModel, PullProgress } from "#/features/pull-model/lib/types";
 import { Button } from "#/shared/ui/button";
 import { Progress } from "#/shared/ui/progress";
@@ -146,18 +146,4 @@ export function ModelActionsCell({
 			Pull
 		</Button>
 	);
-}
-
-/** One-line `<done> / <total> · <rate> · ETA <Xm Xs>`, omitting parts we can't compute yet. */
-function formatPullDetail({ completed, total, bytesPerSec }: PullProgress): string | null {
-	const parts: string[] = [];
-	if (completed !== undefined && total)
-		parts.push(`${formatBytes(completed)} / ${formatBytes(total)}`);
-	if (bytesPerSec) {
-		parts.push(formatBytesPerSec(bytesPerSec));
-		if (completed !== undefined && total && bytesPerSec > 0) {
-			parts.push(`ETA ${formatDuration((total - completed) / bytesPerSec)}`);
-		}
-	}
-	return parts.length > 0 ? parts.join(" · ") : null;
 }

@@ -10,6 +10,7 @@ import {
 	SidebarTrigger,
 } from "#/shared/ui/sidebar";
 import { AuthMenu } from "./AuthMenu";
+import { NotificationCenter } from "./NotificationCenter";
 import { PageNav } from "./PageNav";
 
 export function AppSidebar() {
@@ -32,6 +33,7 @@ export function AppSidebar() {
 			</SidebarContent>
 
 			<SidebarFooter>
+				<NotificationCenter />
 				<AuthMenu />
 			</SidebarFooter>
 		</Sidebar>
