@@ -15,6 +15,7 @@ model User {
   conversations Conversation[]
   memories      Memory[]
   ollamaPulls   OllamaPull[]
+  modelSettings ModelSetting[]
 
   @@unique([email])
   @@map("user")

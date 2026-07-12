@@ -16,6 +16,7 @@ export const settingsSearchSchema = z.object({
 export const accountFormSchema = z.object({
 	name: z.string().trim().min(1, "Name is required"),
 	systemPrompt: z.string().max(10000),
+	temperature: z.number().min(0).max(2),
 });
 
 /** What `POST /api/backup/import` answers with: merge counts per kind. */

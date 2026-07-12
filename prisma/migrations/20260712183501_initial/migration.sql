@@ -61,6 +61,18 @@ CREATE TABLE "memory" (
 );
 
 -- CreateTable
+CREATE TABLE "model_setting" (
+    "id" UUID NOT NULL DEFAULT uuidv7(),
+    "endpoint_id" UUID NOT NULL,
+    "model" TEXT NOT NULL,
+    "options" JSONB,
+    "owner_id" UUID NOT NULL,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "model_setting_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "ollama_pull" (
     "id" UUID NOT NULL DEFAULT uuidv7(),
     "model" TEXT NOT NULL,
@@ -128,6 +140,9 @@ CREATE UNIQUE INDEX "endpoint_owner_id_discovered_key" ON "endpoint"("owner_id",
 CREATE INDEX "memory_owner_id_idx" ON "memory"("owner_id");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "model_setting_endpoint_id_model_key" ON "model_setting"("endpoint_id", "model");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "ollama_pull_owner_id_model_key" ON "ollama_pull"("owner_id", "model");
 
 -- CreateIndex
@@ -156,6 +171,12 @@ ALTER TABLE "endpoint" ADD CONSTRAINT "endpoint_owner_id_fkey" FOREIGN KEY ("own
 
 -- AddForeignKey
 ALTER TABLE "memory" ADD CONSTRAINT "memory_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "model_setting" ADD CONSTRAINT "model_setting_endpoint_id_fkey" FOREIGN KEY ("endpoint_id") REFERENCES "endpoint"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "model_setting" ADD CONSTRAINT "model_setting_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "ollama_pull" ADD CONSTRAINT "ollama_pull_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;

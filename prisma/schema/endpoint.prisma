@@ -8,6 +8,7 @@ model Endpoint {
   ownerId         String         @map("owner_id") @db.Uuid
   owner           User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   conversations   Conversation[]
+  modelSettings   ModelSetting[]
   updatedAt       DateTime       @updatedAt @map("updated_at")
   /// True only on the machine-managed "Ollama (local)" row; null on user-added
   /// endpoints, which the unique below therefore never constrains.

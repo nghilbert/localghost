@@ -21,14 +21,18 @@ export function AccountTab() {
 	const signOut = useSignOut();
 
 	const form = useAppForm({
-		defaultValues: { name: user?.name ?? "", systemPrompt: settings.systemPrompt ?? "" },
+		defaultValues: {
+			name: user?.name ?? "",
+			systemPrompt: settings.systemPrompt ?? "",
+			temperature: settings.temperature,
+		},
 		validators: { onDynamic: accountFormSchema },
 		validationLogic: revalidateLogic(),
 		onSubmit: async ({ value }) => {
 			await updateMutation.mutate({
 				name: value.name.trim(),
 				systemPrompt: value.systemPrompt,
-				temperature: settings.temperature,
+				temperature: value.temperature,
 			});
 		},
 	});
@@ -54,6 +58,19 @@ export function AccountTab() {
 										placeholder="You are a helpful assistant…"
 										rows={4}
 										fieldOrientation="vertical"
+									/>
+								)}
+							</form.AppField>
+
+							<form.AppField name="temperature">
+								{(field) => (
+									<field.SliderField
+										label={`Temperature (${field.state.value.toFixed(1)})`}
+										description="Higher values make replies more random; lower values more focused."
+										fieldOrientation="vertical"
+										min={0}
+										max={2}
+										step={0.1}
 									/>
 								)}
 							</form.AppField>

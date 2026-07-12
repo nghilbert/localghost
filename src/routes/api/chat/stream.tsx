@@ -9,8 +9,10 @@ import { findConversationWithEndpoint } from "#/entities/conversation/conversati
 import { trimHistory } from "#/entities/conversation/messages";
 import { endpointApiKey } from "#/entities/endpoint/endpoint.server";
 import { ollamaOptionsSchema } from "#/entities/endpoint/schemas";
+import { getModelSetting } from "#/entities/model-setting/model-setting.server";
 import { findUserSettings } from "#/entities/user-settings/user-settings.server";
 import { buildChatTools } from "#/features/send-message/lib/agent.server";
+import { resolveGenerationOptions } from "#/features/send-message/lib/resolve-generation-options";
 import { chatStreamForwardedPropsSchema } from "#/features/send-message/lib/schemas";
 import { buildChatSystemPrompt } from "#/features/send-message/lib/system-prompt";
 import { auth } from "#/shared/lib/auth.server";
@@ -44,11 +46,21 @@ export const Route = createFileRoute("/api/chat/stream")({
 
 				const endpoint = conversation.endpoint;
 
-				// System prompt + temperature are global per-user chat defaults stored on the
-				// user row; per-endpoint generation options (Ollama) override them where set.
+				// Three layers of generation settings, most specific wins: user-global
+				// (systemPrompt, temperature) < per-endpoint options < per-model options.
 				const userSettings = await findUserSettings({ ownerId: userId });
 				const tools = buildChatTools({ ownerId: userId, enabledTools });
 				const endpointOptions = ollamaOptionsSchema.safeParse(endpoint.options);
+				const modelOptions = await getModelSetting({
+					endpointId: endpoint.id,
+					model: conversation.model,
+					ownerId: userId,
+				});
+				const generationOptions = resolveGenerationOptions({
+					userTemperature: userSettings.temperature,
+					endpointOptions: endpointOptions.success ? endpointOptions.data : undefined,
+					modelOptions,
+				});
 
 				const source = streamLLMEvents({
 					url: endpoint.url,
@@ -62,8 +74,8 @@ export const Route = createFileRoute("/api/chat/stream")({
 						enabledTools,
 						timeZone,
 					}),
-					temperature: userSettings.temperature ?? undefined,
-					options: endpointOptions.success ? endpointOptions.data : undefined,
+					temperature: generationOptions.temperature,
+					options: generationOptions.options,
 					threadId: params.threadId,
 					runId: params.runId,
 					tools,
