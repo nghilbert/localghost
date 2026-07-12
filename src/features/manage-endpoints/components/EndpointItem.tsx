@@ -1,12 +1,26 @@
-import { Trash2Icon } from "lucide-react";
+import { PencilIcon, Trash2Icon } from "lucide-react";
+import { useState } from "react";
 import type { listEndpoints } from "#/entities/endpoint/endpoint.functions";
+import { EditEndpointForm } from "#/features/manage-endpoints/components/EditEndpointForm";
 import { Button } from "#/shared/ui/button";
 import { Item, ItemActions, ItemContent, ItemDescription, ItemTitle } from "#/shared/ui/item";
 
 type Endpoint = Awaited<ReturnType<typeof listEndpoints>>[number];
 
-/** A configured provider endpoint: name, URL, key status, and delete. */
+/** A configured provider endpoint: name, URL, key status, with inline edit and delete. */
 export function EndpointItem({ endpoint, onDelete }: { endpoint: Endpoint; onDelete: () => void }) {
+	const [editing, setEditing] = useState(false);
+
+	if (editing) {
+		return (
+			<Item variant="outline">
+				<ItemContent>
+					<EditEndpointForm endpoint={endpoint} onDone={() => setEditing(false)} />
+				</ItemContent>
+			</Item>
+		);
+	}
+
 	return (
 		<Item variant="outline">
 			<ItemContent>
@@ -17,6 +31,14 @@ export function EndpointItem({ endpoint, onDelete }: { endpoint: Endpoint; onDel
 				</ItemDescription>
 			</ItemContent>
 			<ItemActions>
+				<Button
+					variant="ghost"
+					size="icon-sm"
+					onClick={() => setEditing(true)}
+					aria-label="Edit provider endpoint"
+				>
+					<PencilIcon size={14} />
+				</Button>
 				<Button
 					variant="ghost"
 					size="icon-sm"

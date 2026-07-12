@@ -3,6 +3,7 @@ import {
 	buildEndpointFormSchema,
 	dbProviderFor,
 	PROVIDERS,
+	providerDefinitionFor,
 } from "#/features/manage-endpoints/lib/providers";
 import { detectProvider } from "#/shared/lib/llm.server";
 
@@ -47,7 +48,7 @@ describe("buildEndpointFormSchema", () => {
 	if (!cloud || !custom) throw new Error("registry is missing expected providers");
 
 	it("requires an api key for cloud providers", () => {
-		const schema = buildEndpointFormSchema(cloud);
+		const schema = buildEndpointFormSchema({ definition: cloud });
 		expect(
 			schema.safeParse({ name: "A", url: "https://api.anthropic.com", apiKey: "" }).success,
 		).toBe(false);
@@ -57,14 +58,37 @@ describe("buildEndpointFormSchema", () => {
 	});
 
 	it("does not require an api key for custom providers", () => {
-		const schema = buildEndpointFormSchema(custom);
+		const schema = buildEndpointFormSchema({ definition: custom });
 		expect(
 			schema.safeParse({ name: "vLLM", url: "http://my-server:8000/v1", apiKey: "" }).success,
 		).toBe(true);
 	});
 
+	it("treats a blank key as valid when requireApiKey is off (edit keeps the current key)", () => {
+		const schema = buildEndpointFormSchema({ definition: cloud, requireApiKey: false });
+		expect(
+			schema.safeParse({ name: "A", url: "https://api.anthropic.com", apiKey: "" }).success,
+		).toBe(true);
+	});
+
 	it("rejects invalid urls", () => {
-		const schema = buildEndpointFormSchema(custom);
+		const schema = buildEndpointFormSchema({ definition: custom });
 		expect(schema.safeParse({ name: "x", url: "not-a-url", apiKey: "" }).success).toBe(false);
+	});
+});
+
+describe("providerDefinitionFor", () => {
+	it("maps a stored db provider back to its picker definition", () => {
+		expect(providerDefinitionFor("anthropic").id).toBe("anthropic");
+		expect(providerDefinitionFor("gemini").id).toBe("gemini");
+	});
+
+	it("prefers the OpenAI definition for stored provider openai (not the custom fallback)", () => {
+		// `openai` and `custom` both persist as provider "openai"; the concrete match wins.
+		expect(providerDefinitionFor("openai").id).toBe("openai");
+	});
+
+	it("falls back to custom when no picker definition maps to the provider", () => {
+		expect(providerDefinitionFor("ollama").id).toBe("custom");
 	});
 });

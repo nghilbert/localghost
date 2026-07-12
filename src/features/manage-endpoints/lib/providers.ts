@@ -100,10 +100,34 @@ export function dbProviderFor(id: ProviderId): DbProvider {
 	return id === "custom" ? "openai" : id;
 }
 
-export function buildEndpointFormSchema(definition: ProviderDefinition) {
+/**
+ * The picker definition backing a stored endpoint's provider, so the edit form
+ * can reuse its key guidance and placeholders. Falls back to the custom
+ * definition, which every OpenAI-compatible server (including plain `openai`) fits.
+ */
+export function providerDefinitionFor(provider: string): ProviderDefinition {
+	const match = PROVIDERS.find((p) => p.id !== "custom" && dbProviderFor(p.id) === provider);
+	if (match) return match;
+	const custom = PROVIDERS.find((p) => p.id === "custom");
+	if (!custom) throw new Error("provider registry is missing the custom entry");
+	return custom;
+}
+
+/**
+ * @param requireApiKey Whether the key field is mandatory. Defaults to the
+ * provider's own requirement; the edit form passes `false` so a blank key means
+ * "keep the existing one" rather than a validation error.
+ */
+export function buildEndpointFormSchema({
+	definition,
+	requireApiKey = definition.requiresApiKey,
+}: {
+	definition: ProviderDefinition;
+	requireApiKey?: boolean;
+}) {
 	return z.object({
 		name: z.string().trim().min(1, "Name is required").max(100),
 		url: z.url("Must be a valid URL").max(2048),
-		apiKey: definition.requiresApiKey ? z.string().min(1, "API key is required") : z.string(),
+		apiKey: requireApiKey ? z.string().min(1, "API key is required") : z.string(),
 	});
 }
