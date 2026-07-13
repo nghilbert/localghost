@@ -119,6 +119,28 @@ export async function findMemories({ ownerId, limit }: { ownerId: string; limit?
 	});
 }
 
+/**
+ * Updates a memory's text and recomputes its embedding (NULL when embedding fails).
+ * @returns Whether a memory with that id belonged to the owner and was updated.
+ */
+export async function patchMemory({
+	id,
+	ownerId,
+	text,
+}: {
+	id: string;
+	ownerId: string;
+	text: string;
+}): Promise<boolean> {
+	const embedding = await embed({ text, ownerId });
+	const updated = await prisma.$executeRaw`
+		UPDATE memory
+		SET text = ${text},
+		    embedding = ${embedding ? toVectorLiteral(embedding) : null}::vector
+		WHERE id = ${id}::uuid AND owner_id = ${ownerId}::uuid`;
+	return updated > 0;
+}
+
 /** @returns Whether a memory with that id belonged to the owner and was deleted. */
 export async function removeMemory({
 	id,
