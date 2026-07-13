@@ -134,7 +134,12 @@ export async function probeModelRunState({
 			[name, model].includes(conversation.model ?? ""),
 		);
 		return loaded ? "ready" : "warming";
-	} catch {
+	} catch (error) {
+		console.warn("Model run-state probe failed; reporting the host unreachable", {
+			url: conversation.endpoint.url,
+			model: conversation.model,
+			error,
+		});
 		return "unreachable";
 	}
 }

@@ -348,7 +348,12 @@ export async function modelSupportsTools({
 		if (!res.ok) return true;
 		const json: ModelsResponse = await res.json();
 		return config.parseToolSupport({ json, model });
-	} catch {
+	} catch (error) {
+		console.warn("Tool-support probe failed; assuming the model is capable", {
+			url,
+			model,
+			error,
+		});
 		return true;
 	}
 }

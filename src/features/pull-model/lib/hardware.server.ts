@@ -46,6 +46,11 @@ export function parseRocmSmi(output: string): GpuInfo[] | null {
 	});
 }
 
+/** ENOENT means the tool isn't installed, the normal CPU-only case; only real failures log. */
+function isMissingCommand(error: unknown): boolean {
+	return error !== null && typeof error === "object" && "code" in error && error.code === "ENOENT";
+}
+
 /** Queries `nvidia-smi` for installed NVIDIA GPUs, or `null` if the tool is absent or returns nothing. */
 function detectNvidiaGpus(): GpuInfo[] | null {
 	try {
@@ -54,7 +59,8 @@ function detectNvidiaGpus(): GpuInfo[] | null {
 			{ timeout: 5000, stdio: ["pipe", "pipe", "pipe"] },
 		).toString();
 		return parseNvidiaSmi(out);
-	} catch {
+	} catch (error) {
+		if (!isMissingCommand(error)) console.warn("nvidia-smi probe failed", { error });
 		return null;
 	}
 }
@@ -67,7 +73,8 @@ function detectAmdGpus(): GpuInfo[] | null {
 			stdio: ["pipe", "pipe", "pipe"],
 		}).toString();
 		return parseRocmSmi(out);
-	} catch {
+	} catch (error) {
+		if (!isMissingCommand(error)) console.warn("rocm-smi probe failed", { error });
 		return null;
 	}
 }

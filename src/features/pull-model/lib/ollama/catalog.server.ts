@@ -142,8 +142,9 @@ async function fetchOllamaCatalog(): Promise<CatalogModel[]> {
 					name,
 					parseTagsHtml(await fetchHtml(`https://ollama.com/library/${name}/tags`)),
 				);
-			} catch {
+			} catch (error) {
 				// index-derived data still renders for this model
+				console.warn("Failed to scrape a model's tags page", { model: name, error });
 			}
 		},
 	});
@@ -180,7 +181,8 @@ export async function getCatalog(): Promise<CatalogModel[]> {
 	}
 	try {
 		return await refreshInFlight;
-	} catch {
+	} catch (error) {
+		console.error("Ollama catalog scrape failed; the Library gets an empty catalog", { error });
 		return [];
 	}
 }

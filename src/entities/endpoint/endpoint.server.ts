@@ -143,7 +143,12 @@ export async function probeModelCapabilities({
 				model,
 			});
 			return { supportsTools: capabilities.includes("tools") };
-		} catch {
+		} catch (error) {
+			console.warn("Ollama capability probe failed; assuming tool support", {
+				url: endpoint.url,
+				model,
+				error,
+			});
 			return { supportsTools: true };
 		}
 	}

@@ -83,9 +83,10 @@ export async function recallMemories({
 				WHERE owner_id = ${ownerId}::uuid AND embedding IS NOT NULL
 				ORDER BY embedding <=> ${toVectorLiteral(embedding)}::vector
 				LIMIT ${capped}`;
-		} catch {
+		} catch (error) {
 			// A stored embedding from a different model/dimension makes pgvector's
 			// `<=>` throw; degrade to keyword search instead of failing the chat run.
+			console.warn("Vector recall failed; falling back to keyword search", { error });
 		}
 	}
 	return keywordRecall({ ownerId, query: trimmed, limit: capped });

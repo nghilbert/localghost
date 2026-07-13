@@ -69,7 +69,14 @@ export async function embed({
 				signal: AbortSignal.timeout(10_000),
 			});
 
-			if (!res.ok) continue;
+			if (!res.ok) {
+				console.warn("Embedding request rejected; trying the next endpoint", {
+					url: embeddingUrl,
+					model,
+					status: res.status,
+				});
+				continue;
+			}
 
 			const parsed = embeddingResponseSchema.safeParse(await res.json());
 			if (!parsed.success) continue;
@@ -78,8 +85,12 @@ export async function embed({
 			if (embedding && embedding.length > 0) {
 				return embedding;
 			}
-		} catch {
-			// Try next endpoint
+		} catch (error) {
+			console.warn("Embedding request failed; trying the next endpoint", {
+				url: embeddingUrl,
+				model,
+				error,
+			});
 		}
 	}
 
