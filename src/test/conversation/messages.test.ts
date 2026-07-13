@@ -4,6 +4,8 @@ import {
 	awaitingAssistantResponse,
 	buildFirstUserMessage,
 	deriveConversationTitle,
+	isInterrupted,
+	markInterrupted,
 	partsText,
 	strandedToolCall,
 	trimHistory,
@@ -42,6 +44,34 @@ describe("awaitingAssistantResponse", () => {
 
 	it("is false for an empty transcript", () => {
 		expect(awaitingAssistantResponse([])).toBe(false);
+	});
+});
+
+describe("markInterrupted", () => {
+	it("flags a trailing assistant message and isInterrupted reads it back", () => {
+		const marked = markInterrupted([userMessage("hi"), assistantMessage("partial")]);
+		expect(marked.map(isInterrupted)).toEqual([false, true]);
+	});
+
+	it("survives the JSON round-trip the persisted blob goes through", () => {
+		const marked = markInterrupted([assistantMessage("partial")]);
+		const revived: UIMessage[] = JSON.parse(JSON.stringify(marked));
+		expect(revived.map(isInterrupted)).toEqual([true]);
+	});
+
+	it("leaves a transcript ending on a user turn unchanged", () => {
+		const messages = [userMessage("hi")];
+		expect(markInterrupted(messages)).toBe(messages);
+	});
+
+	it("leaves an empty transcript unchanged", () => {
+		expect(markInterrupted([])).toEqual([]);
+	});
+
+	it("does not mutate the input messages", () => {
+		const message = assistantMessage("partial");
+		markInterrupted([message]);
+		expect(isInterrupted(message)).toBe(false);
 	});
 });
 

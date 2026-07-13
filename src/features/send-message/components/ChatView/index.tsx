@@ -5,7 +5,11 @@ import {
 	type ConversationDetail,
 	modelRunStateQueryOptions,
 } from "#/entities/conversation/conversation.functions";
-import { awaitingAssistantResponse, historyStartIndex } from "#/entities/conversation/messages";
+import {
+	awaitingAssistantResponse,
+	historyStartIndex,
+	markInterrupted,
+} from "#/entities/conversation/messages";
 import { ChatInput } from "#/features/send-message/components/ChatInput";
 import { ChatStatus } from "#/features/send-message/components/ChatView/ChatStatus";
 import { useConversation } from "#/features/send-message/hooks/use-conversation";
@@ -58,7 +62,7 @@ export function ChatView({ conversation }: ChatViewProps) {
 	);
 
 	const chatOptions = useMemo(() => createChatOptions(queryClient), [queryClient]);
-	const { messages, sendMessage, stop, status, error, reload } = useChat({
+	const { messages, sendMessage, stop, status, error, reload, setMessages } = useChat({
 		...chatOptions,
 		id: conversation.id,
 		forwardedProps,
@@ -84,6 +88,12 @@ export function ChatView({ conversation }: ChatViewProps) {
 	async function handleSend(content: string) {
 		await sendMessage(content);
 		resetTools();
+	}
+
+	/** Stops the stream and flags the cut-off reply; the flag persists with the message. */
+	function handleStop() {
+		stop();
+		setMessages(markInterrupted(messages));
 	}
 
 	// Apply the draft page's tool-toggle handoff exactly once, client-side only.
@@ -169,7 +179,7 @@ export function ChatView({ conversation }: ChatViewProps) {
 					locked
 					tools={controls}
 					sendMessage={handleSend}
-					stop={stop}
+					stop={handleStop}
 				/>
 			</div>
 		</div>

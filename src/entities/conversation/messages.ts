@@ -79,6 +79,23 @@ export function buildFirstUserMessage(content: string): UIMessage {
 }
 
 /**
+ * Flags the trailing assistant message as interrupted (the user hit stop), so
+ * the transcript can say so instead of presenting cut-off text as complete.
+ * @returns A new flagged array; unchanged when the last turn isn't assistant.
+ */
+export function markInterrupted(messages: UIMessage[]): UIMessage[] {
+	const last = messages.at(-1);
+	if (last?.role !== "assistant") return messages;
+	const flagged: UIMessage & { interrupted: boolean } = { ...last, interrupted: true };
+	return [...messages.slice(0, -1), flagged];
+}
+
+/** Whether {@link markInterrupted} flagged this message when its generation was stopped. */
+export function isInterrupted(message: UIMessage): boolean {
+	return "interrupted" in message && message.interrupted === true;
+}
+
+/**
  * Whether the transcript ends on a user message with no assistant reply yet:
  * the signal for the conversation view to request a response via `reload()`.
  */

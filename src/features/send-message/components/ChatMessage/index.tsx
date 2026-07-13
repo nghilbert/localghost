@@ -1,9 +1,9 @@
 import { code } from "@streamdown/code";
 import type { UIMessage } from "@tanstack/ai-client";
-import { CircleAlertIcon, CopyIcon, RefreshCwIcon } from "lucide-react";
+import { CircleAlertIcon, CopyIcon, OctagonXIcon, RefreshCwIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Streamdown } from "streamdown";
-import { partsText, strandedToolCall } from "#/entities/conversation/messages";
+import { isInterrupted, partsText, strandedToolCall } from "#/entities/conversation/messages";
 import { ActivityTrail } from "#/features/send-message/components/ChatMessage/ActivityTrail";
 import { Alert, AlertDescription, AlertTitle } from "#/shared/ui/alert";
 import { Bubble, BubbleContent } from "#/shared/ui/bubble";
@@ -44,6 +44,7 @@ export function ChatMessage({
 	// A reply that is only a tool-call JSON blob means the model wrote the call
 	// as text instead of invoking it; explain that instead of printing the JSON.
 	const strandedTool = !isStreaming && content ? strandedToolCall(content) : null;
+	const interrupted = !isStreaming && isInterrupted(message);
 
 	return (
 		<Message role="article" aria-label="Assistant message" data-testid="chat-message">
@@ -76,6 +77,27 @@ export function ChatMessage({
 							</Streamdown>
 						</BubbleContent>
 					</Bubble>
+				)}
+
+				{interrupted && (
+					<div
+						data-testid="generation-stopped-note"
+						className="flex items-center gap-1.5 text-xs text-muted-foreground"
+					>
+						<OctagonXIcon aria-hidden className="size-3.5" />
+						Generation stopped
+						{onRegenerate && (
+							<Button
+								variant="ghost"
+								size="xs"
+								data-testid="stopped-regenerate-button"
+								onClick={onRegenerate}
+							>
+								<RefreshCwIcon />
+								Regenerate
+							</Button>
+						)}
+					</div>
 				)}
 
 				{!isStreaming && content && (
