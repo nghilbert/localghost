@@ -40,6 +40,7 @@ export function createModelColumns(): ColumnDef<ModelRow>[] {
 			accessorFn: (row) => nullableNumber(row.catalog?.paramB),
 			header: ({ column }) => <DataTableColumnHeader column={column} title="Params" />,
 			cell: ({ row }) => <ParamsCell row={row.original} />,
+			meta: { className: "hidden lg:table-cell" },
 		},
 		{
 			id: "memory",
@@ -48,6 +49,7 @@ export function createModelColumns(): ColumnDef<ModelRow>[] {
 			cell: ({ row }) => (
 				<MemoryCell gb={row.original.catalog ? requiredMemoryGb(row.original.catalog) : null} />
 			),
+			meta: { className: "hidden md:table-cell" },
 		},
 		{
 			id: "size",
@@ -55,18 +57,21 @@ export function createModelColumns(): ColumnDef<ModelRow>[] {
 				nullableNumber(row.installed ? row.installed.sizeBytes / 1e9 : row.catalog?.sizeGb),
 			header: ({ column }) => <DataTableColumnHeader column={column} title="Size" />,
 			cell: ({ row }) => <SizeCell row={row.original} />,
+			meta: { className: "hidden sm:table-cell" },
 		},
 		{
 			id: "pulls",
 			accessorFn: (row) => parsePullCount(row.catalog?.pullCount ?? ""),
 			header: ({ column }) => <DataTableColumnHeader column={column} title="Pulls" />,
 			cell: ({ row }) => <TextCell value={row.original.catalog?.pullCount} />,
+			meta: { className: "hidden xl:table-cell" },
 		},
 		{
 			id: "updated",
 			accessorFn: (row) => row.catalog?.updatedAt ?? "",
 			header: ({ column }) => <DataTableColumnHeader column={column} title="Updated" />,
 			cell: ({ row }) => <TextCell value={row.original.catalog?.updated} />,
+			meta: { className: "hidden lg:table-cell" },
 		},
 	];
 }

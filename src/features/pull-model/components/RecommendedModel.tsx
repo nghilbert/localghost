@@ -1,4 +1,4 @@
-import { ModelActionsCell } from "#/features/pull-model/components/ModelTable/ModelActionsCell";
+import { ModelPullControls } from "#/features/pull-model/components/ModelPullControls";
 import {
 	fitsHardware,
 	parsePullCount,
@@ -14,9 +14,9 @@ import type {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "#/shared/ui/card";
 import {
 	Item,
-	ItemActions,
 	ItemContent,
 	ItemDescription,
+	ItemFooter,
 	ItemGroup,
 	ItemTitle,
 } from "#/shared/ui/item";
@@ -55,6 +55,7 @@ type RecommendedModelProps = {
 	onDismiss: (model: string) => void;
 };
 
+/** Picks and presents the best uninstalled catalog model for the detected hardware. */
 export function RecommendedModel({
 	catalog,
 	installedModels,
@@ -103,16 +104,15 @@ export function RecommendedModel({
 							</ItemTitle>
 							<ItemDescription>{picked.description}</ItemDescription>
 						</ItemContent>
-						<ItemActions>
-							<ModelActionsCell
+						<ItemFooter className="justify-end">
+							<ModelPullControls
 								modelId={picked.id}
-								installed={null}
 								pullState={pulling[picked.id]}
 								onStop={onStop}
 								onPull={onPull}
 								onDismiss={onDismiss}
 							/>
-						</ItemActions>
+						</ItemFooter>
 					</Item>
 				</ItemGroup>
 			</CardContent>

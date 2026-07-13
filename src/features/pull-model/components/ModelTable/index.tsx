@@ -1,11 +1,14 @@
 import type { VisibilityState } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
-import { createModelColumns } from "#/features/pull-model/components/ModelTable/columns";
+import {
+	createModelColumns,
+	MODEL_COLUMN_LABELS,
+} from "#/features/pull-model/components/ModelTable/columns";
 import { ModelDetailPanel } from "#/features/pull-model/components/ModelTable/ModelDetailPanel";
 import {
-	type ModelStatusFilter,
-	ModelTableToolbar,
-} from "#/features/pull-model/components/ModelTable/ModelTableToolbar";
+	type ModelStatus,
+	ModelStatusFilter,
+} from "#/features/pull-model/components/ModelTable/ModelStatusFilter";
 import { buildModelRows } from "#/features/pull-model/lib/model-rows";
 import type {
 	CatalogModel,
@@ -14,7 +17,6 @@ import type {
 	PullProgress,
 } from "#/features/pull-model/lib/types";
 import { DataTable } from "#/shared/components/DataTable";
-import { fuzzyFilter } from "#/shared/components/DataTable/fuzzyFilter";
 import { cn } from "#/shared/lib/utils";
 
 type ModelTableProps = {
@@ -44,19 +46,23 @@ export function ModelTable({
 	onDelete,
 	initialColumnVisibility,
 }: ModelTableProps) {
-	const [globalFilter, setGlobalFilter] = useState("");
-	const [statusFilter, setStatusFilter] = useState<ModelStatusFilter>("all");
+	const [status, setStatus] = useState<ModelStatus>("all");
 
 	const rows = useMemo(
 		() => buildModelRows({ catalog, installedModels, pulling }),
 		[catalog, installedModels, pulling],
 	);
 
+	const counts = useMemo(() => {
+		const installed = rows.filter((row) => row.installed).length;
+		return { all: rows.length, installed, available: rows.length - installed };
+	}, [rows]);
+
 	const filteredRows = useMemo(() => {
-		if (statusFilter === "installed") return rows.filter((row) => row.installed);
-		if (statusFilter === "available") return rows.filter((row) => !row.installed);
+		if (status === "installed") return rows.filter((row) => row.installed);
+		if (status === "available") return rows.filter((row) => !row.installed);
 		return rows;
-	}, [rows, statusFilter]);
+	}, [rows, status]);
 
 	const columns = useMemo(() => createModelColumns(), []);
 
@@ -64,31 +70,25 @@ export function ModelTable({
 		<DataTable
 			columns={columns}
 			data={filteredRows}
+			getRowId={(row) => row.id}
 			emptyMessage="No models found."
 			initialSorting={[{ id: "updated", desc: true }]}
 			initialColumnVisibility={initialColumnVisibility}
+			columnLabels={MODEL_COLUMN_LABELS}
 			pageSize={25}
-			globalFilter={globalFilter}
-			globalFilterFn={fuzzyFilter}
+			searchPlaceholder="Search models…"
+			filters={<ModelStatusFilter value={status} onValueChange={setStatus} counts={counts} />}
 			getRowClassName={(row) => cn(row.installed && "bg-success/5")}
 			renderDetail={(row) => (
 				<ModelDetailPanel
 					row={row}
 					hardware={hardware}
+					pulling={pulling}
 					endpointId={endpointId}
 					onPull={onPull}
 					onStop={onStop}
 					onDismiss={onDismiss}
 					onDelete={onDelete}
-				/>
-			)}
-			toolbar={(table) => (
-				<ModelTableToolbar
-					table={table}
-					globalFilter={globalFilter}
-					onGlobalFilterChange={setGlobalFilter}
-					statusFilter={statusFilter}
-					onStatusFilterChange={setStatusFilter}
 				/>
 			)}
 		/>
