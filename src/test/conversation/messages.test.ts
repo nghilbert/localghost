@@ -7,6 +7,7 @@ import {
 	isInterrupted,
 	markInterrupted,
 	partsText,
+	sanitizeGeneratedTitle,
 	strandedToolCall,
 	trimHistory,
 } from "#/entities/conversation/messages";
@@ -93,6 +94,40 @@ describe("deriveConversationTitle", () => {
 
 	it("returns null for blank text", () => {
 		expect(deriveConversationTitle("   ")).toBeNull();
+	});
+});
+
+describe("sanitizeGeneratedTitle", () => {
+	it("passes a clean title through", () => {
+		expect(sanitizeGeneratedTitle("Debugging Prisma migrations")).toBe(
+			"Debugging Prisma migrations",
+		);
+	});
+
+	it("strips wrapping quotes, markdown, and a Title: prefix", () => {
+		expect(sanitizeGeneratedTitle('"Weekend Trip Ideas"')).toBe("Weekend Trip Ideas");
+		expect(sanitizeGeneratedTitle("**Weekend Trip Ideas**")).toBe("Weekend Trip Ideas");
+		expect(sanitizeGeneratedTitle("Title: Weekend Trip Ideas.")).toBe("Weekend Trip Ideas");
+	});
+
+	it("drops thinking blocks and takes the first non-empty line", () => {
+		expect(
+			sanitizeGeneratedTitle("<think>hmm, a title\nabout cats</think>\n\nCat Care Basics"),
+		).toBe("Cat Care Basics");
+		expect(sanitizeGeneratedTitle("Cat Care Basics\nHere is why I chose it...")).toBe(
+			"Cat Care Basics",
+		);
+	});
+
+	it("collapses inner whitespace and caps at 80 characters", () => {
+		expect(sanitizeGeneratedTitle("Cat   Care\tBasics")).toBe("Cat Care Basics");
+		expect(sanitizeGeneratedTitle("x".repeat(200))).toHaveLength(80);
+	});
+
+	it("returns null when nothing usable remains", () => {
+		expect(sanitizeGeneratedTitle("")).toBeNull();
+		expect(sanitizeGeneratedTitle("<think>only thinking</think>")).toBeNull();
+		expect(sanitizeGeneratedTitle('"..."')).toBeNull();
 	});
 });
 

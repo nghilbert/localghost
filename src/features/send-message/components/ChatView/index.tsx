@@ -1,14 +1,17 @@
 import { useChat } from "@tanstack/ai-react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import {
 	type ConversationDetail,
+	generateConversationTitle,
 	modelRunStateQueryOptions,
 } from "#/entities/conversation/conversation.functions";
 import {
 	awaitingAssistantResponse,
+	deriveConversationTitle,
 	historyStartIndex,
 	markInterrupted,
+	partsText,
 } from "#/entities/conversation/messages";
 import { ChatInput } from "#/features/send-message/components/ChatInput";
 import { ChatStatus } from "#/features/send-message/components/ChatView/ChatStatus";
@@ -95,6 +98,33 @@ export function ChatView({ conversation }: ChatViewProps) {
 		stop();
 		setMessages(markInterrupted(messages));
 	}
+
+	const titleMutation = useMutation({
+		mutationFn: () => generateConversationTitle({ data: { id: conversation.id } }),
+		onSuccess: (title) => {
+			if (!title) return;
+			void queryClient.invalidateQueries({ queryKey: ["conversations"] });
+			void queryClient.invalidateQueries({ queryKey: ["conversation", conversation.id] });
+		},
+	});
+
+	// Auto-title fires only after a reply generated in this mount, never on merely
+	// reopening an old conversation that kept its derived default title.
+	const streamedThisMount = useRef(false);
+	if (isStreaming) streamedThisMount.current = true;
+
+	// Once the first reply completes, ask the model to title the conversation. The
+	// server skips manual renames authoritatively; the check here just avoids a
+	// pointless request when the title visibly isn't the derived default anymore.
+	const titleRequested = useRef(false);
+	useEffect(() => {
+		if (titleRequested.current || !streamedThisMount.current || status !== "ready") return;
+		if (!messages.some((msg) => msg.role === "assistant")) return;
+		const firstUserText = partsText(messages.find((msg) => msg.role === "user")?.parts ?? []);
+		if (conversation.title !== deriveConversationTitle(firstUserText)) return;
+		titleRequested.current = true;
+		titleMutation.mutate();
+	});
 
 	// Apply the draft page's tool-toggle handoff exactly once, client-side only.
 	// The presence of a handoff also marks this mount as the new-chat handoff: only

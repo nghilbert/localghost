@@ -6,6 +6,7 @@ import {
 	findConversation,
 	findConversations,
 	findDefaultSelection,
+	generateTitle,
 	insertConversation,
 	patchConversation,
 	probeModelRunState,
@@ -93,6 +94,17 @@ export const updateConversation = createServerFn({ method: "POST" })
 	.handler(async ({ data: { id, data: patch } }) => {
 		const userId = await getCurrentUserId();
 		return patchConversation({ id, ownerId: userId, patch });
+	});
+
+/**
+ * Generates and persists an LLM title for the conversation's first exchange.
+ * @returns The new title, or `null` when skipped (manual rename) or generation fails.
+ */
+export const generateConversationTitle = createServerFn({ method: "POST" })
+	.validator(conversationIdInput)
+	.handler(async ({ data: { id } }) => {
+		const userId = await getCurrentUserId();
+		return generateTitle({ id, ownerId: userId });
 	});
 
 /** Whether the conversation's model is still loading into memory (Ollama warm-up). */
