@@ -10,8 +10,5 @@
 	"js/ts.tsdk.path": "node_modules/typescript/lib",
 	"js/ts.tsdk.promptToUseWorkspaceVersion": true,
 	"files.associations": { "*.css": "tailwindcss" },
-	"json.schemaDownload.trustedDomains": {
-		"https://ui.shadcn.com/schema.json": true,
-		"https://biomejs.dev": true
-	}
+	"json.schemaDownload.trustedDomains": { "https://ui.shadcn.com/schema.json": true }
 }
