@@ -1,6 +1,7 @@
 import { code } from "@streamdown/code";
 import type { UIMessage } from "@tanstack/ai-client";
-import { CircleAlertIcon, CopyIcon, OctagonXIcon, RefreshCwIcon } from "lucide-react";
+import { CircleAlertIcon, CopyIcon, OctagonXIcon, PencilIcon, RefreshCwIcon } from "lucide-react";
+import { type KeyboardEvent, useState } from "react";
 import { toast } from "sonner";
 import { Streamdown } from "streamdown";
 import { isInterrupted, partsText, strandedToolCall } from "#/entities/conversation/messages";
@@ -8,6 +9,7 @@ import { ActivityTrail } from "#/features/send-message/components/ChatMessage/Ac
 import { Alert, AlertDescription, AlertTitle } from "#/shared/ui/alert";
 import { Bubble, BubbleContent } from "#/shared/ui/bubble";
 import { Button } from "#/shared/ui/button";
+import { InputGroup, InputGroupTextarea } from "#/shared/ui/input-group";
 import { Message, MessageContent, MessageFooter } from "#/shared/ui/message";
 import { Tooltip, TooltipContent, TooltipTrigger } from "#/shared/ui/tooltip";
 
@@ -18,24 +20,101 @@ type ChatMessageProps = {
 	pendingLabel?: string;
 	/** Provided only for the last assistant message; re-requests the response. */
 	onRegenerate?: () => void;
+	/** Provided only when editing is allowed right now; replaces the text and resends. */
+	onEditResend?: (content: string) => void;
 };
 export function ChatMessage({
 	message,
 	isStreaming,
 	pendingLabel,
 	onRegenerate,
+	onEditResend,
 }: ChatMessageProps) {
 	const content = partsText(message.parts);
+	const [isEditing, setIsEditing] = useState(false);
+	const [draft, setDraft] = useState(content);
 
 	if (message.role === "user") {
+		function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+			if (event.key === "Escape") {
+				setIsEditing(false);
+				setDraft(content);
+			} else if (event.key === "Enter" && !event.shiftKey) {
+				event.preventDefault();
+				submitEdit();
+			}
+		}
+
+		function submitEdit() {
+			const trimmed = draft.trim();
+			if (!trimmed) return;
+			setIsEditing(false);
+			onEditResend?.(trimmed);
+		}
+
 		return (
 			<Message align="end" role="article" aria-label="Your message" data-testid="chat-message">
 				<MessageContent>
-					<Bubble variant="default">
-						<BubbleContent>
-							<p className="whitespace-pre-wrap">{content}</p>
-						</BubbleContent>
-					</Bubble>
+					{isEditing ? (
+						<InputGroup className="w-full">
+							<InputGroupTextarea
+								autoFocus
+								value={draft}
+								onChange={(event) => setDraft(event.target.value)}
+								onKeyDown={handleKeyDown}
+								className="max-h-50 field-sizing-content resize-none"
+								data-testid="edit-message-textarea"
+							/>
+						</InputGroup>
+					) : (
+						<Bubble variant="default">
+							<BubbleContent>
+								<p className="whitespace-pre-wrap">{content}</p>
+							</BubbleContent>
+						</Bubble>
+					)}
+					{isEditing ? (
+						<MessageFooter className="justify-end gap-2">
+							<Button
+								variant="ghost"
+								size="xs"
+								data-testid="cancel-edit-button"
+								onClick={() => {
+									setIsEditing(false);
+									setDraft(content);
+								}}
+							>
+								Cancel
+							</Button>
+							<Button size="xs" data-testid="save-edit-button" onClick={submitEdit}>
+								Save & resend
+							</Button>
+						</MessageFooter>
+					) : (
+						onEditResend && (
+							<MessageFooter className="justify-end gap-1 opacity-0 transition-opacity focus-within:opacity-100 group-hover/message:opacity-100">
+								<Tooltip>
+									<TooltipTrigger
+										render={
+											<Button
+												variant="ghost"
+												size="icon-sm"
+												aria-label="Edit message"
+												data-testid="edit-message-button"
+												onClick={() => {
+													setDraft(content);
+													setIsEditing(true);
+												}}
+											/>
+										}
+									>
+										<PencilIcon />
+									</TooltipTrigger>
+									<TooltipContent>Edit & resend</TooltipContent>
+								</Tooltip>
+							</MessageFooter>
+						)
+					)}
 				</MessageContent>
 			</Message>
 		);

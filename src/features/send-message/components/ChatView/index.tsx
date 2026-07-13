@@ -9,6 +9,7 @@ import {
 import {
 	awaitingAssistantResponse,
 	deriveConversationTitle,
+	editUserMessage,
 	historyStartIndex,
 	markInterrupted,
 	partsText,
@@ -99,6 +100,12 @@ export function ChatView({ conversation }: ChatViewProps) {
 		setMessages(markInterrupted(messages));
 	}
 
+	/** Rewrites a sent user message, drops every later turn, and re-requests a reply. */
+	function handleEditResend(id: string, content: string) {
+		setMessages(editUserMessage({ messages, id, content }));
+		void reload();
+	}
+
 	const titleMutation = useMutation({
 		mutationFn: () => generateConversationTitle({ data: { id: conversation.id } }),
 		onSuccess: (title) => {
@@ -180,6 +187,11 @@ export function ChatView({ conversation }: ChatViewProps) {
 												pendingLabel={isLastAssistant ? pendingLabel : undefined}
 												onRegenerate={
 													isLastAssistant && !isStreaming ? () => void reload() : undefined
+												}
+												onEditResend={
+													msg.role === "user" && !isStreaming
+														? (content) => handleEditResend(msg.id, content)
+														: undefined
 												}
 											/>
 										</MessageScrollerItem>

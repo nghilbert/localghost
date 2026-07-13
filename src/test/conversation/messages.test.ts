@@ -4,6 +4,7 @@ import {
 	awaitingAssistantResponse,
 	buildFirstUserMessage,
 	deriveConversationTitle,
+	editUserMessage,
 	isInterrupted,
 	markInterrupted,
 	partsText,
@@ -73,6 +74,25 @@ describe("markInterrupted", () => {
 		const message = assistantMessage("partial");
 		markInterrupted([message]);
 		expect(isInterrupted(message)).toBe(false);
+	});
+});
+
+describe("editUserMessage", () => {
+	it("rewrites the message's text and drops every later turn", () => {
+		const messages: UIMessage[] = [
+			{ id: "u1", role: "user", parts: [{ type: "text", content: "original" }] },
+			{ id: "a1", role: "assistant", parts: [{ type: "text", content: "reply" }] },
+			{ id: "u2", role: "user", parts: [{ type: "text", content: "follow-up" }] },
+		];
+		const edited = editUserMessage({ messages, id: "u1", content: "edited" });
+		expect(edited).toHaveLength(1);
+		expect(edited[0]?.id).toBe("u1");
+		expect(partsText(edited[0]?.parts ?? [])).toBe("edited");
+	});
+
+	it("returns the input unchanged when the id isn't found", () => {
+		const messages = [userMessage("hi")];
+		expect(editUserMessage({ messages, id: "missing", content: "x" })).toBe(messages);
 	});
 });
 

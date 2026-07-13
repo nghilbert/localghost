@@ -96,6 +96,26 @@ export function isInterrupted(message: UIMessage): boolean {
 }
 
 /**
+ * Rewrites a user message's text and drops every turn after it: editing a
+ * sent message is replace-and-resend, not branching.
+ * @returns The truncated transcript, or the input unchanged if `id` isn't found.
+ */
+export function editUserMessage({
+	messages,
+	id,
+	content,
+}: {
+	messages: UIMessage[];
+	id: string;
+	content: string;
+}): UIMessage[] {
+	const target = messages.find((message) => message.id === id);
+	if (!target) return messages;
+	const edited: UIMessage = { ...target, parts: [{ type: "text", content }] };
+	return [...messages.slice(0, messages.indexOf(target)), edited];
+}
+
+/**
  * Cleans model output into a title: thinking blocks dropped, first non-empty
  * line, quote/markdown wrapping stripped, capped at 80 chars.
  * @returns The cleaned title, or `null` when nothing usable remains.

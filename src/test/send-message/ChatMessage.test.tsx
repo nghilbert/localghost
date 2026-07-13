@@ -39,6 +39,64 @@ describe("ChatMessage", () => {
 		});
 	});
 
+	describe("editing user messages", () => {
+		it("shows no edit button when onEditResend isn't provided", async () => {
+			const screen = await render(<ChatMessage message={userMessage("Hi")} />);
+
+			await expect.element(screen.getByTestId("edit-message-button")).not.toBeInTheDocument();
+		});
+
+		it("opens an editable textarea prefilled with the message text", async () => {
+			const screen = await render(
+				<ChatMessage message={userMessage("Original text")} onEditResend={() => {}} />,
+			);
+
+			await screen.getByTestId("edit-message-button").click();
+
+			await expect
+				.element(screen.getByTestId("edit-message-textarea"))
+				.toHaveValue("Original text");
+		});
+
+		it("resends the trimmed, edited text on save", async () => {
+			let resent: string | null = null;
+			const screen = await render(
+				<ChatMessage
+					message={userMessage("Original text")}
+					onEditResend={(content) => {
+						resent = content;
+					}}
+				/>,
+			);
+
+			await screen.getByTestId("edit-message-button").click();
+			await screen.getByTestId("edit-message-textarea").fill("  Edited text  ");
+			await screen.getByTestId("save-edit-button").click();
+
+			expect(resent).toBe("Edited text");
+			await expect.element(screen.getByTestId("edit-message-button")).toBeInTheDocument();
+		});
+
+		it("cancels back to the original text without resending", async () => {
+			let resent = false;
+			const screen = await render(
+				<ChatMessage
+					message={userMessage("Original text")}
+					onEditResend={() => {
+						resent = true;
+					}}
+				/>,
+			);
+
+			await screen.getByTestId("edit-message-button").click();
+			await screen.getByTestId("edit-message-textarea").fill("Something else");
+			await screen.getByTestId("cancel-edit-button").click();
+
+			expect(resent).toBe(false);
+			await expect.element(screen.getByTestId("chat-message")).toHaveTextContent("Original text");
+		});
+	});
+
 	describe("assistant messages", () => {
 		// Markdown output is rendered by Streamdown, which won't forward testids,
 		// so these assertions query the library-rendered text directly.
