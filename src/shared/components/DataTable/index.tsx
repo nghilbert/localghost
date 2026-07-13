@@ -1,40 +1,52 @@
 import {
 	type ColumnDef,
 	type ExpandedState,
-	type FilterFnOption,
 	flexRender,
 	getCoreRowModel,
 	getExpandedRowModel,
 	getFilteredRowModel,
 	getPaginationRowModel,
 	getSortedRowModel,
+	type RowData,
 	type SortingState,
-	type Table as TanstackTable,
+	type TableOptions,
 	useReactTable,
 	type VisibilityState,
 } from "@tanstack/react-table";
 import { ChevronRightIcon } from "lucide-react";
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, type ReactNode, useMemo, useState } from "react";
 import { DataTablePagination } from "#/shared/components/DataTable/DataTablePagination";
+import { DataTableViewOptions } from "#/shared/components/DataTable/DataTableViewOptions";
+import { fuzzyFilter } from "#/shared/components/DataTable/fuzzyFilter";
 import { cn } from "#/shared/lib/utils";
+import { Input } from "#/shared/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "#/shared/ui/table";
+
+declare module "@tanstack/react-table" {
+	interface ColumnMeta<TData extends RowData, TValue> {
+		/** Classes applied to this column's header and body cells, e.g. `hidden md:table-cell`. */
+		className?: string;
+	}
+}
 
 type DataTableProps<TData> = {
 	columns: ColumnDef<TData>[];
 	data: TData[];
 	emptyMessage?: string;
 	initialSorting?: SortingState;
-	/** Columns hidden by default; users can re-show them via the toolbar view options. */
+	/** Columns hidden by default; users can re-show them via the toolbar's column menu. */
 	initialColumnVisibility?: VisibilityState;
+	/** Display names per column id for the toolbar's column menu; falls back to the raw id. */
+	columnLabels?: Record<string, string>;
 	/** Enable client-side pagination at this page size; omit to render every row. */
 	pageSize?: number;
-	/** Controlled global filter value; manage the input in your toolbar. */
-	globalFilter?: string;
-	/** Global filter matcher; defaults to a case-insensitive substring match. */
-	globalFilterFn?: FilterFnOption<TData>;
+	/** Placeholder for the toolbar's fuzzy search box; omit to render no search box. */
+	searchPlaceholder?: string;
+	/** Domain-specific filter controls, rendered in the toolbar beside the search box. */
+	filters?: ReactNode;
+	/** Stable identifier used to preserve row state when the data changes. */
+	getRowId?: TableOptions<TData>["getRowId"];
 	getRowClassName?: (row: TData) => string | undefined;
-	/** Rendered above the table; receives the table instance for counts, filters, etc. */
-	toolbar?: (table: TanstackTable<TData>) => React.ReactNode;
 	/**
 	 * Content for a row's expanded detail panel. Supplying this turns on row
 	 * expansion end to end: a leading chevron column, whole-row click, and a11y
@@ -49,13 +61,15 @@ export function DataTable<TData>({
 	emptyMessage = "No results.",
 	initialSorting = [],
 	initialColumnVisibility = {},
+	columnLabels,
 	pageSize,
-	globalFilter,
-	globalFilterFn = "includesString",
+	searchPlaceholder,
+	filters,
+	getRowId,
 	getRowClassName,
-	toolbar,
 	renderDetail,
 }: DataTableProps<TData>) {
+	const [globalFilter, setGlobalFilter] = useState("");
 	const [sorting, setSorting] = useState<SortingState>(initialSorting);
 	const [columnVisibility, setColumnVisibility] =
 		useState<VisibilityState>(initialColumnVisibility);
@@ -93,13 +107,30 @@ export function DataTable<TData>({
 		getPaginationRowModel: pageSize ? getPaginationRowModel() : undefined,
 		getExpandedRowModel: renderDetail ? getExpandedRowModel() : undefined,
 		getRowCanExpand: renderDetail ? () => true : undefined,
+		getRowId,
 		initialState: pageSize ? { pagination: { pageSize } } : undefined,
-		globalFilterFn,
+		globalFilterFn: fuzzyFilter,
 	});
 
 	return (
 		<div className="space-y-3">
-			{toolbar?.(table)}
+			{(searchPlaceholder || filters) && (
+				<div className="flex flex-wrap items-center gap-2">
+					{searchPlaceholder && (
+						<Input
+							placeholder={searchPlaceholder}
+							value={globalFilter}
+							onChange={(event) => setGlobalFilter(event.target.value)}
+							className="w-full sm:max-w-xs"
+							data-testid="data-table-search"
+						/>
+					)}
+					{filters}
+					<div className="ml-auto">
+						<DataTableViewOptions table={table} labels={columnLabels} />
+					</div>
+				</div>
+			)}
 			{pageSize && <DataTablePagination table={table} />}
 			<div className="rounded-md border">
 				<Table>
@@ -107,7 +138,7 @@ export function DataTable<TData>({
 						{table.getHeaderGroups().map((headerGroup) => (
 							<TableRow key={headerGroup.id}>
 								{headerGroup.headers.map((header) => (
-									<TableHead key={header.id} className="h-9 text-xs">
+									<TableHead key={header.id} className={header.column.columnDef.meta?.className}>
 										{header.isPlaceholder
 											? null
 											: flexRender(header.column.columnDef.header, header.getContext())}
@@ -121,7 +152,7 @@ export function DataTable<TData>({
 							<TableRow>
 								<TableCell
 									colSpan={table.getVisibleFlatColumns().length}
-									className="h-24 text-center text-sm text-muted-foreground"
+									className="h-24 text-center text-muted-foreground"
 									data-testid="data-table-empty"
 								>
 									{emptyMessage}
@@ -157,7 +188,11 @@ export function DataTable<TData>({
 										}}
 									>
 										{row.getVisibleCells().map((cell) => (
-											<TableCell key={cell.id} className="py-2" data-testid="data-table-cell">
+											<TableCell
+												key={cell.id}
+												className={cell.column.columnDef.meta?.className}
+												data-testid="data-table-cell"
+											>
 												{flexRender(cell.column.columnDef.cell, cell.getContext())}
 											</TableCell>
 										))}
@@ -166,7 +201,7 @@ export function DataTable<TData>({
 										<TableRow key={`${row.id}-detail`} data-testid="data-table-detail-row">
 											<TableCell
 												colSpan={table.getVisibleFlatColumns().length}
-												className="bg-muted/30 p-4"
+												className="whitespace-normal bg-muted/30 p-4"
 											>
 												{renderDetail(row.original)}
 											</TableCell>

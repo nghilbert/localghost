@@ -7,11 +7,10 @@ import { render } from "#/test/utils";
 
 type Fruit = { name: string; count: number };
 
-const fruits: Fruit[] = [
-	{ name: "banana", count: 5 },
-	{ name: "apple", count: 2 },
-	{ name: "cherry", count: 9 },
-];
+const banana: Fruit = { name: "banana", count: 5 };
+const apple: Fruit = { name: "apple", count: 2 };
+const cherry: Fruit = { name: "cherry", count: 9 };
+const fruits: Fruit[] = [banana, apple, cherry];
 
 const columns: ColumnDef<Fruit>[] = [
 	{
@@ -65,10 +64,20 @@ describe("DataTable", () => {
 		await expect.poll(() => rowTexts(screen)).toEqual(["apple", "banana", "cherry"]);
 	});
 
-	it("filters rows via the controlled global filter", async () => {
-		const screen = await render(<DataTable columns={columns} data={fruits} globalFilter="cher" />);
+	it("fuzzy-filters rows as the toolbar search box is typed into", async () => {
+		const screen = await render(
+			<DataTable columns={columns} data={fruits} searchPlaceholder="Search fruit…" />,
+		);
+
+		await screen.getByTestId("data-table-search").fill("cher");
 
 		await expect.poll(() => rowTexts(screen)).toEqual(["cherry"]);
+	});
+
+	it("renders no toolbar when neither a search box nor filters are requested", async () => {
+		const screen = await render(<DataTable columns={columns} data={fruits} />);
+
+		await expect.element(screen.getByTestId("data-table-search")).not.toBeInTheDocument();
 	});
 
 	it("applies getRowClassName to data rows", async () => {
@@ -106,18 +115,16 @@ describe("DataTable", () => {
 		await expect.element(screen.getByTestId("data-table-sort-count")).not.toBeInTheDocument();
 	});
 
-	it("renders the toolbar with a live table instance", async () => {
+	it("renders caller-supplied filters in the toolbar", async () => {
 		const screen = await render(
 			<DataTable
 				columns={columns}
 				data={fruits}
-				toolbar={(table) => (
-					<div data-testid="toolbar-probe">{table.getRowModel().rows.length} rows</div>
-				)}
+				filters={<div data-testid="filters-probe">status filter</div>}
 			/>,
 		);
 
-		await expect.element(screen.getByTestId("toolbar-probe")).toHaveTextContent("3 rows");
+		await expect.element(screen.getByTestId("filters-probe")).toHaveTextContent("status filter");
 	});
 
 	describe("row expansion", () => {
@@ -185,6 +192,37 @@ describe("DataTable", () => {
 
 			await expect.poll(() => screen.getByTestId("data-table-detail-row").all().length).toBe(1);
 			await expect.element(screen.getByTestId("detail-content")).toHaveTextContent("apple details");
+		});
+
+		it("keeps expanded content attached to a stable row id as data changes", async () => {
+			const renderTable = ({ data }: { data: Fruit[] }) => (
+				<DataTable
+					columns={columns}
+					data={data}
+					searchPlaceholder="Search fruit…"
+					getRowId={(row) => row.name}
+					renderDetail={(row) => <div data-testid="detail-content">{row.name} details</div>}
+				/>
+			);
+			const screen = await render(renderTable({ data: fruits }));
+
+			await screen.getByTestId("data-table-row").first().click();
+			await expect
+				.element(screen.getByTestId("detail-content"))
+				.toHaveTextContent("banana details");
+
+			await screen.rerender(renderTable({ data: [apple, cherry, banana] }));
+			await expect
+				.element(screen.getByTestId("detail-content"))
+				.toHaveTextContent("banana details");
+
+			await screen.getByTestId("data-table-search").fill("apple");
+			await expect.element(screen.getByTestId("data-table-detail-row")).not.toBeInTheDocument();
+
+			await screen.getByTestId("data-table-search").fill("");
+			await expect
+				.element(screen.getByTestId("detail-content"))
+				.toHaveTextContent("banana details");
 		});
 	});
 });
