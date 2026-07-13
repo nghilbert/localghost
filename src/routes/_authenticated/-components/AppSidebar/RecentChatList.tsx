@@ -24,6 +24,7 @@ import {
 	SidebarGroup,
 	SidebarGroupContent,
 	SidebarGroupLabel,
+	SidebarInput,
 	SidebarMenu,
 	SidebarMenuAction,
 	SidebarMenuButton,
@@ -34,10 +35,16 @@ export function RecentChatList() {
 	const { conversations, deleteConversation } = useConversations();
 	const [renamingId, setRenamingId] = useState<string | null>(null);
 	const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+	const [search, setSearch] = useState("");
 	const navigate = useNavigate();
 
 	const { conversationId: currentConversationId } = useParams({ strict: false });
 	const pendingDelete = conversations.find((c) => c.id === pendingDeleteId);
+
+	const query = search.trim().toLowerCase();
+	const visibleConversations = query
+		? conversations.filter((c) => (c.title ?? "").toLowerCase().includes(query))
+		: conversations;
 
 	function confirmDelete(id: string) {
 		deleteConversation.mutate(id, {
@@ -54,8 +61,18 @@ export function RecentChatList() {
 				Recent Chats
 			</SidebarGroupLabel>
 			<SidebarGroupContent>
+				{conversations.length > 0 && (
+					<SidebarInput
+						type="search"
+						placeholder="Search chats"
+						value={search}
+						onChange={(event) => setSearch(event.target.value)}
+						data-testid="chat-search-input"
+						className="mb-1"
+					/>
+				)}
 				<SidebarMenu>
-					{conversations.map((conversation) => (
+					{visibleConversations.map((conversation) => (
 						<SidebarMenuItem key={conversation.id}>
 							{renamingId === conversation.id ? (
 								<ChatRenameForm conversation={conversation} onDone={() => setRenamingId(null)} />
@@ -96,6 +113,9 @@ export function RecentChatList() {
 					))}
 					{conversations.length === 0 && (
 						<p className="px-2 py-3 text-xs text-muted-foreground">No chats yet.</p>
+					)}
+					{conversations.length > 0 && visibleConversations.length === 0 && (
+						<p className="px-2 py-3 text-xs text-muted-foreground">No chats match your search.</p>
 					)}
 				</SidebarMenu>
 			</SidebarGroupContent>
