@@ -16,6 +16,7 @@ export const auth = betterAuth({
 			systemPrompt: { type: "string", required: false, input: false },
 			temperature: { type: "number", required: false, input: false },
 		},
+		deleteUser: { enabled: true },
 	},
 	plugins: [tanstackStartCookies()],
 });

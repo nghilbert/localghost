@@ -19,6 +19,17 @@ export const accountFormSchema = z.object({
 	temperature: z.number().min(0).max(2),
 });
 
+export const changePasswordFormSchema = z
+	.object({
+		currentPassword: z.string().min(1, "Current password is required"),
+		newPassword: z.string().min(8, "New password must be at least 8 characters"),
+		confirmPassword: z.string().min(1, "Please confirm your new password"),
+	})
+	.refine((value) => value.newPassword === value.confirmPassword, {
+		message: "Passwords do not match",
+		path: ["confirmPassword"],
+	});
+
 /** What `POST /api/backup/import` answers with: merge counts per kind. */
 export const importBackupResultSchema = z.object({
 	imported: z.object({
