@@ -5,7 +5,6 @@ import { useState } from "react";
 import { HardwareCard } from "#/features/pull-model/components/HardwareCard";
 import { ModelTable } from "#/features/pull-model/components/ModelTable";
 import { OllamaSetupCard } from "#/features/pull-model/components/OllamaSetupCard";
-import { RecommendedModel } from "#/features/pull-model/components/RecommendedModel";
 import { RemoteOllamaForm } from "#/features/pull-model/components/RemoteOllamaForm";
 import { useModelPull } from "#/features/pull-model/hooks/use-model-pull";
 import { useOllama } from "#/features/pull-model/hooks/use-ollama";
@@ -109,28 +108,17 @@ function LibraryPage() {
 							{isCatalogPending ? (
 								<Skeleton className="h-72 w-full" />
 							) : (
-								<>
-									<RecommendedModel
-										catalog={catalog}
-										installedModels={ollamaStatus.installedModels}
-										hardware={hardware}
-										pulling={pulling}
-										onPull={handlePull}
-										onStop={stop}
-										onDismiss={dismiss}
-									/>
-									<ModelTable
-										catalog={catalog}
-										installedModels={ollamaStatus.installedModels}
-										pulling={pulling}
-										hardware={hardware}
-										endpointId={ollamaStatus.endpointId}
-										onPull={handlePull}
-										onStop={stop}
-										onDismiss={dismiss}
-										onDelete={(model) => setPendingDelete(model)}
-									/>
-								</>
+								<ModelTable
+									catalog={catalog}
+									installedModels={ollamaStatus.installedModels}
+									pulling={pulling}
+									hardware={hardware}
+									endpointId={ollamaStatus.endpointId}
+									onPull={handlePull}
+									onStop={stop}
+									onDismiss={dismiss}
+									onDelete={(model) => setPendingDelete(model)}
+								/>
 							)}
 						</>
 					)

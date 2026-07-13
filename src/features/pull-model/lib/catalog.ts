@@ -117,8 +117,7 @@ export function enrichCatalogModel({
 
 /**
  * Builds the display tags for a catalog model: the raw capability badges plus
- * derived hints the recommender relies on ("fast" for small models, "code" for
- * coding-focused ones).
+ * derived search hints ("fast" for small models, "code" for coding-focused ones).
  */
 export function deriveTags({
 	name,
