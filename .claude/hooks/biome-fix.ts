@@ -3,7 +3,7 @@
 // (exit 2 routes stderr to the model). execFileSync keeps shell expansion away
 // from paths like routes/chat/$conversationId.tsx.
 import { execFileSync } from "node:child_process";
-import { execErrorOutput, onStdin, readToolInputField } from "./hook-input.ts";
+import { execErrorOutput, onStdin, readToolInputField } from "./hook-input";
 
 onStdin((raw) => {
 	const filePath = readToolInputField(raw, "file_path");

@@ -22,7 +22,7 @@
 	},
 	"dependencies": {
 		"@base-ui/react": "^1.6.0",
-		"@dotenvx/dotenvx": "^2.6.0",
+		"@dotenvx/dotenvx": "^2.9.0",
 		"@fontsource-variable/geist": "^5.2.9",
 		"@modelcontextprotocol/sdk": "^1.29.0",
 		"@prisma/adapter-pg": "^7.8.0",
@@ -42,7 +42,7 @@
 		"@tanstack/react-query": "^5.101.2",
 		"@tanstack/react-router": "^1.168.24",
 		"@tanstack/react-router-ssr-query": "^1.167.1",
-		"@tanstack/react-start": "^1.168.27",
+		"@tanstack/react-start": "^1.168.28",
 		"@tanstack/react-table": "^8.21.3",
 		"better-auth": "^1.6.23",
 		"class-variance-authority": "^0.7.1",

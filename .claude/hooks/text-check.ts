@@ -14,7 +14,7 @@ import {
 	onStdin,
 	proseSegments,
 	readToolInputField,
-} from "./hook-input.ts";
+} from "./hook-input";
 
 /** One flagged location inside a piece of text. */
 type Hit = { line: number; label: string; excerpt: string };

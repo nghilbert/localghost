@@ -1,14 +1,14 @@
 import { Combobox as ComboboxPrimitive } from "@base-ui/react";
 import { CheckIcon, ChevronDownIcon, XIcon } from "lucide-react";
-import * as React from "react";
-import { cn } from "#/shared/lib/utils.ts";
-import { Button } from "#/shared/ui/button.tsx";
+import { type ComponentPropsWithRef, useRef } from "react";
+import { cn } from "#/shared/lib/utils";
+import { Button } from "#/shared/ui/button";
 import {
 	InputGroup,
 	InputGroupAddon,
 	InputGroupButton,
 	InputGroupInput,
-} from "#/shared/ui/input-group.tsx";
+} from "#/shared/ui/input-group";
 
 const Combobox = ComboboxPrimitive.Root;
 
@@ -192,7 +192,7 @@ function ComboboxSeparator({ className, ...props }: ComboboxPrimitive.Separator.
 function ComboboxChips({
 	className,
 	...props
-}: React.ComponentPropsWithRef<typeof ComboboxPrimitive.Chips> & ComboboxPrimitive.Chips.Props) {
+}: ComponentPropsWithRef<typeof ComboboxPrimitive.Chips> & ComboboxPrimitive.Chips.Props) {
 	return (
 		<ComboboxPrimitive.Chips
 			data-slot="combobox-chips"
@@ -247,7 +247,7 @@ function ComboboxChipsInput({ className, ...props }: ComboboxPrimitive.Input.Pro
 }
 
 function useComboboxAnchor() {
-	return React.useRef<HTMLDivElement | null>(null);
+	return useRef<HTMLDivElement | null>(null);
 }
 
 export {

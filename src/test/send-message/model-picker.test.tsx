@@ -1,3 +1,4 @@
+import type { ComponentProps, ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { ModelPicker } from "#/features/send-message/components/ChatInput/ModelPicker";
 import { render } from "#/test/utils";
@@ -24,7 +25,7 @@ vi.mock("@tanstack/react-router", async (importOriginal) => ({
 		children,
 		to,
 		...props
-	}: React.ComponentProps<"a"> & { children?: React.ReactNode; to: string }) => (
+	}: ComponentProps<"a"> & { children?: ReactNode; to: string }) => (
 		<a href={to} {...props}>
 			{children}
 		</a>

@@ -52,7 +52,7 @@ type DataTableProps<TData> = {
 	 * expansion end to end: a leading chevron column, whole-row click, and a11y
 	 * wiring are all owned by DataTable itself, not the caller.
 	 */
-	renderDetail?: (row: TData) => React.ReactNode;
+	renderDetail?: (row: TData) => ReactNode;
 };
 
 export function DataTable<TData>({

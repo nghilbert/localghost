@@ -1,27 +1,32 @@
 {
 	"include": ["**/*.ts", "**/*.tsx", ".claude/**/*.ts"],
 	"compilerOptions": {
-		"target": "ES2022",
+		/* Language target and environment */
+		"target": "ES2024",
+		"lib": ["ES2024", "DOM", "DOM.Iterable"],
 		"jsx": "react-jsx",
-		"module": "ESNext",
-		"paths": { "#/*": ["./src/*"] },
-		"lib": ["ES2022", "DOM", "DOM.Iterable"],
 		"types": ["vite/client"],
+		"paths": { "#/*": ["./src/*"] },
 
-		/* Bundler mode */
+		/* Bundler mode: Vite transpiles, TypeScript only type-checks */
+		"module": "preserve",
 		"moduleResolution": "bundler",
-		"allowImportingTsExtensions": true,
-		"verbatimModuleSyntax": true,
+		"moduleDetection": "force",
 		"noEmit": true,
-
-		/* Linting */
+		"esModuleInterop": true,
+		"resolveJsonModule": true,
+		"verbatimModuleSyntax": true,
+		"isolatedModules": true,
 		"erasableSyntaxOnly": true,
 		"skipLibCheck": true,
+
+		/* Strictness */
 		"strict": true,
+		"noImplicitOverride": true,
+		"noUncheckedIndexedAccess": true,
 		"noUnusedLocals": true,
 		"noUnusedParameters": true,
 		"noFallthroughCasesInSwitch": true,
-		"noUncheckedSideEffectImports": true,
-		"noUncheckedIndexedAccess": true
+		"noUncheckedSideEffectImports": true
 	}
 }

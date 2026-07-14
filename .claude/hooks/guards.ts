@@ -4,7 +4,7 @@
 //   Read|Edit|Write|Notebook   -> .env holds real secrets, stays out of the transcript
 //   Edit|Write|Notebook        -> generated files (shadcn ui, routeTree, prisma client) are read-only
 import { basename } from "node:path";
-import { onStdin, readPayloadField, readToolInputField } from "./hook-input.ts";
+import { onStdin, readPayloadField, readToolInputField } from "./hook-input";
 
 function block(message: string): never {
 	console.error(`BLOCKED: ${message}`);
