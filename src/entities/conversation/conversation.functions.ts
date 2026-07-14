@@ -62,13 +62,14 @@ export const getDefaultSelection = createServerFn({ method: "GET" }).handler(asy
  */
 export const createConversation = createServerFn({ method: "POST" })
 	.validator(createConversationInput)
-	.handler(async ({ data: { selection, firstMessage } }) => {
+	.handler(async ({ data: { selection, firstMessage, attachments } }) => {
 		const userId = await getCurrentUserId();
 		return insertConversation({
 			ownerId: userId,
 			endpointId: selection.endpointId,
 			model: selection.model,
 			firstMessage,
+			attachments,
 		});
 	});
 

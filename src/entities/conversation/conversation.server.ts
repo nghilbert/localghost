@@ -58,13 +58,15 @@ export async function insertConversation({
 	endpointId,
 	model,
 	firstMessage,
+	attachments = [],
 }: {
 	ownerId: string;
 	endpointId: string;
 	model: string;
 	firstMessage: string;
+	attachments?: Array<{ dataUrl: string }>;
 }): Promise<{ id: string }> {
-	const message = buildFirstUserMessage(firstMessage);
+	const message = buildFirstUserMessage({ content: firstMessage, images: attachments });
 	return prisma.conversation.create({
 		data: {
 			ownerId,

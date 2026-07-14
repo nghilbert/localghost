@@ -9,6 +9,7 @@ import {
 import type { ModelSelection } from "#/entities/endpoint/types";
 import { ChatInput } from "#/features/send-message/components/ChatInput";
 import { useChatTools } from "#/features/send-message/hooks/use-chat-tools";
+import type { ImageAttachment } from "#/features/send-message/lib/attachments";
 import { storeChatHandoff } from "#/features/send-message/lib/chat-handoff";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from "#/shared/ui/empty";
 
@@ -36,12 +37,18 @@ function NewChatPage() {
 			? { endpointId: fallback.endpointId, model: fallback.model }
 			: null);
 
-	const { controls } = useChatTools({ selection });
+	const { controls, supportsImages } = useChatTools({ selection });
 
 	const startChatMutation = useMutation({
-		mutationFn: async (firstMessage: string) => {
+		mutationFn: async ({
+			firstMessage,
+			attachments,
+		}: {
+			firstMessage: string;
+			attachments: ImageAttachment[];
+		}) => {
 			if (!selection) throw new Error("No model selected");
-			return createConversation({ data: { selection, firstMessage } });
+			return createConversation({ data: { selection, firstMessage, attachments } });
 		},
 		onSuccess: ({ id }) => {
 			storeChatHandoff({
@@ -69,8 +76,11 @@ function NewChatPage() {
 						selection={selection}
 						onSelect={setOverride}
 						tools={controls}
+						supportsImages={supportsImages}
 						isSending={startChatMutation.isPending}
-						sendMessage={(content) => startChatMutation.mutate(content)}
+						sendMessage={(content, attachments) =>
+							startChatMutation.mutate({ firstMessage: content, attachments })
+						}
 					/>
 				</EmptyContent>
 			</Empty>

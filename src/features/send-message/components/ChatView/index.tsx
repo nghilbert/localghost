@@ -17,6 +17,10 @@ import {
 import { ChatInput } from "#/features/send-message/components/ChatInput";
 import { ChatStatus } from "#/features/send-message/components/ChatView/ChatStatus";
 import { useConversation } from "#/features/send-message/hooks/use-conversation";
+import {
+	composeMessageContent,
+	type ImageAttachment,
+} from "#/features/send-message/lib/attachments";
 import { createChatOptions } from "#/features/send-message/lib/chat-client";
 import { takeChatHandoff } from "#/features/send-message/lib/chat-handoff";
 import {
@@ -48,9 +52,11 @@ type ChatViewProps = { conversation: ConversationDetail };
 export function ChatView({ conversation }: ChatViewProps) {
 	const queryClient = useQueryClient();
 
-	const { selection, isReady, controls, resetTools, toolsToSend } = useConversation({
-		conversationId: conversation.id,
-	});
+	const { selection, isReady, controls, resetTools, toolsToSend, supportsImages } = useConversation(
+		{
+			conversationId: conversation.id,
+		},
+	);
 
 	// Ephemeral per-conversation tool selection, sent with each message via
 	// `forwardedProps` and never persisted. `useChat` re-reads `forwardedProps` on
@@ -89,8 +95,8 @@ export function ChatView({ conversation }: ChatViewProps) {
 				: undefined;
 
 	/** Sends, then resets the toggles to defaults so a manual toggle lasts one message. */
-	async function handleSend(content: string) {
-		await sendMessage(content);
+	async function handleSend(content: string, attachments: ImageAttachment[]) {
+		await sendMessage(composeMessageContent({ text: content, attachments }));
 		resetTools();
 	}
 
@@ -220,6 +226,7 @@ export function ChatView({ conversation }: ChatViewProps) {
 					selection={selection}
 					locked
 					tools={controls}
+					supportsImages={supportsImages}
 					sendMessage={handleSend}
 					stop={handleStop}
 				/>

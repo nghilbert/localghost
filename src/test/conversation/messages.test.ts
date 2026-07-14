@@ -23,7 +23,7 @@ function assistantMessage(content: string): UIMessage {
 
 describe("buildFirstUserMessage", () => {
 	it("creates a user message with a single text part", () => {
-		const message = buildFirstUserMessage("hello there");
+		const message = buildFirstUserMessage({ content: "hello there" });
 		expect(message.role).toBe("user");
 		expect(message.parts).toEqual([{ type: "text", content: "hello there" }]);
 		expect(message.id).toBeTruthy();
@@ -31,7 +31,30 @@ describe("buildFirstUserMessage", () => {
 	});
 
 	it("gives each message a unique id", () => {
-		expect(buildFirstUserMessage("a").id).not.toBe(buildFirstUserMessage("a").id);
+		expect(buildFirstUserMessage({ content: "a" }).id).not.toBe(
+			buildFirstUserMessage({ content: "a" }).id,
+		);
+	});
+
+	it("puts image parts ahead of the text part", () => {
+		const message = buildFirstUserMessage({
+			content: "what is this?",
+			images: [{ dataUrl: "data:image/png;base64,AAAA" }],
+		});
+		expect(message.parts).toEqual([
+			{ type: "image", source: { type: "url", value: "data:image/png;base64,AAAA" } },
+			{ type: "text", content: "what is this?" },
+		]);
+	});
+
+	it("omits the text part when the message is image-only", () => {
+		const message = buildFirstUserMessage({
+			content: "",
+			images: [{ dataUrl: "data:image/png;base64,AAAA" }],
+		});
+		expect(message.parts).toEqual([
+			{ type: "image", source: { type: "url", value: "data:image/png;base64,AAAA" } },
+		]);
 	});
 });
 

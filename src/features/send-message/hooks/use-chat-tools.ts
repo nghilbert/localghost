@@ -17,6 +17,7 @@ export function useChatTools({ selection }: { selection: ModelSelection | null }
 		enabled: Boolean(selection),
 	});
 	const supportsTools = capabilities?.supportsTools ?? true;
+	const supportsImages = capabilities?.supportsImages ?? false;
 
 	const { data: availability } = useQuery(toolAvailabilityQueryOptions());
 	const webSearchAvailable = availability?.webSearch ?? false;
@@ -40,6 +41,7 @@ export function useChatTools({ selection }: { selection: ModelSelection | null }
 
 	return {
 		controls,
+		supportsImages,
 		toolsToSend: supportsTools ? enabledTools : [],
 		resetTools,
 	};

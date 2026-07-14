@@ -1,4 +1,5 @@
 import type { ModelMessage } from "@tanstack/ai";
+import type { ImagePart } from "@tanstack/ai/client";
 import type { UIMessage } from "@tanstack/ai-client";
 
 const MAX_HISTORY_MESSAGES = 40;
@@ -56,6 +57,23 @@ export function partsText(parts: UIMessage["parts"]): string {
 	return parts.flatMap((part) => (part.type === "text" ? [part.content] : [])).join("");
 }
 
+/** The image `UIMessage` parts for a set of attachments, each a data-URL source. */
+export function imageMessageParts(images: Array<{ dataUrl: string }>): ImagePart[] {
+	return images.map(
+		(image): ImagePart => ({
+			type: "image",
+			source: { type: "url", value: image.dataUrl },
+		}),
+	);
+}
+
+/** The renderable sources of a message's image parts, in order; empty when none. */
+export function messageImageSources(parts: UIMessage["parts"]): string[] {
+	return parts.flatMap((part) =>
+		part.type === "image" && part.source.type === "url" ? [part.source.value] : [],
+	);
+}
+
 /**
  * Reads the `messages` JSONB blob back as the ai-client's `UIMessage[]`.
  * The one trust boundary between the stored blob and the typed transcript.
@@ -69,11 +87,18 @@ export function storedMessages(value: unknown): UIMessage[] {
  * message lives in the database from the moment the conversation exists instead
  * of riding along in navigation state.
  */
-export function buildFirstUserMessage(content: string): UIMessage {
+export function buildFirstUserMessage({
+	content,
+	images = [],
+}: {
+	content: string;
+	images?: Array<{ dataUrl: string }>;
+}): UIMessage {
+	const textParts: UIMessage["parts"] = content ? [{ type: "text", content }] : [];
 	return {
 		id: crypto.randomUUID(),
 		role: "user",
-		parts: [{ type: "text", content }],
+		parts: [...imageMessageParts(images), ...textParts],
 		createdAt: new Date(),
 	};
 }
@@ -111,7 +136,9 @@ export function editUserMessage({
 }): UIMessage[] {
 	const target = messages.find((message) => message.id === id);
 	if (!target) return messages;
-	const edited: UIMessage = { ...target, parts: [{ type: "text", content }] };
+	// Keep the message's image parts; editing rewrites only its text.
+	const imageParts = target.parts.filter((part) => part.type === "image");
+	const edited: UIMessage = { ...target, parts: [...imageParts, { type: "text", content }] };
 	return [...messages.slice(0, messages.indexOf(target)), edited];
 }
 

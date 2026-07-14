@@ -4,8 +4,14 @@ import { CircleAlertIcon, CopyIcon, OctagonXIcon, PencilIcon, RefreshCwIcon } fr
 import { type KeyboardEvent, useState } from "react";
 import { toast } from "sonner";
 import { Streamdown } from "streamdown";
-import { isInterrupted, partsText, strandedToolCall } from "#/entities/conversation/messages";
+import {
+	isInterrupted,
+	messageImageSources,
+	partsText,
+	strandedToolCall,
+} from "#/entities/conversation/messages";
 import { ActivityTrail } from "#/features/send-message/components/ChatMessage/ActivityTrail";
+import { MessageImages } from "#/features/send-message/components/ChatMessage/MessageImages";
 import { Alert, AlertDescription, AlertTitle } from "#/shared/ui/alert";
 import { Bubble, BubbleContent } from "#/shared/ui/bubble";
 import { Button } from "#/shared/ui/button";
@@ -31,6 +37,7 @@ export function ChatMessage({
 	onEditResend,
 }: ChatMessageProps) {
 	const content = partsText(message.parts);
+	const imageSources = messageImageSources(message.parts);
 	const [isEditing, setIsEditing] = useState(false);
 	const [draft, setDraft] = useState(content);
 
@@ -55,6 +62,7 @@ export function ChatMessage({
 		return (
 			<Message align="end" role="article" aria-label="Your message" data-testid="chat-message">
 				<MessageContent>
+					{imageSources.length > 0 && <MessageImages sources={imageSources} />}
 					{isEditing ? (
 						<InputGroup className="w-full">
 							<InputGroupTextarea
@@ -67,11 +75,13 @@ export function ChatMessage({
 							/>
 						</InputGroup>
 					) : (
-						<Bubble variant="default">
-							<BubbleContent>
-								<p className="whitespace-pre-wrap">{content}</p>
-							</BubbleContent>
-						</Bubble>
+						content && (
+							<Bubble variant="default">
+								<BubbleContent>
+									<p className="whitespace-pre-wrap">{content}</p>
+								</BubbleContent>
+							</Bubble>
+						)
 					)}
 					{isEditing ? (
 						<MessageFooter className="justify-end gap-2">

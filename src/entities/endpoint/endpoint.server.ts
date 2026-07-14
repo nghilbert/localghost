@@ -122,9 +122,11 @@ export async function fetchEndpointModels({
 }
 
 /**
- * Whether a model can use tools: Ollama via `/api/show`, cloud providers via
- * {@link modelSupportsTools}. Any unknown or failing case is assumed capable,
- * never wrongly blocking a working model.
+ * Whether a model can use tools and accept images. Tool support: Ollama via
+ * `/api/show`, cloud providers via {@link modelSupportsTools}; unknown cases are
+ * assumed capable, never wrongly blocking a working model. Image support: Ollama
+ * reports it as the `vision` capability; cloud providers can't be probed, so we
+ * stay permissive and let the model reject an image it can't read.
  */
 export async function probeModelCapabilities({
 	endpointId,
@@ -134,22 +136,25 @@ export async function probeModelCapabilities({
 	endpointId: string;
 	ownerId: string;
 	model: string;
-}): Promise<{ supportsTools: boolean }> {
+}): Promise<{ supportsTools: boolean; supportsImages: boolean }> {
 	const endpoint = await prisma.endpoint.findFirst({ where: { id: endpointId, ownerId } });
-	if (!endpoint) return { supportsTools: true };
+	if (!endpoint) return { supportsTools: true, supportsImages: false };
 	if (endpoint.provider === "ollama") {
 		try {
 			const { capabilities } = await ollamaClient({ host: endpoint.url, timeoutMs: 5000 }).show({
 				model,
 			});
-			return { supportsTools: capabilities.includes("tools") };
+			return {
+				supportsTools: capabilities.includes("tools"),
+				supportsImages: capabilities.includes("vision"),
+			};
 		} catch (error) {
 			console.warn("Ollama capability probe failed; assuming tool support", {
 				url: endpoint.url,
 				model,
 				error,
 			});
-			return { supportsTools: true };
+			return { supportsTools: true, supportsImages: false };
 		}
 	}
 	try {
@@ -159,10 +164,10 @@ export async function probeModelCapabilities({
 			provider: asLLMProvider(endpoint.provider),
 			model,
 		});
-		return { supportsTools };
+		return { supportsTools, supportsImages: true };
 	} catch {
 		// endpointApiKey throws on an undecryptable key; stay optimistic here and
 		// let model listing surface that error.
-		return { supportsTools: true };
+		return { supportsTools: true, supportsImages: true };
 	}
 }
