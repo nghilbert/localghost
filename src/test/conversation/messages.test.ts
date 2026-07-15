@@ -3,14 +3,18 @@ import { describe, expect, it } from "vitest";
 import {
 	awaitingAssistantResponse,
 	buildFirstUserMessage,
+	cumulativeTokenTotals,
 	deriveConversationTitle,
 	editUserMessage,
 	isInterrupted,
+	type MessageUsage,
 	markInterrupted,
+	messageUsage,
 	partsText,
 	sanitizeGeneratedTitle,
 	strandedToolCall,
 	trimHistory,
+	withUsage,
 } from "#/entities/conversation/messages";
 
 function userMessage(content: string): UIMessage {
@@ -97,6 +101,45 @@ describe("markInterrupted", () => {
 		const message = assistantMessage("partial");
 		markInterrupted([message]);
 		expect(isInterrupted(message)).toBe(false);
+	});
+});
+
+const usage: MessageUsage = { promptTokens: 100, completionTokens: 20, totalTokens: 120 };
+
+describe("withUsage / messageUsage", () => {
+	it("stamps usage onto a message and reads it back", () => {
+		const stamped = withUsage(assistantMessage("hi"), usage);
+		expect(messageUsage(stamped)).toEqual(usage);
+	});
+
+	it("reports null for a message with no usage stamped", () => {
+		expect(messageUsage(assistantMessage("hi"))).toBeNull();
+	});
+
+	it("survives the JSON round-trip the persisted blob goes through", () => {
+		const stamped = withUsage(assistantMessage("hi"), usage);
+		const revived: UIMessage = JSON.parse(JSON.stringify(stamped));
+		expect(messageUsage(revived)).toEqual(usage);
+	});
+});
+
+describe("cumulativeTokenTotals", () => {
+	it("runs a total across messages, treating unstamped messages as zero", () => {
+		const totals = cumulativeTokenTotals([
+			userMessage("hi"),
+			withUsage(assistantMessage("a1"), { promptTokens: 10, completionTokens: 5, totalTokens: 15 }),
+			userMessage("more"),
+			withUsage(assistantMessage("a2"), {
+				promptTokens: 30,
+				completionTokens: 10,
+				totalTokens: 40,
+			}),
+		]);
+		expect(totals).toEqual([0, 15, 15, 55]);
+	});
+
+	it("returns an empty array for an empty transcript", () => {
+		expect(cumulativeTokenTotals([])).toEqual([]);
 	});
 });
 

@@ -1,5 +1,5 @@
 import type { ModelMessage } from "@tanstack/ai";
-import type { ImagePart } from "@tanstack/ai/client";
+import type { ImagePart, RunFinishedEvent } from "@tanstack/ai/client";
 import type { UIMessage } from "@tanstack/ai-client";
 
 const MAX_HISTORY_MESSAGES = 40;
@@ -118,6 +118,35 @@ export function markInterrupted(messages: UIMessage[]): UIMessage[] {
 /** Whether {@link markInterrupted} flagged this message when its generation was stopped. */
 export function isInterrupted(message: UIMessage): boolean {
 	return "interrupted" in message && message.interrupted === true;
+}
+
+/** Token counts for one assistant reply, the subset of the stream's usage we display. */
+export type MessageUsage = Pick<
+	NonNullable<RunFinishedEvent["usage"]>,
+	"promptTokens" | "completionTokens" | "totalTokens"
+>;
+
+/** Stamps a completed message with its reported token usage. */
+export function withUsage(message: UIMessage, usage: MessageUsage): UIMessage {
+	const stamped: UIMessage & { usage: MessageUsage } = { ...message, usage };
+	return stamped;
+}
+
+/** The token usage {@link withUsage} stamped on this message, if any. */
+export function messageUsage(message: UIMessage): MessageUsage | null {
+	return "usage" in message && message.usage ? (message.usage as MessageUsage) : null;
+}
+
+/**
+ * Running total tokens spent so far, one entry per message in order (the
+ * context-budget view local models care about). Messages without usage add 0.
+ */
+export function cumulativeTokenTotals(messages: UIMessage[]): number[] {
+	let sum = 0;
+	return messages.map((message) => {
+		sum += messageUsage(message)?.totalTokens ?? 0;
+		return sum;
+	});
 }
 
 /**

@@ -1,3 +1,4 @@
+import { EventType } from "@tanstack/ai/client";
 import { useChat } from "@tanstack/ai-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
@@ -8,11 +9,14 @@ import {
 } from "#/entities/conversation/conversation.functions";
 import {
 	awaitingAssistantResponse,
+	cumulativeTokenTotals,
 	deriveConversationTitle,
 	editUserMessage,
 	historyStartIndex,
+	type MessageUsage,
 	markInterrupted,
 	partsText,
+	withUsage,
 } from "#/entities/conversation/messages";
 import { ChatInput } from "#/features/send-message/components/ChatInput";
 import { ChatStatus } from "#/features/send-message/components/ChatView/ChatStatus";
@@ -72,10 +76,28 @@ export function ChatView({ conversation }: ChatViewProps) {
 	);
 
 	const chatOptions = useMemo(() => createChatOptions(queryClient), [queryClient]);
+	// RUN_FINISHED carries the turn's token usage but arrives as a raw chunk, not
+	// on the message; stash it here and stamp it onto the message once `onFinish`
+	// reports its final id.
+	const pendingUsage = useRef<MessageUsage | undefined>(undefined);
 	const { messages, sendMessage, stop, status, error, reload, setMessages } = useChat({
 		...chatOptions,
 		id: conversation.id,
 		forwardedProps,
+		onChunk: (chunk) => {
+			if (chunk.type === EventType.RUN_FINISHED && chunk.usage) {
+				pendingUsage.current = chunk.usage;
+			}
+		},
+		onFinish: (message) => {
+			const usage = pendingUsage.current;
+			pendingUsage.current = undefined;
+			if (!usage) return;
+			// Replace with `message` (onFinish's authoritative final content), not the
+			// array's own copy of it: `messages` here can lag one render behind, and
+			// stamping usage onto the stale copy would silently drop the last delta.
+			setMessages(messages.map((m) => (m.id === message.id ? withUsage(message, usage) : m)));
+		},
 	});
 	const isStreaming = status === "submitted" || status === "streaming";
 
@@ -180,6 +202,9 @@ export function ChatView({ conversation }: ChatViewProps) {
 	// that message tells the user the model no longer sees what came before.
 	const historyStart = historyStartIndex(messages);
 
+	// Running token total through each message, for the per-message usage tooltip.
+	const cumulativeTokens = useMemo(() => cumulativeTokenTotals(messages), [messages]);
+
 	return (
 		<div className="flex h-full min-h-0 flex-col">
 			<MessageScrollerProvider autoScroll defaultScrollPosition="last-anchor">
@@ -197,6 +222,7 @@ export function ChatView({ conversation }: ChatViewProps) {
 												message={msg}
 												isStreaming={isStreaming && isLastAssistant}
 												pendingLabel={isLastAssistant ? pendingLabel : undefined}
+												conversationTokens={cumulativeTokens[idx]}
 												onRegenerate={
 													isLastAssistant && !isStreaming ? () => void reload() : undefined
 												}

@@ -1,6 +1,6 @@
 import type { UIMessage } from "@tanstack/ai-client";
 import { describe, expect, it } from "vitest";
-import { markInterrupted } from "#/entities/conversation/messages";
+import { markInterrupted, withUsage } from "#/entities/conversation/messages";
 import { ChatMessage } from "#/features/send-message/components/ChatMessage";
 import { render } from "#/test/utils";
 
@@ -137,6 +137,25 @@ describe("ChatMessage", () => {
 			const screen = await render(<ChatMessage message={assistantMessage("`console.log()`")} />);
 
 			await expect.element(screen.getByText("console.log()")).toBeVisible();
+		});
+
+		it("shows a token count once usage is stamped on the message", async () => {
+			const message = withUsage(assistantMessage("done"), {
+				promptTokens: 900,
+				completionTokens: 100,
+				totalTokens: 1000,
+			});
+			const screen = await render(<ChatMessage message={message} />);
+
+			await expect
+				.element(screen.getByTestId("message-token-usage"))
+				.toHaveTextContent("1K tokens");
+		});
+
+		it("shows no token count when usage wasn't stamped", async () => {
+			const screen = await render(<ChatMessage message={assistantMessage("done")} />);
+
+			await expect.element(screen.getByTestId("message-token-usage")).not.toBeInTheDocument();
 		});
 
 		it("renders fenced code blocks", async () => {

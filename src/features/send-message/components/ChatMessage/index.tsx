@@ -7,6 +7,7 @@ import { Streamdown } from "streamdown";
 import {
 	isInterrupted,
 	messageImageSources,
+	messageUsage,
 	partsText,
 	strandedToolCall,
 } from "#/entities/conversation/messages";
@@ -18,6 +19,7 @@ import { Bubble, BubbleContent } from "#/shared/ui/bubble";
 import { Button } from "#/shared/ui/button";
 import { InputGroup, InputGroupTextarea } from "#/shared/ui/input-group";
 import { Message, MessageContent, MessageFooter } from "#/shared/ui/message";
+import { Tooltip, TooltipContent, TooltipTrigger } from "#/shared/ui/tooltip";
 
 function copyToClipboard(text: string) {
 	navigator.clipboard
@@ -26,11 +28,18 @@ function copyToClipboard(text: string) {
 		.catch(() => toast.error("Couldn't copy to clipboard"));
 }
 
+const tokenFormatter = new Intl.NumberFormat("en-US", {
+	notation: "compact",
+	maximumFractionDigits: 1,
+});
+
 type ChatMessageProps = {
 	message: UIMessage;
 	isStreaming?: boolean;
 	/** Overrides the pending head's "Thinking" label (warming up, host unreachable). */
 	pendingLabel?: string;
+	/** Running token total through this message, shown alongside its own usage. */
+	conversationTokens?: number;
 	/** Provided only for the last assistant message; re-requests the response. */
 	onRegenerate?: () => void;
 	/** Provided only when editing is allowed right now; replaces the text and resends. */
@@ -40,6 +49,7 @@ export function ChatMessage({
 	message,
 	isStreaming,
 	pendingLabel,
+	conversationTokens,
 	onRegenerate,
 	onEditResend,
 }: ChatMessageProps) {
@@ -141,6 +151,7 @@ export function ChatMessage({
 	// as text instead of invoking it; explain that instead of printing the JSON.
 	const strandedTool = !isStreaming && content ? strandedToolCall(content) : null;
 	const interrupted = !isStreaming && isInterrupted(message);
+	const usage = !isStreaming ? messageUsage(message) : null;
 
 	return (
 		<Message role="article" aria-label="Assistant message" data-testid="chat-message">
@@ -197,23 +208,40 @@ export function ChatMessage({
 				)}
 
 				{!isStreaming && content && (
-					<MessageFooter className="gap-1 opacity-0 transition-opacity focus-within:opacity-100 group-hover/message:opacity-100">
-						<MessageActionButton
-							icon={<CopyIcon />}
-							ariaLabel="Copy message"
-							tooltip="Copy"
-							testId="copy-message-button"
-							onClick={() => copyToClipboard(content)}
-						/>
-						{onRegenerate && (
-							<MessageActionButton
-								icon={<RefreshCwIcon />}
-								ariaLabel="Regenerate response"
-								tooltip="Regenerate"
-								testId="regenerate-button"
-								onClick={onRegenerate}
-							/>
+					<MessageFooter className="gap-1">
+						{usage && (
+							<Tooltip>
+								<TooltipTrigger
+									render={<span data-testid="message-token-usage" className="cursor-default" />}
+								>
+									{tokenFormatter.format(usage.totalTokens)} tokens
+								</TooltipTrigger>
+								<TooltipContent>
+									{tokenFormatter.format(usage.promptTokens)} prompt +{" "}
+									{tokenFormatter.format(usage.completionTokens)} completion
+									{conversationTokens !== undefined &&
+										` · ${tokenFormatter.format(conversationTokens)} total this conversation`}
+								</TooltipContent>
+							</Tooltip>
 						)}
+						<div className="ml-auto flex items-center gap-1 opacity-0 transition-opacity focus-within:opacity-100 group-hover/message:opacity-100">
+							<MessageActionButton
+								icon={<CopyIcon />}
+								ariaLabel="Copy message"
+								tooltip="Copy"
+								testId="copy-message-button"
+								onClick={() => copyToClipboard(content)}
+							/>
+							{onRegenerate && (
+								<MessageActionButton
+									icon={<RefreshCwIcon />}
+									ariaLabel="Regenerate response"
+									tooltip="Regenerate"
+									testId="regenerate-button"
+									onClick={onRegenerate}
+								/>
+							)}
+						</div>
 					</MessageFooter>
 				)}
 			</MessageContent>
