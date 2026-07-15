@@ -145,8 +145,14 @@ export function ChatView({ conversation }: ChatViewProps) {
 	// the response request below waits a render for the toggles to land in
 	// `forwardedProps` and for intent to be known.
 	const [autoRespond, setAutoRespond] = useState<boolean | null>(null);
+	// A ref, not the `autoRespond` state, gates this: `takeChatHandoff` deletes the
+	// handoff as it reads it, so under StrictMode's double-invoked effect the state
+	// guard (still null in the shared closure) lets the second run consume nothing
+	// and clobber `autoRespond` back to false. The ref is set synchronously first.
+	const handoffChecked = useRef(false);
 	useEffect(() => {
-		if (autoRespond !== null) return;
+		if (handoffChecked.current) return;
+		handoffChecked.current = true;
 		const handoff = takeChatHandoff(conversation.id);
 		if (handoff) {
 			controls.onEnabledToolsChange(handoff.enabledTools);
