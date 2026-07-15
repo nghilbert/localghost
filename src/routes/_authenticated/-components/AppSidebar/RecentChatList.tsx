@@ -1,8 +1,17 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
-import { MoreHorizontalIcon, PencilIcon, Trash2Icon } from "lucide-react";
+import { DownloadIcon, MoreHorizontalIcon, PencilIcon, Trash2Icon } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
+import { conversationQueryOptions } from "#/entities/conversation/conversation.functions";
+import {
+	conversationExportFilename,
+	conversationToJson,
+	conversationToMarkdown,
+} from "#/entities/conversation/export";
 import { useConversations } from "#/features/send-message/hooks/use-conversations";
 import { ChatRenameForm } from "#/routes/_authenticated/-components/AppSidebar/ChatRenameForm";
+import { downloadTextFile } from "#/shared/lib/download";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -18,6 +27,9 @@ import {
 	DropdownMenuContent,
 	DropdownMenuGroup,
 	DropdownMenuItem,
+	DropdownMenuSub,
+	DropdownMenuSubContent,
+	DropdownMenuSubTrigger,
 	DropdownMenuTrigger,
 } from "#/shared/ui/dropdown-menu";
 import {
@@ -33,6 +45,7 @@ import {
 
 export function RecentChatList() {
 	const { conversations, deleteConversation } = useConversations();
+	const queryClient = useQueryClient();
 	const [renamingId, setRenamingId] = useState<string | null>(null);
 	const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 	const [search, setSearch] = useState("");
@@ -45,6 +58,26 @@ export function RecentChatList() {
 	const visibleConversations = query
 		? conversations.filter((c) => (c.title ?? "").toLowerCase().includes(query))
 		: conversations;
+
+	async function exportConversation({ id, format }: { id: string; format: "markdown" | "json" }) {
+		try {
+			const conversation = await queryClient.ensureQueryData(conversationQueryOptions(id));
+			const extension = format === "markdown" ? "md" : "json";
+			downloadTextFile({
+				filename: conversationExportFilename({ title: conversation.title, extension }),
+				text:
+					format === "markdown"
+						? conversationToMarkdown(conversation)
+						: conversationToJson(conversation),
+				type: format === "markdown" ? "text/markdown" : "application/json",
+			});
+			toast.success("Chat exported");
+		} catch (error) {
+			toast.error("Failed to export chat", {
+				description: error instanceof Error ? error.message : undefined,
+			});
+		}
+	}
 
 	function confirmDelete(id: string) {
 		deleteConversation.mutate(id, {
@@ -99,6 +132,28 @@ export function RecentChatList() {
 											<PencilIcon size={13} className="mr-2" />
 											Rename
 										</DropdownMenuItem>
+										<DropdownMenuSub>
+											<DropdownMenuSubTrigger>
+												<DownloadIcon size={13} className="mr-2" />
+												Export
+											</DropdownMenuSubTrigger>
+											<DropdownMenuSubContent>
+												<DropdownMenuItem
+													onClick={() =>
+														void exportConversation({ id: conversation.id, format: "markdown" })
+													}
+												>
+													Markdown
+												</DropdownMenuItem>
+												<DropdownMenuItem
+													onClick={() =>
+														void exportConversation({ id: conversation.id, format: "json" })
+													}
+												>
+													JSON
+												</DropdownMenuItem>
+											</DropdownMenuSubContent>
+										</DropdownMenuSub>
 										<DropdownMenuItem
 											variant="destructive"
 											onClick={() => setPendingDeleteId(conversation.id)}
