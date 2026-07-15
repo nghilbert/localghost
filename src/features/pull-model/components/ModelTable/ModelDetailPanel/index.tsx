@@ -75,7 +75,7 @@ function ModelOverviewCard({ row }: { row: ModelRow }) {
 				{catalog && catalog.capabilities.length > 0 && (
 					<div className="flex flex-wrap gap-1" data-testid="model-detail-capabilities">
 						{catalog.capabilities.map((capability) => (
-							<Badge key={capability} variant="secondary">
+							<Badge key={capability} variant="outline">
 								{capability}
 							</Badge>
 						))}

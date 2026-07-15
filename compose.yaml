@@ -83,7 +83,7 @@ services:
   # COMPOSE_FILE) patches this service for the GPU. Gated by the `ollama` profile
   # so omitting it falls back to a host-native Ollama.
   ollama:
-    image: ollama/ollama
+    image: ollama/ollama:latest
     profiles: [ ollama ]
     volumes:
       - ollama:/root/.ollama
