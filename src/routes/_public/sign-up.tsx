@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { SignUpForm } from "#/features/auth/components/SignUpForm";
+import { SignUpForm } from "#/routes/_public/-components/SignUpForm";
 import {
 	Card,
 	CardContent,
@@ -7,7 +7,7 @@ import {
 	CardFooter,
 	CardHeader,
 	CardTitle,
-} from "#/shared/ui/card";
+} from "#/shared/components/ui/card";
 
 export const Route = createFileRoute("/_public/sign-up")({ component: SignUpPage });
 

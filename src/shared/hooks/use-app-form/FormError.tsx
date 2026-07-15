@@ -1,6 +1,6 @@
 import { CircleAlertIcon } from "lucide-react";
 import type { ReactNode } from "react";
-import { Alert, AlertDescription } from "#/shared/ui/alert";
+import { Alert, AlertDescription } from "#/shared/components/ui/alert";
 
 export function FormError({ children }: { children?: ReactNode }) {
 	if (!children) return null;

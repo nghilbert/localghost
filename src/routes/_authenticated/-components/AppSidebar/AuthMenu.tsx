@@ -1,7 +1,6 @@
 import { Link, useRouteContext } from "@tanstack/react-router";
 import { LogOutIcon, PaletteIcon, SettingsIcon } from "lucide-react";
-import { useSignOut } from "#/features/auth/hooks/use-sign-out";
-import { Avatar, AvatarFallback } from "#/shared/ui/avatar";
+import { Avatar, AvatarFallback } from "#/shared/components/ui/avatar";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -10,8 +9,9 @@ import {
 	DropdownMenuLabel,
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
-} from "#/shared/ui/dropdown-menu";
-import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "#/shared/ui/sidebar";
+} from "#/shared/components/ui/dropdown-menu";
+import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "#/shared/components/ui/sidebar";
+import { useSignOut } from "#/shared/hooks/use-sign-out";
 
 function getFirstTwoInitials(fullName: string) {
 	return fullName

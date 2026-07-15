@@ -1,4 +1,4 @@
-import { ToggleGroup, ToggleGroupItem } from "#/shared/ui/toggle-group";
+import { ToggleGroup, ToggleGroupItem } from "#/shared/components/ui/toggle-group";
 import { useFieldContext } from "..";
 import { FieldShell } from "./FieldShell";
 import type { ComponentFieldProps, FieldOption } from "./types";

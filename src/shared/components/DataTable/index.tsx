@@ -18,9 +18,16 @@ import { Fragment, type ReactNode, useMemo, useState } from "react";
 import { DataTablePagination } from "#/shared/components/DataTable/DataTablePagination";
 import { DataTableViewOptions } from "#/shared/components/DataTable/DataTableViewOptions";
 import { fuzzyFilter } from "#/shared/components/DataTable/fuzzyFilter";
+import { Input } from "#/shared/components/ui/input";
+import {
+	Table,
+	TableBody,
+	TableCell,
+	TableHead,
+	TableHeader,
+	TableRow,
+} from "#/shared/components/ui/table";
 import { cn } from "#/shared/lib/utils";
-import { Input } from "#/shared/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "#/shared/ui/table";
 
 declare module "@tanstack/react-table" {
 	interface ColumnMeta<TData extends RowData, TValue> {

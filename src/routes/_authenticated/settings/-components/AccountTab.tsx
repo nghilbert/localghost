@@ -2,9 +2,6 @@ import { revalidateLogic } from "@tanstack/react-form";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useRouteContext } from "@tanstack/react-router";
 import { useState } from "react";
-import { userSettingsQueryOptions } from "#/entities/user-settings/user-settings.functions";
-import { useSignOut } from "#/features/auth/hooks/use-sign-out";
-import { useAppForm } from "#/shared/hooks/use-app-form";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -15,11 +12,14 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 	AlertDialogTrigger,
-} from "#/shared/ui/alert-dialog";
-import { Button } from "#/shared/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "#/shared/ui/card";
-import { Field, FieldLabel } from "#/shared/ui/field";
-import { Input } from "#/shared/ui/input";
+} from "#/shared/components/ui/alert-dialog";
+import { Button } from "#/shared/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "#/shared/components/ui/card";
+import { Field, FieldLabel } from "#/shared/components/ui/field";
+import { Input } from "#/shared/components/ui/input";
+import { userSettingsQueryOptions } from "#/shared/domain/user-settings/user-settings.functions";
+import { useAppForm } from "#/shared/hooks/use-app-form";
+import { useSignOut } from "#/shared/hooks/use-sign-out";
 import { useChangePassword } from "../-hooks/use-change-password";
 import { useDeleteAccount } from "../-hooks/use-delete-account";
 import { useUpdateAccount } from "../-hooks/use-update-account";

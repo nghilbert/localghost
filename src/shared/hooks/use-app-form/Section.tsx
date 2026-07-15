@@ -1,5 +1,5 @@
 import type { ComponentProps, ReactNode } from "react";
-import { FieldDescription, FieldGroup, FieldLegend, FieldSet } from "#/shared/ui/field";
+import { FieldDescription, FieldGroup, FieldLegend, FieldSet } from "#/shared/components/ui/field";
 
 type SectionProps = ComponentProps<typeof FieldSet> & {
 	legend: ReactNode;

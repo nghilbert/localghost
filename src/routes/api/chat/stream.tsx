@@ -5,16 +5,16 @@ import {
 } from "@tanstack/ai";
 import { EventType } from "@tanstack/ai/client";
 import { createFileRoute } from "@tanstack/react-router";
-import { findConversationWithEndpoint } from "#/entities/conversation/conversation.server";
-import { trimHistory } from "#/entities/conversation/messages";
-import { endpointApiKey } from "#/entities/endpoint/endpoint.server";
-import { ollamaOptionsSchema } from "#/entities/endpoint/schemas";
-import { getModelSetting } from "#/entities/model-setting/model-setting.server";
-import { findUserSettings } from "#/entities/user-settings/user-settings.server";
-import { buildChatTools } from "#/features/send-message/lib/agent.server";
-import { resolveGenerationOptions } from "#/features/send-message/lib/resolve-generation-options";
-import { chatStreamForwardedPropsSchema } from "#/features/send-message/lib/schemas";
-import { buildChatSystemPrompt } from "#/features/send-message/lib/system-prompt";
+import { buildChatTools } from "#/shared/domain/chat/agent.server";
+import { resolveGenerationOptions } from "#/shared/domain/chat/resolve-generation-options";
+import { chatStreamForwardedPropsSchema } from "#/shared/domain/chat/schemas";
+import { buildChatSystemPrompt } from "#/shared/domain/chat/system-prompt";
+import { findConversationWithEndpoint } from "#/shared/domain/conversation/conversation.server";
+import { trimHistory } from "#/shared/domain/conversation/messages";
+import { endpointApiKey } from "#/shared/domain/endpoint/endpoint.server";
+import { ollamaOptionsSchema } from "#/shared/domain/endpoint/schemas";
+import { getModelSetting } from "#/shared/domain/model-setting/model-setting.server";
+import { findUserSettings } from "#/shared/domain/user-settings/user-settings.server";
 import { auth } from "#/shared/lib/auth.server";
 import { asLLMProvider, streamLLMEvents } from "#/shared/lib/llm.server";
 

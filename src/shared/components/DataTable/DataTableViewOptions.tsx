@@ -1,6 +1,6 @@
 import type { Table } from "@tanstack/react-table";
 import { SlidersHorizontalIcon } from "lucide-react";
-import { Button } from "#/shared/ui/button";
+import { Button } from "#/shared/components/ui/button";
 import {
 	DropdownMenu,
 	DropdownMenuCheckboxItem,
@@ -9,7 +9,7 @@ import {
 	DropdownMenuLabel,
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
-} from "#/shared/ui/dropdown-menu";
+} from "#/shared/components/ui/dropdown-menu";
 
 type DataTableViewOptionsProps<TData> = {
 	table: Table<TData>;

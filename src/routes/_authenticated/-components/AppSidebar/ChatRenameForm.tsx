@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
-import { useConversations } from "#/features/send-message/hooks/use-conversations";
+import { Input } from "#/shared/components/ui/input";
+import { useConversations } from "#/shared/domain/conversation/use-conversations";
 import { useAppForm } from "#/shared/hooks/use-app-form";
-import { Input } from "#/shared/ui/input";
 
 type ChatRenameFormProps = {
 	conversation: { id: string; title: string };

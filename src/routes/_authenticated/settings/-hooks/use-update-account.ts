@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { updateUserSettings } from "#/entities/user-settings/user-settings.functions";
+import { updateUserSettings } from "#/shared/domain/user-settings/user-settings.functions";
 import { authClient } from "#/shared/lib/auth-client";
 
 type UpdateAccount = {

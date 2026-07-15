@@ -7,14 +7,14 @@ const { saveMemory, recallMemories, findMemories, removeMemory } = vi.hoisted(()
 	removeMemory: vi.fn(),
 }));
 
-vi.mock("#/entities/memory/memory.server", () => ({
+vi.mock("#/shared/domain/memory/memory.server", () => ({
 	saveMemory,
 	recallMemories,
 	findMemories,
 	removeMemory,
 }));
 
-import { manageMemory } from "#/entities/memory/memory-tool.server";
+import { manageMemory } from "#/shared/domain/memory/memory-tool.server";
 
 const ownerId = "owner-1";
 

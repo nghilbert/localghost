@@ -1,9 +1,9 @@
+import { Field, FieldDescription, FieldLabel, FieldTitle } from "#/shared/components/ui/field";
+import { RadioGroup, RadioGroupItem } from "#/shared/components/ui/radio-group";
 import { useAppForm } from "#/shared/hooks/use-app-form";
 import { cn } from "#/shared/lib/utils";
 import { useTheme } from "#/shared/theme/ThemeContext";
 import { isTheme, MODE_OPTIONS, THEMES } from "#/shared/theme/theme";
-import { Field, FieldDescription, FieldLabel, FieldTitle } from "#/shared/ui/field";
-import { RadioGroup, RadioGroupItem } from "#/shared/ui/radio-group";
 
 export function AppearanceTab() {
 	const { mode, setMode, theme, setTheme } = useTheme();

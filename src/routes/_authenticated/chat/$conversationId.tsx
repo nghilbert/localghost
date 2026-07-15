@@ -1,10 +1,16 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { conversationQueryOptions } from "#/entities/conversation/conversation.functions";
-import { ChatView } from "#/features/send-message/components/ChatView";
-import { Button } from "#/shared/ui/button";
-import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from "#/shared/ui/empty";
-import { Spinner } from "#/shared/ui/spinner";
+import { ChatView } from "#/routes/_authenticated/-components/chat/ChatView";
+import { Button } from "#/shared/components/ui/button";
+import {
+	Empty,
+	EmptyContent,
+	EmptyDescription,
+	EmptyHeader,
+	EmptyTitle,
+} from "#/shared/components/ui/empty";
+import { Spinner } from "#/shared/components/ui/spinner";
+import { conversationQueryOptions } from "#/shared/domain/conversation/conversation.functions";
 
 export const Route = createFileRoute("/_authenticated/chat/$conversationId")({
 	loader: async ({ params, context }) => {

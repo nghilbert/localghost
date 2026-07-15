@@ -1,17 +1,17 @@
 import { useQuery } from "@tanstack/react-query";
 import { DownloadIcon, SquareIcon } from "lucide-react";
-import { useModelPull } from "#/features/pull-model/hooks/use-model-pull";
-import { formatPullDetail } from "#/features/pull-model/lib/format";
-import { activePullsQueryOptions } from "#/features/pull-model/lib/library.functions";
-import { Button } from "#/shared/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "#/shared/ui/popover";
-import { Progress } from "#/shared/ui/progress";
+import { Button } from "#/shared/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "#/shared/components/ui/popover";
+import { Progress } from "#/shared/components/ui/progress";
 import {
 	SidebarMenu,
 	SidebarMenuBadge,
 	SidebarMenuButton,
 	SidebarMenuItem,
-} from "#/shared/ui/sidebar";
+} from "#/shared/components/ui/sidebar";
+import { activePullsQueryOptions } from "#/shared/domain/model/model.functions";
+import { formatPullDetail } from "#/shared/domain/model/pull-format";
+import { useModelPull } from "#/shared/domain/model/use-model-pull";
 
 /**
  * Sidebar-footer notification center: today's only source is model downloads,

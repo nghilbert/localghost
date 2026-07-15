@@ -2,18 +2,11 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { CircleAlertIcon } from "lucide-react";
 import { useState } from "react";
-import { HardwareCard } from "#/features/pull-model/components/HardwareCard";
-import { ModelTable } from "#/features/pull-model/components/ModelTable";
-import { OllamaSetupCard } from "#/features/pull-model/components/OllamaSetupCard";
-import { RemoteOllamaForm } from "#/features/pull-model/components/RemoteOllamaForm";
-import { useModelPull } from "#/features/pull-model/hooks/use-model-pull";
-import { useOllama } from "#/features/pull-model/hooks/use-ollama";
-import {
-	catalogQueryOptions,
-	hardwareQueryOptions,
-	libraryStatusQueryOptions,
-} from "#/features/pull-model/lib/library.functions";
-import { Alert, AlertAction, AlertDescription, AlertTitle } from "#/shared/ui/alert";
+import { HardwareCard } from "#/routes/_authenticated/library/-components/HardwareCard";
+import { ModelTable } from "#/routes/_authenticated/library/-components/ModelTable";
+import { OllamaSetupCard } from "#/routes/_authenticated/library/-components/OllamaSetupCard";
+import { RemoteOllamaForm } from "#/routes/_authenticated/library/-components/RemoteOllamaForm";
+import { Alert, AlertAction, AlertDescription, AlertTitle } from "#/shared/components/ui/alert";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -23,11 +16,24 @@ import {
 	AlertDialogFooter,
 	AlertDialogHeader,
 	AlertDialogTitle,
-} from "#/shared/ui/alert-dialog";
-import { Button } from "#/shared/ui/button";
-import { Item, ItemActions, ItemContent, ItemDescription, ItemTitle } from "#/shared/ui/item";
-import { Separator } from "#/shared/ui/separator";
-import { Skeleton } from "#/shared/ui/skeleton";
+} from "#/shared/components/ui/alert-dialog";
+import { Button } from "#/shared/components/ui/button";
+import {
+	Item,
+	ItemActions,
+	ItemContent,
+	ItemDescription,
+	ItemTitle,
+} from "#/shared/components/ui/item";
+import { Separator } from "#/shared/components/ui/separator";
+import { Skeleton } from "#/shared/components/ui/skeleton";
+import {
+	catalogQueryOptions,
+	hardwareQueryOptions,
+	libraryStatusQueryOptions,
+} from "#/shared/domain/model/model.functions";
+import { useModelPull } from "#/shared/domain/model/use-model-pull";
+import { useOllama } from "#/shared/domain/model/use-ollama";
 
 export const Route = createFileRoute("/_authenticated/library")({
 	head: () => ({ meta: [{ title: "Library · localghost" }] }),

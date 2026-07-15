@@ -3,15 +3,7 @@ import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { DownloadIcon, MoreHorizontalIcon, PencilIcon, Trash2Icon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { conversationQueryOptions } from "#/entities/conversation/conversation.functions";
-import {
-	conversationExportFilename,
-	conversationToJson,
-	conversationToMarkdown,
-} from "#/entities/conversation/export";
-import { useConversations } from "#/features/send-message/hooks/use-conversations";
 import { ChatRenameForm } from "#/routes/_authenticated/-components/AppSidebar/ChatRenameForm";
-import { downloadTextFile } from "#/shared/lib/download";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -21,7 +13,7 @@ import {
 	AlertDialogFooter,
 	AlertDialogHeader,
 	AlertDialogTitle,
-} from "#/shared/ui/alert-dialog";
+} from "#/shared/components/ui/alert-dialog";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -31,7 +23,7 @@ import {
 	DropdownMenuSubContent,
 	DropdownMenuSubTrigger,
 	DropdownMenuTrigger,
-} from "#/shared/ui/dropdown-menu";
+} from "#/shared/components/ui/dropdown-menu";
 import {
 	SidebarGroup,
 	SidebarGroupContent,
@@ -41,7 +33,15 @@ import {
 	SidebarMenuAction,
 	SidebarMenuButton,
 	SidebarMenuItem,
-} from "#/shared/ui/sidebar";
+} from "#/shared/components/ui/sidebar";
+import { conversationQueryOptions } from "#/shared/domain/conversation/conversation.functions";
+import {
+	conversationExportFilename,
+	conversationToJson,
+	conversationToMarkdown,
+} from "#/shared/domain/conversation/export";
+import { useConversations } from "#/shared/domain/conversation/use-conversations";
+import { downloadTextFile } from "#/shared/lib/download";
 
 export function RecentChatList() {
 	const { conversations, deleteConversation } = useConversations();

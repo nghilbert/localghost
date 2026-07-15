@@ -2,9 +2,6 @@ import { revalidateLogic } from "@tanstack/react-form";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { PencilIcon, TrashIcon } from "lucide-react";
 import { useState } from "react";
-import { memoriesQueryOptions } from "#/entities/memory/memory.functions";
-import { memoryTextInput } from "#/entities/memory/schemas";
-import { useAppForm } from "#/shared/hooks/use-app-form";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -14,9 +11,9 @@ import {
 	AlertDialogFooter,
 	AlertDialogHeader,
 	AlertDialogTitle,
-} from "#/shared/ui/alert-dialog";
-import { Button } from "#/shared/ui/button";
-import { Input } from "#/shared/ui/input";
+} from "#/shared/components/ui/alert-dialog";
+import { Button } from "#/shared/components/ui/button";
+import { Input } from "#/shared/components/ui/input";
 import {
 	Item,
 	ItemActions,
@@ -24,7 +21,10 @@ import {
 	ItemDescription,
 	ItemGroup,
 	ItemTitle,
-} from "#/shared/ui/item";
+} from "#/shared/components/ui/item";
+import { memoriesQueryOptions } from "#/shared/domain/memory/memory.functions";
+import { memoryTextInput } from "#/shared/domain/memory/schemas";
+import { useAppForm } from "#/shared/hooks/use-app-form";
 import { useMemories } from "../-hooks/use-memories";
 import { MemoryEditForm } from "./MemoryEditForm";
 

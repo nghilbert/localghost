@@ -2,16 +2,22 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
+import { ChatInput } from "#/routes/_authenticated/-components/chat/ChatInput";
+import { useChatTools } from "#/routes/_authenticated/-hooks/use-chat-tools";
+import type { ImageAttachment } from "#/routes/_authenticated/-lib/attachments";
+import { storeChatHandoff } from "#/routes/_authenticated/-lib/chat-handoff";
+import {
+	Empty,
+	EmptyContent,
+	EmptyDescription,
+	EmptyHeader,
+	EmptyTitle,
+} from "#/shared/components/ui/empty";
 import {
 	createConversation,
 	defaultSelectionQueryOptions,
-} from "#/entities/conversation/conversation.functions";
-import type { ModelSelection } from "#/entities/endpoint/types";
-import { ChatInput } from "#/features/send-message/components/ChatInput";
-import { useChatTools } from "#/features/send-message/hooks/use-chat-tools";
-import type { ImageAttachment } from "#/features/send-message/lib/attachments";
-import { storeChatHandoff } from "#/features/send-message/lib/chat-handoff";
-import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from "#/shared/ui/empty";
+} from "#/shared/domain/conversation/conversation.functions";
+import type { ModelSelection } from "#/shared/domain/endpoint/types";
 
 export const Route = createFileRoute("/_authenticated/new")({
 	head: () => ({ meta: [{ title: "New chat · localghost" }] }),

@@ -1,6 +1,12 @@
 import { type ErrorComponentProps, useRouter } from "@tanstack/react-router";
-import { Button } from "#/shared/ui/button";
-import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from "#/shared/ui/empty";
+import { Button } from "#/shared/components/ui/button";
+import {
+	Empty,
+	EmptyContent,
+	EmptyDescription,
+	EmptyHeader,
+	EmptyTitle,
+} from "#/shared/components/ui/empty";
 
 /** Router-wide error boundary: renders at the failing match, inside the app shell. */
 export function RouteErrorScreen({ error, reset }: ErrorComponentProps) {

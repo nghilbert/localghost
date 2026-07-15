@@ -4,7 +4,7 @@ import {
 	conversationExportFilename,
 	conversationToJson,
 	conversationToMarkdown,
-} from "#/entities/conversation/export";
+} from "#/shared/domain/conversation/export";
 
 function userMessage(content: string, id = "u1"): UIMessage {
 	return { id, role: "user", parts: [{ type: "text", content }] };

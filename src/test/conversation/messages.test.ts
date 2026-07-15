@@ -15,7 +15,7 @@ import {
 	strandedToolCall,
 	trimHistory,
 	withUsage,
-} from "#/entities/conversation/messages";
+} from "#/shared/domain/conversation/messages";
 
 function userMessage(content: string): UIMessage {
 	return { id: "u1", role: "user", parts: [{ type: "text", content }] };

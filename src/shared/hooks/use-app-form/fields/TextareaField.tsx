@@ -1,4 +1,4 @@
-import { Textarea } from "#/shared/ui/textarea";
+import { Textarea } from "#/shared/components/ui/textarea";
 import { useFieldContext } from "..";
 import { FieldShell } from "./FieldShell";
 import type { ComponentFieldProps } from "./types";

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { perModelOptionsSchema } from "#/entities/model-setting/schemas";
+import { perModelOptionsSchema } from "#/shared/domain/model-setting/schemas";
 
 describe("perModelOptionsSchema", () => {
 	it("accepts the curated subset of Ollama options", () => {

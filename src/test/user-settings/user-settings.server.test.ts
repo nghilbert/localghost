@@ -9,7 +9,10 @@ vi.mock("#/shared/lib/db.server", () => ({
 	prisma: { user: { findUnique: userFindUnique, update: userUpdate } },
 }));
 
-import { findUserSettings, saveUserSettings } from "#/entities/user-settings/user-settings.server";
+import {
+	findUserSettings,
+	saveUserSettings,
+} from "#/shared/domain/user-settings/user-settings.server";
 
 beforeEach(() => {
 	vi.clearAllMocks();

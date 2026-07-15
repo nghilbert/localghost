@@ -15,7 +15,10 @@ vi.mock("#/shared/lib/ollama/client.server", () => ({
 	ollamaClient: () => ({ ps: ollamaPs }),
 }));
 
-import { patchConversation, probeModelRunState } from "#/entities/conversation/conversation.server";
+import {
+	patchConversation,
+	probeModelRunState,
+} from "#/shared/domain/conversation/conversation.server";
 
 beforeEach(() => {
 	vi.clearAllMocks();

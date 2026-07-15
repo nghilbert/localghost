@@ -1,6 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import type { ComponentProps, ElementType } from "react";
-import type { Field } from "#/shared/ui/field";
+import type { Field } from "#/shared/components/ui/field";
 
 export type BaseFieldProps = {
 	label: string;

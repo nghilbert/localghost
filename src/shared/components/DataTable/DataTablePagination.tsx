@@ -5,7 +5,7 @@ import {
 	PaginationItem,
 	PaginationNext,
 	PaginationPrevious,
-} from "#/shared/ui/pagination";
+} from "#/shared/components/ui/pagination";
 
 type DataTablePaginationProps<TData> = {
 	table: Table<TData>;

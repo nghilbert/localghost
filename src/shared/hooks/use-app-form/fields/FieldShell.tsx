@@ -1,5 +1,11 @@
 import type { ComponentProps, ReactNode } from "react";
-import { Field, FieldContent, FieldDescription, FieldError, FieldLabel } from "#/shared/ui/field";
+import {
+	Field,
+	FieldContent,
+	FieldDescription,
+	FieldError,
+	FieldLabel,
+} from "#/shared/components/ui/field";
 import { useFieldContext } from "..";
 
 type FieldShellProps = {

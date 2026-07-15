@@ -6,7 +6,7 @@ const { decrypt } = vi.hoisted(() => ({ decrypt: vi.fn() }));
 vi.mock("#/shared/lib/crypto.server", () => ({ decrypt, encrypt: vi.fn() }));
 vi.mock("#/shared/lib/db.server", () => ({ prisma: {} }));
 
-import { endpointApiKey, toClientEndpoint } from "#/entities/endpoint/endpoint.server";
+import { endpointApiKey, toClientEndpoint } from "#/shared/domain/endpoint/endpoint.server";
 
 beforeEach(() => {
 	vi.clearAllMocks();

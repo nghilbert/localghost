@@ -6,7 +6,7 @@ import {
 	SidebarMenu,
 	SidebarMenuButton,
 	SidebarMenuItem,
-} from "#/shared/ui/sidebar";
+} from "#/shared/components/ui/sidebar";
 
 type NavItem = {
 	label: string;

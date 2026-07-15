@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { createMemory, deleteMemory, updateMemory } from "#/entities/memory/memory.functions";
+import { createMemory, deleteMemory, updateMemory } from "#/shared/domain/memory/memory.functions";
 
 /** Saved-memory mutations for the Settings memory tab. */
 export function useMemories() {

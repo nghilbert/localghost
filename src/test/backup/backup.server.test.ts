@@ -34,8 +34,8 @@ vi.mock("#/shared/lib/db.server", () => {
 	};
 });
 
-vi.mock("#/entities/memory/memory.server", () => ({ insertMemory }));
-vi.mock("#/entities/memory/embeddings.server", () => ({ embed }));
+vi.mock("#/shared/domain/memory/memory.server", () => ({ insertMemory }));
+vi.mock("#/shared/domain/memory/embeddings.server", () => ({ embed }));
 
 // `memoryFindMany`/`conversationFindMany` back both exportBackup's row select
 // and importBackup's dedup lookup; each describe block below sets what it needs.

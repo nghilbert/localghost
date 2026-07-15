@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { render as baseRender, type ComponentRenderOptions } from "vitest-browser-react";
-import { TooltipProvider } from "#/shared/ui/tooltip";
+import { TooltipProvider } from "#/shared/components/ui/tooltip";
 
 function Providers({ children }: { children: ReactNode }) {
 	return <TooltipProvider>{children}</TooltipProvider>;

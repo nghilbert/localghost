@@ -1,5 +1,5 @@
 import type { ComponentProps, ReactNode } from "react";
-import { FieldGroup } from "#/shared/ui/field";
+import { FieldGroup } from "#/shared/components/ui/field";
 import { useFormContext } from ".";
 
 type SubmitFormProps = ComponentProps<typeof FieldGroup> & { children: ReactNode };

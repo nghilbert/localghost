@@ -5,8 +5,8 @@ import {
 	InputGroupAddon,
 	InputGroupButton,
 	InputGroupInput,
-} from "#/shared/ui/input-group";
-import { Tooltip, TooltipContent, TooltipTrigger } from "#/shared/ui/tooltip";
+} from "#/shared/components/ui/input-group";
+import { Tooltip, TooltipContent, TooltipTrigger } from "#/shared/components/ui/tooltip";
 import { useFieldContext } from "..";
 import { FieldShell } from "./FieldShell";
 import type { ComponentFieldProps } from "./types";

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { NotificationCenter } from "#/routes/_authenticated/-components/AppSidebar/NotificationCenter";
-import { SidebarProvider } from "#/shared/ui/sidebar";
+import { SidebarProvider } from "#/shared/components/ui/sidebar";
 import { render } from "#/test/utils";
 
 type PullFixture = {
@@ -17,11 +17,11 @@ const { activePulls, stopMock } = vi.hoisted(() => {
 	return { activePulls, stopMock: vi.fn() };
 });
 
-vi.mock("#/features/pull-model/hooks/use-model-pull", () => ({
+vi.mock("#/shared/domain/model/use-model-pull", () => ({
 	useModelPull: () => ({ pulling: {}, pull: vi.fn(), stop: stopMock, dismiss: vi.fn() }),
 }));
 
-vi.mock("#/features/pull-model/lib/library.functions", () => ({
+vi.mock("#/shared/domain/model/model.functions", () => ({
 	activePullsQueryOptions: () => ({ queryKey: ["library", "active-pulls"] }),
 }));
 

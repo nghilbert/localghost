@@ -1,4 +1,4 @@
-import { Input } from "#/shared/ui/input";
+import { Input } from "#/shared/components/ui/input";
 import { useFieldContext } from "..";
 import { FieldShell } from "./FieldShell";
 import type { ComponentFieldProps } from "./types";

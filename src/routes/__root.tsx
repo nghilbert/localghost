@@ -11,13 +11,19 @@ import {
 	Scripts,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
-import { getAuthSession } from "#/features/auth/lib/auth.functions";
+import { Button } from "#/shared/components/ui/button";
+import {
+	Empty,
+	EmptyContent,
+	EmptyDescription,
+	EmptyHeader,
+	EmptyTitle,
+} from "#/shared/components/ui/empty";
+import { Toaster } from "#/shared/components/ui/sonner";
+import { TooltipProvider } from "#/shared/components/ui/tooltip";
+import { getAuthSession } from "#/shared/domain/auth/auth.functions";
 import globalCss from "#/shared/lib/globals.css?url";
 import { ThemeProvider } from "#/shared/theme/ThemeContext";
-import { Button } from "#/shared/ui/button";
-import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from "#/shared/ui/empty";
-import { Toaster } from "#/shared/ui/sonner";
-import { TooltipProvider } from "#/shared/ui/tooltip";
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
 	beforeLoad: async () => ({ auth: await getAuthSession() }),

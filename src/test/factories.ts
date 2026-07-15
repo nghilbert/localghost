@@ -5,7 +5,7 @@ import type {
 	GpuInfo,
 	HardwareInfo,
 	OllamaInstalledModel,
-} from "#/features/pull-model/lib/types";
+} from "#/shared/domain/model/types";
 
 /**
  * Test data factories. Each builder fills irrelevant fields with faker noise,

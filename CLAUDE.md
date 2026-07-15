@@ -5,7 +5,7 @@ Guidance for Claude Code working in this repository.
 ## Non-negotiable Rules
 
 - **Work with the framework:** never hand-roll what a dependency does; no parallel implementation, bridge, or shim. Adopt the library's native model (types, persistence, helpers) even if the diff grows.
-- **shadcn-first:** compose shadcn primitives (consult the MCP registry); no raw HTML where a shadcn equivalent exists, no forking `ui/`. Stack is shadcn on Base UI (`@base-ui/react/*`), not Radix: compose with the `render={<El/>}` prop (Base UI's `asChild`). Themeable via CSS variables only, no hardcoded colors. `src/shared/ui/*` is registry output: prefer regenerating (`npx shadcn@latest add <component> --overwrite`) over hand-editing; a hand-edit is allowed rarely and only with a stated reason (`sonner.tsx`'s `ThemeContext` wiring is the precedent).
+- **shadcn-first:** compose shadcn primitives (consult the MCP registry); no raw HTML where a shadcn equivalent exists, no forking `ui/`. Stack is shadcn on Base UI (`@base-ui/react/*`), not Radix: compose with the `render={<El/>}` prop (Base UI's `asChild`). Themeable via CSS variables only, no hardcoded colors. `src/shared/components/ui/*` is registry output: prefer regenerating (`npx shadcn@latest add <component> --overwrite`) over hand-editing; a hand-edit is allowed rarely and only with a stated reason (`sonner.tsx`'s `ThemeContext` wiring is the precedent).
 - **Prisma:** app model IDs `@default(dbgenerated("uuidv7()")) @db.Uuid`; auth-table IDs `@id @db.Uuid` with no `@default`; all FKs `@db.Uuid`; all camelCase fields `@map("snake_case")`.
 - **Biome:** never `biome-ignore`; fix the real issue.
 - **Server-only:** never import `.server.ts` from client code.
@@ -45,7 +45,7 @@ Commits, pushes, and prisma commands are the user's job (a PreToolUse guard bloc
 - Before finishing, verify your edits: `npm run check`, plus `npm run build` for types.
 - End the summary with one section per logical change: a fenced `git add <paths>`, then the commit message in its own fenced block (imperative subject under 70 chars, one to three sentences of what and why). No co-author or generated-with lines.
 - Prisma: edit `prisma/schema/` only, then tell the user what to run.
-- Never edit generated output (`src/generated/`, `routeTree.gen.ts`); change the source and regenerate. `src/shared/ui/*` is regenerable too, but a rare, stated-reason hand-edit is fine (see shadcn-first above).
+- Never edit generated output (`src/generated/`, `routeTree.gen.ts`); change the source and regenerate. `src/shared/components/ui/*` is regenerable too, but a rare, stated-reason hand-edit is fine (see shadcn-first above).
 
 ## Environment
 
@@ -54,9 +54,9 @@ Copy `.env.example` to `.env`. Required: `POSTGRES_PASSWORD`, `BETTER_AUTH_SECRE
 ## Architecture
 
 - **Framework:** TanStack Start (SSR React, Vite + Hono); file-based routing. Alias `#/` maps to `src/`.
-- **Routes = the pages layer.** `_authenticated.tsx` guards auth and renders the colocated `AppSidebar` shell. A route file owns the `Route` export (loader/head/search) and its page component `<RouteSubject>Page` (`library.tsx` defines `LibraryPage`). A route with multi-file building blocks owns a route directory (`settings.tsx` → `settings/index.tsx`) with kind-based `-`-prefixed segments hidden from route gen (`-components/`, `-hooks/`, `-lib/`), mirroring features' segment folders (`settings/-components/AccountTab.tsx`, `_authenticated/-components/AppSidebar/`); a `-components/` folder is fine with a single member. Server-only logic shared by sibling API route handlers is one `-<name>.server.ts` file (`api/backup/-backup.server.ts`).
+- **Routes = the pages layer.** `_authenticated.tsx` guards auth and renders the colocated `AppSidebar` shell. A route file owns the `Route` export (loader/head/search) and its page component `<RouteSubject>Page` (`library.tsx` defines `LibraryPage`). Code local to a route lives in kind-based `-`-prefixed segments hidden from route gen (`-components/`, `-hooks/`, `-lib/`): beside a single route file (`library.tsx` + `library/-components/`), inside a route directory (`settings/index.tsx` + `settings/-components/`), or at the **common ancestor** of the routes that share it (`_authenticated/-components/chat/` serves both `/new` and `/chat/$id`; `_authenticated/-components/AppSidebar/` serves every authenticated page). A `-components/` folder is fine with a single member. Server-only logic shared by sibling API route handlers is one `-<name>.server.ts` file (`api/backup/-backup.server.ts`).
 - **Auth:** better-auth (email/password); session resolved at root `beforeLoad`.
-- **Data:** TanStack Query + `createServerFn` in co-located `*.functions.ts`, called as `fn({ data })`. A `*.functions.ts` is a thin RPC boundary: validate input, resolve the user, delegate to the sibling `<noun>.server.ts` (owns prisma/crypto/external calls); `queryOptions` colocate at the file bottom. `memory` is the reference split.
+- **Data:** TanStack Query + `createServerFn` in co-located `*.functions.ts`, called as `fn({ data })`. A `*.functions.ts` is a thin RPC boundary: validate input, resolve the user, delegate to the sibling `<noun>.server.ts` (owns prisma/crypto/external calls); `queryOptions` colocate at the file bottom. `shared/domain/memory` is the reference split.
 - **Database:** Prisma 7 + `@prisma/adapter-pg`. Multi-file schema in `prisma/schema/`, client in `src/generated/prisma/`. Import `prisma`, never alias.
 - **Styling:** Tailwind v4; `src/shared/lib/globals.css` is the single CSS entry. Light/dark via `.dark` on `<html>`. `cn()` in `src/shared/lib/utils.ts`. Gotcha: `InputGroup` greys the whole group if any descendant is `disabled` (`has-disabled:`); for a control blocked by fixable state use `aria-disabled` (skips greying, keeps pointer events for its own tooltip). A genuinely disabled control that needs a tooltip needs a span-`render` trigger, since disabled elements swallow pointer events (see `LockedModel`, `ToolsMenu`).
 - **LLM:** `src/shared/lib/llm.server.ts`: `streamLLMEvents(opts)` returns `AsyncIterable<StreamChunk>`; pass `tools: ServerTool[]` to run the agent loop. A data-driven `PROVIDERS` registry handles per-provider URL/header/model-list/options quirks, provider auto-detected from URL. Wraps `@tanstack/ai`'s `chat()`.
@@ -80,31 +80,35 @@ Copy `.env.example` to `.env`. Required: `POSTGRES_PASSWORD`, `BETTER_AUTH_SECRE
 
 ## Code Organization
 
-Four folders, one convention: dependencies flow **one way** `shared → entities → features → routes`. Judgment, not machinery: no layer linter, no barrels.
+Two top-level folders, one convention: dependencies flow **one way** `shared → routes`. Judgment, not machinery: no layer linter, no barrels.
 
 ```
 src/
-  shared/        # framework-agnostic reusables, zero domain knowledge
-    ui/          #   shadcn primitives only (flat files, generated); regenerate, don't fork
-    components/  #   our own reusable components (DataTable/, RouteErrorScreen/)
-    lib/         #   utils, crypto/db/llm/auth/session infra (*.server.ts), ollama SDK client, constants, globals.css
-    hooks/       #   use-app-form/, use-is-mobile
-    theme/       #   ThemeContext provider + theme.ts (app-wide, so shared, not a feature)
-  entities/      # domain nouns, files kept flat: <noun>.server.ts (data access) + <noun>.functions.ts (thin RPC + queryOptions) + schemas
-    endpoint/    #   the core noun other entities lean on (conversation imports it)
-    conversation/   memory/   user-settings/
-  features/      # user interactions (verbs), one slice each; keep components/hooks/lib segment folders
-    auth/  send-message/  pull-model/  manage-endpoints/
-  routes/        # TanStack routing == the pages layer; each route file owns Route + its <X>Page component
+  shared/          # everything used app-wide, not tied to one page
+    domain/        #   domain nouns, flat per noun: <noun>.server.ts (data access) + <noun>.functions.ts (thin RPC + queryOptions) + schemas.ts/types.ts + use-<noun>.ts hooks + any UI shared across routes
+      endpoint/    #     the kernel other nouns lean on (conversation/memory/model-setting import it)
+      conversation/  chat/  memory/  model/  model-setting/  user-settings/  auth/
+    components/    #   reusable components: ui/ (shadcn primitives, generated, flat) + our own (DataTable/, RouteErrorScreen/)
+    lib/           #   domain-free infra (*.server.ts): crypto/db/llm/auth/session, ollama SDK client + url, tools/, constants, globals.css
+    hooks/         #   use-app-form/, use-is-mobile, use-sign-out
+    theme/         #   ThemeContext provider + theme.ts
+  routes/          # TanStack routing == the pages layer; each route file owns Route + its <X>Page component
+    _public/
+      -components/                      # SignInForm, SignUpForm (local to the public pages)
     _authenticated/
-      -components/AppSidebar/       # the shell, colocated (the `-` prefix hides it from route gen)
-      settings/                     # a route directory: index.tsx + -components/ -hooks/ -lib/
+      -components/AppSidebar/           # the shell, shared by every authenticated page
+      -components/chat/  -hooks/  -lib/ # the chat surface, shared by /new and /chat/$id (their common ancestor)
+      library.tsx  library/-components/ library/-lib/   # the Library page UI
+      settings/                         # a route directory: index.tsx + -components/ -hooks/ -lib/
+    api/
+      chat/stream.tsx  backup/-backup.server.ts
 ```
 
-- **One-way deps, by convention.** No imports between features; share downward through `entities/` or `shared/`. Cross-entity imports stay rare (`conversation` importing `endpoint` is the only one today). Routes compose anything below them.
-- **Where a new file goes** (first match wins): (1) used by one component, that component's folder; (2) part of one interaction, that feature's `components`/`hooks`/`lib`; (3) domain data used by 2+ features, `entities/<noun>` flat; (4) domain-free infra or UI, `shared/`; (5) page composition or multi-feature orchestration, the route file, with its multi-file building blocks in a `-`-prefixed sibling folder.
-- **No barrels.** Import the specific module (`#/features/send-message/lib/chat-client`), not a slice root; barrels hurt Vite HMR and tree-shaking. `ComponentName/index.tsx` is a single component, not a re-export.
-- **Entities are flat; features keep `components/hooks/lib`.** A lone hook serving one page lives beside that page, not in a feature. Components at 250+ lines or with sub-components become `ComponentName/index.tsx` folders.
+- **Two layers, by convention.** Everything app-wide lives in `shared/`; `routes/` is URL-addressable pages plus the code colocated to them. Routes import `shared`; **`shared/` never imports `routes/`**. Within `shared/domain`, cross-noun imports stay rare (`conversation`/`memory`/`model-setting` importing `endpoint` is the sanctioned edge).
+- **Where a new file goes — three tiers** (first match wins): (1) used by **one page** → that route's `-components`/`-hooks`/`-lib`; (2) shared by a **subtree of routes** → the common-ancestor `-` folder (chat UI at `_authenticated/-components/chat/`, `AppSidebar` at `_authenticated/-components/`); (3) used **app-wide** — by unrelated routes, an API route, or another domain noun → `shared/`: domain data and its shared UI in `shared/domain/<noun>`, domain-free infra in `shared/lib`, reusable domain-free UI in `shared/components`. A `.server.ts` an API route imports always goes to `shared` (an API route must not reach into another route's `-lib`).
+- **`-` folders are non-route colocation, not a shared layer.** TanStack's `routeFileIgnorePrefix` (`-`) hides them from route generation; import by alias (`#/routes/_authenticated/-components/chat/ChatView`) or relative (`./-components/X`). App-wide code belongs in `shared/`, never buried under `routes/-shared`.
+- **No barrels.** Import the specific module (`#/routes/_authenticated/-lib/chat-client`), not a slice root; barrels hurt Vite HMR and tree-shaking. `ComponentName/index.tsx` is a single component, not a re-export.
+- **`shared/domain` is flat per noun; route colocation uses `-components`/`-hooks`/`-lib`.** Components at 250+ lines or with sub-components become `ComponentName/index.tsx` folders.
 - **File suffixes are build boundaries:** `*.functions.ts` (the `createServerFn` RPC boundary), `*.server.ts` (server-only, stripped from the client bundle); `types.ts` for types, `schemas.ts` for Zod. The `.client.ts` suffix is banned (breaks SSR for isomorphic modules).
 - `src/shared/components/DataTable/` is the only table; never hand-roll `useReactTable`.
 
@@ -112,32 +116,32 @@ src/
 
 The mechanical rules (camelCase Zod schemas, the banned `.client.ts` suffix) are enforced by `.claude/hooks/text-check.ts`. The judgment calls it cannot decide:
 
-- **Slice = the interaction (features) or the noun (entities), not the tab or route.** A verb names a feature (`send-message`, `pull-model`); a noun names an entity (`endpoint`, `conversation`). Placement follows dependency direction, not usage: shared infra an entity needs (`getCurrentUserId`, the ollama client) lives in `shared/lib`, never in a feature the entity would reach up into.
-- **Files:** domain-noun where an entity exists (`conversation.functions.ts`); role-based for non-model infra (`db.server.ts`, `llm.server.ts`).
+- **Slice = the domain noun (`shared/domain/<noun>`) or the page/subtree (routes), not the tab.** A noun names a domain folder (`endpoint`, `conversation`, `chat`, `model`); page-local code is named by its route area. Placement follows dependency direction, not usage: infra a domain noun needs (`getCurrentUserId`, the ollama client) lives in `shared/lib`, and page UI that uses a noun lives in the route — never the reverse.
+- **Files:** domain-noun in `shared/domain` (`conversation.functions.ts`); role-based for domain-free infra (`db.server.ts`, `llm.server.ts`).
 - **Server fns:** `list*` returns an array, `get*` a single entity or aggregate, `create*`/`update*`/`delete*` mutate, action verbs (`scan`/`test`/`register`) where CRUD does not fit.
 - **Layering verbs:** a helper and its wrapping fn may differ in verb (`probeEndpoint` becomes `testEndpoint`) but share the noun and never collide on the exact name.
-- **Components name their role, never their primitive.** Four tiers: (1) **primitives** — `shared/ui/*`, shadcn, kebab-case, named after the primitive (the only place a primitive name is right); (2) **components** — feature `components/` and route `-components/`, PascalCase named after their domain role with a suffix that says what the thing *is* (`Form`, `Card`, `Panel`, `List`, `Item`, `Menu`, `Badge`, `Picker`, `Preview`, `Button`, `Status`, `Controls`, `Filter`, `Nav`, `Step`, `Marker`, `Trail`, `Screen`, `Cell` — extend deliberately); (3) **views** — page-region compositions, suffix `View` (`ChatView`), or `Tab` for a tab panel (`AccountTab`), or `Panel` for a bounded sub-region (`ModelDetailPanel`); (4) **pages** — `<Subject>Page`, inline in the route module (`LibraryPage`). Never suffix by the shadcn primitive a component happens to wrap: the suffix may coincide with a primitive for a thin wrapper (`HardwareCard` is a Card), but the discriminator is the role, not the import — a multi-primitive component (`ChatInput`) has no primitive to name. A bare domain noun with no role suffix is allowed only when the noun makes the role self-evident and a suffix would read worse (the chat triad `ChatView`/`ChatMessage`/`ChatInput`; established product terms like `NotificationCenter`); everything else carries a suffix.
+- **Components name their role, never their primitive.** Four tiers: (1) **primitives** — `shared/components/ui/*`, shadcn, kebab-case, named after the primitive (the only place a primitive name is right); (2) **components** — route `-components/` and shared (`shared/domain/<noun>`, `shared/components/`), PascalCase named after their domain role with a suffix that says what the thing *is* (`Form`, `Card`, `Panel`, `List`, `Item`, `Menu`, `Badge`, `Picker`, `Preview`, `Button`, `Status`, `Controls`, `Filter`, `Nav`, `Step`, `Marker`, `Trail`, `Screen`, `Cell` — extend deliberately); (3) **views** — page-region compositions, suffix `View` (`ChatView`), or `Tab` for a tab panel (`AccountTab`), or `Panel` for a bounded sub-region (`ModelDetailPanel`); (4) **pages** — `<Subject>Page`, inline in the route module (`LibraryPage`). Never suffix by the shadcn primitive a component happens to wrap: the suffix may coincide with a primitive for a thin wrapper (`HardwareCard` is a Card), but the discriminator is the role, not the import — a multi-primitive component (`ChatInput`) has no primitive to name. A bare domain noun with no role suffix is allowed only when the noun makes the role self-evident and a suffix would read worse (the chat triad `ChatView`/`ChatMessage`/`ChatInput`; established product terms like `NotificationCenter`); everything else carries a suffix.
 
 ## Testing
 
-Vitest in `src/test/<area>/` (folders named for the slice they test: the feature verb or entity noun, e.g. `send-message/`, `pull-model/`, `endpoint/`, never by test type), run with `npm run test -- run` (see the "Test complex work" rule for _when_). Two projects split by extension: `*.test.ts` runs in node (`unit`), `*.test.tsx` in headless Chromium via browser mode (`browser`). Browser tests use `render`/`renderHook` from `#/test/utils` (wraps `vitest-browser-react`; both async), interactions via locators (`await screen.getByTestId(...).click()`) or `userEvent` from `vitest/browser`, assertions via `await expect.element(...)` / `expect.poll`. `.claude/hooks/text-check.ts` enforces the mechanical patterns (userEvent over `fireEvent`, no casts, query by `data-testid` not role/label/text). The judgment:
+Vitest in `src/test/<area>/` (folders named for the slice they test: the domain noun or route area, e.g. `chat/`, `model/`, `endpoint/`, `settings/`, never by test type), run with `npm run test -- run` (see the "Test complex work" rule for _when_). Two projects split by extension: `*.test.ts` runs in node (`unit`), `*.test.tsx` in headless Chromium via browser mode (`browser`). Browser tests use `render`/`renderHook` from `#/test/utils` (wraps `vitest-browser-react`; both async), interactions via locators (`await screen.getByTestId(...).click()`) or `userEvent` from `vitest/browser`, assertions via `await expect.element(...)` / `expect.poll`. `.claude/hooks/text-check.ts` enforces the mechanical patterns (userEvent over `fireEvent`, no casts, query by `data-testid` not role/label/text). The judgment:
 
 - **Test our seams, not our dependencies.** Target logic we wrote (wiring, input parsing, transforms, registries, merge/normalize). Litmus: if it would still pass with our code deleted, it tests the library.
 - **Extract pure logic, test it plain** (inline inputs, no `render`, no DB): `toolRows` in `ToolsMenu.tsx`. A `.test.ts` in node beats a browser render it doesn't need.
 - `data-testid` is kebab-case and component-scoped (`model-picker-trigger`); the field/DataTable/ModelPicker tests are the reference. The testid exception: an element a library renders that won't forward one (Streamdown output, a Base UI Slider thumb).
-- Folder = slice: `src/test/pull-model/` tests `src/features/pull-model/`, `src/test/endpoint/` tests `src/entities/endpoint/`. Domain-free infra keeps its `shared/lib` name (`src/test/lib/ollama-url.test.ts`).
+- Folder = slice: `src/test/model/` tests model code (`shared/domain/model` + the Library UI), `src/test/endpoint/` tests `src/shared/domain/endpoint/`, `src/test/chat/` tests the chat surface. Domain-free infra keeps its `shared/lib` name (`src/test/lib/ollama-url.test.ts`).
 - **Derive minimal inputs inline; never commit recorded fixtures.**
 
 ## Feature Map
 
 | Area | Key files |
 |------|-----------|
-| Chat + streaming | feature `src/features/send-message/` (`lib/agent.server.ts`, `lib/chat-client.ts`), entity `src/entities/conversation/`, page `src/routes/_authenticated/chat/$conversationId.tsx`, `src/routes/api/chat/stream.tsx` |
-| Library (core) | feature `src/features/pull-model/` (`lib/ollama/catalog.server.ts` scrapes ollama.com, `lib/catalog.ts` scores hardware fit, `lib/hardware.server.ts` probes the host), page `src/routes/_authenticated/library.tsx`: browse and install local models |
-| Endpoints / providers | entity `src/entities/endpoint/` (the kernel: endpoint api, schemas, query hooks), feature `src/features/manage-endpoints/` (the config UI + `lib/providers.ts` registry) |
-| Memory (pgvector) | entity `src/entities/memory/` (`memory.functions.ts` RPC, `memory.server.ts` data access, `memory-tool.server.ts` agent tool, `embeddings.server.ts`); opt-in per-message tool, browse/delete in Settings |
-| Built-in agent tools | wired in `src/features/send-message/lib/agent.server.ts`; handlers in `src/shared/lib/tools/{web-search,read-url}.server.ts` + `src/entities/memory/memory-tool.server.ts`; client toggle list in `send-message/lib/tool-catalog.ts`, availability in `send-message/lib/tools.functions.ts` |
-| Settings | page `src/routes/_authenticated/settings/` (`index.tsx` + `-components/` tabs + `-hooks/`: account, memory, `manage-endpoints`, theme) |
+| Chat + streaming | chat UI `src/routes/_authenticated/-components/chat/` + `-hooks/` + `-lib/chat-client.ts`, server orchestration `src/shared/domain/chat/` (`agent.server.ts`, `system-prompt.ts`, `tools.functions.ts`), persisted `src/shared/domain/conversation/`, pages `src/routes/_authenticated/{new.tsx,chat/$conversationId.tsx}`, `src/routes/api/chat/stream.tsx` |
+| Library (core) | data `src/shared/domain/model/` (`catalog.server.ts` scrapes ollama.com, `hardware.server.ts` probes the host, `pull-registry.server.ts`, `model.functions.ts`), page UI `src/routes/_authenticated/library.tsx` + `library/-components/ModelTable/` + `library/-lib/catalog.ts` (scores hardware fit): browse and install local models |
+| Endpoints / providers | domain `src/shared/domain/endpoint/` (the kernel: endpoint api, schemas, query hooks), config UI `src/routes/_authenticated/settings/-components/` (`EndpointItem`, `ProviderSetupForm/`) + `-lib/providers.ts` registry |
+| Memory (pgvector) | `src/shared/domain/memory/` (`memory.functions.ts` RPC, `memory.server.ts` data access, `memory-tool.server.ts` agent tool, `embeddings.server.ts`); opt-in per-message tool, browse/delete in Settings |
+| Built-in agent tools | wired in `src/shared/domain/chat/agent.server.ts`; handlers in `src/shared/lib/tools/{web-search,read-url}.server.ts` + `src/shared/domain/memory/memory-tool.server.ts`; client toggle list in `src/routes/_authenticated/-lib/tool-catalog.ts`, availability in `src/shared/domain/chat/tools.functions.ts` |
+| Settings | page `src/routes/_authenticated/settings/` (`index.tsx` + `-components/` tabs + `-hooks/` + `-lib/`: account, memory, endpoints, theme, backup) |
 | Backup/import | `src/routes/api/backup/` (handlers + colocated `-backup.server.ts`): non-destructive merge |
-| Auth | feature `src/features/auth/` (UI + sign-in/out fns), session infra `src/shared/lib/{auth,session}.server.ts` |
+| Auth | forms `src/routes/_public/-components/`, RPC `src/shared/domain/auth/` (`auth.functions.ts`, `schemas.ts`), `use-sign-out` in `shared/hooks`, session infra `src/shared/lib/{auth,session}.server.ts` |
 | Theme | `src/shared/theme/` (provider + constants), Appearance tab in Settings |

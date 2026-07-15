@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { recallMemories } from "#/entities/memory/memory.server";
+import { recallMemories } from "#/shared/domain/memory/memory.server";
 
 const { queryRaw } = vi.hoisted(() => ({ queryRaw: vi.fn() }));
 
 vi.mock("#/shared/lib/db.server", () => ({ prisma: { $queryRaw: queryRaw } }));
-vi.mock("#/entities/memory/embeddings.server", () => ({
+vi.mock("#/shared/domain/memory/embeddings.server", () => ({
 	embed: vi.fn().mockResolvedValue([0.1, 0.2, 0.3]),
 	toVectorLiteral: (v: number[]) => `[${v.join(",")}]`,
 }));

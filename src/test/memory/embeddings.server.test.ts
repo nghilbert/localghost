@@ -5,7 +5,11 @@ const { decrypt, findMany } = vi.hoisted(() => ({ decrypt: vi.fn(), findMany: vi
 vi.mock("#/shared/lib/crypto.server", () => ({ decrypt, encrypt: vi.fn() }));
 vi.mock("#/shared/lib/db.server", () => ({ prisma: { endpoint: { findMany } } }));
 
-import { embed, embeddingModelFor, toVectorLiteral } from "#/entities/memory/embeddings.server";
+import {
+	embed,
+	embeddingModelFor,
+	toVectorLiteral,
+} from "#/shared/domain/memory/embeddings.server";
 
 describe("embeddingModelFor", () => {
 	it("picks a local embedding model for ollama, not the chat model", () => {

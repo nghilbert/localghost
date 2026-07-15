@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
-import { toolAvailabilityQueryOptions } from "#/features/send-message/lib/tools.functions";
-import { SidebarInset, SidebarProvider } from "#/shared/ui/sidebar";
+import { SidebarInset, SidebarProvider } from "#/shared/components/ui/sidebar";
+import { toolAvailabilityQueryOptions } from "#/shared/domain/chat/tools.functions";
 import { AppSidebar } from "./_authenticated/-components/AppSidebar";
 
 export const Route = createFileRoute("/_authenticated")({
