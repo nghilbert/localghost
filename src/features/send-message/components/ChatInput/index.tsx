@@ -10,7 +10,7 @@ import {
 import { toast } from "sonner";
 import type { ModelSelection } from "#/entities/endpoint/types";
 import { AttachmentPreviews } from "#/features/send-message/components/ChatInput/AttachmentPreviews";
-import { LockedModel } from "#/features/send-message/components/ChatInput/LockedModel";
+import { LockedModelLabel } from "#/features/send-message/components/ChatInput/LockedModelLabel";
 import { ModelPicker } from "#/features/send-message/components/ChatInput/ModelPicker";
 import {
 	type ToolControls,
@@ -164,7 +164,7 @@ export function ChatInput({
 			<Separator />
 			<InputGroupAddon align="block-end" className="p-2">
 				{locked ? (
-					<LockedModel selection={selection} />
+					<LockedModelLabel selection={selection} />
 				) : (
 					<ModelPicker selection={selection} onSelect={onSelect} />
 				)}

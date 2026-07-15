@@ -5,7 +5,7 @@ import {
 	ParamsCell,
 	SizeCell,
 	TextCell,
-} from "#/features/pull-model/components/ModelCells";
+} from "#/features/pull-model/components/ModelTable/ModelCells";
 import { parsePullCount, requiredMemoryGb } from "#/features/pull-model/lib/catalog";
 import type { ModelRow } from "#/features/pull-model/lib/model-rows";
 import { DataTableColumnHeader } from "#/shared/components/DataTable/DataTableColumnHeader";

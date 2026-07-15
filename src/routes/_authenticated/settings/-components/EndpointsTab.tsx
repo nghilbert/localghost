@@ -2,7 +2,7 @@ import { CheckCircle2Icon } from "lucide-react";
 import { useEndpoints } from "#/entities/endpoint/use-endpoints";
 import { EndpointItem } from "#/features/manage-endpoints/components/EndpointItem";
 import { ProviderSetupForm } from "#/features/manage-endpoints/components/ProviderSetupForm";
-import { OllamaEndpoint } from "#/features/pull-model/components/OllamaEndpoint";
+import { LocalOllamaForm } from "#/features/pull-model/components/LocalOllamaForm";
 import { Badge } from "#/shared/ui/badge";
 import { FieldDescription, FieldLegend, FieldSet } from "#/shared/ui/field";
 import { ItemGroup } from "#/shared/ui/item";
@@ -14,7 +14,7 @@ export function EndpointsTab() {
 
 	return (
 		<div className="space-y-8">
-			<OllamaEndpoint />
+			<LocalOllamaForm />
 			<FieldSet>
 				<FieldLegend className="flex items-center gap-2">
 					Provider endpoints

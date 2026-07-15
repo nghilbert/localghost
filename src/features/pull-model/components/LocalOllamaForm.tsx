@@ -18,7 +18,7 @@ const DEFAULT_OLLAMA_URL = "http://localhost:11434";
  * URL for pointing at a remote or non-default install. The row itself is managed by
  * Library discovery, so this never offers to add or delete it.
  */
-export function OllamaEndpoint() {
+export function LocalOllamaForm() {
 	const { data: status } = useQuery(libraryStatusQueryOptions());
 	const currentUrl = status?.ollamaUrl ?? DEFAULT_OLLAMA_URL;
 	const currentNumCtx = status?.numCtx ?? null;

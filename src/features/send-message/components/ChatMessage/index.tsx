@@ -13,7 +13,7 @@ import {
 } from "#/entities/conversation/messages";
 import { ActivityTrail } from "#/features/send-message/components/ChatMessage/ActivityTrail";
 import { MessageActionButton } from "#/features/send-message/components/ChatMessage/MessageActionButton";
-import { MessageImages } from "#/features/send-message/components/ChatMessage/MessageImages";
+import { MessageImageGrid } from "#/features/send-message/components/ChatMessage/MessageImageGrid";
 import { Alert, AlertDescription, AlertTitle } from "#/shared/ui/alert";
 import { Bubble, BubbleContent } from "#/shared/ui/bubble";
 import { Button } from "#/shared/ui/button";
@@ -79,7 +79,7 @@ export function ChatMessage({
 		return (
 			<Message align="end" role="article" aria-label="Your message" data-testid="chat-message">
 				<MessageContent>
-					{imageSources.length > 0 && <MessageImages sources={imageSources} />}
+					{imageSources.length > 0 && <MessageImageGrid sources={imageSources} />}
 					{isEditing ? (
 						<InputGroup className="w-full">
 							<InputGroupTextarea

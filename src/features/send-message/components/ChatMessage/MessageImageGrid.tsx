@@ -1,9 +1,9 @@
-type MessageImagesProps = { sources: string[] };
+type MessageImageGridProps = { sources: string[] };
 
 /** The image attachments carried on a message, rendered as bounded thumbnails. */
-export function MessageImages({ sources }: MessageImagesProps) {
+export function MessageImageGrid({ sources }: MessageImageGridProps) {
 	return (
-		<div className="flex flex-wrap gap-2" data-testid="message-images">
+		<div className="flex flex-wrap gap-2" data-testid="message-image-grid">
 			{sources.map((source, index) => (
 				<img
 					key={source}
