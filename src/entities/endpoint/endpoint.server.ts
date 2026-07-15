@@ -2,7 +2,13 @@ import type { z } from "zod/v4";
 import type { Endpoint } from "#/generated/prisma/client";
 import { decrypt, encrypt } from "#/shared/lib/crypto.server";
 import { prisma } from "#/shared/lib/db.server";
-import { asLLMProvider, listModels, modelSupportsTools } from "#/shared/lib/llm.server";
+import {
+	asLLMProvider,
+	type EndpointProbeResult,
+	listModels,
+	modelSupportsTools,
+	probeEndpoint,
+} from "#/shared/lib/llm.server";
 import { ollamaClient } from "#/shared/lib/ollama/client.server";
 import type { createEndpointSchema, updateEndpointSchema } from "./schemas";
 
@@ -119,6 +125,24 @@ export async function fetchEndpointModels({
 		apiKey: endpointApiKey(endpoint),
 		provider: asLLMProvider(endpoint.provider),
 	});
+}
+
+/**
+ * Reachability of a saved endpoint: resolves it by id, decrypts its key, and
+ * probes the provider's model list.
+ * @returns `{ ok: true, modelCount }` when reachable, `{ ok: false, error }` otherwise.
+ * @throws If no endpoint with that id is owned by the user.
+ */
+export async function probeSavedEndpoint({
+	endpointId,
+	ownerId,
+}: {
+	endpointId: string;
+	ownerId: string;
+}): Promise<EndpointProbeResult> {
+	const endpoint = await prisma.endpoint.findFirst({ where: { id: endpointId, ownerId } });
+	if (!endpoint) throw new Error("Not found");
+	return probeEndpoint({ url: endpoint.url, apiKey: endpointApiKey(endpoint) });
 }
 
 /**

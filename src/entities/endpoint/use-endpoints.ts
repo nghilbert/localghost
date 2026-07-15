@@ -32,8 +32,10 @@ export function useEndpoints() {
 	const updateEndpointMutation = useMutation({
 		mutationFn: (vars: { id: string; data: z.input<typeof updateEndpointSchema> }) =>
 			updateEndpoint({ data: vars }),
-		onSuccess: () => {
+		onSuccess: (_result, vars) => {
 			invalidate();
+			// The URL or key may have changed, so re-probe reachability.
+			queryClient.invalidateQueries({ queryKey: ["endpoint-health", vars.id] });
 			toast.success("Provider endpoint updated");
 		},
 		onError: (error) =>

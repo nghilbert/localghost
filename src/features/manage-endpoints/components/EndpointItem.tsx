@@ -2,6 +2,7 @@ import { PencilIcon, Trash2Icon } from "lucide-react";
 import { useState } from "react";
 import type { listEndpoints } from "#/entities/endpoint/endpoint.functions";
 import { EditEndpointForm } from "#/features/manage-endpoints/components/EditEndpointForm";
+import { EndpointHealthBadge } from "#/features/manage-endpoints/components/EndpointHealthBadge";
 import { Button } from "#/shared/ui/button";
 import { Item, ItemActions, ItemContent, ItemDescription, ItemTitle } from "#/shared/ui/item";
 
@@ -31,6 +32,7 @@ export function EndpointItem({ endpoint, onDelete }: { endpoint: Endpoint; onDel
 				</ItemDescription>
 			</ItemContent>
 			<ItemActions>
+				<EndpointHealthBadge endpointId={endpoint.id} />
 				<Button
 					variant="ghost"
 					size="icon-sm"

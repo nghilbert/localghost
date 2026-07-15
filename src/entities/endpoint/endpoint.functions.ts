@@ -8,6 +8,7 @@ import {
 	insertEndpoint,
 	patchEndpoint,
 	probeModelCapabilities,
+	probeSavedEndpoint,
 	removeEndpoint,
 } from "./endpoint.server";
 import {
@@ -69,6 +70,14 @@ export const testEndpoint = createServerFn({ method: "POST" })
 		return probeEndpoint({ url: data.url, apiKey: data.apiKey });
 	});
 
+/** Reachability of a saved endpoint, for a status badge in Settings. */
+export const checkEndpointHealth = createServerFn({ method: "POST" })
+	.validator(endpointIdInput)
+	.handler(async ({ data: { id } }) => {
+		const userId = await getCurrentUserId();
+		return probeSavedEndpoint({ endpointId: id, ownerId: userId });
+	});
+
 /** Whether a model can use tools, so the chat UI can disable the tool picker. */
 export const getModelCapabilities = createServerFn({ method: "POST" })
 	.validator(modelCapabilitiesInput)
@@ -87,6 +96,13 @@ export const endpointModelsQueryOptions = (endpointId: string) =>
 		queryKey: ["endpoint-models", endpointId],
 		queryFn: () => listEndpointModels({ data: { endpointId } }),
 		staleTime: 30_000,
+	});
+
+export const endpointHealthQueryOptions = (endpointId: string) =>
+	queryOptions({
+		queryKey: ["endpoint-health", endpointId],
+		queryFn: () => checkEndpointHealth({ data: { id: endpointId } }),
+		staleTime: 5 * 60_000,
 	});
 
 export const modelCapabilitiesQueryOptions = ({ endpointId, model }: ModelSelection) =>
