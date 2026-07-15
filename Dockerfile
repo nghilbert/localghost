@@ -26,5 +26,7 @@ RUN npm ci --omit=dev
 COPY --from=build /app/.output ./.output
 COPY prisma.config.ts ./
 COPY prisma ./prisma
+# Run unprivileged; the runtime only reads these files and connects to Postgres.
+USER node
 EXPOSE 3000
 CMD ["sh", "-c", "npx prisma migrate deploy && node .output/server/index.mjs"]
