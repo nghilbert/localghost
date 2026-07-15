@@ -39,6 +39,14 @@ describe("ChatMessage", () => {
 		});
 	});
 
+	describe("copying user messages", () => {
+		it("shows a copy button even when onEditResend isn't provided", async () => {
+			const screen = await render(<ChatMessage message={userMessage("Hi")} />);
+
+			await expect.element(screen.getByTestId("copy-user-message-button")).toBeInTheDocument();
+		});
+	});
+
 	describe("editing user messages", () => {
 		it("shows no edit button when onEditResend isn't provided", async () => {
 			const screen = await render(<ChatMessage message={userMessage("Hi")} />);

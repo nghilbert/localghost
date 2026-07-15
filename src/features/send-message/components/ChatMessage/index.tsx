@@ -11,13 +11,20 @@ import {
 	strandedToolCall,
 } from "#/entities/conversation/messages";
 import { ActivityTrail } from "#/features/send-message/components/ChatMessage/ActivityTrail";
+import { MessageActionButton } from "#/features/send-message/components/ChatMessage/MessageActionButton";
 import { MessageImages } from "#/features/send-message/components/ChatMessage/MessageImages";
 import { Alert, AlertDescription, AlertTitle } from "#/shared/ui/alert";
 import { Bubble, BubbleContent } from "#/shared/ui/bubble";
 import { Button } from "#/shared/ui/button";
 import { InputGroup, InputGroupTextarea } from "#/shared/ui/input-group";
 import { Message, MessageContent, MessageFooter } from "#/shared/ui/message";
-import { Tooltip, TooltipContent, TooltipTrigger } from "#/shared/ui/tooltip";
+
+function copyToClipboard(text: string) {
+	navigator.clipboard
+		.writeText(text)
+		.then(() => toast.success("Copied to clipboard"))
+		.catch(() => toast.error("Couldn't copy to clipboard"));
+}
 
 type ChatMessageProps = {
 	message: UIMessage;
@@ -101,27 +108,27 @@ export function ChatMessage({
 							</Button>
 						</MessageFooter>
 					) : (
-						onEditResend && (
+						content && (
 							<MessageFooter className="justify-end gap-1 opacity-0 transition-opacity focus-within:opacity-100 group-hover/message:opacity-100">
-								<Tooltip>
-									<TooltipTrigger
-										render={
-											<Button
-												variant="ghost"
-												size="icon-sm"
-												aria-label="Edit message"
-												data-testid="edit-message-button"
-												onClick={() => {
-													setDraft(content);
-													setIsEditing(true);
-												}}
-											/>
-										}
-									>
-										<PencilIcon />
-									</TooltipTrigger>
-									<TooltipContent>Edit & resend</TooltipContent>
-								</Tooltip>
+								<MessageActionButton
+									icon={<CopyIcon />}
+									ariaLabel="Copy message"
+									tooltip="Copy"
+									testId="copy-user-message-button"
+									onClick={() => copyToClipboard(content)}
+								/>
+								{onEditResend && (
+									<MessageActionButton
+										icon={<PencilIcon />}
+										ariaLabel="Edit message"
+										tooltip="Edit & resend"
+										testId="edit-message-button"
+										onClick={() => {
+											setDraft(content);
+											setIsEditing(true);
+										}}
+									/>
+								)}
 							</MessageFooter>
 						)
 					)}
@@ -191,44 +198,21 @@ export function ChatMessage({
 
 				{!isStreaming && content && (
 					<MessageFooter className="gap-1 opacity-0 transition-opacity focus-within:opacity-100 group-hover/message:opacity-100">
-						<Tooltip>
-							<TooltipTrigger
-								render={
-									<Button
-										variant="ghost"
-										size="icon-sm"
-										aria-label="Copy message"
-										data-testid="copy-message-button"
-										onClick={() => {
-											navigator.clipboard
-												.writeText(content)
-												.then(() => toast.success("Copied to clipboard"))
-												.catch(() => toast.error("Couldn't copy to clipboard"));
-										}}
-									/>
-								}
-							>
-								<CopyIcon />
-							</TooltipTrigger>
-							<TooltipContent>Copy</TooltipContent>
-						</Tooltip>
+						<MessageActionButton
+							icon={<CopyIcon />}
+							ariaLabel="Copy message"
+							tooltip="Copy"
+							testId="copy-message-button"
+							onClick={() => copyToClipboard(content)}
+						/>
 						{onRegenerate && (
-							<Tooltip>
-								<TooltipTrigger
-									render={
-										<Button
-											variant="ghost"
-											size="icon-sm"
-											aria-label="Regenerate response"
-											data-testid="regenerate-button"
-											onClick={onRegenerate}
-										/>
-									}
-								>
-									<RefreshCwIcon />
-								</TooltipTrigger>
-								<TooltipContent>Regenerate</TooltipContent>
-							</Tooltip>
+							<MessageActionButton
+								icon={<RefreshCwIcon />}
+								ariaLabel="Regenerate response"
+								tooltip="Regenerate"
+								testId="regenerate-button"
+								onClick={onRegenerate}
+							/>
 						)}
 					</MessageFooter>
 				)}
