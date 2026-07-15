@@ -44,7 +44,7 @@ onStdin((raw) => {
 		}
 		if (GIT_WRITE.test(command)) {
 			block(
-				"committing and pushing are the user's job. Run the checks yourself (npm run check, npm test run, npm run build), then end your summary with one section per logical change: a fenced `git add <paths>` command followed by the commit message in its own fenced code block (imperative subject under 70 chars, blank line, one to three sentences of what and why), so both are copy-pasteable. No co-author or generated-with lines.",
+				"committing and pushing are the user's job. Run the checks yourself (npm run check, npm test run, npm run build), then end your summary with one section per logical change: a fenced `git add <paths>` command followed by the commit message in its own fenced code block (imperative subject under 70 chars, blank line, one to three sentences of what and why, and a final `Closes #<issue>` line when the change resolves a tracked issue (if one exists), so both are copy-pasteable. No co-author or generated-with lines.",
 			);
 		}
 		process.exit(0);
