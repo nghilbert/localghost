@@ -42,4 +42,14 @@ describe("buildModelRows", () => {
 		expect(row.installed).not.toBeNull();
 		expect(row.pullState).toEqual({ status: "verifying" });
 	});
+
+	it("attaches a :latest-keyed pull to the bare catalog row", () => {
+		const catalog = [makeCatalogModel({ id: "llama3.1" })];
+		const pulling: Record<string, PullProgress> = { "llama3.1:latest": { status: "pulling" } };
+
+		const rows = buildModelRows({ catalog, installedModels: [], pulling });
+
+		expect(rows).toHaveLength(1);
+		expect(rowById(rows, "llama3.1").pullState).toEqual({ status: "pulling" });
+	});
 });

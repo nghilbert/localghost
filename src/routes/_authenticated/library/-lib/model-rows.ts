@@ -25,12 +25,13 @@ export function buildModelRows({
 }): ModelRow[] {
 	const catalogById = new Map(catalog.map((model) => [normalizeModelId(model.id), model]));
 	const installedById = new Map(installedModels.map((m) => [normalizeModelId(m.name), m]));
+	// Pulls are keyed by the exact string the pull started with (`llama3.1:latest`),
+	// so normalize here too or a `:latest` pull never reaches its row.
+	const pullingById = new Map(
+		Object.entries(pulling).map(([model, state]) => [normalizeModelId(model), state]),
+	);
 
-	const ids = new Set([
-		...catalogById.keys(),
-		...installedById.keys(),
-		...Object.keys(pulling).map(normalizeModelId),
-	]);
+	const ids = new Set([...catalogById.keys(), ...installedById.keys(), ...pullingById.keys()]);
 
 	return [...ids].map((id) => {
 		const model = catalogById.get(id) ?? null;
@@ -39,7 +40,7 @@ export function buildModelRows({
 			name: model?.name ?? id,
 			catalog: model,
 			installed: installedById.get(id) ?? null,
-			pullState: pulling[id],
+			pullState: pullingById.get(id),
 		};
 	});
 }
