@@ -1,5 +1,6 @@
 import type { UIMessage } from "@tanstack/ai-client";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { userEvent } from "vitest/browser";
 import { ChatMessage } from "#/routes/_authenticated/-components/chat/ChatMessage";
 import { markInterrupted, withUsage } from "#/shared/domain/conversation/messages";
 import { render } from "#/test/utils";
@@ -122,15 +123,29 @@ describe("ChatMessage", () => {
 			await expect.element(screen.getByTestId("chat-message")).toHaveAttribute("role", "article");
 		});
 
-		it("renders links that open in a new tab without leaking the opener", async () => {
+		it("guards link clicks behind a confirmation that shows the real URL", async () => {
+			const open = vi.spyOn(window, "open").mockReturnValue(null);
 			const screen = await render(
 				<ChatMessage message={assistantMessage("[Link](https://example.com)")} />,
 			);
 
+			// Link safety renders a guarded button instead of a direct anchor, so a
+			// disguised link can't navigate before the destination is revealed.
 			const link = screen.getByText("Link");
-			await expect.element(link).toHaveAttribute("href", "https://example.com/");
-			await expect.element(link).toHaveAttribute("target", "_blank");
-			await expect.element(link).toHaveAttribute("rel", "noopener noreferrer");
+			await expect.element(link).not.toHaveAttribute("href");
+			await link.click();
+			await expect
+				.element(screen.getByTestId("link-safety-dialog"))
+				.toHaveTextContent("https://example.com/");
+			expect(open).not.toHaveBeenCalled();
+
+			// No stylesheet loads in browser tests, so Base UI's inline-styled inert
+			// backdrop covers the unpositioned popup and swallows pointer clicks;
+			// keyboard activation reaches the confirm button regardless.
+			await userEvent.tab();
+			await expect.element(screen.getByTestId("link-safety-open-button")).toHaveFocus();
+			await userEvent.keyboard("{Enter}");
+			expect(open).toHaveBeenCalledWith("https://example.com/", "_blank", "noreferrer");
 		});
 
 		it("renders inline code", async () => {

@@ -3,6 +3,7 @@ import { ChevronRightIcon } from "lucide-react";
 import { useState } from "react";
 import { Streamdown } from "streamdown";
 import { ActivityMarker } from "#/routes/_authenticated/-components/chat/ActivityMarker";
+import { chatLinkSafety } from "#/routes/_authenticated/-components/chat/ChatMessage/LinkSafetyDialog";
 import { useStepDuration } from "#/routes/_authenticated/-hooks/use-step-duration";
 import { Button } from "#/shared/components/ui/button";
 import { Marker, MarkerContent } from "#/shared/components/ui/marker";
@@ -50,7 +51,7 @@ export function ReasoningStep({ content, isThinking }: ReasoningStepProps) {
 			{open && content && (
 				<Streamdown
 					plugins={{ code }}
-					linkSafety={{ enabled: false }}
+					linkSafety={chatLinkSafety}
 					isAnimating={isThinking}
 					className="ml-2 border-l pl-3 text-xs leading-relaxed text-muted-foreground"
 				>

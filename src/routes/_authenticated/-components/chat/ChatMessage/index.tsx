@@ -5,6 +5,7 @@ import { type KeyboardEvent, useState } from "react";
 import { toast } from "sonner";
 import { Streamdown } from "streamdown";
 import { ActivityTrail } from "#/routes/_authenticated/-components/chat/ChatMessage/ActivityTrail";
+import { chatLinkSafety } from "#/routes/_authenticated/-components/chat/ChatMessage/LinkSafetyDialog";
 import { MessageActionButton } from "#/routes/_authenticated/-components/chat/ChatMessage/MessageActionButton";
 import { MessageImageGrid } from "#/routes/_authenticated/-components/chat/ChatMessage/MessageImageGrid";
 import { Alert, AlertDescription, AlertTitle } from "#/shared/components/ui/alert";
@@ -176,7 +177,7 @@ export function ChatMessage({
 						<BubbleContent>
 							<Streamdown
 								plugins={{ code }}
-								linkSafety={{ enabled: false }}
+								linkSafety={chatLinkSafety}
 								caret="block"
 								isAnimating={isStreaming}
 							>
