@@ -16,7 +16,11 @@ import { ollamaOptionsSchema } from "#/shared/domain/endpoint/schemas";
 import { getModelSetting } from "#/shared/domain/model-setting/model-setting.server";
 import { findUserSettings } from "#/shared/domain/user-settings/user-settings.server";
 import { auth } from "#/shared/lib/auth.server";
+import { BodyTooLargeError, readJsonWithLimit } from "#/shared/lib/http.server";
 import { asLLMProvider, streamLLMEvents } from "#/shared/lib/llm.server";
+
+// Roomy enough for a trimmed history carrying image attachments as data URLs.
+const MAX_BODY_BYTES = 64 * 1024 * 1024;
 
 /**
  * Pure chat stream: the client owns persistence, so this route writes nothing
@@ -31,7 +35,14 @@ export const Route = createFileRoute("/api/chat/stream")({
 				if (!session) return new Response("Unauthorized", { status: 401 });
 				const userId = session.user.id;
 
-				const params = await chatParamsFromRequestBody(await request.json());
+				let body: unknown;
+				try {
+					body = await readJsonWithLimit({ request, maxBytes: MAX_BODY_BYTES });
+				} catch (err) {
+					if (err instanceof BodyTooLargeError) return new Response(err.message, { status: 413 });
+					return new Response("Invalid JSON", { status: 400 });
+				}
+				const params = await chatParamsFromRequestBody(body);
 				const forwarded = chatStreamForwardedPropsSchema.safeParse(params.forwardedProps);
 				if (!forwarded.success) return new Response("Bad request", { status: 400 });
 				const { conversationId, enabledTools, timeZone } = forwarded.data;

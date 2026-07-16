@@ -1,6 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { auth } from "#/shared/lib/auth.server";
+import { BodyTooLargeError, readJsonWithLimit } from "#/shared/lib/http.server";
 import { BACKUP_VERSION, importBackup, importPayloadSchema } from "./-backup.server";
+
+// Generous because backups legitimately embed image attachments as data URLs.
+const MAX_IMPORT_BYTES = 256 * 1024 * 1024;
 
 export const Route = createFileRoute("/api/backup/import")({
 	server: {
@@ -11,8 +15,9 @@ export const Route = createFileRoute("/api/backup/import")({
 
 				let raw: unknown;
 				try {
-					raw = await request.json();
-				} catch {
+					raw = await readJsonWithLimit({ request, maxBytes: MAX_IMPORT_BYTES });
+				} catch (err) {
+					if (err instanceof BodyTooLargeError) return new Response(err.message, { status: 413 });
 					return new Response("Invalid JSON", { status: 400 });
 				}
 
