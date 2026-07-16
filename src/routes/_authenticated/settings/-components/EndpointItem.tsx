@@ -2,6 +2,17 @@ import { PencilIcon, Trash2Icon } from "lucide-react";
 import { useState } from "react";
 import { EditEndpointForm } from "#/routes/_authenticated/settings/-components/EditEndpointForm";
 import { EndpointHealthBadge } from "#/routes/_authenticated/settings/-components/EndpointHealthBadge";
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+	AlertDialogTrigger,
+} from "#/shared/components/ui/alert-dialog";
 import { Button } from "#/shared/components/ui/button";
 import {
 	Item,
@@ -47,14 +58,39 @@ export function EndpointItem({ endpoint, onDelete }: { endpoint: Endpoint; onDel
 				>
 					<PencilIcon size={14} />
 				</Button>
-				<Button
-					variant="ghost"
-					size="icon-sm"
-					onClick={onDelete}
-					aria-label="Delete provider endpoint"
-				>
-					<Trash2Icon size={14} />
-				</Button>
+				<AlertDialog>
+					<AlertDialogTrigger
+						render={
+							<Button
+								variant="ghost"
+								size="icon-sm"
+								aria-label="Delete provider endpoint"
+								data-testid="endpoint-delete-button"
+							/>
+						}
+					>
+						<Trash2Icon size={14} />
+					</AlertDialogTrigger>
+					<AlertDialogContent>
+						<AlertDialogHeader>
+							<AlertDialogTitle>Delete "{endpoint.name}"?</AlertDialogTitle>
+							<AlertDialogDescription>
+								Its API key and per-model settings will be permanently deleted, and conversations
+								using it will need a new model. Chat history is kept.
+							</AlertDialogDescription>
+						</AlertDialogHeader>
+						<AlertDialogFooter>
+							<AlertDialogCancel>Cancel</AlertDialogCancel>
+							<AlertDialogAction
+								variant="destructive"
+								data-testid="endpoint-delete-confirm"
+								onClick={onDelete}
+							>
+								Delete
+							</AlertDialogAction>
+						</AlertDialogFooter>
+					</AlertDialogContent>
+				</AlertDialog>
 			</ItemActions>
 		</Item>
 	);
