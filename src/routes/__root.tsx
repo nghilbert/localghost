@@ -11,6 +11,7 @@ import {
 	Scripts,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
+import { RouteErrorScreen } from "#/shared/components/RouteErrorScreen";
 import { Button } from "#/shared/components/ui/button";
 import {
 	Empty,
@@ -28,6 +29,7 @@ import { ThemeProvider } from "#/shared/theme/ThemeContext";
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
 	beforeLoad: async () => ({ auth: await getAuthSession() }),
 	component: RootDocument,
+	errorComponent: RouteErrorScreen,
 	notFoundComponent: NotFound,
 	head: () => ({
 		meta: [{ title: "localghost" }, { name: "description", content: "Self-hosted AI workspace" }],
