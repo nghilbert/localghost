@@ -1,5 +1,10 @@
-import { describe, expect, it, vi } from "vitest";
-import { isPrivateAddress } from "#/shared/lib/ssrf-guard.server";
+import { describe, expect, it } from "vitest";
+import {
+	assertPublicAddresses,
+	assertPublicUrl,
+	isPrivateAddress,
+	UnsafeUrlError,
+} from "#/shared/lib/ssrf-guard.server";
 
 describe("isPrivateAddress", () => {
 	it("flags loopback, private, and link-local IPv4 ranges", () => {
@@ -26,29 +31,46 @@ describe("isPrivateAddress", () => {
 	});
 });
 
-vi.mock("node:dns/promises", async (importOriginal) => {
-	const actual = await importOriginal<typeof import("node:dns/promises")>();
-	return { ...actual, lookup: vi.fn() };
+describe("assertPublicAddresses", () => {
+	it("rejects a multi-record answer mixing public and private addresses", () => {
+		expect(() =>
+			assertPublicAddresses([
+				{ address: "93.184.216.34", family: 4 },
+				{ address: "10.0.0.5", family: 4 },
+			]),
+		).toThrow(UnsafeUrlError);
+	});
+
+	it("rejects an empty answer", () => {
+		expect(() => assertPublicAddresses([])).toThrow(UnsafeUrlError);
+	});
+
+	it("returns an all-public answer unchanged", () => {
+		const addresses = [
+			{ address: "93.184.216.34", family: 4 },
+			{ address: "2606:4700:4700::1111", family: 6 },
+		];
+		expect(assertPublicAddresses(addresses)).toBe(addresses);
+	});
 });
 
-describe("resolvePublicUrl", () => {
-	it("rejects a non-http(s) scheme before resolving", async () => {
-		const { resolvePublicUrl, UnsafeUrlError } = await import("#/shared/lib/ssrf-guard.server");
-		await expect(resolvePublicUrl("file:///etc/passwd")).rejects.toThrow(UnsafeUrlError);
+describe("assertPublicUrl", () => {
+	it("rejects a non-http(s) scheme", () => {
+		expect(() => assertPublicUrl("file:///etc/passwd")).toThrow(UnsafeUrlError);
 	});
 
-	it("rejects a hostname that resolves to a private address", async () => {
-		const { lookup } = await import("node:dns/promises");
-		vi.mocked(lookup).mockResolvedValue({ address: "127.0.0.1", family: 4 });
-		const { resolvePublicUrl, UnsafeUrlError } = await import("#/shared/lib/ssrf-guard.server");
-		await expect(resolvePublicUrl("http://localhost/")).rejects.toThrow(UnsafeUrlError);
+	it("rejects a private literal IP host, including obfuscated forms", () => {
+		expect(() => assertPublicUrl("http://127.0.0.1/")).toThrow(UnsafeUrlError);
+		expect(() => assertPublicUrl("http://[::1]/")).toThrow(UnsafeUrlError);
+		// WHATWG URL normalizes hex IPv4 literals to dotted decimal.
+		expect(() => assertPublicUrl("http://0x7f000001/")).toThrow(UnsafeUrlError);
 	});
 
-	it("allows a hostname that resolves to a public address", async () => {
-		const { lookup } = await import("node:dns/promises");
-		vi.mocked(lookup).mockResolvedValue({ address: "93.184.216.34", family: 4 });
-		const { resolvePublicUrl } = await import("#/shared/lib/ssrf-guard.server");
-		const url = await resolvePublicUrl("https://example.com/");
-		expect(url.hostname).toBe("example.com");
+	it("allows a public literal IP host", () => {
+		expect(assertPublicUrl("http://93.184.216.34/").hostname).toBe("93.184.216.34");
+	});
+
+	it("passes a hostname through without resolving it", () => {
+		expect(assertPublicUrl("https://example.com/").hostname).toBe("example.com");
 	});
 });
