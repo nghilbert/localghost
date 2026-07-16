@@ -42,6 +42,8 @@ export type StreamLLMOptions = {
 	runId?: string;
 	/** Server tools to auto-execute; when present the agent loop runs. */
 	tools?: ServerTool[];
+	/** Aborts the upstream provider request; fire it when the client disconnects. */
+	abortController?: AbortController;
 };
 
 const OPENROUTER_REFERER = "https://localghost.app";
@@ -256,6 +258,7 @@ function baseChatOptions(opts: StreamLLMOptions) {
 		}),
 		threadId: opts.threadId,
 		runId: opts.runId,
+		...(opts.abortController ? { abortController: opts.abortController } : {}),
 		...(opts.tools
 			? { tools: opts.tools, agentLoopStrategy: maxIterations(MAX_AGENT_ROUNDS) }
 			: {}),

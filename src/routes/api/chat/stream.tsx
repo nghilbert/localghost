@@ -62,6 +62,14 @@ export const Route = createFileRoute("/api/chat/stream")({
 					modelOptions,
 				});
 
+				// One controller cancels the whole run: `toServerSentEventsResponse`
+				// fires it when the client drops the SSE connection, and `chat()`
+				// aborts the in-flight provider request instead of generating to
+				// completion against a listener that has gone away.
+				const abortController = new AbortController();
+				if (request.signal.aborted) abortController.abort();
+				else request.signal.addEventListener("abort", () => abortController.abort());
+
 				const source = streamLLMEvents({
 					url: endpoint.url,
 					provider: asLLMProvider(endpoint.provider),
@@ -79,6 +87,7 @@ export const Route = createFileRoute("/api/chat/stream")({
 					threadId: params.threadId,
 					runId: params.runId,
 					tools,
+					abortController,
 				});
 
 				// Translate provider errors into a terminal RUN_ERROR event.
@@ -95,7 +104,7 @@ export const Route = createFileRoute("/api/chat/stream")({
 					}
 				}
 
-				return toServerSentEventsResponse(withErrorHandling());
+				return toServerSentEventsResponse(withErrorHandling(), { abortController });
 			},
 		},
 	},
