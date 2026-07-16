@@ -74,6 +74,19 @@ describe("llm.server", () => {
 			expect(headers.Authorization).toBeUndefined();
 			expect(Object.keys(headers)).toEqual(["Content-Type"]);
 		});
+
+		it("prefers an explicit provider over URL sniffing on a custom domain", () => {
+			// An anthropic-compatible proxy: sniffing would land on openai and send
+			// a bearer token; the stored provider must win.
+			const { url, headers } = buildModelsRequest({
+				url: "https://claude-proxy.example.com",
+				provider: "anthropic",
+				apiKey: "sk-ant",
+			});
+			expect(url).toBe("https://claude-proxy.example.com/v1/models");
+			expect(headers["x-api-key"]).toBe("sk-ant");
+			expect(headers.Authorization).toBeUndefined();
+		});
 	});
 
 	describe("chatBaseUrl", () => {

@@ -67,7 +67,7 @@ export const testEndpoint = createServerFn({ method: "POST" })
 	.validator(testEndpointInput)
 	.handler(async ({ data }) => {
 		await getCurrentUserId();
-		return probeEndpoint({ url: data.url, apiKey: data.apiKey });
+		return probeEndpoint({ url: data.url, apiKey: data.apiKey, provider: data.provider });
 	});
 
 /** Reachability of a saved endpoint, for a status badge in Settings. */

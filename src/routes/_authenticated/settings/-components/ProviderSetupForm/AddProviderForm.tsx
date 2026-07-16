@@ -22,6 +22,7 @@ export function AddProviderForm({ definition, onCreated }: AddProviderFormProps)
 	return (
 		<ProviderEndpointForm
 			schema={buildEndpointFormSchema({ definition })}
+			provider={dbProviderFor(definition.id)}
 			defaultValues={{
 				name: definition.defaultName,
 				url: definition.defaultBaseUrl ?? definition.prefillBaseUrl ?? "",

@@ -142,7 +142,11 @@ export async function probeSavedEndpoint({
 }): Promise<EndpointProbeResult> {
 	const endpoint = await prisma.endpoint.findFirst({ where: { id: endpointId, ownerId } });
 	if (!endpoint) throw new Error("Not found");
-	return probeEndpoint({ url: endpoint.url, apiKey: endpointApiKey(endpoint) });
+	return probeEndpoint({
+		url: endpoint.url,
+		apiKey: endpointApiKey(endpoint),
+		provider: asLLMProvider(endpoint.provider),
+	});
 }
 
 /**

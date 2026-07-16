@@ -37,13 +37,21 @@ export const ollamaOptionsSchema = z
 	})
 	.partial();
 
+/** The provider families an endpoint can store; mirrors `LLMProvider` in llm.server.ts. */
+export const endpointProviderSchema = z.enum([
+	"openai",
+	"anthropic",
+	"ollama",
+	"openrouter",
+	"groq",
+	"gemini",
+]);
+
 export const createEndpointSchema = z.object({
 	name: z.string().min(1, "Name is required"),
 	url: z.url("Must be a valid URL"),
 	apiKey: z.string().optional(),
-	provider: z
-		.enum(["openai", "anthropic", "ollama", "openrouter", "groq", "gemini"])
-		.default("openai"),
+	provider: endpointProviderSchema.default("openai"),
 	options: ollamaOptionsSchema.optional(),
 });
 
@@ -55,5 +63,7 @@ export const modelCapabilitiesInput = z.object({ endpointId: uuid, model: z.stri
 export const testEndpointInput = z.object({
 	url: z.url().max(2048),
 	apiKey: z.string().max(4096).optional(),
+	/** The provider the user picked; absent falls back to URL sniffing. */
+	provider: endpointProviderSchema.optional(),
 });
 export const updateEndpointInput = z.object({ id: uuid, data: updateEndpointSchema });

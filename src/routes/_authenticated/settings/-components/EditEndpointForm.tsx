@@ -2,6 +2,7 @@ import { SaveIcon } from "lucide-react";
 import { ProviderEndpointForm } from "#/routes/_authenticated/settings/-components/ProviderEndpointForm";
 import {
 	buildEndpointFormSchema,
+	dbProviderFor,
 	providerDefinitionFor,
 } from "#/routes/_authenticated/settings/-lib/providers";
 import type { listEndpoints } from "#/shared/domain/endpoint/endpoint.functions";
@@ -21,6 +22,7 @@ export function EditEndpointForm({ endpoint, onDone }: { endpoint: Endpoint; onD
 	return (
 		<ProviderEndpointForm
 			schema={buildEndpointFormSchema({ definition, requireApiKey: false })}
+			provider={dbProviderFor(definition.id)}
 			defaultValues={{ name: endpoint.name, url: endpoint.url, apiKey: "" }}
 			keyLabel={endpoint.hasApiKey ? "API key (leave blank to keep current)" : "API key (optional)"}
 			keyPlaceholder={definition.keyPlaceholder}

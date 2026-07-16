@@ -368,12 +368,15 @@ export async function modelSupportsTools({
 export async function probeEndpoint({
 	url,
 	apiKey,
+	provider,
 }: {
 	url: string;
 	apiKey?: string;
+	/** The endpoint's stored provider; falls back to URL sniffing only when absent. */
+	provider?: LLMProvider;
 }): Promise<EndpointProbeResult> {
 	try {
-		const models = await listModels({ url, apiKey });
+		const models = await listModels({ url, apiKey, provider });
 		return { ok: true, modelCount: models.length };
 	} catch (err) {
 		return { ok: false, error: err instanceof Error ? err.message : "Request failed" };

@@ -2,7 +2,10 @@ import { revalidateLogic } from "@tanstack/react-form";
 import { ChevronDownIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { toast } from "sonner";
-import type { buildEndpointFormSchema } from "#/routes/_authenticated/settings/-lib/providers";
+import type {
+	buildEndpointFormSchema,
+	DbProvider,
+} from "#/routes/_authenticated/settings/-lib/providers";
 import { Button } from "#/shared/components/ui/button";
 import {
 	Collapsible,
@@ -18,6 +21,8 @@ export type EndpointFormValues = { name: string; url: string; apiKey: string };
 
 type ProviderEndpointFormProps = {
 	schema: ReturnType<typeof buildEndpointFormSchema>;
+	/** The provider family being configured, so "Test connection" probes with its auth scheme. */
+	provider: DbProvider;
 	defaultValues: EndpointFormValues;
 	keyLabel: string;
 	keyPlaceholder?: string;
@@ -39,6 +44,7 @@ type ProviderEndpointFormProps = {
  */
 export function ProviderEndpointForm({
 	schema,
+	provider,
 	defaultValues,
 	keyLabel,
 	keyPlaceholder,
@@ -75,7 +81,7 @@ export function ProviderEndpointForm({
 		}
 		testEndpoint.reset();
 		testEndpoint.mutate(
-			{ url: parsed.data.url.trim(), apiKey: parsed.data.apiKey || undefined },
+			{ url: parsed.data.url.trim(), apiKey: parsed.data.apiKey || undefined, provider },
 			{
 				onSuccess: (result) => {
 					if (result.ok) {
