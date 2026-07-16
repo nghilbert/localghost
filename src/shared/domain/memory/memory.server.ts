@@ -92,7 +92,12 @@ export async function recallMemories({
 	return keywordRecall({ ownerId, query: trimmed, limit: capped });
 }
 
-/** Full-text keyword fallback used when no embedding endpoint is configured or recall fails. */
+/**
+ * Keyword fallback used when no embedding endpoint is configured or vector
+ * recall fails. Matches memories containing any query word and ranks them by how
+ * many distinct words hit, so a multi-word query no longer needs the whole
+ * string to appear verbatim.
+ */
 function keywordRecall({
 	ownerId,
 	query,
@@ -102,11 +107,32 @@ function keywordRecall({
 	query: string;
 	limit: number;
 }): Promise<RecalledMemory[]> {
+	const patterns = likePatterns(query);
 	return prisma.$queryRaw<RecalledMemory[]>`
 		SELECT id, text, category
 		FROM memory
-		WHERE owner_id = ${ownerId}::uuid AND lower(text) LIKE lower(${`%${query}%`})
+		WHERE owner_id = ${ownerId}::uuid AND lower(text) LIKE ANY (${patterns}::text[])
+		ORDER BY (
+			SELECT count(*)
+			FROM unnest(${patterns}::text[]) AS pattern
+			WHERE lower(text) LIKE pattern
+		) DESC, id DESC
 		LIMIT ${limit}`;
+}
+
+/**
+ * Turns a free-text query into lowercased `%word%` LIKE patterns, one per word,
+ * escaping LIKE metacharacters. Words shorter than two chars are dropped; if
+ * that leaves nothing, the whole trimmed query is used as a single pattern.
+ */
+function likePatterns(query: string): string[] {
+	const escapeLike = (word: string) => word.replace(/[\\%_]/g, (char) => `\\${char}`);
+	const words = query
+		.toLowerCase()
+		.split(/\s+/)
+		.filter((word) => word.length >= 2);
+	const tokens = words.length > 0 ? words : [query.trim().toLowerCase()];
+	return tokens.map((word) => `%${escapeLike(word)}%`);
 }
 
 /** The user's memories, newest first, optionally capped. */
