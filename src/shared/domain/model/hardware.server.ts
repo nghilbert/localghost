@@ -1,7 +1,10 @@
-import { execSync } from "node:child_process";
+import { execFile } from "node:child_process";
 import os from "node:os";
+import { promisify } from "node:util";
 import { z } from "zod/v4";
 import type { GpuInfo, HardwareInfo } from "#/shared/domain/model/types";
+
+const execFileAsync = promisify(execFile);
 
 const rocmMemInfoSchema = z.record(z.string(), z.record(z.string(), z.number()));
 
@@ -52,13 +55,14 @@ function isMissingCommand(error: unknown): boolean {
 }
 
 /** Queries `nvidia-smi` for installed NVIDIA GPUs, or `null` if the tool is absent or returns nothing. */
-function detectNvidiaGpus(): GpuInfo[] | null {
+async function detectNvidiaGpus(): Promise<GpuInfo[] | null> {
 	try {
-		const out = execSync(
-			"nvidia-smi --query-gpu=name,memory.total,memory.free --format=csv,noheader,nounits",
-			{ timeout: 5000, stdio: ["pipe", "pipe", "pipe"] },
-		).toString();
-		return parseNvidiaSmi(out);
+		const { stdout } = await execFileAsync(
+			"nvidia-smi",
+			["--query-gpu=name,memory.total,memory.free", "--format=csv,noheader,nounits"],
+			{ timeout: 5000 },
+		);
+		return parseNvidiaSmi(stdout);
 	} catch (error) {
 		if (!isMissingCommand(error)) console.warn("nvidia-smi probe failed", { error });
 		return null;
@@ -66,13 +70,12 @@ function detectNvidiaGpus(): GpuInfo[] | null {
 }
 
 /** Queries `rocm-smi` for installed AMD GPUs, or `null` if the tool is absent or returns nothing. */
-function detectAmdGpus(): GpuInfo[] | null {
+async function detectAmdGpus(): Promise<GpuInfo[] | null> {
 	try {
-		const out = execSync("rocm-smi --showmeminfo vram --json", {
+		const { stdout } = await execFileAsync("rocm-smi", ["--showmeminfo", "vram", "--json"], {
 			timeout: 5000,
-			stdio: ["pipe", "pipe", "pipe"],
-		}).toString();
-		return parseRocmSmi(out);
+		});
+		return parseRocmSmi(stdout);
 	} catch (error) {
 		if (!isMissingCommand(error)) console.warn("rocm-smi probe failed", { error });
 		return null;
@@ -84,13 +87,13 @@ function detectAmdGpus(): GpuInfo[] | null {
  *
  * @returns CPU model and count, total/free RAM in GB, and detected GPUs (or `null` when none).
  */
-export function getHardwareInfo(): HardwareInfo {
+export async function getHardwareInfo(): Promise<HardwareInfo> {
 	const cpus = os.cpus();
 	return {
 		totalRamGb: os.totalmem() / 1024 ** 3,
 		freeRamGb: os.freemem() / 1024 ** 3,
 		cpuModel: cpus[0]?.model ?? "Unknown CPU",
 		cpuCount: cpus.length,
-		gpus: detectNvidiaGpus() ?? detectAmdGpus(),
+		gpus: (await detectNvidiaGpus()) ?? (await detectAmdGpus()),
 	};
 }
