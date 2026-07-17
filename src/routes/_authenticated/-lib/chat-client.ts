@@ -42,8 +42,9 @@ const saveChains = new Map<string, Promise<void>>();
 
 /**
  * A `fetch` that survives document unload, for the tab-hide/close flush so an
- * abandoned document doesn't drop the request. Mind the ~64KB keepalive body
- * cap; a very large `messages` blob may exceed it.
+ * abandoned document doesn't drop the request. Browsers cap keepalive bodies at
+ * ~64KB, which an image-bearing `messages` blob exceeds; `commit` retries such
+ * a rejected save without keepalive.
  */
 const keepaliveFetch: typeof fetch = (input, init) => fetch(input, { ...init, keepalive: true });
 
@@ -53,11 +54,18 @@ function commit(id: string, { keepalive = false }: { keepalive?: boolean } = {})
 	pending.delete(id);
 	const { snapshot, queryClient, seq } = entry;
 
+	const save = () => saveConversationMessages({ data: { id, messages: snapshot } });
+	// A keepalive body over the browser's ~64KB cap rejects outright; retrying
+	// without keepalive still saves when the flush was a tab hide (the document
+	// is alive). On a real unload the retry dies with the page, losing nothing
+	// the capped request wouldn't also have lost.
 	const dispatch = () =>
-		saveConversationMessages({
-			data: { id, messages: snapshot },
-			...(keepalive ? { fetch: keepaliveFetch } : {}),
-		})
+		(keepalive
+			? saveConversationMessages({ data: { id, messages: snapshot }, fetch: keepaliveFetch }).catch(
+					save,
+				)
+			: save()
+		)
 			.then(() => {
 				// A newer snapshot enqueued since this one would overwrite it; skip the
 				// stale cache write, but still refresh the sidebar order (this save bumped

@@ -120,6 +120,28 @@ describe("flushAll", () => {
 
 		expect(saveConversationMessages).toHaveBeenCalledTimes(1);
 	});
+
+	it("retries a rejected keepalive save without keepalive (bodies over the ~64KB cap)", async () => {
+		saveConversationMessages.mockImplementation((arg: { fetch?: typeof fetch }) =>
+			arg.fetch ? Promise.reject(new TypeError("keepalive body too large")) : Promise.resolve(),
+		);
+		const queryClient = new QueryClient();
+		queryClient.setQueryData(queryKey("c1"), { id: "c1", messages: [] });
+		const persistence = createChatPersistence(queryClient);
+
+		persistence.setItem("c1", [message("m1", "a")]);
+		flushAll();
+		await vi.advanceTimersByTimeAsync(0);
+
+		expect(saveConversationMessages).toHaveBeenCalledTimes(2);
+		const [retry] = saveConversationMessages.mock.calls[1] ?? [];
+		expect(retry.fetch).toBeUndefined();
+		expect(toastError).not.toHaveBeenCalled();
+		expect(queryClient.getQueryData(queryKey("c1"))).toEqual({
+			id: "c1",
+			messages: [message("m1", "a")],
+		});
+	});
 });
 
 describe("createChatPersistence: removeItem", () => {
