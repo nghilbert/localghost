@@ -77,7 +77,7 @@ function NewChatPage() {
 				</EmptyHeader>
 				<EmptyContent className="max-w-xl">
 					<ChatInput
-						disabled={!selection || startChatMutation.isPending}
+						disabled={startChatMutation.isPending}
 						isStreaming={false}
 						selection={selection}
 						onSelect={setOverride}
