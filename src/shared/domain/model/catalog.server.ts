@@ -13,30 +13,50 @@ const FETCH_HEADERS = { "User-Agent": "Mozilla/5.0 (compatible; localghost/1.0)"
 
 /**
  * Parses the ollama.com/library index HTML into one CatalogModel per size
- * variant, keying off the page's stable `x-test-*` hooks. A model with no size
- * tags (e.g. embeddings) yields a single variant with the bare model name.
+ * variant. The page carries no machine-readable hooks (a 2026 redesign dropped
+ * its `x-test-*` attributes), so every field is anchored on what a redesign is
+ * least likely to touch: the `/library/<name>` href identifies a row, visible
+ * label text ("Pulls") locates the stats, and badge spans are classified by
+ * whether their text parses as a size — never by styling classes. A model with
+ * no size badges (e.g. embeddings) yields a single variant with the bare name.
  */
 export function parseCatalogHtml(html: string): CatalogModel[] {
 	const { document } = parseHTML(html);
 	const models: CatalogModel[] = [];
 
-	for (const node of document.querySelectorAll("[x-test-model]")) {
-		const name =
-			node.querySelector("[x-test-model-title]")?.getAttribute("title")?.trim() ??
-			node.querySelector("[x-test-model-title] span")?.textContent?.trim();
-		if (!name) continue;
+	for (const node of document.querySelectorAll("li")) {
+		const link = node.querySelector('a[href^="/library/"]');
+		const name = link?.getAttribute("href")?.slice("/library/".length).trim();
+		if (!link || !name || name.includes("/") || name.includes(":")) continue;
 
-		const description = node.querySelector("[x-test-model-title] p")?.textContent?.trim() ?? "";
-		const capabilities = [...node.querySelectorAll("[x-test-capability]")].map((el) =>
-			(el.textContent ?? "").trim(),
+		const description = link.querySelector("div[title] p")?.textContent?.trim() ?? "";
+
+		// Badges sit directly in the anchor's flow; every other span lives inside
+		// the title block ([title]), the heading (h2), or the stats paragraph (p).
+		const capabilities: string[] = [];
+		const sizes: string[] = [];
+		for (const span of link.querySelectorAll("span")) {
+			if (span.closest("p") || span.closest("h2") || span.closest("[title]")) continue;
+			const text = span.textContent?.trim();
+			if (!text) continue;
+			if (parseParamB(text) !== null) sizes.push(text);
+			else capabilities.push(text);
+		}
+
+		const pullLabel = [...link.querySelectorAll("span")].find(
+			(el) => el.textContent?.trim() === "Pulls",
 		);
-		const sizes = [...node.querySelectorAll("[x-test-size]")].map((el) =>
-			(el.textContent ?? "").trim(),
-		);
-		const pullCount = node.querySelector("[x-test-pull-count]")?.textContent?.trim() ?? "";
-		const updatedEl = node.querySelector("[x-test-updated]");
-		const updated = updatedEl?.textContent?.trim() ?? "";
-		const updatedAt = parseUpdatedAt(updatedEl?.closest("span[title]")?.getAttribute("title"));
+		const pullCount = pullLabel?.previousElementSibling?.textContent?.trim() ?? "";
+
+		let updated = "";
+		let updatedAt: string | undefined;
+		for (const el of link.querySelectorAll("span[title]")) {
+			const parsed = parseUpdatedAt(el.getAttribute("title"));
+			if (!parsed) continue;
+			updatedAt = parsed;
+			updated = [...el.querySelectorAll("span")].at(-1)?.textContent?.trim() ?? "";
+			break;
+		}
 
 		const variants = sizes.length > 0 ? sizes : [null];
 		for (const size of variants) {
@@ -134,6 +154,9 @@ async function forEachWithConcurrency<T>({
 /** Index scrape plus per-model tags pages for real sizes and parameter counts. */
 async function fetchOllamaCatalog(): Promise<CatalogModel[]> {
 	const models = parseCatalogHtml(await fetchHtml(LIBRARY_URL));
+	if (models.length === 0) {
+		throw new Error(`Parsed 0 models from ${LIBRARY_URL}; the page markup may have changed`);
+	}
 	const names = [...new Set(models.map((m) => m.name))];
 
 	const tagsByName = new Map<string, ModelTagInfo[]>();
@@ -165,7 +188,9 @@ let refreshInFlight: Promise<CatalogModel[]> | null = null;
 /**
  * Returns the catalog, re-scraping at most once per TTL. A stale cache is
  * served immediately while the refresh runs in the background; with no cache
- * at all the caller waits, degrading to an empty list on failure.
+ * at all the caller waits, and a failed scrape propagates so the client can
+ * show its retry affordance instead of an empty library.
+ * @throws when no cached catalog exists and the scrape fails or parses zero models
  */
 export async function getCatalog(): Promise<CatalogModel[]> {
 	if (cache && Date.now() - cache.fetchedAt < CACHE_TTL_MS) return cache.data;
@@ -175,6 +200,10 @@ export async function getCatalog(): Promise<CatalogModel[]> {
 			cache = { data, fetchedAt: Date.now() };
 			return data;
 		})
+		.catch((error) => {
+			console.error("Ollama catalog scrape failed", { error });
+			throw error;
+		})
 		.finally(() => {
 			refreshInFlight = null;
 		});
@@ -183,10 +212,5 @@ export async function getCatalog(): Promise<CatalogModel[]> {
 		refreshInFlight.catch(() => {}); // keep serving stale data if the refresh fails
 		return cache.data;
 	}
-	try {
-		return await refreshInFlight;
-	} catch (error) {
-		console.error("Ollama catalog scrape failed; the Library gets an empty catalog", { error });
-		return [];
-	}
+	return refreshInFlight;
 }

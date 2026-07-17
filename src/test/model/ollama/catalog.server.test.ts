@@ -1,36 +1,47 @@
 import { describe, expect, it } from "vitest";
 import { parseCatalogHtml, parseTagsHtml } from "#/shared/domain/model/catalog.server";
 
-// A trimmed but faithful slice of the ollama.com/library markup: a multi-size
-// model with a capability, and an embedding model that has no size tags.
+// A trimmed but faithful slice of the ollama.com/library markup (2026 redesign,
+// no machine hooks): a multi-size model with a capability, and an embedding
+// model that has no size badges. A hookless nav item exercises the row guard.
 const HTML = `
-<ul>
-	<li x-test-model>
+<ul role="list">
+	<li><a href="/blog">Blog</a></li>
+	<li>
 		<a href="/library/llama3.2">
-			<div x-test-model-title title="llama3.2">
-				<span>llama3.2</span>
+			<div title="llama3.2">
+				<h2><div><span>llama3.2</span></div></h2>
 				<p>Meta's Llama 3.2 goes small with 1B and 3B models.</p>
 			</div>
-			<span x-test-capability>tools</span>
-			<span x-test-size>1b</span>
-			<span x-test-size>3b</span>
-			<span class="flex items-center" title="Sep 25, 2024 9:09 PM UTC">
-				<span x-test-pull-count>74.7M</span>
-				<span x-test-updated>1 year ago</span>
-			</span>
+			<div>
+				<div>
+					<span>tools</span>
+					<span>1b</span>
+					<span>3b</span>
+				</div>
+				<p>
+					<span><svg></svg><span>74.7M</span><span>&nbsp;Pulls</span></span>
+					<span><svg></svg><span>9</span><span>&nbsp;Tags</span></span>
+					<span title="Sep 25, 2024 9:09 PM UTC"><svg></svg><span>Updated&nbsp;</span><span>1 year ago</span></span>
+				</p>
+			</div>
 		</a>
 	</li>
-	<li x-test-model>
+	<li>
 		<a href="/library/nomic-embed-text">
-			<div x-test-model-title title="nomic-embed-text">
-				<span>nomic-embed-text</span>
+			<div title="nomic-embed-text">
+				<h2><div><span>nomic-embed-text</span></div></h2>
 				<p>A high-performing open embedding model.</p>
 			</div>
-			<span x-test-capability>embedding</span>
-			<span class="flex items-center" title="Feb 21, 2024 5:26 PM UTC">
-				<span x-test-pull-count>76.6M</span>
-				<span x-test-updated>2 years ago</span>
-			</span>
+			<div>
+				<div>
+					<span>embedding</span>
+				</div>
+				<p>
+					<span><svg></svg><span>76.6M</span><span>&nbsp;Pulls</span></span>
+					<span title="Feb 21, 2024 5:26 PM UTC"><svg></svg><span>Updated&nbsp;</span><span>2 years ago</span></span>
+				</p>
+			</div>
 		</a>
 	</li>
 </ul>
@@ -59,6 +70,10 @@ describe("parseCatalogHtml", () => {
 		const small = models.find((m) => m.id === "llama3.2:1b");
 		expect(small?.updated).toBe("1 year ago");
 		expect(small?.updatedAt).toBe(new Date("Sep 25, 2024 9:09 PM UTC").toISOString());
+	});
+
+	it("parses to nothing when the markup has no model rows, triggering the scrape guard", () => {
+		expect(parseCatalogHtml("<ul><li><a href='/blog'>Blog</a></li></ul>")).toEqual([]);
 	});
 
 	it("keeps a model with no size tags as a single bare-name entry", () => {

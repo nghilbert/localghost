@@ -101,8 +101,8 @@ function LibraryPage() {
 									<CircleAlertIcon />
 									<AlertTitle>Couldn't load the model catalog</AlertTitle>
 									<AlertDescription>
-										ollama.com didn't respond, so only installed models are listed. Check your
-										connection and try again.
+										ollama.com couldn't be reached or didn't return a readable catalog, so only
+										installed models are listed.
 									</AlertDescription>
 									<AlertAction>
 										<Button size="sm" variant="outline" onClick={() => refetchCatalog()}>
