@@ -1,3 +1,4 @@
+import { convertSchemaToJsonSchema } from "@tanstack/ai";
 import { describe, expect, it } from "vitest";
 import { buildChatTools } from "#/shared/domain/chat/agent.server";
 
@@ -28,13 +29,33 @@ describe("buildChatTools", () => {
 		expect(names(tools)).toEqual([]);
 	});
 
-	it("every tool is a server tool with name, description, and object inputSchema", () => {
+	it("builds server tools with described object schemas", () => {
 		const tools = buildChatTools({ ownerId: OWNER, enabledTools: ["web_search", "memory"] });
 		for (const tool of tools) {
 			expect(tool.__toolSide).toBe("server");
 			expect(tool.name).toBeTruthy();
 			expect(tool.description).toBeTruthy();
-			expect(tool.inputSchema).toMatchObject({ type: "object", required: expect.any(Array) });
+			expect(convertSchemaToJsonSchema(tool.inputSchema)).toMatchObject({
+				type: "object",
+				required: expect.any(Array),
+			});
 		}
+	});
+
+	it("exposes only query and optional time_range to web_search", () => {
+		const tools = buildChatTools({ ownerId: OWNER, enabledTools: ["web_search"] });
+		const webSearch = tools.find((tool) => tool.name === "web_search");
+		if (!webSearch) throw new Error("web_search tool was not built");
+
+		const schema = convertSchemaToJsonSchema(webSearch.inputSchema);
+		expect(schema).toMatchObject({
+			type: "object",
+			properties: {
+				query: { type: "string", minLength: 1 },
+				time_range: { enum: ["day", "month", "year"] },
+			},
+			required: ["query"],
+		});
+		expect(schema).not.toHaveProperty("properties.category");
 	});
 });

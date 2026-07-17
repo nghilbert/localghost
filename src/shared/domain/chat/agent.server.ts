@@ -21,36 +21,16 @@ function webSearchTool(): ServerTool {
 	return toolDefinition({
 		name: "web_search",
 		description:
-			"Search the web via SearXNG for current information: facts you don't know or recent events. " +
-			"Narrow the search when it helps: set `time_range` to 'day'/'month'/'year' for recent or " +
-			"time-sensitive topics, set `categories` (e.g. 'news', 'science', 'it') to focus the source set, " +
-			"and use operators inside `query` such as 'site:example.com' to restrict to one domain.",
-		inputSchema: {
-			type: "object",
-			properties: {
-				query: {
-					type: "string",
-					description: "Search query. Supports operators like 'site:domain.com'.",
-				},
-				time_range: {
-					type: "string",
-					enum: ["day", "month", "year"],
-					description: "Restrict results to the last day, month, or year.",
-				},
-				categories: {
-					type: "string",
-					description:
-						"Comma-separated SearXNG categories to focus the search: general, news, science, it, " +
-						"images, videos, music, files, social media.",
-				},
-			},
-			required: ["query"],
-		},
-	}).server(async (args) => {
-		const parsed = webSearchArgsSchema.safeParse(args);
-		if (!parsed.success) return invalidArgsMessage(parsed.error);
-		const { query, time_range, categories } = parsed.data;
-		return webSearch(query, 5, { timeRange: time_range, categories });
+			"Search the web for external or current information. Add `time_range` only when the user " +
+			"explicitly needs results from the last day, month, or year.",
+		inputSchema: webSearchArgsSchema,
+	}).server(async ({ query, time_range }, context) => {
+		return webSearch({
+			query,
+			limit: 5,
+			timeRange: time_range,
+			signal: context?.abortSignal,
+		});
 	});
 }
 

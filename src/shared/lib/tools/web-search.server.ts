@@ -1,109 +1,138 @@
 import { z } from "zod/v4";
 
-// Optional filters degrade to "unset" instead of failing the call when a model
-// invents a value ("week", "all", "") outside the advertised set.
+const SEARCH_TIMEOUT_MS = 15_000;
+
+const timeRangeSchema = z.enum(["day", "month", "year"]);
+
 export const webSearchArgsSchema = z.object({
-	query: z.string().min(1),
-	time_range: z.enum(["day", "month", "year"]).optional().catch(undefined),
-	categories: z.string().optional().catch(undefined),
+	query: z
+		.string()
+		.trim()
+		.min(1)
+		.describe("Short, plain search terms. Supports operators such as site:example.com."),
+	time_range: timeRangeSchema
+		.optional()
+		.catch(undefined)
+		.describe("Use only when the user explicitly needs results from the last day, month, or year."),
+});
+
+const searxResultSchema = z.object({
+	title: z
+		.string()
+		.nullish()
+		.transform((title) => title ?? ""),
+	url: z.string().min(1),
+	content: z
+		.string()
+		.nullish()
+		.transform((content) => content ?? ""),
 });
 
 /** SearXNG returns `answers` either as plain strings or `{ answer }` objects. */
 const searxAnswerSchema = z.union([
 	z.string(),
-	z.object({ answer: z.string() }).transform((a) => a.answer),
+	z.object({ answer: z.string() }).transform(({ answer }) => answer),
 ]);
 
 const searxResponseSchema = z.object({
-	results: z
-		.array(
-			z.object({
-				title: z.string().optional(),
-				url: z.string().optional(),
-				content: z.string().optional(),
-			}),
-		)
-		.optional(),
-	answers: z.array(searxAnswerSchema).optional(),
+	results: z.array(searxResultSchema),
+	answers: z.array(searxAnswerSchema).optional().default([]),
 });
 
-export type SearchResult = {
-	title: string;
-	url: string;
-	snippet: string;
-};
+type SearchTimeRange = z.infer<typeof timeRangeSchema>;
+type SearXNGSearchResponse = z.infer<typeof searxResponseSchema>;
 
-export type WebSearchOptions = {
-	/** Restrict results to the last `day`, `month`, or `year`. */
-	timeRange?: "day" | "month" | "year";
-	/** Comma-separated SearXNG categories (e.g. `news`, `science`). */
-	categories?: string;
+type WebSearchParams = {
+	query: string;
+	limit?: number;
+	timeRange?: SearchTimeRange;
+	signal?: AbortSignal;
 };
 
 /**
- * Search the web via a SearXNG instance (SEARXNG_URL env). Returns any direct
- * answer plus up to `limit` results as plain text the agent can reason over, or
- * a guidance string when no instance is configured.
+ * Searches the configured SearXNG instance, retrying a valid empty ranged
+ * search once without the time filter.
  */
-export async function webSearch(
-	query: string,
+export async function webSearch({
+	query,
 	limit = 5,
-	options: WebSearchOptions = {},
-): Promise<string> {
+	timeRange,
+	signal,
+}: WebSearchParams): Promise<string> {
 	const searxUrl = process.env.SEARXNG_URL;
 	if (!searxUrl) {
 		return "Web search is not configured. Set SEARXNG_URL to a running SearXNG instance to enable it.";
 	}
 
-	try {
-		const { results, answers } = await searchSearXNG({ query, limit, baseUrl: searxUrl, options });
-		if (results.length === 0 && answers.length === 0) return "No results found.";
-
-		const blocks = results.map((r, i) => `[${i + 1}] ${r.title}\n${r.url}\n${r.snippet}`);
-		if (answers.length > 0) blocks.unshift(`Answer: ${answers.join(" ")}`);
-		return blocks.join("\n\n");
-	} catch (err) {
-		return `Search failed: ${err instanceof Error ? err.message : "Unknown error"}`;
+	const timeoutSignal = AbortSignal.timeout(SEARCH_TIMEOUT_MS);
+	const searchSignal = signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal;
+	const response = await searchSearXNG({
+		query,
+		limit,
+		baseUrl: searxUrl,
+		timeRange,
+		signal: searchSignal,
+	});
+	if (response.results.length > 0 || response.answers.length > 0) {
+		return formatSearchResponse(response);
 	}
+	if (!timeRange) return "No results found. Try a shorter or differently worded query.";
+
+	const fallbackResponse = await searchSearXNG({
+		query,
+		limit,
+		baseUrl: searxUrl,
+		signal: searchSignal,
+	});
+	if (fallbackResponse.results.length > 0 || fallbackResponse.answers.length > 0) {
+		return `Search note: No results matched time range "${timeRange}". Showing results without a time limit.\n\n${formatSearchResponse(fallbackResponse)}`;
+	}
+
+	return `No results found after retrying without the "${timeRange}" time filter. Try a shorter or differently worded query.`;
+}
+
+function formatSearchResponse(response: SearXNGSearchResponse): string {
+	const blocks = response.results.map(
+		(result, index) => `[${index + 1}] ${result.title}\n${result.url}\n${result.content}`,
+	);
+	if (response.answers.length > 0) blocks.unshift(`Answer: ${response.answers.join(" ")}`);
+	return blocks.join("\n\n");
 }
 
 async function searchSearXNG({
 	query,
 	limit,
 	baseUrl,
-	options,
+	timeRange,
+	signal,
 }: {
 	query: string;
 	limit: number;
 	baseUrl: string;
-	options: WebSearchOptions;
-}): Promise<{ results: SearchResult[]; answers: string[] }> {
+	timeRange?: SearchTimeRange;
+	signal: AbortSignal;
+}): Promise<SearXNGSearchResponse> {
 	const url = new URL("/search", baseUrl);
 	url.searchParams.set("q", query);
 	url.searchParams.set("format", "json");
-	url.searchParams.set("categories", options.categories ?? "general");
-	if (options.timeRange) url.searchParams.set("time_range", options.timeRange);
+	url.searchParams.set("categories", "general");
+	if (timeRange) url.searchParams.set("time_range", timeRange);
 
-	const res = await fetch(url.toString(), {
+	const response = await fetch(url.toString(), {
 		headers: {
 			Accept: "application/json",
 			"User-Agent": "Mozilla/5.0 (compatible; localghost/1.0)",
 		},
-		signal: AbortSignal.timeout(15_000),
+		signal,
 	});
 
-	if (!res.ok) throw new Error(`SearXNG HTTP ${res.status}`);
+	if (!response.ok) throw new Error(`SearXNG HTTP ${response.status}`);
 
-	// Tolerate an unexpected SearXNG payload: fall back to empty rather than throwing.
-	const parsed = searxResponseSchema.safeParse(await res.json());
-	const data = parsed.success ? parsed.data : { results: [], answers: [] };
+	const parsed = searxResponseSchema.safeParse(await response.json());
+	if (!parsed.success) throw new Error("Invalid SearXNG response");
 
 	return {
-		results: (data.results ?? []).slice(0, limit).map((r) => ({
-			title: r.title ?? "",
-			url: r.url ?? "",
-			snippet: r.content ?? "",
-		})),
-		answers: data.answers ?? [],
+		...parsed.data,
+		results: parsed.data.results.slice(0, limit),
 	};
 }
