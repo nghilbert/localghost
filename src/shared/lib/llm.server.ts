@@ -12,6 +12,7 @@ import { createOllamaChat } from "@tanstack/ai-ollama";
 import { openaiCompatibleText } from "@tanstack/ai-openai/compatible";
 import { trimPathRight } from "@tanstack/react-router";
 import { z } from "zod/v4";
+import { DEFAULT_MAX_TOKENS, DEFAULT_OLLAMA_NUM_CTX } from "#/shared/lib/llm-constants";
 
 export type LLMProvider = "anthropic" | "ollama" | "openai" | "openrouter" | "groq" | "gemini";
 
@@ -47,11 +48,7 @@ export type StreamLLMOptions = {
 };
 
 const OPENROUTER_REFERER = "https://localghost.app";
-const DEFAULT_MAX_TOKENS = 4096;
 const MAX_AGENT_ROUNDS = 10;
-// Ollama's own default is 4096, which silently truncates long chats (the
-// system prompt shifts out first). A per-endpoint num_ctx overrides this.
-const DEFAULT_OLLAMA_NUM_CTX = 8192;
 
 /** Shape of the model-list responses across providers (OpenAI `data`, Ollama/Gemini `models`). */
 type ModelsResponse = {

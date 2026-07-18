@@ -5,10 +5,15 @@ import {
 	buildFirstUserMessage,
 	cumulativeTokenTotals,
 	deriveConversationTitle,
+	documentMessageParts,
 	editUserMessage,
+	estimateMessageTokens,
+	historyBudgetTokens,
+	historyStartIndex,
 	isInterrupted,
 	type MessageUsage,
 	markInterrupted,
+	messageDocumentSources,
 	messageUsage,
 	partsText,
 	sanitizeGeneratedTitle,
@@ -59,6 +64,64 @@ describe("buildFirstUserMessage", () => {
 		expect(message.parts).toEqual([
 			{ type: "image", source: { type: "url", value: "data:image/png;base64,AAAA" } },
 		]);
+	});
+
+	it("puts images, then documents, then text", () => {
+		const message = buildFirstUserMessage({
+			content: "read these",
+			images: [{ dataUrl: "data:image/png;base64,AAAA" }],
+			documents: [
+				{
+					dataUrl: "data:application/pdf;base64,JVBER",
+					mimeType: "application/pdf",
+					name: "spec.pdf",
+				},
+			],
+		});
+		expect(message.parts).toEqual([
+			{ type: "image", source: { type: "url", value: "data:image/png;base64,AAAA" } },
+			{
+				type: "document",
+				source: { type: "data", value: "JVBER", mimeType: "application/pdf" },
+				metadata: { filename: "spec.pdf" },
+			},
+			{ type: "text", content: "read these" },
+		]);
+	});
+});
+
+describe("documentMessageParts / messageDocumentSources", () => {
+	it("builds an inline base64 data source and reads the filename back", () => {
+		const parts = documentMessageParts([
+			{ dataUrl: "data:text/markdown;base64,SGk=", mimeType: "text/markdown", name: "notes.md" },
+		]);
+		expect(parts).toEqual([
+			{
+				type: "document",
+				source: { type: "data", value: "SGk=", mimeType: "text/markdown" },
+				metadata: { filename: "notes.md" },
+			},
+		]);
+		expect(messageDocumentSources(parts)).toEqual([
+			{ name: "notes.md", mimeType: "text/markdown" },
+		]);
+	});
+
+	it("falls back to a generic name when a document part carries no filename metadata", () => {
+		expect(
+			messageDocumentSources([
+				{ type: "document", source: { type: "data", value: "AA", mimeType: "application/pdf" } },
+			]),
+		).toEqual([{ name: "Document", mimeType: "application/pdf" }]);
+	});
+
+	it("ignores non-document parts", () => {
+		expect(
+			messageDocumentSources([
+				{ type: "text", content: "hi" },
+				{ type: "image", source: { type: "url", value: "data:image/png;base64,AA" } },
+			]),
+		).toEqual([]);
 	});
 });
 
@@ -266,6 +329,75 @@ describe("trimHistory", () => {
 		const trimmed = trimHistory(messages);
 		expect(trimmed[0]).toBe(messages[4]);
 		expect(trimmed).toHaveLength(46);
+	});
+});
+
+describe("estimateMessageTokens", () => {
+	it("estimates an unstamped message from its text length (chars/4)", () => {
+		expect(estimateMessageTokens(userMessage("a".repeat(40)))).toBe(10);
+	});
+
+	it("uses an assistant reply's own completionTokens when stamped", () => {
+		const stamped = withUsage(assistantMessage("hi"), {
+			promptTokens: 5000,
+			completionTokens: 120,
+			totalTokens: 5120,
+		});
+		// Not the 5120 total (which double-counts the prior prompt), just its 120.
+		expect(estimateMessageTokens(stamped)).toBe(120);
+	});
+
+	it("adds a flat cost per image part", () => {
+		const message: UIMessage = {
+			id: "u1",
+			role: "user",
+			parts: [{ type: "image", source: { type: "url", value: "data:image/png;base64,AA" } }],
+		};
+		expect(estimateMessageTokens(message)).toBeGreaterThanOrEqual(1000);
+	});
+});
+
+describe("historyStartIndex with a token budget", () => {
+	// Each message here is ~25 chars -> ~7 estimated tokens.
+	const turn = (i: number) => [
+		userMessage(`question number ${i}!`),
+		assistantMessage(`answer ${i}`),
+	];
+
+	it("cuts on a user turn once the accumulated estimate exceeds the budget", () => {
+		const messages = Array.from({ length: 10 }, (_, i) => turn(i)).flat();
+		const start = historyStartIndex(messages, { historyBudgetTokens: 30 });
+		expect(messages[start]?.role).toBe("user");
+		expect(start).toBeGreaterThan(0);
+	});
+
+	it("keeps everything when the whole transcript fits the budget", () => {
+		const messages = turn(0);
+		expect(historyStartIndex(messages, { historyBudgetTokens: 10_000 })).toBe(0);
+	});
+
+	it("keeps the last user turn whole even when it alone overflows the budget", () => {
+		const messages = [userMessage("q0"), assistantMessage("a0"), userMessage("q1")];
+		// A tiny budget can't fit even the newest turn; the cut still lands on the last user message.
+		const start = historyStartIndex(messages, { historyBudgetTokens: 1 });
+		expect(start).toBe(2);
+	});
+});
+
+describe("historyBudgetTokens", () => {
+	it("returns undefined for non-Ollama providers (large/unknown windows)", () => {
+		expect(historyBudgetTokens({ provider: "anthropic", options: {} })).toBeUndefined();
+	});
+
+	it("uses the Ollama defaults when no options override them", () => {
+		// 8192 num_ctx - 4096 num_predict - 1500 system reserve.
+		expect(historyBudgetTokens({ provider: "ollama", options: {} })).toBe(8192 - 4096 - 1500);
+	});
+
+	it("honors a per-model num_ctx and num_predict override", () => {
+		expect(
+			historyBudgetTokens({ provider: "ollama", options: { num_ctx: 32_000, num_predict: 1000 } }),
+		).toBe(32_000 - 1000 - 1500);
 	});
 });
 

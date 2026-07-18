@@ -10,7 +10,7 @@ import { resolveGenerationOptions } from "#/shared/domain/chat/resolve-generatio
 import { chatStreamForwardedPropsSchema } from "#/shared/domain/chat/schemas";
 import { buildChatSystemPrompt } from "#/shared/domain/chat/system-prompt";
 import { findConversationWithEndpoint } from "#/shared/domain/conversation/conversation.server";
-import { trimHistory } from "#/shared/domain/conversation/messages";
+import { historyBudgetTokens, trimHistory } from "#/shared/domain/conversation/messages";
 import { endpointApiKey } from "#/shared/domain/endpoint/endpoint.server";
 import { ollamaOptionsSchema } from "#/shared/domain/endpoint/schemas";
 import { getModelSetting } from "#/shared/domain/model-setting/model-setting.server";
@@ -87,7 +87,14 @@ export const Route = createFileRoute("/api/chat/stream")({
 					apiKey: endpointApiKey(endpoint),
 					model: conversation.model,
 					// `chat()` accepts the wire messages as-is and converts internally.
-					messages: trimHistory(params.messages),
+					// Trim to the resolved context budget so a long transcript can't push
+					// the system prompt out of the window (Ollama truncates from the top).
+					messages: trimHistory(params.messages, {
+						historyBudgetTokens: historyBudgetTokens({
+							provider: endpoint.provider,
+							options: generationOptions.options,
+						}),
+					}),
 					systemPrompt: buildChatSystemPrompt({
 						userPrompt: userSettings.systemPrompt,
 						enabledTools,

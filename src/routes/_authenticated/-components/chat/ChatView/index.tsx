@@ -5,10 +5,7 @@ import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { ChatInput } from "#/routes/_authenticated/-components/chat/ChatInput";
 import { ChatStatus } from "#/routes/_authenticated/-components/chat/ChatView/ChatStatus";
 import { useConversation } from "#/routes/_authenticated/-hooks/use-conversation";
-import {
-	composeMessageContent,
-	type ImageAttachment,
-} from "#/routes/_authenticated/-lib/attachments";
+import { type Attachment, composeMessageContent } from "#/routes/_authenticated/-lib/attachments";
 import { createChatOptions } from "#/routes/_authenticated/-lib/chat-client";
 import { takeChatHandoff } from "#/routes/_authenticated/-lib/chat-handoff";
 import {
@@ -56,11 +53,18 @@ type ChatViewProps = { conversation: ConversationDetail };
 export function ChatView({ conversation }: ChatViewProps) {
 	const queryClient = useQueryClient();
 
-	const { selection, isReady, controls, resetTools, toolsToSend, supportsImages } = useConversation(
-		{
-			conversationId: conversation.id,
-		},
-	);
+	const {
+		selection,
+		isReady,
+		controls,
+		resetTools,
+		toolsToSend,
+		supportsImages,
+		supportsDocuments,
+		historyBudget,
+	} = useConversation({
+		conversationId: conversation.id,
+	});
 
 	// Ephemeral per-conversation tool selection, sent with each message via
 	// `forwardedProps` and never persisted. `useChat` re-reads `forwardedProps` on
@@ -117,7 +121,7 @@ export function ChatView({ conversation }: ChatViewProps) {
 				: undefined;
 
 	/** Sends, then resets the toggles to defaults so a manual toggle lasts one message. */
-	async function handleSend(content: string, attachments: ImageAttachment[]) {
+	async function handleSend(content: string, attachments: Attachment[]) {
 		await sendMessage(composeMessageContent({ text: content, attachments }));
 		resetTools();
 	}
@@ -200,7 +204,7 @@ export function ChatView({ conversation }: ChatViewProps) {
 
 	// Where the server's history trim will cut the next request; a divider above
 	// that message tells the user the model no longer sees what came before.
-	const historyStart = historyStartIndex(messages);
+	const historyStart = historyStartIndex(messages, { historyBudgetTokens: historyBudget });
 
 	// Running token total through each message, for the per-message usage tooltip.
 	const cumulativeTokens = useMemo(() => cumulativeTokenTotals(messages), [messages]);
@@ -259,6 +263,7 @@ export function ChatView({ conversation }: ChatViewProps) {
 					locked
 					tools={controls}
 					supportsImages={supportsImages}
+					supportsDocuments={supportsDocuments}
 					sendMessage={handleSend}
 					stop={handleStop}
 				/>
