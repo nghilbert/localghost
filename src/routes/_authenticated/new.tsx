@@ -4,7 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { ChatInput } from "#/routes/_authenticated/-components/chat/ChatInput";
 import { useChatTools } from "#/routes/_authenticated/-hooks/use-chat-tools";
-import type { ImageAttachment } from "#/routes/_authenticated/-lib/attachments";
+import type { Attachment } from "#/routes/_authenticated/-lib/attachments";
 import { storeChatHandoff } from "#/routes/_authenticated/-lib/chat-handoff";
 import {
 	Empty,
@@ -43,7 +43,7 @@ function NewChatPage() {
 			? { endpointId: fallback.endpointId, model: fallback.model }
 			: null);
 
-	const { controls, supportsImages } = useChatTools({ selection });
+	const { controls, supportsImages, supportsDocuments } = useChatTools({ selection });
 
 	const startChatMutation = useMutation({
 		mutationFn: async ({
@@ -51,7 +51,7 @@ function NewChatPage() {
 			attachments,
 		}: {
 			firstMessage: string;
-			attachments: ImageAttachment[];
+			attachments: Attachment[];
 		}) => {
 			if (!selection) throw new Error("No model selected");
 			return createConversation({ data: { selection, firstMessage, attachments } });
@@ -83,6 +83,7 @@ function NewChatPage() {
 						onSelect={setOverride}
 						tools={controls}
 						supportsImages={supportsImages}
+						supportsDocuments={supportsDocuments}
 						isSending={startChatMutation.isPending}
 						sendMessage={(content, attachments) =>
 							startChatMutation.mutate({ firstMessage: content, attachments })
