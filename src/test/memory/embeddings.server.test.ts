@@ -7,25 +7,40 @@ vi.mock("#/shared/lib/db.server", () => ({ prisma: { endpoint: { findMany } } })
 
 import {
 	embed,
-	embeddingModelFor,
+	embeddingConfigFor,
 	toVectorLiteral,
 } from "#/shared/domain/memory/embeddings.server";
 
-describe("embeddingModelFor", () => {
-	it("picks a local embedding model for ollama, not the chat model", () => {
-		expect(embeddingModelFor("ollama")).toBe("nomic-embed-text");
+describe("embeddingConfigFor", () => {
+	it("picks a local embedding model and the OpenAI path for ollama, not the chat model", () => {
+		const config = embeddingConfigFor("ollama");
+		expect(config?.model).toBe("nomic-embed-text");
+		expect(config?.buildRequest({ url: "http://localhost:11434", text: "hi" }).url).toBe(
+			"http://localhost:11434/v1/embeddings",
+		);
 	});
 
 	it("picks an OpenAI-compatible embedding model for openai/openrouter/groq", () => {
-		expect(embeddingModelFor("openai")).toBe("text-embedding-3-small");
-		expect(embeddingModelFor("openrouter")).toBe("text-embedding-3-small");
-		expect(embeddingModelFor("groq")).toBe("text-embedding-3-small");
+		expect(embeddingConfigFor("openai")?.model).toBe("text-embedding-3-small");
+		expect(embeddingConfigFor("openrouter")?.model).toBe("text-embedding-3-small");
+		expect(embeddingConfigFor("groq")?.model).toBe("text-embedding-3-small");
 	});
 
-	it("returns null for providers with no OpenAI-compatible embeddings endpoint", () => {
-		expect(embeddingModelFor("anthropic")).toBeNull();
-		expect(embeddingModelFor("gemini")).toBeNull();
-		expect(embeddingModelFor(undefined)).toBeNull();
+	it("embeds Gemini via its OpenAI-compatible surface with a Bearer key", () => {
+		const config = embeddingConfigFor("gemini");
+		expect(config?.model).toBe("text-embedding-004");
+		const request = config?.buildRequest({
+			url: "https://generativelanguage.googleapis.com",
+			apiKey: "k",
+			text: "hi",
+		});
+		expect(request?.url).toBe("https://generativelanguage.googleapis.com/v1beta/openai/embeddings");
+		expect(request?.headers.Authorization).toBe("Bearer k");
+	});
+
+	it("returns null for providers with no embeddings endpoint", () => {
+		expect(embeddingConfigFor("anthropic")).toBeNull();
+		expect(embeddingConfigFor(undefined)).toBeNull();
 	});
 });
 

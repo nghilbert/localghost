@@ -8,20 +8,87 @@ const embeddingResponseSchema = z.object({
 	data: z.array(z.object({ embedding: z.array(z.number()) })).optional(),
 });
 
+/** How to embed one text against a provider family; mirrors `PROVIDERS` in llm.server.ts. */
+type EmbeddingConfig = {
+	model: string;
+	buildRequest: (params: { url: string; apiKey?: string; text: string }) => {
+		url: string;
+		headers: Record<string, string>;
+		body: string;
+	};
+	parse: (json: unknown) => number[] | undefined;
+};
+
+/** Reads the first embedding out of an OpenAI-shaped `{ data: [{ embedding }] }` response. */
+function parseOpenAIEmbedding(json: unknown): number[] | undefined {
+	const parsed = embeddingResponseSchema.safeParse(json);
+	if (!parsed.success) return undefined;
+	const embedding = parsed.data.data?.[0]?.embedding;
+	return embedding && embedding.length > 0 ? embedding : undefined;
+}
+
 /**
- * The `/v1/embeddings` model per provider family. `null` means the provider has
- * no OpenAI-compatible embeddings endpoint, so `embed` skips it rather than
- * wasting a round trip that would 404.
+ * Builds an OpenAI-compatible embedding config: Bearer auth and the `{ input,
+ * model }` body shape shared by openai/openrouter/groq/ollama and Gemini's
+ * OpenAI-compat surface. `stripSuffix` removes the path suffix the endpoint URL
+ * may already carry so it isn't doubled onto `path`.
  */
-export function embeddingModelFor(provider: LLMProvider | undefined): string | null {
+function openAICompatibleEmbedding({
+	model,
+	path,
+	stripSuffix,
+}: {
+	model: string;
+	path: string;
+	stripSuffix: RegExp;
+}): EmbeddingConfig {
+	return {
+		model,
+		buildRequest: ({ url, apiKey, text }) => {
+			const base = trimPathRight(url).replace(stripSuffix, "");
+			return {
+				url: `${base}${path}`,
+				headers: {
+					"Content-Type": "application/json",
+					...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
+				},
+				body: JSON.stringify({ input: text, model }),
+			};
+		},
+		parse: parseOpenAIEmbedding,
+	};
+}
+
+/**
+ * The embedding config per provider family, or `null` when the provider has no
+ * embeddings endpoint (Anthropic, and unrecognized providers) so `embed` skips
+ * it rather than wasting a round trip that would 404.
+ */
+export function embeddingConfigFor(provider: LLMProvider | undefined): EmbeddingConfig | null {
 	switch (provider) {
 		case "ollama":
 			// A small, widely-pulled local embedding model; not the chat model.
-			return "nomic-embed-text";
+			return openAICompatibleEmbedding({
+				model: "nomic-embed-text",
+				path: "/v1/embeddings",
+				stripSuffix: /\/v1$/,
+			});
 		case "openai":
 		case "openrouter":
 		case "groq":
-			return "text-embedding-3-small";
+			return openAICompatibleEmbedding({
+				model: "text-embedding-3-small",
+				path: "/v1/embeddings",
+				stripSuffix: /\/v1$/,
+			});
+		case "gemini":
+			// Gemini has no OpenAI `/v1/embeddings`, but its `/v1beta/openai` surface
+			// speaks the same wire shape, so only the path and model differ.
+			return openAICompatibleEmbedding({
+				model: "text-embedding-004",
+				path: "/v1beta/openai/embeddings",
+				stripSuffix: /\/v1beta$/,
+			});
 		default:
 			return null;
 	}
@@ -45,8 +112,8 @@ export async function embed({
 	});
 
 	for (const ep of endpoints) {
-		const model = embeddingModelFor(asLLMProvider(ep.provider));
-		if (!model) continue;
+		const config = embeddingConfigFor(asLLMProvider(ep.provider));
+		if (!config) continue;
 
 		let apiKey: string | undefined;
 		try {
@@ -55,40 +122,31 @@ export async function embed({
 			// endpointApiKey already logged the decrypt failure; try the next endpoint.
 			continue;
 		}
-		const base = trimPathRight(ep.url).replace(/\/v1$/, "");
-		const embeddingUrl = `${base}/v1/embeddings`;
+		const request = config.buildRequest({ url: ep.url, apiKey, text });
 
 		try {
-			const res = await fetch(embeddingUrl, {
+			const res = await fetch(request.url, {
 				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-					...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
-				},
-				body: JSON.stringify({ input: text, model }),
+				headers: request.headers,
+				body: request.body,
 				signal: AbortSignal.timeout(10_000),
 			});
 
 			if (!res.ok) {
 				console.warn("Embedding request rejected; trying the next endpoint", {
-					url: embeddingUrl,
-					model,
+					url: request.url,
+					model: config.model,
 					status: res.status,
 				});
 				continue;
 			}
 
-			const parsed = embeddingResponseSchema.safeParse(await res.json());
-			if (!parsed.success) continue;
-
-			const embedding = parsed.data.data?.[0]?.embedding;
-			if (embedding && embedding.length > 0) {
-				return embedding;
-			}
+			const embedding = config.parse(await res.json());
+			if (embedding) return embedding;
 		} catch (error) {
 			console.warn("Embedding request failed; trying the next endpoint", {
-				url: embeddingUrl,
-				model,
+				url: request.url,
+				model: config.model,
 				error,
 			});
 		}
