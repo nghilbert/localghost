@@ -1,6 +1,6 @@
 import { CheckCircle2Icon } from "lucide-react";
-import { EndpointItem } from "#/routes/_authenticated/settings/-components/EndpointItem";
-import { ProviderSetupForm } from "#/routes/_authenticated/settings/-components/ProviderSetupForm";
+import { EndpointItem } from "#/routes/_authenticated/settings/-components/endpoints/EndpointItem";
+import { ProviderSetupForm } from "#/routes/_authenticated/settings/-components/endpoints/ProviderSetupForm";
 import { Badge } from "#/shared/components/ui/badge";
 import { FieldDescription, FieldLegend, FieldSet } from "#/shared/components/ui/field";
 import { ItemGroup } from "#/shared/components/ui/item";

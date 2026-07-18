@@ -1,5 +1,5 @@
 import { PlusIcon } from "lucide-react";
-import { ProviderEndpointForm } from "#/routes/_authenticated/settings/-components/ProviderEndpointForm";
+import { ProviderEndpointForm } from "#/routes/_authenticated/settings/-components/endpoints/ProviderEndpointForm";
 import {
 	buildEndpointFormSchema,
 	dbProviderFor,

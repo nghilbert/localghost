@@ -25,7 +25,7 @@ import {
 import { memoriesQueryOptions } from "#/shared/domain/memory/memory.functions";
 import { memoryTextInput } from "#/shared/domain/memory/schemas";
 import { useAppForm } from "#/shared/hooks/use-app-form";
-import { useMemories } from "../-hooks/use-memories";
+import { useMemories } from "../../-hooks/use-memories";
 import { MemoryEditForm } from "./MemoryEditForm";
 
 export function MemoryTab() {

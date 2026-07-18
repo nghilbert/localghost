@@ -20,10 +20,10 @@ import { Input } from "#/shared/components/ui/input";
 import { userSettingsQueryOptions } from "#/shared/domain/user-settings/user-settings.functions";
 import { useAppForm } from "#/shared/hooks/use-app-form";
 import { useSignOut } from "#/shared/hooks/use-sign-out";
-import { useChangePassword } from "../-hooks/use-change-password";
-import { useDeleteAccount } from "../-hooks/use-delete-account";
-import { useUpdateAccount } from "../-hooks/use-update-account";
-import { accountFormSchema, changePasswordFormSchema } from "../-lib/schemas";
+import { useChangePassword } from "../../-hooks/use-change-password";
+import { useDeleteAccount } from "../../-hooks/use-delete-account";
+import { useUpdateAccount } from "../../-hooks/use-update-account";
+import { accountFormSchema, changePasswordFormSchema } from "../../-lib/schemas";
 import { BackupCard } from "./BackupCard";
 
 export function AccountTab() {

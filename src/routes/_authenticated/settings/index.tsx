@@ -3,10 +3,10 @@ import { BrainIcon, PaletteIcon, PlugIcon, UserIcon } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "#/shared/components/ui/tabs";
 import { memoriesQueryOptions } from "#/shared/domain/memory/memory.functions";
 import { userSettingsQueryOptions } from "#/shared/domain/user-settings/user-settings.functions";
-import { AccountTab } from "./-components/AccountTab";
 import { AppearanceTab } from "./-components/AppearanceTab";
-import { EndpointsTab } from "./-components/EndpointsTab";
-import { MemoryTab } from "./-components/MemoryTab";
+import { AccountTab } from "./-components/account/AccountTab";
+import { EndpointsTab } from "./-components/endpoints/EndpointsTab";
+import { MemoryTab } from "./-components/memory/MemoryTab";
 import { isTabValue, settingsSearchSchema } from "./-lib/schemas";
 
 export const Route = createFileRoute("/_authenticated/settings/")({

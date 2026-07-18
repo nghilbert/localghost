@@ -8,7 +8,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "#/shared/components/ui/card";
-import { useImportBackup } from "../-hooks/use-import-backup";
+import { useImportBackup } from "../../-hooks/use-import-backup";
 
 export function BackupCard() {
 	const importBackup = useImportBackup();

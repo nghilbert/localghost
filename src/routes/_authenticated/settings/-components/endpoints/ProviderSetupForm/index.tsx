@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AddProviderForm } from "#/routes/_authenticated/settings/-components/ProviderSetupForm/AddProviderForm";
+import { AddProviderForm } from "#/routes/_authenticated/settings/-components/endpoints/ProviderSetupForm/AddProviderForm";
 import { PROVIDERS, type ProviderId } from "#/routes/_authenticated/settings/-lib/providers";
 import { Field, FieldDescription, FieldLabel } from "#/shared/components/ui/field";
 import {

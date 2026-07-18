@@ -1,7 +1,7 @@
 import { PencilIcon, Trash2Icon } from "lucide-react";
 import { useState } from "react";
-import { EditEndpointForm } from "#/routes/_authenticated/settings/-components/EditEndpointForm";
-import { EndpointHealthBadge } from "#/routes/_authenticated/settings/-components/EndpointHealthBadge";
+import { EditEndpointForm } from "#/routes/_authenticated/settings/-components/endpoints/EditEndpointForm";
+import { EndpointHealthBadge } from "#/routes/_authenticated/settings/-components/endpoints/EndpointHealthBadge";
 import {
 	AlertDialog,
 	AlertDialogAction,
