@@ -4,11 +4,11 @@ import { CircleAlertIcon, CopyIcon, OctagonXIcon, PencilIcon, RefreshCwIcon } fr
 import { type KeyboardEvent, useState } from "react";
 import { toast } from "sonner";
 import { Streamdown } from "streamdown";
+import { ActionButton } from "#/routes/_authenticated/-components/chat/ChatMessage/ActionButton";
 import { ActivityTrail } from "#/routes/_authenticated/-components/chat/ChatMessage/ActivityTrail";
+import { DocumentList } from "#/routes/_authenticated/-components/chat/ChatMessage/DocumentList";
+import { ImageGrid } from "#/routes/_authenticated/-components/chat/ChatMessage/ImageGrid";
 import { chatLinkSafety } from "#/routes/_authenticated/-components/chat/ChatMessage/LinkSafetyDialog";
-import { MessageActionButton } from "#/routes/_authenticated/-components/chat/ChatMessage/MessageActionButton";
-import { MessageDocumentList } from "#/routes/_authenticated/-components/chat/ChatMessage/MessageDocumentList";
-import { MessageImageGrid } from "#/routes/_authenticated/-components/chat/ChatMessage/MessageImageGrid";
 import { Alert, AlertDescription, AlertTitle } from "#/shared/components/ui/alert";
 import { Bubble, BubbleContent } from "#/shared/components/ui/bubble";
 import { Button } from "#/shared/components/ui/button";
@@ -83,8 +83,8 @@ export function ChatMessage({
 		return (
 			<Message align="end" role="article" aria-label="Your message" data-testid="chat-message">
 				<MessageContent>
-					{imageSources.length > 0 && <MessageImageGrid sources={imageSources} />}
-					{documentSources.length > 0 && <MessageDocumentList documents={documentSources} />}
+					{imageSources.length > 0 && <ImageGrid sources={imageSources} />}
+					{documentSources.length > 0 && <DocumentList documents={documentSources} />}
 					{isEditing ? (
 						<InputGroup className="w-full">
 							<InputGroupTextarea
@@ -125,7 +125,7 @@ export function ChatMessage({
 					) : (
 						content && (
 							<MessageFooter className="justify-end gap-1 opacity-0 transition-opacity pointer-coarse:opacity-100 focus-within:opacity-100 group-hover/message:opacity-100">
-								<MessageActionButton
+								<ActionButton
 									icon={<CopyIcon />}
 									ariaLabel="Copy message"
 									tooltip="Copy"
@@ -133,7 +133,7 @@ export function ChatMessage({
 									onClick={() => copyToClipboard(content)}
 								/>
 								{onEditResend && (
-									<MessageActionButton
+									<ActionButton
 										icon={<PencilIcon />}
 										ariaLabel="Edit message"
 										tooltip="Edit & resend"
@@ -230,7 +230,7 @@ export function ChatMessage({
 							</Tooltip>
 						)}
 						<div className="ml-auto flex items-center gap-1 opacity-0 transition-opacity pointer-coarse:opacity-100 focus-within:opacity-100 group-hover/message:opacity-100">
-							<MessageActionButton
+							<ActionButton
 								icon={<CopyIcon />}
 								ariaLabel="Copy message"
 								tooltip="Copy"
@@ -238,7 +238,7 @@ export function ChatMessage({
 								onClick={() => copyToClipboard(content)}
 							/>
 							{onRegenerate && (
-								<MessageActionButton
+								<ActionButton
 									icon={<RefreshCwIcon />}
 									ariaLabel="Regenerate response"
 									tooltip="Regenerate"

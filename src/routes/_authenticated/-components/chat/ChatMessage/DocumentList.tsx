@@ -1,9 +1,9 @@
 import { FileTextIcon } from "lucide-react";
 
-type MessageDocumentListProps = { documents: Array<{ name: string; mimeType: string }> };
+type DocumentListProps = { documents: Array<{ name: string; mimeType: string }> };
 
 /** The document attachments carried on a message, rendered as labeled file chips. */
-export function MessageDocumentList({ documents }: MessageDocumentListProps) {
+export function DocumentList({ documents }: DocumentListProps) {
 	return (
 		<div className="flex flex-wrap gap-2" data-testid="message-document-list">
 			{documents.map((document) => (

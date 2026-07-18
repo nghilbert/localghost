@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { Button } from "#/shared/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "#/shared/components/ui/tooltip";
 
-type MessageActionButtonProps = {
+type ActionButtonProps = {
 	icon: ReactNode;
 	ariaLabel: string;
 	tooltip: string;
@@ -11,13 +11,7 @@ type MessageActionButtonProps = {
 };
 
 /** A single icon button in a message footer, tooltipped with its action name. */
-export function MessageActionButton({
-	icon,
-	ariaLabel,
-	tooltip,
-	testId,
-	onClick,
-}: MessageActionButtonProps) {
+export function ActionButton({ icon, ariaLabel, tooltip, testId, onClick }: ActionButtonProps) {
 	return (
 		<Tooltip>
 			<TooltipTrigger
