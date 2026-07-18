@@ -164,9 +164,12 @@ export async function probeModelCapabilities({
 	endpointId: string;
 	ownerId: string;
 	model: string;
-}): Promise<{ supportsTools: boolean; supportsImages: boolean }> {
+}): Promise<{ supportsTools: boolean; supportsImages: boolean; supportsDocuments: boolean }> {
 	const endpoint = await prisma.endpoint.findFirst({ where: { id: endpointId, ownerId } });
-	if (!endpoint) return { supportsTools: true, supportsImages: false };
+	if (!endpoint) return { supportsTools: true, supportsImages: false, supportsDocuments: false };
+	// Only the cloud providers whose adapters advertise document support get it;
+	// Ollama and unverified OpenAI-compatible endpoints stay images-only.
+	const supportsDocuments = endpoint.provider === "anthropic" || endpoint.provider === "gemini";
 	if (endpoint.provider === "ollama") {
 		try {
 			const { capabilities } = await ollamaClient({ host: endpoint.url, timeoutMs: 5000 }).show({
@@ -175,6 +178,7 @@ export async function probeModelCapabilities({
 			return {
 				supportsTools: capabilities.includes("tools"),
 				supportsImages: capabilities.includes("vision"),
+				supportsDocuments: false,
 			};
 		} catch (error) {
 			console.warn("Ollama capability probe failed; assuming tool support", {
@@ -182,7 +186,7 @@ export async function probeModelCapabilities({
 				model,
 				error,
 			});
-			return { supportsTools: true, supportsImages: false };
+			return { supportsTools: true, supportsImages: false, supportsDocuments: false };
 		}
 	}
 	try {
@@ -192,10 +196,10 @@ export async function probeModelCapabilities({
 			provider: asLLMProvider(endpoint.provider),
 			model,
 		});
-		return { supportsTools, supportsImages: true };
+		return { supportsTools, supportsImages: true, supportsDocuments };
 	} catch {
 		// endpointApiKey throws on an undecryptable key; stay optimistic here and
 		// let model listing surface that error.
-		return { supportsTools: true, supportsImages: true };
+		return { supportsTools: true, supportsImages: true, supportsDocuments };
 	}
 }

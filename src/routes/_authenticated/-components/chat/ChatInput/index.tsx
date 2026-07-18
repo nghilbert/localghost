@@ -16,9 +16,12 @@ import {
 	ToolsMenu,
 } from "#/routes/_authenticated/-components/chat/ChatInput/ToolsMenu";
 import {
-	type ImageAttachment,
+	type Attachment,
+	attachmentAccept,
+	isDocumentFile,
 	isImageFile,
-	readImageAttachment,
+	MAX_ATTACHMENT_BYTES,
+	readAttachment,
 } from "#/routes/_authenticated/-lib/attachments";
 import {
 	InputGroup,
@@ -43,9 +46,11 @@ type ChatInputProps = {
 	tools?: ToolControls;
 	/** Whether the selected model accepts image attachments; hides the affordance when false. */
 	supportsImages?: boolean;
+	/** Whether the selected model accepts document attachments (PDF/text); cloud Anthropic & Gemini. */
+	supportsDocuments?: boolean;
 	/** A send is in flight (e.g. the draft page creating the conversation). */
 	isSending?: boolean;
-	sendMessage: (content: string, attachments: ImageAttachment[]) => void;
+	sendMessage: (content: string, attachments: Attachment[]) => void;
 	stop?: () => void;
 };
 
@@ -57,29 +62,42 @@ export function ChatInput({
 	locked = false,
 	tools,
 	supportsImages = false,
+	supportsDocuments = false,
 	isSending = false,
 	sendMessage,
 	stop,
 }: ChatInputProps) {
 	const [messageDraft, setMessageDraft] = useState("");
-	const [attachments, setAttachments] = useState<ImageAttachment[]>([]);
+	const [attachments, setAttachments] = useState<Attachment[]>([]);
 	const [isDragging, setIsDragging] = useState(false);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	// A missing model is the one disabled state the user can fix from here, so it
 	// gets explicit guidance; a locked conversation explains itself via ModelPicker.
 	const needsModel = !selection && !locked;
+	const canAttach = supportsImages || supportsDocuments;
+
+	/** Whether a file is one of the kinds the selected model actually accepts. */
+	function isAcceptedFile(file: File): boolean {
+		return (supportsImages && isImageFile(file)) || (supportsDocuments && isDocumentFile(file));
+	}
 
 	async function addFiles(files: Iterable<File>) {
-		const images = Array.from(files).filter(isImageFile);
-		if (images.length === 0) {
-			toast.error("Only image files can be attached");
+		const accepted = Array.from(files).filter(isAcceptedFile);
+		if (accepted.length === 0) {
+			toast.error(canAttach ? "That file type can't be attached" : "This model can't take files");
 			return;
 		}
+		const withinLimit = accepted.filter((file) => {
+			if (file.size <= MAX_ATTACHMENT_BYTES) return true;
+			toast.error(`${file.name} is too large (max 20 MB)`);
+			return false;
+		});
+		if (withinLimit.length === 0) return;
 		try {
-			const read = await Promise.all(images.map(readImageAttachment));
+			const read = await Promise.all(withinLimit.map(readAttachment));
 			setAttachments((prev) => [...prev, ...read]);
 		} catch {
-			toast.error("Couldn't read an image");
+			toast.error("Couldn't read a file");
 		}
 	}
 
@@ -99,11 +117,11 @@ export function ChatInput({
 	}
 
 	function handlePaste(event: ClipboardEvent<HTMLTextAreaElement>) {
-		if (!supportsImages) return;
-		const images = Array.from(event.clipboardData.files).filter(isImageFile);
-		if (images.length === 0) return;
+		if (!canAttach) return;
+		const files = Array.from(event.clipboardData.files).filter(isAcceptedFile);
+		if (files.length === 0) return;
 		event.preventDefault();
-		void addFiles(images);
+		void addFiles(files);
 	}
 
 	function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
@@ -113,20 +131,26 @@ export function ChatInput({
 	}
 
 	function handleDrop(event: DragEvent<HTMLDivElement>) {
-		if (!supportsImages) return;
+		if (!canAttach) return;
 		event.preventDefault();
 		setIsDragging(false);
 		void addFiles(event.dataTransfer.files);
 	}
 
 	function handleDragOver(event: DragEvent<HTMLDivElement>) {
-		if (!supportsImages) return;
+		if (!canAttach) return;
 		event.preventDefault();
 		setIsDragging(true);
 	}
 
 	const stopping = Boolean(isStreaming && stop);
 	const inactive = !stopping && (needsModel || disabled);
+	const attachLabel =
+		supportsImages && supportsDocuments
+			? "Attach images or documents"
+			: supportsDocuments
+				? "Attach documents"
+				: "Attach images";
 	const sendIcon = stopping ? (
 		<SquareIcon size={14} />
 	) : isSending ? (
@@ -170,12 +194,12 @@ export function ChatInput({
 					<ModelPicker selection={selection} onSelect={onSelect} />
 				)}
 				{tools && <ToolsMenu {...tools} />}
-				{supportsImages && (
+				{canAttach && (
 					<>
 						<input
 							ref={fileInputRef}
 							type="file"
-							accept="image/png,image/jpeg,image/webp,image/gif"
+							accept={attachmentAccept({ images: supportsImages, documents: supportsDocuments })}
 							multiple
 							hidden
 							data-testid="attach-image-input"
@@ -188,7 +212,7 @@ export function ChatInput({
 										type="button"
 										variant="ghost"
 										size="icon-sm"
-										aria-label="Attach images"
+										aria-label={attachLabel}
 										data-testid="attach-image-button"
 										disabled={disabled}
 										onClick={() => fileInputRef.current?.click()}
@@ -197,7 +221,7 @@ export function ChatInput({
 							>
 								<PaperclipIcon size={14} />
 							</TooltipTrigger>
-							<TooltipContent>Attach images</TooltipContent>
+							<TooltipContent>{attachLabel}</TooltipContent>
 						</Tooltip>
 					</>
 				)}

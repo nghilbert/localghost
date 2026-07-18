@@ -7,6 +7,7 @@ import { Streamdown } from "streamdown";
 import { ActivityTrail } from "#/routes/_authenticated/-components/chat/ChatMessage/ActivityTrail";
 import { chatLinkSafety } from "#/routes/_authenticated/-components/chat/ChatMessage/LinkSafetyDialog";
 import { MessageActionButton } from "#/routes/_authenticated/-components/chat/ChatMessage/MessageActionButton";
+import { MessageDocumentList } from "#/routes/_authenticated/-components/chat/ChatMessage/MessageDocumentList";
 import { MessageImageGrid } from "#/routes/_authenticated/-components/chat/ChatMessage/MessageImageGrid";
 import { Alert, AlertDescription, AlertTitle } from "#/shared/components/ui/alert";
 import { Bubble, BubbleContent } from "#/shared/components/ui/bubble";
@@ -16,6 +17,7 @@ import { Message, MessageContent, MessageFooter } from "#/shared/components/ui/m
 import { Tooltip, TooltipContent, TooltipTrigger } from "#/shared/components/ui/tooltip";
 import {
 	isInterrupted,
+	messageDocumentSources,
 	messageImageSources,
 	messageUsage,
 	partsText,
@@ -56,6 +58,7 @@ export function ChatMessage({
 }: ChatMessageProps) {
 	const content = partsText(message.parts);
 	const imageSources = messageImageSources(message.parts);
+	const documentSources = messageDocumentSources(message.parts);
 	const [isEditing, setIsEditing] = useState(false);
 	const [draft, setDraft] = useState(content);
 
@@ -81,6 +84,7 @@ export function ChatMessage({
 			<Message align="end" role="article" aria-label="Your message" data-testid="chat-message">
 				<MessageContent>
 					{imageSources.length > 0 && <MessageImageGrid sources={imageSources} />}
+					{documentSources.length > 0 && <MessageDocumentList documents={documentSources} />}
 					{isEditing ? (
 						<InputGroup className="w-full">
 							<InputGroupTextarea

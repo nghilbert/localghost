@@ -46,6 +46,7 @@ Commits, pushes, and prisma commands are the user's job (a PreToolUse guard bloc
 - End the summary with one section per logical change: a fenced `git add <paths>`, then the commit message in its own fenced block (imperative subject under 70 chars, one to three sentences of what and why). No co-author or generated-with lines.
 - Prisma: edit `prisma/schema/` only, then tell the user what to run.
 - Never edit generated output (`src/generated/`, `routeTree.gen.ts`); change the source and regenerate. `src/shared/components/ui/*` is regenerable too, but a rare, stated-reason hand-edit is fine (see shadcn-first above).
+- When delegating to sub agents (the `Agent` tool), prefer a smaller/cheaper model (e.g. `haiku`) over the default for mechanical or narrow-scope tasks (targeted search, simple lookups, single-file edits); reserve the default or larger models for sub agents doing non-trivial reasoning or design work.
 
 ## Environment
 

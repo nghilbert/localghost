@@ -1,4 +1,4 @@
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { DownloadIcon, MoreHorizontalIcon, PencilIcon, Trash2Icon } from "lucide-react";
 import { useState } from "react";
@@ -34,12 +34,20 @@ import {
 	SidebarMenuButton,
 	SidebarMenuItem,
 } from "#/shared/components/ui/sidebar";
-import { conversationQueryOptions } from "#/shared/domain/conversation/conversation.functions";
+import {
+	conversationQueryOptions,
+	conversationSearchQueryOptions,
+} from "#/shared/domain/conversation/conversation.functions";
 import {
 	conversationExportFilename,
 	conversationToJson,
 	conversationToMarkdown,
 } from "#/shared/domain/conversation/export";
+import {
+	mergeSearchResults,
+	type SearchableConversation,
+	snippetSegments,
+} from "#/shared/domain/conversation/search";
 import { useConversations } from "#/shared/domain/conversation/use-conversations";
 import { downloadTextFile } from "#/shared/lib/download";
 
@@ -54,9 +62,19 @@ export function RecentChatList() {
 	const { conversationId: currentConversationId } = useParams({ strict: false });
 	const pendingDelete = conversations.find((c) => c.id === pendingDeleteId);
 
-	const query = search.trim().toLowerCase();
-	const visibleConversations = query
-		? conversations.filter((c) => (c.title ?? "").toLowerCase().includes(query))
+	const query = search.trim();
+	// Instant title filter, plus a server-side full-text search over message bodies
+	// (only fired once there's a query); results merge with titles ranked first.
+	const { data: contentMatches } = useQuery({
+		...conversationSearchQueryOptions({ query }),
+		enabled: query.length > 0,
+	});
+	const lowerQuery = query.toLowerCase();
+	const titleMatches = conversations.filter((c) =>
+		(c.title ?? "").toLowerCase().includes(lowerQuery),
+	);
+	const visibleConversations: SearchableConversation[] = query
+		? mergeSearchResults({ titleMatches, contentMatches: contentMatches ?? [] })
 		: conversations;
 
 	async function exportConversation({ id, format }: { id: string; format: "markdown" | "json" }) {
@@ -117,8 +135,24 @@ export function RecentChatList() {
 									isActive={currentConversationId === conversation.id}
 									tooltip={conversation.title}
 									onDoubleClick={() => setRenamingId(conversation.id)}
+									className={
+										conversation.snippet ? "h-auto flex-col items-start gap-0.5" : undefined
+									}
 								>
-									<span className="truncate">{conversation.title}</span>
+									<span className="w-full truncate">{conversation.title}</span>
+									{conversation.snippet && (
+										<span className="w-full truncate text-xs text-muted-foreground">
+											{snippetSegments(conversation.snippet).map((segment) =>
+												segment.highlight ? (
+													<strong key={segment.start} className="font-medium text-foreground">
+														{segment.text}
+													</strong>
+												) : (
+													<span key={segment.start}>{segment.text}</span>
+												),
+											)}
+										</span>
+									)}
 								</SidebarMenuButton>
 							)}
 							<DropdownMenu>

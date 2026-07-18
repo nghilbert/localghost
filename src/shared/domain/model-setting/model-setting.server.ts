@@ -19,6 +19,22 @@ export async function getModelSetting({
 	return setting?.options as z.infer<typeof perModelOptionsSchema> | null | undefined;
 }
 
+/**
+ * Every saved per-model override for a user, each tagged with the owning
+ * endpoint's portable identity (url + provider) so a backup can re-attach it to
+ * a re-created endpoint on another instance where the endpoint id differs.
+ */
+export async function listModelSettings({ ownerId }: { ownerId: string }) {
+	return prisma.modelSetting.findMany({
+		where: { ownerId },
+		select: {
+			model: true,
+			options: true,
+			endpoint: { select: { url: true, name: true, provider: true } },
+		},
+	});
+}
+
 /** Creates or replaces a model's saved overrides. */
 export async function upsertModelSetting({
 	endpointId,

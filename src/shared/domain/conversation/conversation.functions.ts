@@ -12,12 +12,14 @@ import {
 	probeModelRunState,
 	removeConversation,
 	saveMessages,
+	searchConversations,
 } from "./conversation.server";
 import { storedMessages } from "./messages";
 import {
 	conversationIdInput,
 	createConversationInput,
 	saveMessagesInput,
+	searchConversationsInput,
 	updateConversationInput,
 } from "./schemas";
 
@@ -26,6 +28,15 @@ export const listConversations = createServerFn({ method: "GET" }).handler(async
 	const userId = await getCurrentUserId();
 	return findConversations({ ownerId: userId });
 });
+
+/** Full-text search over conversation transcripts; empty for a blank query. */
+export const searchConversationsFn = createServerFn({ method: "GET" })
+	.validator(searchConversationsInput)
+	.handler(async ({ data: { query } }) => {
+		if (!query.trim()) return [];
+		const userId = await getCurrentUserId();
+		return searchConversations({ ownerId: userId, query });
+	});
 
 /**
  * Full conversation row, including the `messages` blob and endpoint config.
@@ -128,6 +139,12 @@ export const deleteConversation = createServerFn({ method: "POST" })
 
 export const conversationsQueryOptions = () =>
 	queryOptions({ queryKey: ["conversations"], queryFn: () => listConversations() });
+
+export const conversationSearchQueryOptions = ({ query }: { query: string }) =>
+	queryOptions({
+		queryKey: ["conversation-search", query],
+		queryFn: () => searchConversationsFn({ data: { query } }),
+	});
 
 export const conversationQueryOptions = (id: string) =>
 	queryOptions({
