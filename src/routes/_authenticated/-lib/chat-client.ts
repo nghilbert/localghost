@@ -26,7 +26,7 @@ type PendingSave = {
 };
 
 // Module-level (not per-persistence-instance) so the flush listeners below are
-// registered exactly once, even though `ChatView` remounts a fresh persistence
+// registered exactly once, even though `ChatThread` remounts a fresh persistence
 // object on every conversation switch.
 const pending = new Map<string, PendingSave>();
 

@@ -1,6 +1,6 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ChatView } from "#/routes/_authenticated/-components/chat/ChatView";
+import { ChatThread } from "#/routes/_authenticated/-components/chat/ChatThread";
 import { Button } from "#/shared/components/ui/button";
 import {
 	Empty,
@@ -32,7 +32,7 @@ function ConversationPage() {
 	const { data: conversation } = useSuspenseQuery(conversationQueryOptions(conversationId));
 	return (
 		<div className="w-full h-full min-h-0 mx-auto max-w-4xl">
-			<ChatView key={conversation.id} conversation={conversation} />
+			<ChatThread key={conversation.id} conversation={conversation} />
 		</div>
 	);
 }

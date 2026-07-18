@@ -3,7 +3,7 @@ import { useChat } from "@tanstack/ai-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { ChatInput } from "#/routes/_authenticated/-components/chat/ChatInput";
-import { ChatStatus } from "#/routes/_authenticated/-components/chat/ChatView/ChatStatus";
+import { ChatStatus } from "#/routes/_authenticated/-components/chat/ChatThread/ChatStatus";
 import { useConversation } from "#/routes/_authenticated/-hooks/use-conversation";
 import { type Attachment, composeMessageContent } from "#/routes/_authenticated/-lib/attachments";
 import { createChatOptions } from "#/routes/_authenticated/-lib/chat-client";
@@ -49,8 +49,8 @@ function HistoryTrimDivider() {
 	);
 }
 
-type ChatViewProps = { conversation: ConversationDetail };
-export function ChatView({ conversation }: ChatViewProps) {
+type ChatThreadProps = { conversation: ConversationDetail };
+export function ChatThread({ conversation }: ChatThreadProps) {
 	const queryClient = useQueryClient();
 
 	const {
