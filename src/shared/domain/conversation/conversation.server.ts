@@ -20,6 +20,50 @@ export function findConversations({ ownerId }: { ownerId: string }) {
 	});
 }
 
+/** One sidebar search hit: the list fields plus a plain-text snippet of the match. */
+export type ConversationSearchHit = {
+	id: string;
+	title: string;
+	model: string | null;
+	endpointId: string | null;
+	updatedAt: Date;
+	snippet: string;
+};
+
+/**
+ * Full-text search over conversation transcripts (the `messages` text parts),
+ * ranked by relevance. The tsvector is computed at query time from the flattened
+ * text parts (no stored column/index — fine for a local per-user table), and the
+ * snippet is a `ts_headline` over that same text.
+ */
+export function searchConversations({
+	ownerId,
+	query,
+}: {
+	ownerId: string;
+	query: string;
+}): Promise<ConversationSearchHit[]> {
+	return prisma.$queryRaw<ConversationSearchHit[]>`
+		SELECT c.id,
+		       c.title,
+		       c.model,
+		       c.endpoint_id AS "endpointId",
+		       c.updated_at AS "updatedAt",
+		       ts_headline('english', flat.text, q,
+		         'StartSel=<<<,StopSel=>>>,MaxFragments=1,MaxWords=16,MinWords=6') AS snippet
+		FROM conversation c
+		CROSS JOIN LATERAL (
+			SELECT string_agg(part->>'content', ' ') AS text
+			FROM jsonb_array_elements(c.messages) AS msg,
+			     jsonb_array_elements(msg->'parts') AS part
+			WHERE part->>'type' = 'text'
+		) flat,
+		websearch_to_tsquery('english', ${query}) q
+		WHERE c.owner_id = ${ownerId}::uuid AND to_tsvector('english', flat.text) @@ q
+		ORDER BY ts_rank(to_tsvector('english', flat.text), q) DESC
+		LIMIT 20`;
+}
+
 /** Full conversation row with client-safe endpoint config, or null when not owned. */
 export function findConversation({ id, ownerId }: { id: string; ownerId: string }) {
 	return prisma.conversation.findFirst({
@@ -64,9 +108,18 @@ export async function insertConversation({
 	endpointId: string;
 	model: string;
 	firstMessage: string;
-	attachments?: Array<{ dataUrl: string }>;
+	attachments?: Array<{
+		dataUrl: string;
+		mimeType: string;
+		name: string;
+		kind: "image" | "document";
+	}>;
 }): Promise<{ id: string }> {
-	const message = buildFirstUserMessage({ content: firstMessage, images: attachments });
+	const message = buildFirstUserMessage({
+		content: firstMessage,
+		images: attachments.filter((attachment) => attachment.kind === "image"),
+		documents: attachments.filter((attachment) => attachment.kind === "document"),
+	});
 	return prisma.conversation.create({
 		data: {
 			ownerId,
