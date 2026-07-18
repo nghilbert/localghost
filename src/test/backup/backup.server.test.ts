@@ -9,6 +9,10 @@ const {
 	conversationCreateMany,
 	userFindUnique,
 	userUpdate,
+	endpointFindMany,
+	endpointCreate,
+	modelSettingFindMany,
+	modelSettingCreate,
 } = vi.hoisted(() => ({
 	memoryFindMany: vi.fn(),
 	insertMemory: vi.fn(),
@@ -17,18 +21,26 @@ const {
 	conversationCreateMany: vi.fn(),
 	userFindUnique: vi.fn(),
 	userUpdate: vi.fn(),
+	endpointFindMany: vi.fn(),
+	endpointCreate: vi.fn(),
+	modelSettingFindMany: vi.fn(),
+	modelSettingCreate: vi.fn(),
 }));
 
 vi.mock("#/shared/lib/db.server", () => {
 	const tx = {
 		user: { findUnique: userFindUnique, update: userUpdate },
 		conversation: { createMany: conversationCreateMany },
+		endpoint: { create: endpointCreate },
+		modelSetting: { create: modelSettingCreate },
 	};
 	return {
 		prisma: {
 			memory: { findMany: memoryFindMany },
 			conversation: { findMany: conversationFindMany, createMany: conversationCreateMany },
 			user: { findUnique: userFindUnique, update: userUpdate },
+			endpoint: { findMany: endpointFindMany },
+			modelSetting: { findMany: modelSettingFindMany },
 			$transaction: (fn: (client: typeof tx) => unknown) => fn(tx),
 		},
 	};
@@ -37,8 +49,9 @@ vi.mock("#/shared/lib/db.server", () => {
 vi.mock("#/shared/domain/memory/memory.server", () => ({ insertMemory }));
 vi.mock("#/shared/domain/memory/embeddings.server", () => ({ embed }));
 
-// `memoryFindMany`/`conversationFindMany` back both exportBackup's row select
-// and importBackup's dedup lookup; each describe block below sets what it needs.
+// The *FindMany mocks back both exportBackup's row select and importBackup's
+// dedup lookups; each describe block below sets what it needs. `listModelSettings`
+// runs against the same `modelSetting.findMany` mock (it's a thin prisma call).
 
 beforeEach(() => {
 	vi.clearAllMocks();
@@ -48,26 +61,71 @@ beforeEach(() => {
 	conversationFindMany.mockResolvedValue([]);
 	conversationCreateMany.mockResolvedValue({ count: 0 });
 	userFindUnique.mockResolvedValue(null);
+	endpointFindMany.mockResolvedValue([]);
+	endpointCreate.mockResolvedValue({ id: "ep-new" });
+	modelSettingFindMany.mockResolvedValue([]);
+	modelSettingCreate.mockResolvedValue({});
 });
 
 describe("exportBackup", () => {
-	it("shapes memories, conversations, and settings from the current user's rows", async () => {
+	it("shapes memories, conversations, endpoints, model settings, and defaults from the user's rows", async () => {
 		memoryFindMany.mockResolvedValue([{ text: "remember this", category: "fact", source: "chat" }]);
 		conversationFindMany.mockResolvedValue([
 			{ title: "Trip planning", model: "llama3", messages: [{ id: "m1" }] },
 		]);
 		userFindUnique.mockResolvedValue({ systemPrompt: "be terse", temperature: 0.5 });
+		endpointFindMany.mockResolvedValue([
+			{ name: "OpenAI", url: "https://api.openai.com", provider: "openai", options: null },
+		]);
+		modelSettingFindMany.mockResolvedValue([
+			{
+				model: "gpt-4o",
+				options: { num_ctx: 8192 },
+				endpoint: { url: "https://api.openai.com", name: "OpenAI", provider: "openai" },
+			},
+		]);
 
 		const backup = await exportBackup({ userId: "user-1", email: "a@b.com" });
 
 		expect(backup).toEqual({
-			version: 2,
+			version: 3,
 			exportedAt: expect.any(String),
 			exportedBy: "a@b.com",
 			userSettings: { systemPrompt: "be terse", temperature: 0.5 },
 			memories: [{ text: "remember this", category: "fact", source: "chat" }],
 			conversations: [{ title: "Trip planning", model: "llama3", messages: [{ id: "m1" }] }],
+			endpoints: [
+				{ name: "OpenAI", url: "https://api.openai.com", provider: "openai", options: null },
+			],
+			modelSettings: [
+				{
+					endpointUrl: "https://api.openai.com",
+					endpointName: "OpenAI",
+					provider: "openai",
+					model: "gpt-4o",
+					options: { num_ctx: 8192 },
+				},
+			],
 		});
+	});
+
+	it("never includes an encrypted API key in an exported endpoint", async () => {
+		endpointFindMany.mockResolvedValue([
+			{
+				name: "Custom",
+				url: "https://api.test",
+				provider: "openai",
+				options: null,
+				apiKeyEncrypted: "secret-ciphertext",
+			},
+		]);
+
+		const backup = await exportBackup({ userId: "user-1", email: "a@b.com" });
+
+		expect(backup.endpoints).toEqual([
+			{ name: "Custom", url: "https://api.test", provider: "openai", options: null },
+		]);
+		expect(JSON.stringify(backup)).not.toContain("secret-ciphertext");
 	});
 
 	it("reports null userSettings when the user row is gone", async () => {
@@ -258,5 +316,147 @@ describe("importBackup: conversations", () => {
 			data: [{ title: "Fine", model: "", messages: valid, ownerId: "owner-1" }],
 		});
 		expect(result).toMatchObject({ invalidConversations: 2, skippedConversations: 0 });
+	});
+});
+
+describe("importBackup: endpoints", () => {
+	it("creates a missing endpoint with no API key (flagged for re-entry) and no options key when absent", async () => {
+		const result = await importBackup({
+			userId: "owner-1",
+			payload: {
+				endpoints: [{ name: "OpenAI", url: "https://api.openai.com", provider: "openai" }],
+			},
+		});
+
+		expect(endpointCreate).toHaveBeenCalledWith({
+			data: {
+				name: "OpenAI",
+				url: "https://api.openai.com",
+				provider: "openai",
+				ownerId: "owner-1",
+			},
+			select: { id: true },
+		});
+		expect(result).toMatchObject({ endpoints: 1, skippedEndpoints: 0 });
+	});
+
+	it("skips an endpoint already present by url and provider", async () => {
+		endpointFindMany.mockResolvedValue([
+			{ id: "ep-1", url: "https://api.openai.com", provider: "openai" },
+		]);
+
+		const result = await importBackup({
+			userId: "owner-1",
+			payload: {
+				endpoints: [{ name: "OpenAI", url: "https://api.openai.com", provider: "openai" }],
+			},
+		});
+
+		expect(endpointCreate).not.toHaveBeenCalled();
+		expect(result).toMatchObject({ endpoints: 0, skippedEndpoints: 1 });
+	});
+});
+
+describe("importBackup: model settings", () => {
+	it("re-attaches a model setting to an existing endpoint matched by url and provider", async () => {
+		endpointFindMany.mockResolvedValue([
+			{ id: "ep-1", url: "https://api.openai.com", provider: "openai" },
+		]);
+
+		const result = await importBackup({
+			userId: "owner-1",
+			payload: {
+				modelSettings: [
+					{
+						endpointUrl: "https://api.openai.com",
+						provider: "openai",
+						model: "gpt-4o",
+						options: { num_ctx: 8192 },
+					},
+				],
+			},
+		});
+
+		expect(modelSettingCreate).toHaveBeenCalledWith({
+			data: {
+				endpointId: "ep-1",
+				model: "gpt-4o",
+				options: { num_ctx: 8192 },
+				ownerId: "owner-1",
+			},
+		});
+		expect(result).toMatchObject({ modelSettings: 1, skippedModelSettings: 0 });
+	});
+
+	it("attaches a model setting to a newly created endpoint from the same import", async () => {
+		endpointCreate.mockResolvedValue({ id: "ep-fresh" });
+
+		const result = await importBackup({
+			userId: "owner-1",
+			payload: {
+				endpoints: [{ name: "Local", url: "http://localhost:11434", provider: "ollama" }],
+				modelSettings: [
+					{
+						endpointUrl: "http://localhost:11434",
+						provider: "ollama",
+						model: "llama3",
+						options: { num_ctx: 4096 },
+					},
+				],
+			},
+		});
+
+		expect(modelSettingCreate).toHaveBeenCalledWith({
+			data: {
+				endpointId: "ep-fresh",
+				model: "llama3",
+				options: { num_ctx: 4096 },
+				ownerId: "owner-1",
+			},
+		});
+		expect(result).toMatchObject({ endpoints: 1, modelSettings: 1 });
+	});
+
+	it("skips a model setting whose endpoint can't be resolved", async () => {
+		const result = await importBackup({
+			userId: "owner-1",
+			payload: {
+				modelSettings: [
+					{
+						endpointUrl: "https://unknown.test",
+						provider: "openai",
+						model: "gpt-4o",
+						options: {},
+					},
+				],
+			},
+		});
+
+		expect(modelSettingCreate).not.toHaveBeenCalled();
+		expect(result).toMatchObject({ modelSettings: 0, skippedModelSettings: 1 });
+	});
+
+	it("skips a model setting already present for that endpoint and model", async () => {
+		endpointFindMany.mockResolvedValue([
+			{ id: "ep-1", url: "https://api.openai.com", provider: "openai" },
+		]);
+		modelSettingFindMany.mockResolvedValue([{ endpointId: "ep-1", model: "gpt-4o" }]);
+
+		const result = await importBackup({
+			userId: "owner-1",
+			payload: {
+				modelSettings: [
+					{
+						endpointUrl: "https://api.openai.com",
+						provider: "openai",
+						model: "gpt-4o",
+						options: { num_ctx: 8192 },
+					},
+				],
+			},
+		});
+
+		expect(modelSettingCreate).not.toHaveBeenCalled();
+		expect(result).toMatchObject({ modelSettings: 0, skippedModelSettings: 1 });
 	});
 });
