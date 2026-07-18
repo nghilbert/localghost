@@ -1,9 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { recallMemories } from "#/shared/domain/memory/memory.server";
+import { recallMemories, saveMemory } from "#/shared/domain/memory/memory.server";
 
-const { queryRaw, embed } = vi.hoisted(() => ({ queryRaw: vi.fn(), embed: vi.fn() }));
+const { queryRaw, executeRaw, findFirst, embed } = vi.hoisted(() => ({
+	queryRaw: vi.fn(),
+	executeRaw: vi.fn(),
+	findFirst: vi.fn(),
+	embed: vi.fn(),
+}));
 
-vi.mock("#/shared/lib/db.server", () => ({ prisma: { $queryRaw: queryRaw } }));
+vi.mock("#/shared/lib/db.server", () => ({
+	prisma: { $queryRaw: queryRaw, $executeRaw: executeRaw, memory: { findFirst } },
+}));
 vi.mock("#/shared/domain/memory/embeddings.server", () => ({
 	embed,
 	toVectorLiteral: (v: number[]) => `[${v.join(",")}]`,
@@ -12,6 +19,8 @@ vi.mock("#/shared/domain/memory/embeddings.server", () => ({
 beforeEach(() => {
 	vi.clearAllMocks();
 	embed.mockResolvedValue([0.1, 0.2, 0.3]);
+	findFirst.mockResolvedValue(null);
+	executeRaw.mockResolvedValue(1);
 });
 
 /** The interpolated params (minus the SQL template) of the sole keyword-fallback query. */
@@ -61,5 +70,43 @@ describe("recallMemories", () => {
 
 		const params = keywordCallParams();
 		expect(params).toContainEqual([String.raw`%50\%\_off%`]);
+	});
+});
+
+describe("saveMemory dedup", () => {
+	it("skips the insert when an exact (text, category) row already exists", async () => {
+		findFirst.mockResolvedValueOnce({ text: "user's name is Nate" });
+
+		const result = await saveMemory({ ownerId: "owner-1", text: "user's name is Nate" });
+
+		expect(result).toEqual({ status: "duplicate", text: "user's name is Nate" });
+		expect(executeRaw).not.toHaveBeenCalled();
+	});
+
+	it("skips the insert when a stored memory is within the semantic distance threshold", async () => {
+		queryRaw.mockResolvedValueOnce([{ text: "prefers TypeScript", distance: 0.02 }]);
+
+		const result = await saveMemory({ ownerId: "owner-1", text: "likes to use TypeScript" });
+
+		expect(result).toEqual({ status: "duplicate", text: "prefers TypeScript" });
+		expect(executeRaw).not.toHaveBeenCalled();
+	});
+
+	it("inserts when the nearest memory is beyond the threshold", async () => {
+		queryRaw.mockResolvedValueOnce([{ text: "prefers TypeScript", distance: 0.5 }]);
+
+		const result = await saveMemory({ ownerId: "owner-1", text: "lives in Berlin" });
+
+		expect(result).toEqual({ status: "saved" });
+		expect(executeRaw).toHaveBeenCalledTimes(1);
+	});
+
+	it("still inserts when the nearest-memory query throws (dimension mismatch)", async () => {
+		queryRaw.mockRejectedValueOnce(new Error("different vector dimensions 1536 and 768"));
+
+		const result = await saveMemory({ ownerId: "owner-1", text: "lives in Berlin" });
+
+		expect(result).toEqual({ status: "saved" });
+		expect(executeRaw).toHaveBeenCalledTimes(1);
 	});
 });

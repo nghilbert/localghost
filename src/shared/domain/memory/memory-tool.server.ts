@@ -46,9 +46,13 @@ async function addMemory({
 }): Promise<string> {
 	if (!args.text?.trim()) return "text is required to add a memory";
 
-	await saveMemory({ ownerId, text: args.text, category: args.category });
+	const result = await saveMemory({ ownerId, text: args.text, category: args.category });
+	const preview = `${args.text.slice(0, 80)}${args.text.length > 80 ? "…" : ""}`;
 
-	return `Memory saved: "${args.text.slice(0, 80)}${args.text.length > 80 ? "…" : ""}"`;
+	// Say "already remembered" on a duplicate so the model doesn't retry with a rephrase.
+	return result.status === "duplicate"
+		? `Already remembered: "${preview}"`
+		: `Memory saved: "${preview}"`;
 }
 
 async function searchMemory({

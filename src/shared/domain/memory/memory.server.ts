@@ -35,10 +35,22 @@ export async function insertMemory({
 		)`;
 }
 
+/** Whether {@link saveMemory} stored a new row or found the fact already remembered. */
+export type SaveMemoryResult = { status: "saved" } | { status: "duplicate"; text: string };
+
 /**
- * Persists one memory with its embedding.
+ * A stored memory whose embedding is within this cosine distance of a new one is
+ * treated as the same fact, so a rephrasing ("prefers TypeScript" vs "likes to
+ * use TypeScript") is caught before it bloats the list. Tight on purpose;
+ * loosen only if the model keeps re-saving near-identical facts.
+ */
+const DEDUP_MAX_COSINE_DISTANCE = 0.08;
+
+/**
+ * Persists one memory with its embedding, skipping facts already remembered.
  * A failed embedding stores a NULL vector rather than aborting the write.
  * @param source Provenance; defaults to `"agent"`, overridden on import.
+ * @returns Whether a row was stored or an equivalent memory already existed.
  */
 export async function saveMemory({
 	ownerId,
@@ -50,9 +62,52 @@ export async function saveMemory({
 	text: string;
 	category?: string;
 	source?: string;
-}): Promise<void> {
+}): Promise<SaveMemoryResult> {
 	const embedding = await embed({ text, ownerId });
+
+	// Cheap exact match first (mirrors the backup importer's dedup key).
+	const exact = await prisma.memory.findFirst({
+		where: { ownerId, text, category: category ?? "fact" },
+		select: { text: true },
+	});
+	if (exact) return { status: "duplicate", text: exact.text };
+
+	// Then a semantic near-duplicate check, reusing the embedding we just computed.
+	if (embedding) {
+		const nearest = await nearestMemory({ ownerId, embedding });
+		if (nearest && nearest.distance < DEDUP_MAX_COSINE_DISTANCE) {
+			return { status: "duplicate", text: nearest.text };
+		}
+	}
+
 	await insertMemory({ db: prisma, ownerId, text, category, source, embedding });
+	return { status: "saved" };
+}
+
+/**
+ * The user's memory closest to `embedding` by cosine distance, or null when they
+ * have none embedded. Degrades to null (rather than throwing) when a stored
+ * vector's dimension mismatches, same as {@link recallMemories}.
+ */
+async function nearestMemory({
+	ownerId,
+	embedding,
+}: {
+	ownerId: string;
+	embedding: number[];
+}): Promise<{ text: string; distance: number } | null> {
+	try {
+		const rows = await prisma.$queryRaw<Array<{ text: string; distance: number }>>`
+			SELECT text, embedding <=> ${toVectorLiteral(embedding)}::vector AS distance
+			FROM memory
+			WHERE owner_id = ${ownerId}::uuid AND embedding IS NOT NULL
+			ORDER BY embedding <=> ${toVectorLiteral(embedding)}::vector
+			LIMIT 1`;
+		return rows[0] ?? null;
+	} catch (error) {
+		console.warn("Nearest-memory lookup failed; skipping semantic dedup", { error });
+		return null;
+	}
 }
 
 /**

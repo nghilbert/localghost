@@ -34,6 +34,7 @@ describe("manageMemory: add", () => {
 	});
 
 	it("saves with the given category and confirms without truncation at exactly 80 chars", async () => {
+		saveMemory.mockResolvedValue({ status: "saved" });
 		const text = "a".repeat(80);
 		const result = await manageMemory({ args: { action: "add", text, category: "fact" }, ownerId });
 
@@ -42,10 +43,21 @@ describe("manageMemory: add", () => {
 	});
 
 	it("truncates the confirmation at 80 chars with an ellipsis for longer text", async () => {
+		saveMemory.mockResolvedValue({ status: "saved" });
 		const text = "a".repeat(81);
 		const result = await manageMemory({ args: { action: "add", text }, ownerId });
 
 		expect(result).toBe(`Memory saved: "${"a".repeat(80)}…"`);
+	});
+
+	it("reports a duplicate instead of a fresh save so the model doesn't rephrase and retry", async () => {
+		saveMemory.mockResolvedValue({ status: "duplicate", text: "user's name is Nate" });
+		const result = await manageMemory({
+			args: { action: "add", text: "the user is named Nate" },
+			ownerId,
+		});
+
+		expect(result).toBe(`Already remembered: "the user is named Nate"`);
 	});
 });
 
