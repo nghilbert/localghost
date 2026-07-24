@@ -47,9 +47,13 @@ export function AppearanceTab() {
 									<Field orientation="horizontal">
 										<div
 											aria-hidden
-											className="h-8 w-14 shrink-0 overflow-hidden rounded border flex items-center justify-center text-xs text-muted-foreground"
-										/>
-										<FieldTitle className="flex-1">None</FieldTitle>
+											className="h-8 w-14 shrink-0 overflow-hidden rounded border flex flex-col gap-0.5 p-1 bg-background"
+										>
+											<div className="h-1.5 w-8 rounded-full bg-foreground opacity-60" />
+											<div className="h-1.5 w-5 rounded-full bg-foreground opacity-30" />
+											<div className="mt-auto h-2 w-6 rounded-sm bg-primary" />
+										</div>
+										<FieldTitle className="flex-1">localghost</FieldTitle>
 										<RadioGroupItem value="none" id="theme-none" />
 									</Field>
 								</FieldLabel>
