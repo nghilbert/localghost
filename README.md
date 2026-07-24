@@ -109,3 +109,8 @@ Capabilities are inline in chat or in Settings, never separate tabs.
 - **Backup.** Export everything (conversations, endpoints, memory, settings) to a
   file and import it back. Import merges non-destructively.
 - **Themes.** Light and dark with accent theming in Settings > Appearance.
+
+## License
+
+Copyright (C) 2026 Nate. Licensed under the GNU General Public License v3.0 or
+later. See [LICENSE](LICENSE) for the full text.

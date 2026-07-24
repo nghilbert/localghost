@@ -2,6 +2,7 @@
 	"name": "localghost",
 	"private": true,
 	"type": "module",
+	"license": "GPL-3.0-or-later",
 	"imports": {
 		"#/*": "./src/*"
 	},
