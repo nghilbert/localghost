@@ -1,5 +1,4 @@
 import { SaveIcon } from "lucide-react";
-import { ProviderEndpointForm } from "#/routes/_authenticated/settings/-components/endpoints/ProviderEndpointForm";
 import {
 	buildEndpointFormSchema,
 	dbProviderFor,
@@ -7,6 +6,7 @@ import {
 } from "#/routes/_authenticated/settings/-lib/providers";
 import type { listEndpoints } from "#/shared/domain/endpoint/endpoint.functions";
 import { useEndpoints } from "#/shared/domain/endpoint/use-endpoints";
+import { ProviderEndpointForm } from "./ProviderEndpointForm";
 
 type Endpoint = Awaited<ReturnType<typeof listEndpoints>>[number];
 

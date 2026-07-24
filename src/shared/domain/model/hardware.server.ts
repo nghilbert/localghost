@@ -2,7 +2,7 @@ import { execFile } from "node:child_process";
 import os from "node:os";
 import { promisify } from "node:util";
 import { z } from "zod/v4";
-import type { GpuInfo, HardwareInfo } from "#/shared/domain/model/types";
+import type { GpuInfo, HardwareInfo } from "./types";
 
 const execFileAsync = promisify(execFile);
 

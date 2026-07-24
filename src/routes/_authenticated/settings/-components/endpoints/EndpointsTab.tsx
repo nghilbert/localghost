@@ -1,11 +1,11 @@
 import { CheckCircle2Icon } from "lucide-react";
-import { EndpointItem } from "#/routes/_authenticated/settings/-components/endpoints/EndpointItem";
-import { ProviderSetupForm } from "#/routes/_authenticated/settings/-components/endpoints/ProviderSetupForm";
 import { Badge } from "#/shared/components/ui/badge";
 import { FieldDescription, FieldLegend, FieldSet } from "#/shared/components/ui/field";
 import { ItemGroup } from "#/shared/components/ui/item";
 import { useEndpoints } from "#/shared/domain/endpoint/use-endpoints";
 import { LocalOllamaForm } from "#/shared/domain/model/LocalOllamaForm";
+import { EndpointItem } from "./EndpointItem";
+import { ProviderSetupForm } from "./ProviderSetupForm";
 
 export function EndpointsTab() {
 	const { endpoints, deleteEndpoint } = useEndpoints();

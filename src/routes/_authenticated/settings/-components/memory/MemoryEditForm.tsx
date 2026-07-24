@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
+import { useMemories } from "#/routes/_authenticated/settings/-hooks/use-memories";
 import { Input } from "#/shared/components/ui/input";
 import { useAppForm } from "#/shared/hooks/use-app-form";
-import { useMemories } from "../../-hooks/use-memories";
 
 type MemoryEditFormProps = {
 	memory: { id: string; text: string };

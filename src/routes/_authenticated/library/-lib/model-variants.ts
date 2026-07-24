@@ -1,5 +1,5 @@
-import { availableMemoryGb, requiredMemoryGb } from "#/routes/_authenticated/library/-lib/catalog";
 import type { CatalogModel, HardwareInfo, ModelTagInfo } from "#/shared/domain/model/types";
+import { availableMemoryGb, requiredMemoryGb } from "./catalog";
 
 export type ModelVariantFit = "likely-fits" | "may-be-too-large" | "size-unknown";
 

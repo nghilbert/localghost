@@ -15,9 +15,6 @@ import {
 } from "@tanstack/react-table";
 import { ChevronRightIcon } from "lucide-react";
 import { Fragment, type ReactNode, useMemo, useState } from "react";
-import { DataTablePagination } from "#/shared/components/DataTable/DataTablePagination";
-import { DataTableViewOptions } from "#/shared/components/DataTable/DataTableViewOptions";
-import { fuzzyFilter } from "#/shared/components/DataTable/fuzzyFilter";
 import { Input } from "#/shared/components/ui/input";
 import {
 	Table,
@@ -28,6 +25,9 @@ import {
 	TableRow,
 } from "#/shared/components/ui/table";
 import { cn } from "#/shared/lib/utils";
+import { DataTablePagination } from "./DataTablePagination";
+import { DataTableViewOptions } from "./DataTableViewOptions";
+import { fuzzyFilter } from "./fuzzyFilter";
 
 declare module "@tanstack/react-table" {
 	interface ColumnMeta<TData extends RowData, TValue> {

@@ -1,10 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import {
-	deleteModel,
-	registerRemoteOllama,
-	testRemoteOllama,
-} from "#/shared/domain/model/model.functions";
+import { deleteModel, registerRemoteOllama, testRemoteOllama } from "./model.functions";
 
 export function useOllama() {
 	const queryClient = useQueryClient();

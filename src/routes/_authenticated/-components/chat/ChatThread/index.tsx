@@ -3,7 +3,7 @@ import { useChat } from "@tanstack/ai-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { ChatInput } from "#/routes/_authenticated/-components/chat/ChatInput";
-import { ChatStatus } from "#/routes/_authenticated/-components/chat/ChatThread/ChatStatus";
+import { ChatMessage } from "#/routes/_authenticated/-components/chat/ChatMessage";
 import { useConversation } from "#/routes/_authenticated/-hooks/use-conversation";
 import { type Attachment, composeMessageContent } from "#/routes/_authenticated/-lib/attachments";
 import { createChatOptions } from "#/routes/_authenticated/-lib/chat-client";
@@ -33,7 +33,7 @@ import {
 	partsText,
 	withUsage,
 } from "#/shared/domain/conversation/messages";
-import { ChatMessage } from "../ChatMessage";
+import { ChatStatus } from "./ChatStatus";
 
 /** Marks the history-trim cut: messages above it are no longer sent to the model. */
 function HistoryTrimDivider() {

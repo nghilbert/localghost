@@ -1,5 +1,6 @@
 import { DownloadIcon, UploadIcon } from "lucide-react";
 import { useRef } from "react";
+import { useImportBackup } from "#/routes/_authenticated/settings/-hooks/use-import-backup";
 import { Button } from "#/shared/components/ui/button";
 import {
 	Card,
@@ -8,7 +9,6 @@ import {
 	CardHeader,
 	CardTitle,
 } from "#/shared/components/ui/card";
-import { useImportBackup } from "../../-hooks/use-import-backup";
 
 export function BackupCard() {
 	const importBackup = useImportBackup();

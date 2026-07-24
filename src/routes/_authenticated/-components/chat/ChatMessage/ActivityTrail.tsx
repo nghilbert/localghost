@@ -1,7 +1,7 @@
 import type { UIMessage } from "@tanstack/ai-client";
 import { ActivityMarker } from "#/routes/_authenticated/-components/chat/ActivityMarker";
-import { ReasoningStep } from "#/routes/_authenticated/-components/chat/ChatMessage/ReasoningStep";
-import { ToolCallStep } from "#/routes/_authenticated/-components/chat/ChatMessage/ToolCallStep";
+import { ReasoningStep } from "./ReasoningStep";
+import { ToolCallStep } from "./ToolCallStep";
 
 type ActivityTrailProps = {
 	message: UIMessage;

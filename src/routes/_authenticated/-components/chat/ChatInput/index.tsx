@@ -8,13 +8,6 @@ import {
 	useState,
 } from "react";
 import { toast } from "sonner";
-import { AttachmentPreviews } from "#/routes/_authenticated/-components/chat/ChatInput/AttachmentPreviews";
-import { LockedModelLabel } from "#/routes/_authenticated/-components/chat/ChatInput/LockedModelLabel";
-import { ModelPicker } from "#/routes/_authenticated/-components/chat/ChatInput/ModelPicker";
-import {
-	type ToolControls,
-	ToolsMenu,
-} from "#/routes/_authenticated/-components/chat/ChatInput/ToolsMenu";
 import {
 	type Attachment,
 	attachmentAccept,
@@ -33,6 +26,10 @@ import { Separator } from "#/shared/components/ui/separator";
 import { Spinner } from "#/shared/components/ui/spinner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "#/shared/components/ui/tooltip";
 import type { ModelSelection } from "#/shared/domain/endpoint/types";
+import { AttachmentPreviews } from "./AttachmentPreviews";
+import { LockedModelLabel } from "./LockedModelLabel";
+import { ModelPicker } from "./ModelPicker";
+import { type ToolControls, ToolsMenu } from "./ToolsMenu";
 
 type ChatInputProps = {
 	disabled?: boolean;

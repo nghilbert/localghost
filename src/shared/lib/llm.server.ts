@@ -12,7 +12,7 @@ import { createOllamaChat } from "@tanstack/ai-ollama";
 import { openaiCompatibleText } from "@tanstack/ai-openai/compatible";
 import { trimPathRight } from "@tanstack/react-router";
 import { z } from "zod/v4";
-import { DEFAULT_MAX_TOKENS, DEFAULT_OLLAMA_NUM_CTX } from "#/shared/lib/llm-constants";
+import { DEFAULT_MAX_TOKENS, DEFAULT_OLLAMA_NUM_CTX } from "./llm-constants";
 
 export type LLMProvider = "anthropic" | "ollama" | "openai" | "openrouter" | "groq" | "gemini";
 

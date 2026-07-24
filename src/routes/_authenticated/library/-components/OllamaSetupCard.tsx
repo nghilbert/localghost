@@ -1,6 +1,5 @@
 import { ExternalLinkIcon } from "lucide-react";
 import { useState } from "react";
-import { RemoteOllamaForm } from "#/routes/_authenticated/library/-components/RemoteOllamaForm";
 import { Button } from "#/shared/components/ui/button";
 import {
 	Card,
@@ -10,6 +9,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "#/shared/components/ui/card";
+import { RemoteOllamaForm } from "./RemoteOllamaForm";
 
 const COMPOSE_INSTRUCTIONS = `# in .env: cpu, nvidia, or amd
 COMPOSE_PROFILES=cpu

@@ -1,7 +1,5 @@
 import { PencilIcon, Trash2Icon } from "lucide-react";
 import { useState } from "react";
-import { EditEndpointForm } from "#/routes/_authenticated/settings/-components/endpoints/EditEndpointForm";
-import { EndpointHealthBadge } from "#/routes/_authenticated/settings/-components/endpoints/EndpointHealthBadge";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -22,6 +20,8 @@ import {
 	ItemTitle,
 } from "#/shared/components/ui/item";
 import type { listEndpoints } from "#/shared/domain/endpoint/endpoint.functions";
+import { EditEndpointForm } from "./EditEndpointForm";
+import { EndpointHealthBadge } from "./EndpointHealthBadge";
 
 type Endpoint = Awaited<ReturnType<typeof listEndpoints>>[number];
 

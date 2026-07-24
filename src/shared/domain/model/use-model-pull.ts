@@ -1,12 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
-import {
-	activePullsQueryOptions,
-	cancelModelPull,
-	startModelPull,
-} from "#/shared/domain/model/model.functions";
-import type { PullProgress } from "#/shared/domain/model/types";
+import { activePullsQueryOptions, cancelModelPull, startModelPull } from "./model.functions";
+import type { PullProgress } from "./types";
 
 /**
  * Drives Ollama model pulls off the server-side registry: starting a pull kicks

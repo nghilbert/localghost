@@ -2,6 +2,7 @@ import { revalidateLogic } from "@tanstack/react-form";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { PencilIcon, TrashIcon } from "lucide-react";
 import { useState } from "react";
+import { useMemories } from "#/routes/_authenticated/settings/-hooks/use-memories";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -25,7 +26,6 @@ import {
 import { memoriesQueryOptions } from "#/shared/domain/memory/memory.functions";
 import { memoryTextInput } from "#/shared/domain/memory/schemas";
 import { useAppForm } from "#/shared/hooks/use-app-form";
-import { useMemories } from "../../-hooks/use-memories";
 import { MemoryEditForm } from "./MemoryEditForm";
 
 export function MemoryTab() {

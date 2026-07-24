@@ -1,14 +1,5 @@
 import type { VisibilityState } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
-import {
-	createModelColumns,
-	MODEL_COLUMN_LABELS,
-} from "#/routes/_authenticated/library/-components/ModelTable/columns";
-import { ModelDetailPanel } from "#/routes/_authenticated/library/-components/ModelTable/ModelDetailPanel";
-import {
-	type ModelStatus,
-	ModelStatusFilter,
-} from "#/routes/_authenticated/library/-components/ModelTable/ModelStatusFilter";
 import { buildModelRows } from "#/routes/_authenticated/library/-lib/model-rows";
 import { DataTable } from "#/shared/components/DataTable";
 import type {
@@ -18,6 +9,9 @@ import type {
 	PullProgress,
 } from "#/shared/domain/model/types";
 import { cn } from "#/shared/lib/utils";
+import { createModelColumns, MODEL_COLUMN_LABELS } from "./columns";
+import { ModelDetailPanel } from "./ModelDetailPanel";
+import { type ModelStatus, ModelStatusFilter } from "./ModelStatusFilter";
 
 type ModelTableProps = {
 	catalog: CatalogModel[];

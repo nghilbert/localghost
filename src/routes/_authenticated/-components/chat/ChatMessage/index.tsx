@@ -4,11 +4,6 @@ import { CircleAlertIcon, CopyIcon, OctagonXIcon, PencilIcon, RefreshCwIcon } fr
 import { type KeyboardEvent, useState } from "react";
 import { toast } from "sonner";
 import { Streamdown } from "streamdown";
-import { ActionButton } from "#/routes/_authenticated/-components/chat/ChatMessage/ActionButton";
-import { ActivityTrail } from "#/routes/_authenticated/-components/chat/ChatMessage/ActivityTrail";
-import { DocumentList } from "#/routes/_authenticated/-components/chat/ChatMessage/DocumentList";
-import { ImageGrid } from "#/routes/_authenticated/-components/chat/ChatMessage/ImageGrid";
-import { chatLinkSafety } from "#/routes/_authenticated/-components/chat/ChatMessage/LinkSafetyDialog";
 import { Alert, AlertDescription, AlertTitle } from "#/shared/components/ui/alert";
 import { Bubble, BubbleContent } from "#/shared/components/ui/bubble";
 import { Button } from "#/shared/components/ui/button";
@@ -23,6 +18,11 @@ import {
 	partsText,
 	strandedToolCall,
 } from "#/shared/domain/conversation/messages";
+import { ActionButton } from "./ActionButton";
+import { ActivityTrail } from "./ActivityTrail";
+import { DocumentList } from "./DocumentList";
+import { ImageGrid } from "./ImageGrid";
+import { chatLinkSafety } from "./LinkSafetyDialog";
 
 function copyToClipboard(text: string) {
 	navigator.clipboard

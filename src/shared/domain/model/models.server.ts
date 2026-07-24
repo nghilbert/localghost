@@ -1,5 +1,5 @@
-import { getOllamaUrl } from "#/shared/domain/model/discovery.server";
 import { ollamaClient } from "#/shared/lib/ollama/client.server";
+import { getOllamaUrl } from "./discovery.server";
 
 /** Removes an installed model from the user's Ollama instance. */
 export async function removeInstalledModel({

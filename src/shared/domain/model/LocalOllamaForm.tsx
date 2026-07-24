@@ -6,10 +6,10 @@ import type { z } from "zod/v4";
 import { Badge } from "#/shared/components/ui/badge";
 import { Button } from "#/shared/components/ui/button";
 import { Field, FieldDescription, FieldLegend, FieldSet } from "#/shared/components/ui/field";
-import { libraryStatusQueryOptions } from "#/shared/domain/model/model.functions";
-import { useOllama } from "#/shared/domain/model/use-ollama";
 import { useAppForm } from "#/shared/hooks/use-app-form";
 import { ollamaConnectionFormSchema, ollamaUrlSchema } from "#/shared/lib/ollama/url";
+import { libraryStatusQueryOptions } from "./model.functions";
+import { useOllama } from "./use-ollama";
 
 const DEFAULT_OLLAMA_URL = "http://localhost:11434";
 

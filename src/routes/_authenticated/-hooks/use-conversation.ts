@@ -1,10 +1,10 @@
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
-import { useChatTools } from "#/routes/_authenticated/-hooks/use-chat-tools";
 import { conversationQueryOptions } from "#/shared/domain/conversation/conversation.functions";
 import { historyBudgetTokens } from "#/shared/domain/conversation/messages";
 import { endpointsQueryOptions } from "#/shared/domain/endpoint/endpoint.functions";
 import type { ModelSelection } from "#/shared/domain/endpoint/types";
 import { modelSettingQueryOptions } from "#/shared/domain/model-setting/model-setting.functions";
+import { useChatTools } from "./use-chat-tools";
 
 /** A stored JSON options blob narrowed to a plain record for merging, `{}` when absent. */
 function asOptionsRecord(value: unknown): Record<string, unknown> {

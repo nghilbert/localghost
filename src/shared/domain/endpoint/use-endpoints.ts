@@ -7,12 +7,8 @@ import {
 	endpointsQueryOptions,
 	testEndpoint,
 	updateEndpoint,
-} from "#/shared/domain/endpoint/endpoint.functions";
-import type {
-	createEndpointSchema,
-	testEndpointInput,
-	updateEndpointSchema,
-} from "#/shared/domain/endpoint/schemas";
+} from "./endpoint.functions";
+import type { createEndpointSchema, testEndpointInput, updateEndpointSchema } from "./schemas";
 
 export function useEndpoints() {
 	const queryClient = useQueryClient();

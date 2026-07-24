@@ -1,8 +1,8 @@
 import { trimPathRight } from "@tanstack/react-router";
 import { ollamaOptionsSchema } from "#/shared/domain/endpoint/schemas";
-import type { OllamaInstalledModel } from "#/shared/domain/model/types";
 import { prisma } from "#/shared/lib/db.server";
 import { ollamaClient } from "#/shared/lib/ollama/client.server";
+import type { OllamaInstalledModel } from "./types";
 
 const DEFAULT_OLLAMA_URL = "http://localhost:11434";
 

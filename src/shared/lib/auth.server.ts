@@ -2,7 +2,7 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { APIError, createAuthMiddleware } from "better-auth/api";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
-import { prisma } from "#/shared/lib/db.server";
+import { prisma } from "./db.server";
 
 function getSecret(): string {
 	const secret = process.env.BETTER_AUTH_SECRET;

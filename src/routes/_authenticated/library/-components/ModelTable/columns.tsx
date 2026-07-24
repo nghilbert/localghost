@@ -1,14 +1,8 @@
 import type { ColumnDef } from "@tanstack/react-table";
-import {
-	MemoryCell,
-	ModelIdentityCell,
-	ParamsCell,
-	SizeCell,
-	TextCell,
-} from "#/routes/_authenticated/library/-components/ModelTable/ModelCells";
 import { parsePullCount, requiredMemoryGb } from "#/routes/_authenticated/library/-lib/catalog";
 import type { ModelRow } from "#/routes/_authenticated/library/-lib/model-rows";
 import { DataTableColumnHeader } from "#/shared/components/DataTable/DataTableColumnHeader";
+import { MemoryCell, ModelIdentityCell, ParamsCell, SizeCell, TextCell } from "./ModelCells";
 
 /** Display names for the column-visibility menu, keyed by column id. */
 export const MODEL_COLUMN_LABELS: Record<string, string> = {

@@ -4,7 +4,7 @@ import {
 	conversationsQueryOptions,
 	deleteConversation,
 	updateConversation,
-} from "#/shared/domain/conversation/conversation.functions";
+} from "./conversation.functions";
 
 /** Conversation list plus the rename / delete mutations. */
 export function useConversations() {

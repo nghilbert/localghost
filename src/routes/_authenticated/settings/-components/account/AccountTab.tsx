@@ -2,6 +2,13 @@ import { revalidateLogic } from "@tanstack/react-form";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useRouteContext } from "@tanstack/react-router";
 import { useState } from "react";
+import { useChangePassword } from "#/routes/_authenticated/settings/-hooks/use-change-password";
+import { useDeleteAccount } from "#/routes/_authenticated/settings/-hooks/use-delete-account";
+import { useUpdateAccount } from "#/routes/_authenticated/settings/-hooks/use-update-account";
+import {
+	accountFormSchema,
+	changePasswordFormSchema,
+} from "#/routes/_authenticated/settings/-lib/schemas";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -20,10 +27,6 @@ import { Input } from "#/shared/components/ui/input";
 import { userSettingsQueryOptions } from "#/shared/domain/user-settings/user-settings.functions";
 import { useAppForm } from "#/shared/hooks/use-app-form";
 import { useSignOut } from "#/shared/hooks/use-sign-out";
-import { useChangePassword } from "../../-hooks/use-change-password";
-import { useDeleteAccount } from "../../-hooks/use-delete-account";
-import { useUpdateAccount } from "../../-hooks/use-update-account";
-import { accountFormSchema, changePasswordFormSchema } from "../../-lib/schemas";
 import { BackupCard } from "./BackupCard";
 
 export function AccountTab() {

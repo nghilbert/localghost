@@ -3,7 +3,6 @@ import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { DownloadIcon, MoreHorizontalIcon, PencilIcon, Trash2Icon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { ChatRenameForm } from "#/routes/_authenticated/-components/AppSidebar/ChatRenameForm";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -50,6 +49,7 @@ import {
 } from "#/shared/domain/conversation/search";
 import { useConversations } from "#/shared/domain/conversation/use-conversations";
 import { downloadTextFile } from "#/shared/lib/download";
+import { ChatRenameForm } from "./ChatRenameForm";
 
 export function RecentChatList() {
 	const { conversations, deleteConversation } = useConversations();

@@ -1,5 +1,5 @@
 import { getRequestHeaders } from "@tanstack/react-start/server";
-import { auth } from "#/shared/lib/auth.server";
+import { auth } from "./auth.server";
 
 /** Resolves the authenticated user's id from the current request, or throws. */
 export async function getCurrentUserId(): Promise<string> {

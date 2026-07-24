@@ -4,7 +4,7 @@ import {
 	enrichCatalogModel,
 	parseParamB,
 } from "#/routes/_authenticated/library/-lib/catalog";
-import type { CatalogModel, ModelTagInfo } from "#/shared/domain/model/types";
+import type { CatalogModel, ModelTagInfo } from "./types";
 
 const LIBRARY_URL = "https://ollama.com/library?sort=popular";
 const CACHE_TTL_MS = 6 * 60 * 60_000;

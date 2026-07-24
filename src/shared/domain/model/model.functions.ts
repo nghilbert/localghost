@@ -3,24 +3,19 @@ import { trimPathRight } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod/v4";
 import { ollamaOptionsSchema } from "#/shared/domain/endpoint/schemas";
-import { getCatalog } from "#/shared/domain/model/catalog.server";
-import {
-	getOllamaUrl,
-	probeOllama,
-	scanForOllama,
-	upsertOllamaEndpoint,
-} from "#/shared/domain/model/discovery.server";
-import { getHardwareInfo } from "#/shared/domain/model/hardware.server";
-import { removeInstalledModel } from "#/shared/domain/model/models.server";
+import { ollamaConnectionSchema, ollamaUrlSchema } from "#/shared/lib/ollama/url";
+import { getCurrentUserId } from "#/shared/lib/session.server";
+import { getCatalog } from "./catalog.server";
+import { getOllamaUrl, probeOllama, scanForOllama, upsertOllamaEndpoint } from "./discovery.server";
+import { getHardwareInfo } from "./hardware.server";
+import { removeInstalledModel } from "./models.server";
 import {
 	cancelPull,
 	listActivePulls as readActivePulls,
 	resumeOrphanedPulls,
 	startPull,
-} from "#/shared/domain/model/pull-registry.server";
-import type { OllamaStatus } from "#/shared/domain/model/types";
-import { ollamaConnectionSchema, ollamaUrlSchema } from "#/shared/lib/ollama/url";
-import { getCurrentUserId } from "#/shared/lib/session.server";
+} from "./pull-registry.server";
+import type { OllamaStatus } from "./types";
 
 export const getHardware = createServerFn({ method: "GET" }).handler(async () => {
 	await getCurrentUserId();

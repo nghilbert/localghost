@@ -1,4 +1,3 @@
-import { RecentChatList } from "#/routes/_authenticated/-components/AppSidebar/RecentChatList";
 import {
 	Sidebar,
 	SidebarContent,
@@ -12,6 +11,7 @@ import { APP_NAME } from "#/shared/lib/constants";
 import { AuthMenu } from "./AuthMenu";
 import { NotificationCenter } from "./NotificationCenter";
 import { PageNav } from "./PageNav";
+import { RecentChatList } from "./RecentChatList";
 
 export function AppSidebar() {
 	return (

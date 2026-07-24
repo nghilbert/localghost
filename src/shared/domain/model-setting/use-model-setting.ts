@@ -5,8 +5,8 @@ import {
 	modelSettingQueryOptions,
 	resetModelSetting,
 	saveModelSetting,
-} from "#/shared/domain/model-setting/model-setting.functions";
-import type { perModelOptionsSchema } from "#/shared/domain/model-setting/schemas";
+} from "./model-setting.functions";
+import type { perModelOptionsSchema } from "./schemas";
 
 export function useModelSetting({ endpointId, model }: { endpointId: string; model: string }) {
 	const queryClient = useQueryClient();

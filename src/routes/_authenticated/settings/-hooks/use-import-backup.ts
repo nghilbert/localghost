@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { importBackupResultSchema } from "../-lib/schemas";
+import { importBackupResultSchema } from "#/routes/_authenticated/settings/-lib/schemas";
 
 /**
  * Uploads a backup file to `/api/backup/import` (a raw API route, so no server
