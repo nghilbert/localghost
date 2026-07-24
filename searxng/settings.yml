@@ -1,17 +1,17 @@
-# Config for an app-only (unpublished) SearXNG reached at searxng:8080. Mounted
-# because the JSON API and the limiter can't be set via environment variables.
+# Config for an app-only (unpublished) SearXNG reached at searxng:8080. The
+# JSON API and the limiter can't be set via environment variables.
 use_default_settings:
   engines:
     remove:
       - ahmia # Tor-only engines that error without a Tor proxy
       - torch
+      - wikidata # Needs a live call to query.wikidata.org on init; often 403s
 
 server:
-  # The app is the only client, so disable the rate limiter / bot detection that
-  # otherwise logs "X-Forwarded-For nor X-Real-IP header is set!" on every search.
+  # App-only, no reverse proxy: disable the limiter/bot detection. SearXNG's
+  # one-time "no X-Forwarded-For" warning is expected here, not a bug.
   limiter: false
   public_instance: false
-  secret_key: "localghost-searxng"
 
 search:
   # The stock image serves HTML only; the app calls the JSON API.

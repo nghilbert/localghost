@@ -71,23 +71,11 @@ services:
       <<: *app-env
 
   # Bundled keyless web search, reachable by the app at http://searxng:8080.
-  # ./searxng/settings.yml enables the JSON API and disables the limiter (neither
-  # is settable via env). Pinned + health-checked so the app waits for it to be
-  # ready instead of racing it. Config is mounted read-only and FORCE_OWNERSHIP
-  # is off so the container never rewrites ownership of the host repo files.
+  # See searxng/Dockerfile: config, base URL, and healthcheck are all baked in.
   searxng:
-    image: searxng/searxng:2026.6.20-fd42d4fda
-    volumes:
-      - ./searxng:/etc/searxng:ro
+    build: ./searxng
     environment:
-      SEARXNG_BASE_URL: http://localhost:8080/
-      FORCE_OWNERSHIP: "false"
-    healthcheck:
-      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/healthz')" ]
-      interval: 10s
-      timeout: 5s
-      retries: 6
-      start_period: 20s
+      SEARXNG_SECRET: ${SEARXNG_SECRET:?set SEARXNG_SECRET in .env}
     restart: unless-stopped
 
   # Bundled Ollama, reachable by the app at http://ollama:11434. CPU-only here; a
