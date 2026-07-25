@@ -1,32 +1,37 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { deleteModel, registerRemoteOllama, testRemoteOllama } from "./model.functions";
+import {
+	deleteModel,
+	libraryStatusQueryOptions,
+	registerRemoteRuntime,
+	testRemoteRuntime,
+} from "./model.functions";
 
-export function useOllama() {
+export function useRuntime() {
 	const queryClient = useQueryClient();
 
 	const deleteModelMutation = useMutation({
 		mutationFn: (model: string) => deleteModel({ data: { model } }),
 		onSuccess: (_data, model) => {
-			queryClient.invalidateQueries({ queryKey: ["library-status"] });
+			queryClient.invalidateQueries({ queryKey: libraryStatusQueryOptions().queryKey });
 			toast.success(`${model} deleted`);
 		},
 		onError: (error) => toast.error("Failed to delete model", { description: error.message }),
 	});
 
 	const connectRemoteMutation = useMutation({
-		mutationFn: (input: { url: string; numCtx?: number | null }) =>
-			registerRemoteOllama({ data: input }),
+		mutationFn: (input: { url: string }) => registerRemoteRuntime({ data: input }),
 		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["library-status"] });
+			queryClient.invalidateQueries({ queryKey: libraryStatusQueryOptions().queryKey });
 			queryClient.invalidateQueries({ queryKey: ["endpoints"] });
-			toast.success("Connected to Ollama");
+			toast.success("Connected to llama.cpp");
 		},
-		onError: (error) => toast.error("Failed to connect to Ollama", { description: error.message }),
+		onError: (error) =>
+			toast.error("Failed to connect to llama.cpp", { description: error.message }),
 	});
 
 	const testRemoteMutation = useMutation({
-		mutationFn: (url: string) => testRemoteOllama({ data: { url } }),
+		mutationFn: (url: string) => testRemoteRuntime({ data: { url } }),
 	});
 
 	return {

@@ -2,117 +2,121 @@ import { queryOptions } from "@tanstack/react-query";
 import { trimPathRight } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod/v4";
-import { ollamaOptionsSchema } from "#/shared/domain/endpoint/schemas";
-import { ollamaConnectionSchema, ollamaUrlSchema } from "#/shared/lib/ollama/url";
-import { getCurrentUserId } from "#/shared/lib/session.server";
+import { llamacppConnectionSchema, llamacppUrlSchema } from "#/shared/lib/llamacpp/url";
+import { authedFn } from "#/shared/lib/middleware";
 import { getCatalog } from "./catalog.server";
-import { getOllamaUrl, probeOllama, scanForOllama, upsertOllamaEndpoint } from "./discovery.server";
+import {
+	getRuntimeUrl,
+	probeRuntime,
+	scanForRuntime,
+	upsertRuntimeEndpoint,
+} from "./discovery.server";
+import {
+	cancelDownload,
+	ensureWatching,
+	listActiveDownloads,
+	startDownload,
+} from "./download-registry.server";
 import { getHardwareInfo } from "./hardware.server";
 import { removeInstalledModel } from "./models.server";
-import {
-	cancelPull,
-	listActivePulls as readActivePulls,
-	resumeOrphanedPulls,
-	startPull,
-} from "./pull-registry.server";
-import type { OllamaStatus } from "./types";
+import type { RuntimeStatus } from "./types";
 
-export const getHardware = createServerFn({ method: "GET" }).handler(async () => {
-	await getCurrentUserId();
-	return getHardwareInfo();
-});
+export const getHardware = createServerFn({ method: "GET" })
+	.middleware([authedFn])
+	.handler(async () => getHardwareInfo());
 
-export const getModelCatalog = createServerFn({ method: "GET" }).handler(async () => {
-	await getCurrentUserId();
-	return getCatalog();
-});
+export const getModelCatalog = createServerFn({ method: "GET" })
+	.middleware([authedFn])
+	.handler(async () => getCatalog());
 
-export const scanOllamaStatus = createServerFn({ method: "GET" }).handler(
-	async (): Promise<OllamaStatus> => {
-		const userId = await getCurrentUserId();
-		const found = await scanForOllama(userId);
+export const scanRuntimeStatus = createServerFn({ method: "GET" })
+	.middleware([authedFn])
+	.handler(async ({ context }): Promise<RuntimeStatus> => {
+		const found = await scanForRuntime(context.userId);
 		if (!found) {
-			return { found: false, ollamaUrl: null, installedModels: [], numCtx: null, endpointId: null };
+			return { found: false, runtimeUrl: null, installedModels: [], endpointId: null };
 		}
 
-		const endpointId = await upsertOllamaEndpoint({
-			userId,
+		const endpointId = await upsertRuntimeEndpoint({
+			userId: context.userId,
 			url: found.url,
 			existing: found.savedEndpoint,
 		});
-		const options = ollamaOptionsSchema.safeParse(found.savedEndpoint?.options);
+		ensureWatching(found.url);
 		return {
 			found: true,
-			ollamaUrl: found.url,
+			runtimeUrl: found.url,
 			installedModels: found.installedModels,
-			numCtx: options.success ? (options.data.num_ctx ?? null) : null,
 			endpointId,
 		};
-	},
-);
-
-export const deleteModel = createServerFn({ method: "POST" })
-	.validator(z.object({ model: z.string().min(1) }))
-	.handler(async ({ data }) => {
-		const userId = await getCurrentUserId();
-		await removeInstalledModel({ userId, model: data.model });
 	});
 
-export const testRemoteOllama = createServerFn({ method: "POST" })
-	.validator(ollamaUrlSchema)
+export const deleteModel = createServerFn({ method: "POST" })
+	.middleware([authedFn])
+	.validator(z.object({ model: z.string().min(1) }))
+	.handler(async ({ data, context }) => {
+		await removeInstalledModel({ userId: context.userId, model: data.model });
+	});
+
+export const testRemoteRuntime = createServerFn({ method: "POST" })
+	.middleware([authedFn])
+	.validator(llamacppUrlSchema)
 	.handler(async ({ data }) => {
-		await getCurrentUserId();
-		const probe = await probeOllama({ url: data.url });
+		const probe = await probeRuntime({ url: data.url });
 		return { reachable: probe.reachable, modelCount: probe.installedModels.length };
 	});
 
-export const registerRemoteOllama = createServerFn({ method: "POST" })
-	.validator(ollamaConnectionSchema)
-	.handler(async ({ data }) => {
-		const userId = await getCurrentUserId();
-		const probe = await probeOllama({ url: data.url });
+export const registerRemoteRuntime = createServerFn({ method: "POST" })
+	.middleware([authedFn])
+	.validator(llamacppConnectionSchema)
+	.handler(async ({ data, context }) => {
+		const probe = await probeRuntime({ url: data.url });
 		if (!probe.reachable) {
-			throw new Error(`No Ollama instance is responding at ${data.url}`);
+			throw new Error(`No llama.cpp instance is responding at ${data.url}`);
 		}
-		await upsertOllamaEndpoint({ userId, url: data.url, numCtx: data.numCtx });
+		await upsertRuntimeEndpoint({ userId: context.userId, url: data.url });
 	});
 
-export const startModelPull = createServerFn({ method: "POST" })
-	.validator(z.object({ model: z.string().min(1), ollamaUrl: z.string().optional() }))
-	.handler(async ({ data }) => {
-		const userId = await getCurrentUserId();
-		const ollamaUrl = data.ollamaUrl ? trimPathRight(data.ollamaUrl) : await getOllamaUrl(userId);
-		await startPull({ userId, model: data.model, ollamaUrl });
+export const startModelDownload = createServerFn({ method: "POST" })
+	.middleware([authedFn])
+	.validator(z.object({ model: z.string().min(1), runtimeUrl: z.string().optional() }))
+	.handler(async ({ data, context }) => {
+		const url = data.runtimeUrl
+			? trimPathRight(data.runtimeUrl)
+			: await getRuntimeUrl(context.userId);
+		await startDownload({ url, model: data.model });
 	});
 
-export const cancelModelPull = createServerFn({ method: "POST" })
-	.validator(z.object({ model: z.string().min(1) }))
-	.handler(async ({ data }) => {
-		const userId = await getCurrentUserId();
-		cancelPull({ userId, model: data.model });
+export const cancelModelDownload = createServerFn({ method: "POST" })
+	.middleware([authedFn])
+	.validator(z.object({ model: z.string().min(1), runtimeUrl: z.string().optional() }))
+	.handler(async ({ data, context }) => {
+		const url = data.runtimeUrl
+			? trimPathRight(data.runtimeUrl)
+			: await getRuntimeUrl(context.userId);
+		await cancelDownload({ url, model: data.model });
 	});
 
-export const listActivePulls = createServerFn({ method: "GET" }).handler(async () => {
-	const userId = await getCurrentUserId();
-	// Re-attach pulls a server restart orphaned before reporting, so the Library
-	// regains its progress view instead of staying blind until the daemon finishes.
-	await resumeOrphanedPulls(userId);
-	return readActivePulls(userId);
-});
+export const listActiveDownloadsFn = createServerFn({ method: "GET" })
+	.middleware([authedFn])
+	.handler(async ({ context }) => {
+		const url = await getRuntimeUrl(context.userId);
+		return listActiveDownloads(url);
+	});
 
 export const libraryStatusQueryOptions = () =>
 	queryOptions({
 		queryKey: ["library-status"],
-		queryFn: () => scanOllamaStatus(),
+		queryFn: () => scanRuntimeStatus(),
 		// Re-probe slowly once reachable, quickly while it's down so recovery shows fast.
 		refetchInterval: (query) => (query.state.data?.found ? 30_000 : 5_000),
 	});
 
-export const activePullsQueryOptions = () =>
+export const activeDownloadsQueryOptions = () =>
 	queryOptions({
-		queryKey: ["library", "active-pulls"],
-		queryFn: () => listActivePulls(),
-		// Poll while a pull is in flight; idle otherwise so there's no wasted traffic.
+		queryKey: ["library", "active-downloads"],
+		queryFn: () => listActiveDownloadsFn(),
+		// Poll while a download is in flight; idle otherwise so there's no wasted traffic.
 		refetchInterval: (query) => (query.state.data && query.state.data.length > 0 ? 600 : false),
 	});
 
@@ -127,6 +131,6 @@ export const catalogQueryOptions = () =>
 	queryOptions({
 		queryKey: ["library-catalog"],
 		queryFn: () => getModelCatalog(),
-		// Matches the server-side scrape TTL; the catalog changes slowly.
+		// Matches the server-side fetch TTL; the catalog changes slowly.
 		staleTime: 6 * 60 * 60_000,
 	});
