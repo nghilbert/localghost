@@ -18,7 +18,7 @@ type ModelDetailPanelProps = {
 	row: ModelRow;
 	hardware: HardwareInfo | undefined;
 	pulling: Record<string, PullProgress>;
-	/** The local Ollama endpoint's id; scopes the per-model settings this panel edits. */
+	/** The local llama.cpp endpoint's id; scopes the per-model settings this panel edits. */
 	endpointId: string;
 	onPull: (model: string) => void;
 	onStop: (model: string) => void;
@@ -61,14 +61,16 @@ export function ModelDetailPanel({
 /** The model's identity and what it can do; every number here already has a column. */
 function ModelOverviewCard({ row }: { row: ModelRow }) {
 	const { catalog, installed } = row;
-	const localFacts = installed && [installed.family, installed.quantizationLevel].filter(Boolean);
+	const localFacts =
+		installed &&
+		[installed.quant, installed.paramB ? `${installed.paramB}B` : null].filter(Boolean);
 
 	return (
 		<Card size="sm">
 			<CardHeader>
 				<CardTitle>{row.id}</CardTitle>
 				<CardDescription>
-					{catalog?.description || "Installed model metadata reported by Ollama."}
+					{catalog?.description || "Installed model metadata reported by llama.cpp."}
 				</CardDescription>
 			</CardHeader>
 			<CardContent className="space-y-2">
@@ -105,7 +107,7 @@ function ModelSettingsCard({
 				<CardDescription>These generation overrides apply only to {modelId}.</CardDescription>
 			</CardHeader>
 			<CardContent>
-				<ModelSettingsForm endpointId={endpointId} model={modelId} showNumCtx />
+				<ModelSettingsForm endpointId={endpointId} model={modelId} />
 			</CardContent>
 			<CardFooter className="justify-end">
 				<Button

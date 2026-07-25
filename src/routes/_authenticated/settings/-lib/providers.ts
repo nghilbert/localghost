@@ -6,10 +6,10 @@ export type ProviderId =
 	| "gemini"
 	| "openrouter"
 	| "groq"
-	| "ollama"
+	| "llamacpp"
 	| "custom";
 
-export type DbProvider = "openai" | "anthropic" | "ollama" | "openrouter" | "groq" | "gemini";
+export type DbProvider = "openai" | "anthropic" | "llamacpp" | "openrouter" | "groq" | "gemini";
 
 export type ProviderDefinition = {
 	id: ProviderId;
@@ -19,7 +19,7 @@ export type ProviderDefinition = {
 	defaultBaseUrl: string | null;
 	/**
 	 * Seed value/placeholder for the URL field when `defaultBaseUrl` is null but a
-	 * sensible starting point exists (e.g. local Ollama). Unlike `defaultBaseUrl`
+	 * sensible starting point exists (e.g. local llama.cpp). Unlike `defaultBaseUrl`
 	 * it carries no API-key requirement and the URL field stays directly visible.
 	 */
 	prefillBaseUrl?: string;
@@ -31,7 +31,7 @@ export type ProviderDefinition = {
 
 /**
  * Selectable providers for the guided add-endpoint picker. The built-in local
- * Ollama is deliberately absent; it is never "added". Default base URLs must
+ * llama.cpp is deliberately absent; it is never "added". Default base URLs must
  * round-trip through detectProvider() in llm.server.ts; pinned by a unit test.
  */
 export const PROVIDERS: ProviderDefinition[] = [
@@ -91,7 +91,7 @@ export const PROVIDERS: ProviderDefinition[] = [
 		defaultName: "Custom provider",
 		defaultBaseUrl: null,
 		requiresApiKey: false,
-		description: "Any OpenAI-compatible API, like vLLM, LM Studio, or llama.cpp.",
+		description: "Any OpenAI-compatible API, like vLLM or LM Studio.",
 	},
 ];
 

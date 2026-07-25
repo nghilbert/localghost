@@ -45,9 +45,8 @@ export function ModelIdentityCell({ row }: { row: ModelRow }) {
 }
 
 export function ParamsCell({ row }: { row: ModelRow }) {
-	const params =
-		row.catalog?.paramB != null ? `${row.catalog.paramB}B` : row.installed?.parameterSize;
-	return <span className="tabular-nums">{params ?? "—"}</span>;
+	const paramB = row.catalog?.paramB ?? row.installed?.paramB;
+	return <span className="tabular-nums">{paramB != null ? `${paramB}B` : "—"}</span>;
 }
 
 /** Estimated memory needed to run the model; empty when its size is unknown. */
@@ -56,13 +55,14 @@ export function MemoryCell({ gb }: { gb: number | null }) {
 	return <span className="tabular-nums">~{gb} GB</span>;
 }
 
-/** Download size: the installed blob when present, else the catalog's tags-page size. */
+/** Download size: the installed blob's exact size when known, else the catalog's size. */
 export function SizeCell({ row }: { row: ModelRow }) {
-	const label = row.installed
-		? formatBytes(row.installed.sizeBytes)
-		: row.catalog?.sizeGb != null
-			? `${row.catalog.sizeGb} GB`
-			: null;
+	const label =
+		row.installed?.sizeBytes != null
+			? formatBytes(row.installed.sizeBytes)
+			: row.catalog?.sizeGb != null
+				? `${row.catalog.sizeGb} GB`
+				: null;
 	if (!label) return <EmptyCell />;
 	return <span className="tabular-nums text-muted-foreground">{label}</span>;
 }

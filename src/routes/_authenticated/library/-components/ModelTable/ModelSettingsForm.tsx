@@ -18,12 +18,10 @@ type ModelSettingsFormValues = z.infer<typeof perModelOptionsSchema>;
 type ModelSettingsFormProps = {
 	endpointId: string;
 	model: string;
-	/** Hides `num_ctx`, an Ollama-only concept; cloud providers ignore it. */
-	showNumCtx: boolean;
 };
 
 /** Inline per-model generation overrides: the most specific of the three tuning scopes. */
-export function ModelSettingsForm({ endpointId, model, showNumCtx }: ModelSettingsFormProps) {
+export function ModelSettingsForm({ endpointId, model }: ModelSettingsFormProps) {
 	const { setting, isPending, save, reset } = useModelSetting({ endpointId, model });
 
 	if (isPending) return <Skeleton className="h-24 w-full" />;
@@ -32,14 +30,12 @@ export function ModelSettingsForm({ endpointId, model, showNumCtx }: ModelSettin
 		<ModelSettingsFields
 			key={JSON.stringify(setting)}
 			defaultValues={{
-				num_ctx: setting?.num_ctx,
 				temperature: setting?.temperature,
 				top_p: setting?.top_p,
 				top_k: setting?.top_k,
 				repeat_penalty: setting?.repeat_penalty,
-				num_predict: setting?.num_predict,
+				max_tokens: setting?.max_tokens,
 			}}
-			showNumCtx={showNumCtx}
 			hasSetting={!!setting}
 			onSave={(values) => save.mutate(values)}
 			onReset={() => reset.mutate()}
@@ -49,13 +45,11 @@ export function ModelSettingsForm({ endpointId, model, showNumCtx }: ModelSettin
 
 function ModelSettingsFields({
 	defaultValues,
-	showNumCtx,
 	hasSetting,
 	onSave,
 	onReset,
 }: {
 	defaultValues: ModelSettingsFormValues;
-	showNumCtx: boolean;
 	hasSetting: boolean;
 	onSave: (values: ModelSettingsFormValues) => void;
 	onReset: () => void;
@@ -70,18 +64,6 @@ function ModelSettingsFields({
 	return (
 		<form.AppForm>
 			<form.SubmitForm className="gap-3">
-				{showNumCtx && (
-					<form.AppField name="num_ctx">
-						{(field) => (
-							<field.NumberField
-								label="Context window (num_ctx)"
-								description="Tokens of context this model keeps in memory."
-								placeholder="Provider default"
-							/>
-						)}
-					</form.AppField>
-				)}
-
 				<form.AppField name="temperature">
 					{(field) => (
 						<field.NumberField
@@ -114,8 +96,8 @@ function ModelSettingsFields({
 						<form.AppField name="repeat_penalty">
 							{(field) => <field.NumberField label="Repeat penalty" step="0.1" min={0} />}
 						</form.AppField>
-						<form.AppField name="num_predict">
-							{(field) => <field.NumberField label="Max output tokens (num_predict)" />}
+						<form.AppField name="max_tokens">
+							{(field) => <field.NumberField label="Max output tokens" />}
 						</form.AppField>
 					</CollapsibleContent>
 				</Collapsible>

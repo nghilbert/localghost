@@ -9,34 +9,32 @@ import {
 	CardHeader,
 	CardTitle,
 } from "#/shared/components/ui/card";
-import { RemoteOllamaForm } from "./RemoteOllamaForm";
+import { RemoteRuntimeForm } from "./RemoteRuntimeForm";
 
-const COMPOSE_INSTRUCTIONS = `# in .env: cpu, nvidia, or amd
-COMPOSE_PROFILES=cpu
+const COMPOSE_INSTRUCTIONS = `# in .env: COMPOSE_PROFILES=dev,llamacpp (or prod,llamacpp)
 docker compose up -d`;
 
 /**
- * Shown when no running Ollama instance was found. Purely informational; the
+ * Shown when no running llama.cpp instance was found. Purely informational; the
  * parent's status query keeps polling and unmounts this card once one appears.
  */
-export function OllamaSetupCard() {
+export function RuntimeSetupCard() {
 	const [isRemoteFormOpen, setIsRemoteFormOpen] = useState(false);
 
-	if (isRemoteFormOpen) return <RemoteOllamaForm onBack={() => setIsRemoteFormOpen(false)} />;
+	if (isRemoteFormOpen) return <RemoteRuntimeForm onBack={() => setIsRemoteFormOpen(false)} />;
 
 	return (
 		<Card>
 			<CardHeader>
-				<CardTitle>Connect to Ollama</CardTitle>
+				<CardTitle>Connect to llama.cpp</CardTitle>
 				<CardDescription>
-					No running Ollama instance was found. This page picks it up automatically as soon as one
-					is reachable.
+					No running llama.cpp instance was found. This page picks it up automatically as soon as
+					one is reachable.
 				</CardDescription>
 			</CardHeader>
 			<CardContent className="space-y-2">
 				<p className="text-sm">
-					Ollama ships with this app's compose stack — pick the build that matches your hardware and
-					restart:
+					llama.cpp ships with this app's compose stack; enable the profile and restart:
 				</p>
 				<pre className="overflow-x-auto rounded-md bg-muted p-2 font-mono text-xs">
 					{COMPOSE_INSTRUCTIONS}
@@ -47,7 +45,7 @@ export function OllamaSetupCard() {
 					variant="link"
 					render={
 						<a
-							href="https://ollama.com/docs/installation"
+							href="https://github.com/ggml-org/llama.cpp/blob/master/docs/install.md"
 							target="_blank"
 							rel="noopener noreferrer"
 						/>

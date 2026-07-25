@@ -9,16 +9,16 @@ import {
 	CardTitle,
 } from "#/shared/components/ui/card";
 import { Field } from "#/shared/components/ui/field";
-import { useOllama } from "#/shared/domain/model/use-ollama";
+import { useRuntime } from "#/shared/domain/model/use-runtime";
 import { useAppForm } from "#/shared/hooks/use-app-form";
-import { ollamaUrlSchema } from "#/shared/lib/ollama/url";
+import { llamacppUrlSchema } from "#/shared/lib/llamacpp/url";
 
-export function RemoteOllamaForm({ onBack }: { onBack: () => void }) {
-	const { connectRemote, testRemote } = useOllama();
+export function RemoteRuntimeForm({ onBack }: { onBack: () => void }) {
+	const { connectRemote, testRemote } = useRuntime();
 
 	const form = useAppForm({
 		defaultValues: { url: "" },
-		validators: { onDynamic: ollamaUrlSchema },
+		validators: { onDynamic: llamacppUrlSchema },
 		validationLogic: revalidateLogic(),
 		onSubmit: async ({ value }) => {
 			await connectRemote.mutate({ url: value.url });
@@ -26,7 +26,7 @@ export function RemoteOllamaForm({ onBack }: { onBack: () => void }) {
 	});
 
 	function handleTest() {
-		const parsed = ollamaUrlSchema.safeParse(form.state.values);
+		const parsed = llamacppUrlSchema.safeParse(form.state.values);
 		if (!parsed.success) {
 			toast.error("Enter a valid URL first");
 			return;
@@ -44,10 +44,10 @@ export function RemoteOllamaForm({ onBack }: { onBack: () => void }) {
 	return (
 		<Card>
 			<CardHeader>
-				<CardTitle>Connect to Ollama at a URL</CardTitle>
+				<CardTitle>Connect to llama.cpp at a URL</CardTitle>
 				<CardDescription>
-					Point at an Ollama instance by URL: a homelab server, another machine, or a custom port.
-					Make sure Ollama listens on the network there (OLLAMA_HOST=0.0.0.0).
+					Point at a llama-server instance by URL: a homelab server, another machine, or a custom
+					port. Make sure it listens on the network there (--host 0.0.0.0).
 				</CardDescription>
 			</CardHeader>
 			<CardContent>
@@ -56,8 +56,8 @@ export function RemoteOllamaForm({ onBack }: { onBack: () => void }) {
 						<form.AppField name="url">
 							{(field) => (
 								<field.InputField
-									label="Ollama URL"
-									placeholder="http://192.168.1.50:11434"
+									label="llama.cpp URL"
+									placeholder="http://192.168.1.50:8080"
 									description="Full URL including http:// or https:// and the port."
 								/>
 							)}
@@ -65,7 +65,7 @@ export function RemoteOllamaForm({ onBack }: { onBack: () => void }) {
 
 						<form.FormError>
 							{testRemote.data && !testRemote.data.reachable
-								? `No Ollama instance is responding at ${form.state.values.url}`
+								? `No llama.cpp instance is responding at ${form.state.values.url}`
 								: undefined}
 						</form.FormError>
 

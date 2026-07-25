@@ -5,7 +5,7 @@ import { DataTable } from "#/shared/components/DataTable";
 import type {
 	CatalogModel,
 	HardwareInfo,
-	OllamaInstalledModel,
+	InstalledModel,
 	PullProgress,
 } from "#/shared/domain/model/types";
 import { cn } from "#/shared/lib/utils";
@@ -15,10 +15,10 @@ import { type ModelStatus, ModelStatusFilter } from "./ModelStatusFilter";
 
 type ModelTableProps = {
 	catalog: CatalogModel[];
-	installedModels: OllamaInstalledModel[];
+	installedModels: InstalledModel[];
 	pulling: Record<string, PullProgress>;
 	hardware: HardwareInfo | undefined;
-	/** The local Ollama endpoint's id, for the expanded row's per-model settings. */
+	/** The local llama.cpp endpoint's id, for the expanded row's per-model settings. */
 	endpointId: string;
 	onPull: (model: string) => void;
 	onStop: (model: string) => void;
