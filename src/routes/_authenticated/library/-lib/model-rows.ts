@@ -1,18 +1,17 @@
-import type { CatalogModel, OllamaInstalledModel, PullProgress } from "#/shared/domain/model/types";
-import { normalizeModelId } from "#/shared/lib/utils";
+import type { CatalogModel, InstalledModel, PullProgress } from "#/shared/domain/model/types";
 
 export type ModelRow = {
 	id: string;
 	name: string;
 	catalog: CatalogModel | null;
-	installed: OllamaInstalledModel | null;
+	installed: InstalledModel | null;
 	pullState: PullProgress | undefined;
 };
 
 /**
- * Unions the catalog with installed models and in-flight pulls into one row per
- * model id; the single source of rows for the Library table. Off-catalog
- * installs still surface, carrying Ollama's own metadata.
+ * Unions the catalog with installed models and in-flight downloads into one
+ * row per model id; the single source of rows for the Library table. Off-catalog
+ * installs still surface, carrying llama.cpp's own metadata.
  */
 export function buildModelRows({
 	catalog,
@@ -20,16 +19,12 @@ export function buildModelRows({
 	pulling,
 }: {
 	catalog: CatalogModel[];
-	installedModels: OllamaInstalledModel[];
+	installedModels: InstalledModel[];
 	pulling: Record<string, PullProgress>;
 }): ModelRow[] {
-	const catalogById = new Map(catalog.map((model) => [normalizeModelId(model.id), model]));
-	const installedById = new Map(installedModels.map((m) => [normalizeModelId(m.name), m]));
-	// Pulls are keyed by the exact string the pull started with (`llama3.1:latest`),
-	// so normalize here too or a `:latest` pull never reaches its row.
-	const pullingById = new Map(
-		Object.entries(pulling).map(([model, state]) => [normalizeModelId(model), state]),
-	);
+	const catalogById = new Map(catalog.map((model) => [model.id, model]));
+	const installedById = new Map(installedModels.map((m) => [m.id, m]));
+	const pullingById = new Map(Object.entries(pulling));
 
 	const ids = new Set([...catalogById.keys(), ...installedById.keys(), ...pullingById.keys()]);
 

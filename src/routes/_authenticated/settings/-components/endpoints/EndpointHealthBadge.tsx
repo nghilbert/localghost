@@ -9,7 +9,7 @@ import { cn } from "#/shared/lib/utils";
 
 /**
  * Live reachability status for a saved endpoint: probes on mount, caches for
- * minutes, and offers a manual re-check. Mirrors the local Ollama panel's badge
+ * minutes, and offers a manual re-check. Mirrors the local llama.cpp panel's badge
  * so a dead URL or bad key is visible before a chat fails.
  */
 export function EndpointHealthBadge({ endpointId }: { endpointId: string }) {

@@ -4,8 +4,8 @@ import { CircleAlertIcon } from "lucide-react";
 import { useState } from "react";
 import { HardwareCard } from "#/routes/_authenticated/library/-components/HardwareCard";
 import { ModelTable } from "#/routes/_authenticated/library/-components/ModelTable";
-import { OllamaSetupCard } from "#/routes/_authenticated/library/-components/OllamaSetupCard";
-import { RemoteOllamaForm } from "#/routes/_authenticated/library/-components/RemoteOllamaForm";
+import { RemoteRuntimeForm } from "#/routes/_authenticated/library/-components/RemoteRuntimeForm";
+import { RuntimeSetupCard } from "#/routes/_authenticated/library/-components/RuntimeSetupCard";
 import { Alert, AlertAction, AlertDescription, AlertTitle } from "#/shared/components/ui/alert";
 import {
 	AlertDialog,
@@ -32,8 +32,8 @@ import {
 	hardwareQueryOptions,
 	libraryStatusQueryOptions,
 } from "#/shared/domain/model/model.functions";
-import { useModelPull } from "#/shared/domain/model/use-model-pull";
-import { useOllama } from "#/shared/domain/model/use-ollama";
+import { useModelDownload } from "#/shared/domain/model/use-model-download";
+import { useRuntime } from "#/shared/domain/model/use-runtime";
 
 export const Route = createFileRoute("/_authenticated/library")({
 	head: () => ({ meta: [{ title: "Library · localghost" }] }),
@@ -48,7 +48,7 @@ export const Route = createFileRoute("/_authenticated/library")({
 function LibraryPage() {
 	const { data: hardware, isLoading: isLoadingHardware } = useQuery(hardwareQueryOptions());
 
-	const { data: ollamaStatus, isPending: isStatusPending } = useQuery(libraryStatusQueryOptions());
+	const { data: runtimeStatus, isPending: isStatusPending } = useQuery(libraryStatusQueryOptions());
 
 	const {
 		data: catalog = [],
@@ -57,15 +57,15 @@ function LibraryPage() {
 		refetch: refetchCatalog,
 	} = useQuery(catalogQueryOptions());
 
-	const { pulling, pull, stop, dismiss } = useModelPull();
-	const { deleteModel } = useOllama();
+	const { pulling, pull, stop, dismiss } = useModelDownload();
+	const { deleteModel } = useRuntime();
 
 	const [isReconnecting, setIsReconnecting] = useState(false);
 	const [pendingDelete, setPendingDelete] = useState<string | null>(null);
 
 	function handlePull(model: string) {
-		if (!ollamaStatus?.found) return;
-		pull({ model, ollamaUrl: ollamaStatus.ollamaUrl });
+		if (!runtimeStatus?.found) return;
+		pull({ model, runtimeUrl: runtimeStatus.runtimeUrl });
 	}
 
 	return (
@@ -80,19 +80,19 @@ function LibraryPage() {
 						<Skeleton className="h-16 w-full" />
 						<Skeleton className="h-72 w-full" />
 					</div>
-				) : ollamaStatus?.found ? (
+				) : runtimeStatus?.found ? (
 					isReconnecting ? (
-						<RemoteOllamaForm onBack={() => setIsReconnecting(false)} />
+						<RemoteRuntimeForm onBack={() => setIsReconnecting(false)} />
 					) : (
 						<>
 							<Item variant="muted">
 								<ItemContent>
-									<ItemTitle>Connected to Ollama</ItemTitle>
-									<ItemDescription>{ollamaStatus.ollamaUrl}</ItemDescription>
+									<ItemTitle>Connected to llama.cpp</ItemTitle>
+									<ItemDescription>{runtimeStatus.runtimeUrl}</ItemDescription>
 								</ItemContent>
 								<ItemActions>
 									<Button variant="outline" size="sm" onClick={() => setIsReconnecting(true)}>
-										Use a different Ollama
+										Use a different llama.cpp
 									</Button>
 								</ItemActions>
 							</Item>
@@ -101,7 +101,7 @@ function LibraryPage() {
 									<CircleAlertIcon />
 									<AlertTitle>Couldn't load the model catalog</AlertTitle>
 									<AlertDescription>
-										ollama.com couldn't be reached or didn't return a readable catalog, so only
+										Hugging Face couldn't be reached or didn't return a readable catalog, so only
 										installed models are listed.
 									</AlertDescription>
 									<AlertAction>
@@ -116,10 +116,10 @@ function LibraryPage() {
 							) : (
 								<ModelTable
 									catalog={catalog}
-									installedModels={ollamaStatus.installedModels}
+									installedModels={runtimeStatus.installedModels}
 									pulling={pulling}
 									hardware={hardware}
-									endpointId={ollamaStatus.endpointId}
+									endpointId={runtimeStatus.endpointId}
 									onPull={handlePull}
 									onStop={stop}
 									onDismiss={dismiss}
@@ -129,7 +129,7 @@ function LibraryPage() {
 						</>
 					)
 				) : (
-					<OllamaSetupCard />
+					<RuntimeSetupCard />
 				)}
 			</div>
 			<AlertDialog

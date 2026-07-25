@@ -24,7 +24,7 @@ export function createModelColumns(): ColumnDef<ModelRow>[] {
 		{
 			id: "name",
 			accessorFn: (row) =>
-				`${row.name} ${row.id} ${row.catalog?.tags.join(" ") ?? ""} ${row.installed?.family ?? ""}`,
+				`${row.name} ${row.id} ${row.catalog?.tags.join(" ") ?? ""} ${row.installed?.quant ?? ""}`,
 			header: ({ column }) => <DataTableColumnHeader column={column} title="Model" />,
 			enableHiding: false,
 			cell: ({ row }) => <ModelIdentityCell row={row.original} />,
@@ -48,7 +48,9 @@ export function createModelColumns(): ColumnDef<ModelRow>[] {
 		{
 			id: "size",
 			accessorFn: (row) =>
-				nullableNumber(row.installed ? row.installed.sizeBytes / 1e9 : row.catalog?.sizeGb),
+				nullableNumber(
+					row.installed?.sizeBytes != null ? row.installed.sizeBytes / 1e9 : row.catalog?.sizeGb,
+				),
 			header: ({ column }) => <DataTableColumnHeader column={column} title="Size" />,
 			cell: ({ row }) => <SizeCell row={row.original} />,
 			meta: { className: "hidden sm:table-cell" },

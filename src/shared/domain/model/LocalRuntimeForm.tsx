@@ -7,26 +7,25 @@ import { Badge } from "#/shared/components/ui/badge";
 import { Button } from "#/shared/components/ui/button";
 import { Field, FieldDescription, FieldLegend, FieldSet } from "#/shared/components/ui/field";
 import { useAppForm } from "#/shared/hooks/use-app-form";
-import { ollamaConnectionFormSchema, ollamaUrlSchema } from "#/shared/lib/ollama/url";
+import { llamacppUrlSchema } from "#/shared/lib/llamacpp/url";
 import { libraryStatusQueryOptions } from "./model.functions";
-import { useOllama } from "./use-ollama";
+import { useRuntime } from "./use-runtime";
 
-const DEFAULT_OLLAMA_URL = "http://localhost:11434";
+const DEFAULT_RUNTIME_URL = "http://localhost:8080";
 
 /**
- * The built-in local Ollama endpoint: read-only reachability status plus an editable
- * URL for pointing at a remote or non-default install. The row itself is managed by
- * Library discovery, so this never offers to add or delete it.
+ * The built-in local llama.cpp endpoint: read-only reachability status plus an
+ * editable URL for pointing at a remote or non-default install. The row itself
+ * is managed by Library discovery, so this never offers to add or delete it.
  */
-export function LocalOllamaForm() {
+export function LocalRuntimeForm() {
 	const { data: status } = useQuery(libraryStatusQueryOptions());
-	const currentUrl = status?.ollamaUrl ?? DEFAULT_OLLAMA_URL;
-	const currentNumCtx = status?.numCtx ?? null;
+	const currentUrl = status?.runtimeUrl ?? DEFAULT_RUNTIME_URL;
 
 	return (
 		<FieldSet>
 			<FieldLegend className="flex items-center gap-2">
-				Local Ollama
+				Local llama.cpp
 				{status?.found ? (
 					<Badge variant="secondary" className="bg-success/10 text-success">
 						<CheckCircle2Icon />
@@ -40,43 +39,30 @@ export function LocalOllamaForm() {
 				)}
 			</FieldLegend>
 			<FieldDescription>
-				Built in, no setup needed when Ollama runs locally. Point it at another host or port below
-				(e.g. a homelab server); Ollama must listen on the network there (OLLAMA_HOST=0.0.0.0).
+				Built in, no setup needed when llama-server runs locally. Point it at another host or port
+				below (e.g. a homelab server); llama-server must listen on the network there (--host
+				0.0.0.0).
 			</FieldDescription>
-			<OllamaConnectionForm
-				key={`${currentUrl}:${currentNumCtx}`}
-				currentUrl={currentUrl}
-				currentNumCtx={currentNumCtx}
-			/>
+			<RuntimeConnectionForm key={currentUrl} currentUrl={currentUrl} />
 		</FieldSet>
 	);
 }
 
-function OllamaConnectionForm({
-	currentUrl,
-	currentNumCtx,
-}: {
-	currentUrl: string;
-	currentNumCtx: number | null;
-}) {
-	const { connectRemote, testRemote } = useOllama();
+function RuntimeConnectionForm({ currentUrl }: { currentUrl: string }) {
+	const { connectRemote, testRemote } = useRuntime();
 
-	const defaultValues: z.input<typeof ollamaConnectionFormSchema> = {
-		url: currentUrl,
-		numCtx: currentNumCtx ?? undefined,
-	};
+	const defaultValues: z.input<typeof llamacppUrlSchema> = { url: currentUrl };
 	const form = useAppForm({
 		defaultValues,
-		validators: { onDynamic: ollamaConnectionFormSchema },
+		validators: { onDynamic: llamacppUrlSchema },
 		validationLogic: revalidateLogic(),
 		onSubmit: async ({ value }) => {
-			// An emptied field sends null so a saved override is cleared, not kept.
-			await connectRemote.mutate({ url: value.url, numCtx: value.numCtx ?? null });
+			await connectRemote.mutate({ url: value.url });
 		},
 	});
 
 	function handleTest() {
-		const parsed = ollamaUrlSchema.safeParse(form.state.values);
+		const parsed = llamacppUrlSchema.safeParse(form.state.values);
 		if (!parsed.success) {
 			toast.error("Enter a valid URL first");
 			return;
@@ -97,26 +83,16 @@ function OllamaConnectionForm({
 				<form.AppField name="url">
 					{(field) => (
 						<field.InputField
-							label="Ollama URL"
-							placeholder={DEFAULT_OLLAMA_URL}
+							label="llama.cpp URL"
+							placeholder={DEFAULT_RUNTIME_URL}
 							description="Full URL including http:// or https:// and the port."
-						/>
-					)}
-				</form.AppField>
-
-				<form.AppField name="numCtx">
-					{(field) => (
-						<field.NumberField
-							label="Context length"
-							placeholder="8192"
-							description="Tokens of conversation the model can see (num_ctx). Higher values use more memory. Leave empty for the default of 8192."
 						/>
 					)}
 				</form.AppField>
 
 				<form.FormError>
 					{testRemote.data && !testRemote.data.reachable
-						? `No Ollama instance is responding at ${form.state.values.url}`
+						? `No llama.cpp instance is responding at ${form.state.values.url}`
 						: undefined}
 				</form.FormError>
 

@@ -3,18 +3,18 @@ import { Badge } from "#/shared/components/ui/badge";
 import { FieldDescription, FieldLegend, FieldSet } from "#/shared/components/ui/field";
 import { ItemGroup } from "#/shared/components/ui/item";
 import { useEndpoints } from "#/shared/domain/endpoint/use-endpoints";
-import { LocalOllamaForm } from "#/shared/domain/model/LocalOllamaForm";
+import { LocalRuntimeForm } from "#/shared/domain/model/LocalRuntimeForm";
 import { EndpointItem } from "./EndpointItem";
 import { ProviderSetupForm } from "./ProviderSetupForm";
 
 export function EndpointsTab() {
 	const { endpoints, deleteEndpoint } = useEndpoints();
-	// Ollama is the built-in endpoint, shown on its own panel, so keep it out of this list.
-	const added = endpoints.filter((ep) => ep.provider !== "ollama");
+	// llama.cpp is the built-in endpoint, shown on its own panel, so keep it out of this list.
+	const added = endpoints.filter((ep) => ep.provider !== "llamacpp");
 
 	return (
 		<div className="space-y-8">
-			<LocalOllamaForm />
+			<LocalRuntimeForm />
 			<FieldSet>
 				<FieldLegend className="flex items-center gap-2">
 					Provider endpoints
@@ -26,8 +26,8 @@ export function EndpointsTab() {
 					)}
 				</FieldLegend>
 				<FieldDescription>
-					Local Ollama is built in. Add a provider endpoint to use a hosted API (Anthropic, OpenAI,
-					…) or any OpenAI-compatible server. Keys are encrypted at rest.
+					Local llama.cpp is built in. Add a provider endpoint to use a hosted API (Anthropic,
+					OpenAI, …) or any OpenAI-compatible server. Keys are encrypted at rest.
 				</FieldDescription>
 				{added.length > 0 && (
 					<ItemGroup>

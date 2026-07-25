@@ -20,7 +20,7 @@ function isProviderId(value: string): value is ProviderId {
 
 /**
  * Guided add-endpoint form: pick the provider (protocol) from the dropdown, then fill
- * in only the fields that provider actually needs. Local Ollama is built in, so the
+ * in only the fields that provider actually needs. Local llama.cpp is built in, so the
  * picker lists only hosted and self-hosted providers.
  */
 export function ProviderSetupForm({ onCreated }: ProviderSetupFormProps) {

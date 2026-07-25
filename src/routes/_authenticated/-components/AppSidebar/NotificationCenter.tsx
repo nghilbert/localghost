@@ -9,18 +9,18 @@ import {
 	SidebarMenuButton,
 	SidebarMenuItem,
 } from "#/shared/components/ui/sidebar";
-import { activePullsQueryOptions } from "#/shared/domain/model/model.functions";
+import { activeDownloadsQueryOptions } from "#/shared/domain/model/model.functions";
 import { formatPullDetail } from "#/shared/domain/model/pull-format";
-import { useModelPull } from "#/shared/domain/model/use-model-pull";
+import { useModelDownload } from "#/shared/domain/model/use-model-download";
 
 /**
  * Sidebar-footer notification center: today's only source is model downloads,
- * sourced from the same server-persisted pull registry the Library page reads,
+ * sourced from the same server-side download registry the Library page reads,
  * so progress survives navigation and reloads. Built to take more sources later.
  */
 export function NotificationCenter() {
-	const { data: activePulls = [] } = useQuery(activePullsQueryOptions());
-	const { stop } = useModelPull();
+	const { data: activePulls = [] } = useQuery(activeDownloadsQueryOptions());
+	const { stop } = useModelDownload();
 	const inFlight = activePulls.filter((pull) => !pull.done);
 
 	if (inFlight.length === 0) return null;

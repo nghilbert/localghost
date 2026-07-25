@@ -56,9 +56,9 @@ export function ModelVariantCard({
 }: ModelVariantCardProps) {
 	const fieldId = useId();
 	const variants = catalog ? buildModelVariants({ catalog, hardware }) : null;
-	const [selectedTag, setSelectedTag] = useState(() => variants?.initialTag);
+	const [selectedQuant, setSelectedQuant] = useState(() => variants?.initialQuant);
 	const selectedOption =
-		variants?.options.find((option) => option.tag === selectedTag) ?? variants?.options[0];
+		variants?.options.find((option) => option.quant === selectedQuant) ?? variants?.options[0];
 	const targetModel = selectedOption?.modelId ?? fallbackModelId;
 	const pullState =
 		pulling[targetModel] ?? (selectedOption?.isCurrent !== false ? fallbackPullState : undefined);
@@ -80,11 +80,11 @@ export function ModelVariantCard({
 								items={groups}
 								value={selectedOption}
 								onValueChange={(option) => {
-									if (option) setSelectedTag(option.tag);
+									if (option) setSelectedQuant(option.quant);
 								}}
-								itemToStringLabel={(option) => option.tag}
-								itemToStringValue={(option) => option.tag}
-								isItemEqualToValue={(option, value) => option.tag === value.tag}
+								itemToStringLabel={(option) => option.quant}
+								itemToStringValue={(option) => option.quant}
+								isItemEqualToValue={(option, value) => option.quant === value.quant}
 							>
 								<ComboboxInput
 									id={fieldId}
@@ -101,12 +101,12 @@ export function ModelVariantCard({
 												<ComboboxCollection>
 													{(option: ModelVariantOption) => (
 														<ComboboxItem
-															key={option.tag}
+															key={option.quant}
 															value={option}
 															data-testid="model-variant-option"
 														>
 															<span className="min-w-0 flex-1">
-																<span className="block truncate font-medium">{option.tag}</span>
+																<span className="block truncate font-medium">{option.quant}</span>
 																<span className="block truncate text-xs text-muted-foreground">
 																	{formatModelVariantDetails(option)}
 																</span>
