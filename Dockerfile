@@ -4,7 +4,7 @@ COPY package.json package-lock.json ./
 RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates && rm -rf /var/lib/apt/lists/*
 RUN npm ci
 COPY . .
-RUN npm run prisma generate && npm run build
+RUN npm run prisma -- generate && npm run build
 
 # Dev image: dependencies only. Source, the prisma schema, and the generated
 # client are supplied by a bind mount at runtime (see web-dev in compose.yaml).
@@ -15,7 +15,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates && rm -rf /var/lib/apt/lists/*
 RUN npm ci
-CMD ["sh", "-c", "npm run prisma generate && npm run dev -- --host"]
+CMD ["sh", "-c", "npm run prisma -- generate && npm run dev -- --host"]
 
 FROM node:24-bookworm-slim
 WORKDIR /app
@@ -29,4 +29,4 @@ COPY prisma ./prisma
 # Run unprivileged; the runtime only reads these files and connects to Postgres.
 USER node
 EXPOSE 3000
-CMD ["sh", "-c", "npx prisma migrate deploy && node .output/server/index.mjs"]
+CMD ["sh", "-c", "npm run prisma -- migrate deploy && node .output/server/index.mjs"]

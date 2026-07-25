@@ -1,4 +1,4 @@
-FROM searxng/searxng:2026.6.20-fd42d4fda
+FROM searxng/searxng:2026.7.25-0909dbc9e
 
 # Baked in instead of bind-mounted: avoids a host/container uid mismatch that
 # otherwise logs an ownership warning on every start.
