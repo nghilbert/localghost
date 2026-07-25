@@ -6,34 +6,27 @@ const uuid = z.uuid();
 export const modelSelectionSchema = z.object({ endpointId: uuid, model: z.string().min(1) });
 
 /**
- * Per-endpoint generation settings mirroring the Ollama SDK `Options` interface.
- * Every field is optional; absent means "use Ollama's own default", so an
- * endpoint needs zero tuning. The Settings UI renders a curated subset.
+ * Per-endpoint generation (sampling) settings, sent with every chat request.
+ * Every field is optional; absent means "use the provider's own default", so
+ * an endpoint needs zero tuning. The Settings UI renders a curated subset.
+ * Deliberately excludes llama.cpp's load-time engine flags (`--ctx-size`,
+ * `--n-gpu-layers`, etc.) — those are set at process start, never per request.
  */
-export const ollamaOptionsSchema = z
+export const samplingOptionsSchema = z
 	.object({
-		num_ctx: z.number().int().positive(),
-		num_predict: z.number().int(),
 		temperature: z.number().min(0),
-		top_k: z.number().int().nonnegative(),
 		top_p: z.number().min(0).max(1),
+		top_k: z.number().int().nonnegative(),
+		min_p: z.number().min(0).max(1),
 		repeat_penalty: z.number().min(0),
-		repeat_last_n: z.number().int(),
+		presence_penalty: z.number(),
+		frequency_penalty: z.number(),
 		seed: z.number().int(),
 		stop: z.array(z.string()),
+		max_tokens: z.number().int(),
 		mirostat: z.number().int().min(0).max(2),
 		mirostat_tau: z.number().min(0),
 		mirostat_eta: z.number().min(0),
-		presence_penalty: z.number(),
-		frequency_penalty: z.number(),
-		num_gpu: z.number().int().nonnegative(),
-		num_thread: z.number().int().positive(),
-		num_batch: z.number().int().positive(),
-		num_keep: z.number().int().nonnegative(),
-		low_vram: z.boolean(),
-		use_mmap: z.boolean(),
-		use_mlock: z.boolean(),
-		numa: z.boolean(),
 	})
 	.partial();
 
@@ -41,7 +34,7 @@ export const ollamaOptionsSchema = z
 export const endpointProviderSchema = z.enum([
 	"openai",
 	"anthropic",
-	"ollama",
+	"llamacpp",
 	"openrouter",
 	"groq",
 	"gemini",
@@ -52,7 +45,7 @@ export const createEndpointSchema = z.object({
 	url: z.url("Must be a valid URL"),
 	apiKey: z.string().optional(),
 	provider: endpointProviderSchema.default("openai"),
-	options: ollamaOptionsSchema.optional(),
+	options: samplingOptionsSchema.optional(),
 });
 
 export const updateEndpointSchema = createEndpointSchema.partial();

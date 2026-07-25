@@ -1,7 +1,7 @@
 import type { ModelMessage } from "@tanstack/ai";
 import type { DocumentPart, ImagePart, RunFinishedEvent } from "@tanstack/ai/client";
 import type { UIMessage } from "@tanstack/ai-client";
-import { DEFAULT_MAX_TOKENS, DEFAULT_OLLAMA_NUM_CTX } from "#/shared/lib/llm-constants";
+import { DEFAULT_MAX_TOKENS } from "#/shared/lib/llm-constants";
 
 const MAX_HISTORY_MESSAGES = 40;
 
@@ -243,7 +243,7 @@ export function messageUsage(message: UIMessage | ModelMessage): MessageUsage | 
 	return "usage" in message && message.usage ? (message.usage as MessageUsage) : null;
 }
 
-/** Tokens reserved above `num_predict` for the system prompt (date grounding + tool directives). */
+/** Tokens reserved above `max_tokens` for the system prompt (date grounding + tool directives). */
 const SYSTEM_PROMPT_RESERVE_TOKENS = 1500;
 
 /** A conservative flat token cost per image part; vision token accounting varies by provider. */
@@ -271,23 +271,23 @@ export function estimateMessageTokens(message: UIMessage | ModelMessage): number
 
 /**
  * The token budget available for prior history on the next request, or
- * `undefined` when the provider's context window is large or unknown (cloud) and
- * history is bounded by message count instead. Only Ollama exposes a small,
- * knowable `num_ctx`; the budget subtracts the output reservation (`num_predict`)
- * and headroom for the system prompt so the window it keeps actually fits.
+ * `undefined` when the context window is large or unknown (cloud providers)
+ * and history is bounded by message count instead. Local runtimes report a
+ * real, small `n_ctx` (read live from llama-server's `/props`); the budget
+ * subtracts the output reservation (`max_tokens`) and headroom for the system
+ * prompt so the window it keeps actually fits.
  */
 export function historyBudgetTokens({
-	provider,
+	nCtx,
 	options,
 }: {
-	provider: string;
+	nCtx: number | undefined;
 	options: Record<string, unknown>;
 }): number | undefined {
-	if (provider !== "ollama") return undefined;
-	const numCtx = typeof options.num_ctx === "number" ? options.num_ctx : DEFAULT_OLLAMA_NUM_CTX;
-	const numPredict =
-		typeof options.num_predict === "number" ? options.num_predict : DEFAULT_MAX_TOKENS;
-	return Math.max(0, numCtx - numPredict - SYSTEM_PROMPT_RESERVE_TOKENS);
+	if (nCtx === undefined) return undefined;
+	const maxTokens =
+		typeof options.max_tokens === "number" ? options.max_tokens : DEFAULT_MAX_TOKENS;
+	return Math.max(0, nCtx - maxTokens - SYSTEM_PROMPT_RESERVE_TOKENS);
 }
 
 /**
