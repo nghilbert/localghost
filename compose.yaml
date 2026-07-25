@@ -78,18 +78,27 @@ services:
       SEARXNG_SECRET: ${SEARXNG_SECRET:?set SEARXNG_SECRET in .env}
     restart: unless-stopped
 
-  # Bundled Ollama, reachable by the app at http://ollama:11434. CPU-only here; a
-  # GPU hardware overlay (compose.nvidia.yaml / compose.amd.yaml, merged via
-  # COMPOSE_FILE) patches this service for the GPU. Gated by the `ollama` profile
-  # so omitting it falls back to a host-native Ollama (hence no app depends_on).
-  ollama:
-    image: ollama/ollama:latest
-    profiles: [ ollama ]
+  # Bundled llama.cpp (llama-server, router mode), reachable by the app at
+  # http://llamacpp:8080. CPU-only here; a GPU hardware overlay
+  # (compose.nvidia.yaml / compose.amd.yaml / compose.vulkan.yaml, merged via
+  # COMPOSE_FILE) patches this service for the GPU. Gated by the `llamacpp`
+  # profile so omitting it falls back to a host-native llama-server (hence no
+  # app depends_on). Router mode discovers GGUFs from the mounted cache dir;
+  # models download on demand via the app's Library.
+  llamacpp:
+    image: ghcr.io/ggml-org/llama.cpp:server
+    profiles: [ llamacpp ]
+    command: [ "--models-dir", "/models", "--host", "0.0.0.0", "--port", "8080", "--models-max", "2" ]
     volumes:
-      - ollama:/root/.ollama
+      - llamacpp:/models
     restart: unless-stopped
+    # Unverified: assumes curl is present in the `server` image (unconfirmed —
+    # ggml-org doesn't document its base image). Nothing depends_on this
+    # service's health, so a wrong probe only affects `docker compose ps`
+    # output; confirm during the compose smoke test and swap for a wget- or
+    # /dev/tcp-based check if curl isn't there.
     healthcheck:
-      test: [ "CMD", "ollama", "list" ]
+      test: [ "CMD", "curl", "-fsS", "http://localhost:8080/health" ]
       interval: 15s
       timeout: 5s
       retries: 5
@@ -97,4 +106,4 @@ services:
 
 volumes:
   pg:
-  ollama:
+  llamacpp:
