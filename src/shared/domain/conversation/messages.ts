@@ -327,26 +327,6 @@ export function editUserMessage({
 }
 
 /**
- * Cleans model output into a title: thinking blocks dropped, first non-empty
- * line, quote/markdown wrapping stripped, capped at 80 chars.
- * @returns The cleaned title, or `null` when nothing usable remains.
- */
-export function sanitizeGeneratedTitle(text: string): string | null {
-	const line = text
-		.replace(/<think>[\s\S]*?<\/think>/g, "")
-		.split("\n")
-		.map((candidate) => candidate.trim())
-		.find(Boolean);
-	if (!line) return null;
-	const cleaned = line
-		.replace(/^title:\s*/i, "")
-		.replace(/^["'“”*`]+|["'“”*`.]+$/g, "")
-		.replace(/\s+/g, " ")
-		.trim();
-	return cleaned ? cleaned.slice(0, 80) : null;
-}
-
-/**
  * Whether the transcript ends on a user message with no assistant reply yet:
  * the signal for the conversation view to request a response via `reload()`.
  */

@@ -1,6 +1,6 @@
 import { EventType } from "@tanstack/ai/client";
 import { useChat } from "@tanstack/ai-react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { ChatInput } from "#/routes/_authenticated/-components/chat/ChatInput";
 import { ChatMessage } from "#/routes/_authenticated/-components/chat/ChatMessage";
@@ -19,18 +19,15 @@ import {
 import { Separator } from "#/shared/components/ui/separator";
 import {
 	type ConversationDetail,
-	generateConversationTitle,
 	modelRunStateQueryOptions,
 } from "#/shared/domain/conversation/conversation.functions";
 import {
 	awaitingAssistantResponse,
 	cumulativeTokenTotals,
-	deriveConversationTitle,
 	editUserMessage,
 	historyStartIndex,
 	type MessageUsage,
 	markInterrupted,
-	partsText,
 	withUsage,
 } from "#/shared/domain/conversation/messages";
 import { ChatStatus } from "./ChatStatus";
@@ -84,7 +81,16 @@ export function ChatThread({ conversation }: ChatThreadProps) {
 	// on the message; stash it here and stamp it onto the message once `onFinish`
 	// reports its final id.
 	const pendingUsage = useRef<MessageUsage | undefined>(undefined);
-	const { messages, sendMessage, stop, status, error, reload, setMessages } = useChat({
+	const {
+		messages,
+		sendMessage,
+		stop,
+		status,
+		error,
+		reload,
+		setMessages,
+		addToolApprovalResponse,
+	} = useChat({
 		...chatOptions,
 		id: conversation.id,
 		forwardedProps,
@@ -137,33 +143,6 @@ export function ChatThread({ conversation }: ChatThreadProps) {
 		setMessages(editUserMessage({ messages, id, content }));
 		void reload();
 	}
-
-	const titleMutation = useMutation({
-		mutationFn: () => generateConversationTitle({ data: { id: conversation.id } }),
-		onSuccess: (title) => {
-			if (!title) return;
-			void queryClient.invalidateQueries({ queryKey: ["conversations"] });
-			void queryClient.invalidateQueries({ queryKey: ["conversation", conversation.id] });
-		},
-	});
-
-	// Auto-title fires only after a reply generated in this mount, never on merely
-	// reopening an old conversation that kept its derived default title.
-	const streamedThisMount = useRef(false);
-	if (isStreaming) streamedThisMount.current = true;
-
-	// Once the first reply completes, ask the model to title the conversation. The
-	// server skips manual renames authoritatively; the check here just avoids a
-	// pointless request when the title visibly isn't the derived default anymore.
-	const titleRequested = useRef(false);
-	useEffect(() => {
-		if (titleRequested.current || !streamedThisMount.current || status !== "ready") return;
-		if (!messages.some((msg) => msg.role === "assistant")) return;
-		const firstUserText = partsText(messages.find((msg) => msg.role === "user")?.parts ?? []);
-		if (conversation.title !== deriveConversationTitle(firstUserText)) return;
-		titleRequested.current = true;
-		titleMutation.mutate();
-	});
 
 	// Apply the draft page's tool-toggle handoff exactly once, client-side only.
 	// The presence of a handoff also marks this mount as the new-chat handoff: only
@@ -235,6 +214,7 @@ export function ChatThread({ conversation }: ChatThreadProps) {
 														? (content) => handleEditResend(msg.id, content)
 														: undefined
 												}
+												onToolApproval={addToolApprovalResponse}
 											/>
 										</MessageScrollerItem>
 									</Fragment>
