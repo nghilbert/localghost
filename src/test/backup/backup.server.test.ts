@@ -80,7 +80,7 @@ describe("exportBackup", () => {
 		modelSettingFindMany.mockResolvedValue([
 			{
 				model: "gpt-4o",
-				options: { num_ctx: 8192 },
+				options: { max_tokens: 8192 },
 				endpoint: { url: "https://api.openai.com", name: "OpenAI", provider: "openai" },
 			},
 		]);
@@ -103,7 +103,7 @@ describe("exportBackup", () => {
 					endpointName: "OpenAI",
 					provider: "openai",
 					model: "gpt-4o",
-					options: { num_ctx: 8192 },
+					options: { max_tokens: 8192 },
 				},
 			],
 		});
@@ -371,7 +371,7 @@ describe("importBackup: model settings", () => {
 						endpointUrl: "https://api.openai.com",
 						provider: "openai",
 						model: "gpt-4o",
-						options: { num_ctx: 8192 },
+						options: { max_tokens: 8192 },
 					},
 				],
 			},
@@ -381,7 +381,7 @@ describe("importBackup: model settings", () => {
 			data: {
 				endpointId: "ep-1",
 				model: "gpt-4o",
-				options: { num_ctx: 8192 },
+				options: { max_tokens: 8192 },
 				ownerId: "owner-1",
 			},
 		});
@@ -394,13 +394,13 @@ describe("importBackup: model settings", () => {
 		const result = await importBackup({
 			userId: "owner-1",
 			payload: {
-				endpoints: [{ name: "Local", url: "http://localhost:11434", provider: "ollama" }],
+				endpoints: [{ name: "Local", url: "http://localhost:8080", provider: "llamacpp" }],
 				modelSettings: [
 					{
-						endpointUrl: "http://localhost:11434",
-						provider: "ollama",
+						endpointUrl: "http://localhost:8080",
+						provider: "llamacpp",
 						model: "llama3",
-						options: { num_ctx: 4096 },
+						options: { max_tokens: 4096 },
 					},
 				],
 			},
@@ -410,7 +410,7 @@ describe("importBackup: model settings", () => {
 			data: {
 				endpointId: "ep-fresh",
 				model: "llama3",
-				options: { num_ctx: 4096 },
+				options: { max_tokens: 4096 },
 				ownerId: "owner-1",
 			},
 		});
@@ -450,7 +450,7 @@ describe("importBackup: model settings", () => {
 						endpointUrl: "https://api.openai.com",
 						provider: "openai",
 						model: "gpt-4o",
-						options: { num_ctx: 8192 },
+						options: { max_tokens: 8192 },
 					},
 				],
 			},

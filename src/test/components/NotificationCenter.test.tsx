@@ -17,12 +17,12 @@ const { activePulls, stopMock } = vi.hoisted(() => {
 	return { activePulls, stopMock: vi.fn() };
 });
 
-vi.mock("#/shared/domain/model/use-model-pull", () => ({
-	useModelPull: () => ({ pulling: {}, pull: vi.fn(), stop: stopMock, dismiss: vi.fn() }),
+vi.mock("#/shared/domain/model/use-model-download", () => ({
+	useModelDownload: () => ({ pulling: {}, pull: vi.fn(), stop: stopMock, dismiss: vi.fn() }),
 }));
 
 vi.mock("#/shared/domain/model/model.functions", () => ({
-	activePullsQueryOptions: () => ({ queryKey: ["library", "active-pulls"] }),
+	activeDownloadsQueryOptions: () => ({ queryKey: ["library", "active-downloads"] }),
 }));
 
 vi.mock("@tanstack/react-query", async (importOriginal) => ({

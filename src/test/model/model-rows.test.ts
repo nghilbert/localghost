@@ -10,13 +10,15 @@ function rowById(rows: ReturnType<typeof buildModelRows>, id: string) {
 }
 
 describe("buildModelRows", () => {
-	it("unions catalog, installed models, and active pulls without duplicates", () => {
+	it("unions catalog, installed models, and active downloads without duplicates", () => {
 		const catalog = [
-			makeCatalogModel({ id: "llama3.2:3b" }),
-			makeCatalogModel({ id: "qwen2.5:7b" }),
+			makeCatalogModel({ id: "org/llama3.2-GGUF:Q4_K_M" }),
+			makeCatalogModel({ id: "org/qwen2.5-GGUF:Q4_K_M" }),
 		];
-		const installed = [makeInstalledModel({ name: "llama3.2:3b" })];
-		const pulling: Record<string, PullProgress> = { "mistral:7b": { status: "pulling" } };
+		const installed = [makeInstalledModel({ id: "org/llama3.2-GGUF:Q4_K_M" })];
+		const pulling: Record<string, PullProgress> = {
+			"org/mistral-GGUF:Q4_K_M": { status: "Downloading…" },
+		};
 
 		const rows = buildModelRows({
 			catalog,
@@ -24,12 +26,18 @@ describe("buildModelRows", () => {
 			pulling,
 		});
 
-		expect(rows.map((r) => r.id).sort()).toEqual(["llama3.2:3b", "mistral:7b", "qwen2.5:7b"]);
+		expect(rows.map((r) => r.id).sort()).toEqual([
+			"org/llama3.2-GGUF:Q4_K_M",
+			"org/mistral-GGUF:Q4_K_M",
+			"org/qwen2.5-GGUF:Q4_K_M",
+		]);
 	});
 
-	it("marks a model both installed and pulling on a single row", () => {
-		const installed = [makeInstalledModel({ name: "llama3.2:3b" })];
-		const pulling: Record<string, PullProgress> = { "llama3.2:3b": { status: "verifying" } };
+	it("marks a model both installed and downloading on a single row", () => {
+		const installed = [makeInstalledModel({ id: "org/llama3.2-GGUF:Q4_K_M" })];
+		const pulling: Record<string, PullProgress> = {
+			"org/llama3.2-GGUF:Q4_K_M": { status: "Downloading…" },
+		};
 
 		const rows = buildModelRows({
 			catalog: [],
@@ -38,18 +46,8 @@ describe("buildModelRows", () => {
 		});
 
 		expect(rows).toHaveLength(1);
-		const row = rowById(rows, "llama3.2:3b");
+		const row = rowById(rows, "org/llama3.2-GGUF:Q4_K_M");
 		expect(row.installed).not.toBeNull();
-		expect(row.pullState).toEqual({ status: "verifying" });
-	});
-
-	it("attaches a :latest-keyed pull to the bare catalog row", () => {
-		const catalog = [makeCatalogModel({ id: "llama3.1" })];
-		const pulling: Record<string, PullProgress> = { "llama3.1:latest": { status: "pulling" } };
-
-		const rows = buildModelRows({ catalog, installedModels: [], pulling });
-
-		expect(rows).toHaveLength(1);
-		expect(rowById(rows, "llama3.1").pullState).toEqual({ status: "pulling" });
+		expect(row.pullState).toEqual({ status: "Downloading…" });
 	});
 });

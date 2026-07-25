@@ -20,24 +20,23 @@ vi.mock("#/shared/domain/model-setting/model-setting.functions", () => ({
 }));
 
 const catalog = makeCatalogModel({
-	id: "llama3.1:8b",
-	name: "llama3.1",
+	id: "org/llama3.1-GGUF:Q4_K_M",
+	name: "org/llama3.1-GGUF",
 	paramB: 8,
 	sizeGb: 4.9,
 	contextK: 128,
 	tags: ["tools", "chat"],
 	capabilities: ["tools"],
 	variants: [
-		{ tag: "latest", digest: "same", sizeGb: 4.9, contextK: 128 },
-		{ tag: "70b", digest: "large", sizeGb: 43, contextK: 128 },
-		{ tag: "8b", digest: "same", sizeGb: 4.9, contextK: 128 },
-		{ tag: "8b-q8_0", digest: "q8", sizeGb: 8.5, contextK: 128 },
+		{ quant: "Q4_K_M", sizeGb: 4.9, fileName: "llama3.1-Q4_K_M.gguf" },
+		{ quant: "Q70B", sizeGb: 43, fileName: "llama3.1-Q70B.gguf" },
+		{ quant: "Q8_0", sizeGb: 8.5, fileName: "llama3.1-Q8_0.gguf" },
 	],
 });
 
 const availableRow: ModelRow = {
-	id: "llama3.1:8b",
-	name: "llama3.1",
+	id: "org/llama3.1-GGUF:Q4_K_M",
+	name: "org/llama3.1-GGUF",
 	catalog,
 	installed: null,
 	pullState: undefined,
@@ -64,38 +63,38 @@ describe("ModelDetailPanel", () => {
 
 		await expect
 			.element(screen.getByTestId("model-variant-target"))
-			.toHaveTextContent("llama3.1:8b");
+			.toHaveTextContent("org/llama3.1-GGUF:Q4_K_M");
 
 		await screen.getByTestId("model-variant-combobox").fill("q8_0");
 		await screen.getByTestId("model-variant-option").first().click();
 
 		await expect
 			.element(screen.getByTestId("model-variant-target"))
-			.toHaveTextContent("llama3.1:8b-q8_0");
+			.toHaveTextContent("org/llama3.1-GGUF:Q8_0");
 		await screen.getByTestId("model-pull-button").click();
-		expect(onPull).toHaveBeenLastCalledWith("llama3.1:8b-q8_0");
+		expect(onPull).toHaveBeenLastCalledWith("org/llama3.1-GGUF:Q8_0");
 
 		await screen.rerender(
-			renderPanel({ pulling: { "llama3.1:8b-q8_0": { status: "pulling layers" } } }),
+			renderPanel({ pulling: { "org/llama3.1-GGUF:Q8_0": { status: "Downloading…" } } }),
 		);
 		await expect.element(screen.getByTestId("model-pull-progress")).toBeInTheDocument();
 		await screen.getByTestId("model-pull-stop").click();
-		expect(onStop).toHaveBeenCalledWith("llama3.1:8b-q8_0");
+		expect(onStop).toHaveBeenCalledWith("org/llama3.1-GGUF:Q8_0");
 
 		await screen.rerender(
 			renderPanel({
-				pulling: { "llama3.1:8b-q8_0": { status: "failed", error: "disk full" } },
+				pulling: { "org/llama3.1-GGUF:Q8_0": { status: "Error", error: "disk full" } },
 			}),
 		);
 		await expect.element(screen.getByTestId("model-pull-error")).toBeInTheDocument();
 		await screen.getByTestId("model-pull-retry").click();
 		await screen.getByTestId("model-pull-dismiss").click();
-		expect(onPull).toHaveBeenLastCalledWith("llama3.1:8b-q8_0");
-		expect(onDismiss).toHaveBeenCalledWith("llama3.1:8b-q8_0");
+		expect(onPull).toHaveBeenLastCalledWith("org/llama3.1-GGUF:Q8_0");
+		expect(onDismiss).toHaveBeenCalledWith("org/llama3.1-GGUF:Q8_0");
 	});
 
 	it("hides variant selection and keeps settings and deletion on the installed id", async () => {
-		const installed = makeInstalledModel({ name: "llama3.1:8b" });
+		const installed = makeInstalledModel({ id: "org/llama3.1-GGUF:Q4_K_M" });
 		const installedRow: ModelRow = { ...availableRow, installed };
 		const onDelete = vi.fn();
 
@@ -115,8 +114,8 @@ describe("ModelDetailPanel", () => {
 		await expect.element(screen.getByTestId("model-variant-combobox")).not.toBeInTheDocument();
 		await expect
 			.element(screen.getByTestId("model-settings-form"))
-			.toHaveTextContent("llama3.1:8b");
+			.toHaveTextContent("org/llama3.1-GGUF:Q4_K_M");
 		await screen.getByTestId("model-delete-button").click();
-		expect(onDelete).toHaveBeenCalledWith("llama3.1:8b");
+		expect(onDelete).toHaveBeenCalledWith("org/llama3.1-GGUF:Q4_K_M");
 	});
 });

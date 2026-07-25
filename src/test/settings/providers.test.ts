@@ -18,7 +18,7 @@ describe("provider registry", () => {
 	it("maps custom onto the openai db provider", () => {
 		expect(dbProviderFor("custom")).toBe("openai");
 		expect(dbProviderFor("anthropic")).toBe("anthropic");
-		expect(dbProviderFor("ollama")).toBe("ollama");
+		expect(dbProviderFor("llamacpp")).toBe("llamacpp");
 	});
 
 	it("cloud providers require an api key and provide key guidance", () => {
@@ -30,10 +30,12 @@ describe("provider registry", () => {
 		}
 	});
 
-	it("omits ollama from the add-endpoint picker (it is the built-in endpoint)", () => {
-		expect(PROVIDERS.some((p) => p.id === "ollama")).toBe(false);
-		// The protocol mapping still exists for the discovery-managed ollama row.
-		expect(detectProvider("http://localhost:11434")).toBe("ollama");
+	it("omits llamacpp from the add-endpoint picker (it is the built-in endpoint)", () => {
+		expect(PROVIDERS.some((p) => p.id === "llamacpp")).toBe(false);
+	});
+
+	it("does not hijack a bare :8080 URL as llamacpp (too common a port to sniff)", () => {
+		expect(detectProvider("http://localhost:8080")).toBe("openai");
 	});
 
 	it("routes gemini through detectProvider and maps to its own db provider", () => {
@@ -88,7 +90,7 @@ describe("providerDefinitionFor", () => {
 		expect(providerDefinitionFor("openai").id).toBe("openai");
 	});
 
-	it("falls back to custom when no picker definition maps to the provider", () => {
-		expect(providerDefinitionFor("ollama").id).toBe("custom");
+	it("falls back to custom when no picker definition maps to the provider (e.g. llamacpp)", () => {
+		expect(providerDefinitionFor("llamacpp").id).toBe("custom");
 	});
 });
