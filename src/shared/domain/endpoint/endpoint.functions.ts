@@ -1,7 +1,7 @@
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 import { probeEndpoint } from "#/shared/lib/llm.server";
-import { getCurrentUserId } from "#/shared/lib/session.server";
+import { authedFn } from "#/shared/lib/middleware";
 import {
 	fetchEndpointModels,
 	findEndpoints,
@@ -25,17 +25,14 @@ import type { ModelSelection } from "./types";
  * The current user's configured endpoints.
  * @returns Each endpoint with its encrypted key stripped and a `hasApiKey` flag instead.
  */
-export const listEndpoints = createServerFn({ method: "GET" }).handler(async () => {
-	const userId = await getCurrentUserId();
-	return findEndpoints({ ownerId: userId });
-});
+export const listEndpoints = createServerFn({ method: "GET" })
+	.middleware([authedFn])
+	.handler(async ({ context }) => findEndpoints({ ownerId: context.userId }));
 
 export const createEndpoint = createServerFn({ method: "POST" })
+	.middleware([authedFn])
 	.validator(createEndpointSchema)
-	.handler(async ({ data }) => {
-		const userId = await getCurrentUserId();
-		return insertEndpoint({ ownerId: userId, data });
-	});
+	.handler(async ({ data, context }) => insertEndpoint({ ownerId: context.userId, data }));
 
 /**
  * Patch an endpoint's fields; re-encrypts the key when `apiKey` is supplied.
@@ -43,48 +40,48 @@ export const createEndpoint = createServerFn({ method: "POST" })
  * @throws If no endpoint with that id is owned by the current user.
  */
 export const updateEndpoint = createServerFn({ method: "POST" })
+	.middleware([authedFn])
 	.validator(updateEndpointInput)
-	.handler(async ({ data: { id, data: patch } }) => {
-		const userId = await getCurrentUserId();
-		return patchEndpoint({ id, ownerId: userId, patch });
-	});
+	.handler(async ({ data: { id, data: patch }, context }) =>
+		patchEndpoint({ id, ownerId: context.userId, patch }),
+	);
 
 export const deleteEndpoint = createServerFn({ method: "POST" })
+	.middleware([authedFn])
 	.validator(endpointIdInput)
-	.handler(async ({ data: { id } }) => {
-		const userId = await getCurrentUserId();
-		await removeEndpoint({ id, ownerId: userId });
+	.handler(async ({ data: { id }, context }) => {
+		await removeEndpoint({ id, ownerId: context.userId });
 	});
 
 export const listEndpointModels = createServerFn({ method: "POST" })
+	.middleware([authedFn])
 	.validator(listEndpointModelsInput)
-	.handler(async ({ data: { endpointId } }) => {
-		const userId = await getCurrentUserId();
-		return fetchEndpointModels({ endpointId, ownerId: userId });
-	});
+	.handler(async ({ data: { endpointId }, context }) =>
+		fetchEndpointModels({ endpointId, ownerId: context.userId }),
+	);
 
 export const testEndpoint = createServerFn({ method: "POST" })
+	.middleware([authedFn])
 	.validator(testEndpointInput)
-	.handler(async ({ data }) => {
-		await getCurrentUserId();
-		return probeEndpoint({ url: data.url, apiKey: data.apiKey, provider: data.provider });
-	});
+	.handler(async ({ data }) =>
+		probeEndpoint({ url: data.url, apiKey: data.apiKey, provider: data.provider }),
+	);
 
 /** Reachability of a saved endpoint, for a status badge in Settings. */
 export const checkEndpointHealth = createServerFn({ method: "POST" })
+	.middleware([authedFn])
 	.validator(endpointIdInput)
-	.handler(async ({ data: { id } }) => {
-		const userId = await getCurrentUserId();
-		return probeSavedEndpoint({ endpointId: id, ownerId: userId });
-	});
+	.handler(async ({ data: { id }, context }) =>
+		probeSavedEndpoint({ endpointId: id, ownerId: context.userId }),
+	);
 
 /** Whether a model can use tools, so the chat UI can disable the tool picker. */
 export const getModelCapabilities = createServerFn({ method: "POST" })
+	.middleware([authedFn])
 	.validator(modelCapabilitiesInput)
-	.handler(async ({ data: { endpointId, model } }) => {
-		const userId = await getCurrentUserId();
-		return probeModelCapabilities({ endpointId, ownerId: userId, model });
-	});
+	.handler(async ({ data: { endpointId, model }, context }) =>
+		probeModelCapabilities({ endpointId, ownerId: context.userId, model }),
+	);
 
 // ── Query options (for TanStack Query) ───────────────────────
 
