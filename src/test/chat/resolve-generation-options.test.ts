@@ -23,10 +23,10 @@ describe("resolveGenerationOptions", () => {
 	it("model options win over endpoint options for the same key", () => {
 		const result = resolveGenerationOptions({
 			userTemperature: null,
-			endpointOptions: { num_ctx: 4096, top_p: 0.9 },
-			modelOptions: { num_ctx: 16384 },
+			endpointOptions: { max_tokens: 4096, top_p: 0.9 },
+			modelOptions: { max_tokens: 16384 },
 		});
-		expect(result.options).toEqual({ num_ctx: 16384, top_p: 0.9 });
+		expect(result.options).toEqual({ max_tokens: 16384, top_p: 0.9 });
 	});
 
 	it("has no temperature when neither the user nor the model sets one", () => {

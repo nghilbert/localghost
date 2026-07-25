@@ -2,14 +2,13 @@ import { describe, expect, it } from "vitest";
 import { perModelOptionsSchema } from "#/shared/domain/model-setting/schemas";
 
 describe("perModelOptionsSchema", () => {
-	it("accepts the curated subset of Ollama options", () => {
+	it("accepts the curated subset of sampling options", () => {
 		const result = perModelOptionsSchema.safeParse({
-			num_ctx: 8192,
 			temperature: 0.5,
 			top_p: 0.9,
 			top_k: 40,
 			repeat_penalty: 1.1,
-			num_predict: 512,
+			max_tokens: 512,
 		});
 		expect(result.success).toBe(true);
 	});

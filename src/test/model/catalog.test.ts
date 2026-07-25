@@ -2,34 +2,34 @@ import { describe, expect, it } from "vitest";
 import {
 	availableMemoryGb,
 	deriveTags,
-	enrichCatalogModel,
 	fitsHardware,
 	parseParamB,
 	parsePullCount,
 	requiredMemoryGb,
 } from "#/routes/_authenticated/library/-lib/catalog";
-import type { ModelTagInfo } from "#/shared/domain/model/types";
-import { makeGpu, makeHardware, makeCatalogModel as model } from "#/test/factories";
+import { makeGpu, makeHardware } from "#/test/factories";
 
 describe("parseParamB", () => {
-	it("parses billion-scale tags", () => {
-		expect(parseParamB("8b")).toBe(8);
-		expect(parseParamB("1.5b")).toBe(1.5);
-		expect(parseParamB("0.5b")).toBe(0.5);
-		expect(parseParamB("405B")).toBe(405);
+	it("parses billion-scale HF repo ids", () => {
+		expect(parseParamB("Qwen3-8B")).toBe(8);
+		expect(parseParamB("gemma-3-4b-it")).toBe(4);
+		expect(parseParamB("Llama-3.1-405B-Instruct")).toBe(405);
 	});
 
 	it("parses million-scale tags into fractional billions", () => {
-		expect(parseParamB("270m")).toBeCloseTo(0.27);
-		expect(parseParamB("137m")).toBeCloseTo(0.137);
+		expect(parseParamB("gemma-3-270m-it")).toBeCloseTo(0.27);
 	});
 
 	it("multiplies mixture-of-experts naming", () => {
-		expect(parseParamB("8x7b")).toBe(56);
+		expect(parseParamB("Mixtral-8x7B-Instruct")).toBe(56);
 	});
 
-	it("returns null for unparseable tags", () => {
-		expect(parseParamB("latest")).toBeNull();
+	it("parses a size token embedded in a longer repo path", () => {
+		expect(parseParamB("ggml-org/embeddinggemma-300M-GGUF")).toBeCloseTo(0.3);
+	});
+
+	it("returns null for unparseable ids", () => {
+		expect(parseParamB("some-repo-without-a-size")).toBeNull();
 		expect(parseParamB("")).toBeNull();
 	});
 });
@@ -53,7 +53,7 @@ describe("parsePullCount", () => {
 });
 
 describe("requiredMemoryGb", () => {
-	it("uses the real download size when known", () => {
+	it("uses the exact GGUF size when known", () => {
 		// 4.9 * 1.15 + 1 = 6.635 → 6.6, regardless of paramB
 		expect(requiredMemoryGb({ sizeGb: 4.9, paramB: 70 })).toBeCloseTo(6.6);
 	});
@@ -123,51 +123,5 @@ describe("deriveTags", () => {
 		expect(deriveTags({ name: "x", description: "", paramB: 14, capabilities: [] })).not.toContain(
 			"fast",
 		);
-	});
-});
-
-describe("enrichCatalogModel", () => {
-	const tags: ModelTagInfo[] = [
-		{ tag: "latest", digest: "46e0c10c039e", sizeGb: 4.9, contextK: 128 },
-		{ tag: "8b", digest: "46e0c10c039e", sizeGb: 4.9, contextK: 128 },
-		{ tag: "405b", digest: "dbd6b9ea93de", sizeGb: 243, contextK: 128 },
-	];
-
-	it("fills size and context for a size-tagged id", () => {
-		const enriched = enrichCatalogModel({
-			model: model({ id: "llama3.1:405b", name: "llama3.1", paramB: 405 }),
-			tags,
-		});
-		expect(enriched.sizeGb).toBe(243);
-		expect(enriched.contextK).toBe(128);
-		expect(enriched.paramB).toBe(405);
-		expect(enriched.variants).toBe(tags);
-	});
-
-	it("maps a bare id to `latest` and recovers paramB via the digest", () => {
-		const enriched = enrichCatalogModel({
-			model: model({ id: "llama3.1", name: "llama3.1", paramB: null }),
-			tags,
-		});
-		expect(enriched.sizeGb).toBe(4.9);
-		expect(enriched.paramB).toBe(8);
-	});
-
-	it("re-derives display tags so a recovered small paramB earns fast", () => {
-		const smallTags: ModelTagInfo[] = [
-			{ tag: "latest", digest: "aabbccddeeff", sizeGb: 0.8, contextK: 32 },
-			{ tag: "1b", digest: "aabbccddeeff", sizeGb: 0.8, contextK: 32 },
-		];
-		const enriched = enrichCatalogModel({
-			model: model({ id: "smol", name: "smol", paramB: null, tags: [], capabilities: [] }),
-			tags: smallTags,
-		});
-		expect(enriched.paramB).toBe(1);
-		expect(enriched.tags).toContain("fast");
-	});
-
-	it("returns the model unchanged when its tag is missing from the page", () => {
-		const original = model({ id: "llama3.1:70b", name: "llama3.1", paramB: 70 });
-		expect(enrichCatalogModel({ model: original, tags })).toBe(original);
 	});
 });

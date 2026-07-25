@@ -4,7 +4,7 @@ import type {
 	CatalogModel,
 	GpuInfo,
 	HardwareInfo,
-	OllamaInstalledModel,
+	InstalledModel,
 } from "#/shared/domain/model/types";
 
 /**
@@ -50,15 +50,14 @@ export function makeGpu(overrides: Partial<GpuInfo> = {}): GpuInfo {
 	};
 }
 
-export function makeInstalledModel(
-	overrides: Partial<OllamaInstalledModel> = {},
-): OllamaInstalledModel {
+export function makeInstalledModel(overrides: Partial<InstalledModel> = {}): InstalledModel {
 	return {
-		name: faker.system.fileName(),
+		id: `${faker.system.fileName()}:Q4_K_M`,
 		sizeBytes: faker.number.int({ min: 1_000_000, max: 9_000_000_000 }),
-		family: faker.word.noun(),
-		parameterSize: `${faker.number.int({ min: 1, max: 70 })}B`,
-		quantizationLevel: "Q4_0",
+		quant: "Q4_K_M",
+		paramB: faker.number.int({ min: 1, max: 70 }),
+		status: "loaded",
+		vision: false,
 		...overrides,
 	};
 }

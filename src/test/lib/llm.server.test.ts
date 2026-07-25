@@ -10,7 +10,7 @@ import {
 describe("llm.server", () => {
 	describe("asLLMProvider", () => {
 		it("narrows a recognized provider string", () => {
-			expect(asLLMProvider("ollama")).toBe("ollama");
+			expect(asLLMProvider("llamacpp")).toBe("llamacpp");
 			expect(asLLMProvider("anthropic")).toBe("anthropic");
 		});
 
@@ -33,6 +33,12 @@ describe("llm.server", () => {
 		it("still appends /v1/models when the URL has no version suffix", () => {
 			expect(buildModelsRequest({ url: "http://localhost:1234", provider: "openai" }).url).toBe(
 				"http://localhost:1234/v1/models",
+			);
+		});
+
+		it("lists llamacpp router models via GET /models, not /v1/models", () => {
+			expect(buildModelsRequest({ url: "http://localhost:8080", provider: "llamacpp" }).url).toBe(
+				"http://localhost:8080/models",
 			);
 		});
 	});
@@ -69,8 +75,11 @@ describe("llm.server", () => {
 			expect(url).toContain("key=gm-key");
 		});
 
-		it("sends no auth header for ollama", () => {
-			const { headers } = buildModelsRequest({ url: "http://localhost:11434", provider: "ollama" });
+		it("sends no auth header for llamacpp", () => {
+			const { headers } = buildModelsRequest({
+				url: "http://localhost:8080",
+				provider: "llamacpp",
+			});
 			expect(headers.Authorization).toBeUndefined();
 			expect(Object.keys(headers)).toEqual(["Content-Type"]);
 		});
@@ -108,9 +117,9 @@ describe("llm.server", () => {
 			);
 		});
 
-		it("strips a trailing /api for ollama", () => {
-			expect(chatBaseUrl({ url: "http://localhost:11434/api", provider: "ollama" })).toBe(
-				"http://localhost:11434",
+		it("dedupes a /v1 suffix for llamacpp (router-mode chat is plain OpenAI-compatible)", () => {
+			expect(chatBaseUrl({ url: "http://localhost:8080", provider: "llamacpp" })).toBe(
+				"http://localhost:8080/v1",
 			);
 		});
 
@@ -185,10 +194,6 @@ describe("llm.server", () => {
 			expect(detectProvider("https://api.anthropic.com/v1")).toBe("anthropic");
 		});
 
-		it("should detect Ollama from localhost:11434", () => {
-			expect(detectProvider("http://localhost:11434")).toBe("ollama");
-		});
-
 		it("should detect Groq from api.groq.com", () => {
 			expect(detectProvider("https://api.groq.com/openai/v1")).toBe("groq");
 		});
@@ -197,9 +202,11 @@ describe("llm.server", () => {
 			expect(detectProvider("https://openrouter.ai/api/v1")).toBe("openrouter");
 		});
 
-		it("should default to OpenAI for unknown URLs", () => {
+		it("should default to OpenAI for unknown URLs, including a bare llama.cpp port", () => {
 			expect(detectProvider("https://api.openai.com/v1")).toBe("openai");
 			expect(detectProvider("https://my-custom-proxy.example.com/v1")).toBe("openai");
+			// Deliberate non-hijack: 8080 is too common a port to sniff as llamacpp.
+			expect(detectProvider("http://localhost:8080")).toBe("openai");
 		});
 	});
 });

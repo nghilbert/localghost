@@ -12,11 +12,11 @@ import {
 } from "#/shared/domain/memory/embeddings.server";
 
 describe("embeddingConfigFor", () => {
-	it("picks a local embedding model and the OpenAI path for ollama, not the chat model", () => {
-		const config = embeddingConfigFor("ollama");
-		expect(config?.model).toBe("nomic-embed-text");
-		expect(config?.buildRequest({ url: "http://localhost:11434", text: "hi" }).url).toBe(
-			"http://localhost:11434/v1/embeddings",
+	it("picks a local embedding GGUF and the OpenAI path for llamacpp, not the chat model", () => {
+		const config = embeddingConfigFor("llamacpp");
+		expect(config?.model).toBe("ggml-org/embeddinggemma-300M-GGUF:Q8_0");
+		expect(config?.buildRequest({ url: "http://localhost:8080", text: "hi" }).url).toBe(
+			"http://localhost:8080/v1/embeddings",
 		);
 	});
 

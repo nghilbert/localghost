@@ -350,19 +350,19 @@ describe("historyStartIndex with a token budget", () => {
 });
 
 describe("historyBudgetTokens", () => {
-	it("returns undefined for non-Ollama providers (large/unknown windows)", () => {
-		expect(historyBudgetTokens({ provider: "anthropic", options: {} })).toBeUndefined();
+	it("returns undefined when no context window is known (cloud providers)", () => {
+		expect(historyBudgetTokens({ nCtx: undefined, options: {} })).toBeUndefined();
 	});
 
-	it("uses the Ollama defaults when no options override them", () => {
-		// 8192 num_ctx - 4096 num_predict - 1500 system reserve.
-		expect(historyBudgetTokens({ provider: "ollama", options: {} })).toBe(8192 - 4096 - 1500);
+	it("uses the default max_tokens reservation when options don't override it", () => {
+		// 8192 nCtx - 4096 max_tokens default - 1500 system reserve.
+		expect(historyBudgetTokens({ nCtx: 8192, options: {} })).toBe(8192 - 4096 - 1500);
 	});
 
-	it("honors a per-model num_ctx and num_predict override", () => {
-		expect(
-			historyBudgetTokens({ provider: "ollama", options: { num_ctx: 32_000, num_predict: 1000 } }),
-		).toBe(32_000 - 1000 - 1500);
+	it("honors a per-model max_tokens override against the live nCtx", () => {
+		expect(historyBudgetTokens({ nCtx: 32_000, options: { max_tokens: 1000 } })).toBe(
+			32_000 - 1000 - 1500,
+		);
 	});
 });
 
