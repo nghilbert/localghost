@@ -1,26 +1,19 @@
-import type {
-	CatalogModel,
-	GpuInfo,
-	HardwareInfo,
-	ModelTagInfo,
-} from "#/shared/domain/model/types";
+import type { CatalogModel, GpuInfo, HardwareInfo } from "#/shared/domain/model/types";
 
 /**
- * Parses billions of parameters from an Ollama size tag. Handles plain sizes
- * ("8b", "1.5b", "0.5b"), million-scale ("270m", "137m"), and mixture-of-experts
- * naming ("8x7b" → 56). Returns null when the tag isn't a parseable size.
+ * Parses billions of parameters out of an HF repo id or size tag, e.g.
+ * "Qwen3-8B", "gemma-3-4b-it", "Mixtral-8x7B" (→ 56), "gemma-3-270m" (→ 0.27).
+ * Returns null when no size token is found.
  */
-export function parseParamB(size: string): number | null {
-	const tag = size.trim().toLowerCase();
+export function parseParamB(id: string): number | null {
+	const moe = id.match(/(\d+(?:\.\d+)?)[xX](\d+(?:\.\d+)?)[bB](?:[-._]|$)/);
+	if (moe?.[1] && moe[2]) return Number(moe[1]) * Number(moe[2]);
 
-	const moe = tag.match(/^(\d+(?:\.\d+)?)x(\d+(?:\.\d+)?)b$/);
-	if (moe) return Number(moe[1]) * Number(moe[2]);
+	const billions = id.match(/(?:^|[-._/])(\d+(?:\.\d+)?)[bB](?:[-._]|$)/);
+	if (billions?.[1]) return Number(billions[1]);
 
-	const billions = tag.match(/^(\d+(?:\.\d+)?)b$/);
-	if (billions) return Number(billions[1]);
-
-	const millions = tag.match(/^(\d+(?:\.\d+)?)m$/);
-	if (millions) return Number(millions[1]) / 1000;
+	const millions = id.match(/(?:^|[-._/])(\d+(?:\.\d+)?)[mM](?:[-._]|$)/);
+	if (millions?.[1]) return Number(millions[1]) / 1000;
 
 	return null;
 }
@@ -37,30 +30,31 @@ export function parsePullCount(value: string): number {
 	return Number(match[1]) * multiplier;
 }
 
-/** Q4 quantization weighs roughly this many GB per billion parameters. */
-export const Q4_GB_PER_B = 0.6;
+/** Fallback GB-per-billion-parameters estimate, only used when a variant has no exact file size. */
+const Q4_GB_PER_B_ESTIMATE = 0.6;
 
 function round1(value: number): number {
 	return Math.round(value * 10) / 10;
 }
 
 /**
- * Memory needed to run a model at the default 8K context: real download size
- * (Q4 estimate from paramB otherwise) plus ~15% KV cache and ~1 GB runtime
- * overhead. Null when neither size nor parameter count is known.
+ * Memory needed to run a model: its exact GGUF file size (from the Hugging
+ * Face repo tree) plus ~15% KV cache and ~1 GB runtime overhead. Falls back to
+ * a param-count estimate only when the exact size wasn't fetched. Null when
+ * neither size nor parameter count is known.
  */
 export function requiredMemoryGb({
 	sizeGb,
 	paramB,
 }: Pick<CatalogModel, "sizeGb" | "paramB">): number | null {
-	const weightsGb = sizeGb ?? (paramB !== null ? round1(paramB * Q4_GB_PER_B) : null);
+	const weightsGb = sizeGb ?? (paramB !== null ? round1(paramB * Q4_GB_PER_B_ESTIMATE) : null);
 	if (weightsGb === null) return null;
 	return round1(weightsGb * 1.15 + 1);
 }
 
 /**
  * Memory available to load a model into: the best GPU's free VRAM when a GPU is
- * detected (Ollama offloads there first), otherwise free system RAM.
+ * detected (llama.cpp offloads there first), otherwise free system RAM.
  */
 export function availableMemoryGb(hardware: HardwareInfo): number {
 	const bestGpu = (hardware.gpus ?? []).reduce<GpuInfo | null>(
@@ -80,44 +74,6 @@ export function fitsHardware({
 }): boolean {
 	const required = requiredMemoryGb(model);
 	return required !== null && required <= availableMemoryGb(hardware);
-}
-
-/**
- * Merges tags-page data into a catalog entry: real size, context window, and a
- * paramB recovered via blob digest when the index row had none (`latest` shares
- * its digest with the size tag it aliases). Re-derives tags for "fast".
- */
-export function enrichCatalogModel({
-	model,
-	tags,
-}: {
-	model: CatalogModel;
-	tags: ModelTagInfo[];
-}): CatalogModel {
-	const colon = model.id.indexOf(":");
-	const tagName = colon === -1 ? "latest" : model.id.slice(colon + 1);
-	const info = tags.find((t) => t.tag === tagName);
-	if (!info) return model;
-
-	let paramB = model.paramB;
-	if (paramB === null && info.digest) {
-		const sibling = tags.find((t) => t.digest === info.digest && parseParamB(t.tag) !== null);
-		if (sibling) paramB = parseParamB(sibling.tag);
-	}
-
-	return {
-		...model,
-		paramB,
-		sizeGb: info.sizeGb ?? model.sizeGb,
-		contextK: info.contextK ?? model.contextK,
-		tags: deriveTags({
-			name: model.name,
-			description: model.description,
-			paramB,
-			capabilities: model.capabilities,
-		}),
-		variants: tags,
-	};
 }
 
 /**
