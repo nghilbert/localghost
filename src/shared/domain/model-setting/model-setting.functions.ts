@@ -1,28 +1,29 @@
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
-import { getCurrentUserId } from "#/shared/lib/session.server";
+import { authedFn } from "#/shared/lib/middleware";
 import { deleteModelSetting, getModelSetting, upsertModelSetting } from "./model-setting.server";
 import { modelSettingInput, upsertModelSettingInput } from "./schemas";
 
 export const fetchModelSetting = createServerFn({ method: "GET" })
+	.middleware([authedFn])
 	.validator(modelSettingInput)
-	.handler(async ({ data: { endpointId, model } }) => {
-		const userId = await getCurrentUserId();
-		return getModelSetting({ endpointId, model, ownerId: userId }) ?? null;
+	.handler(async ({ data: { endpointId, model }, context }) => {
+		const setting = await getModelSetting({ endpointId, model, ownerId: context.userId });
+		return setting ?? null;
 	});
 
 export const saveModelSetting = createServerFn({ method: "POST" })
+	.middleware([authedFn])
 	.validator(upsertModelSettingInput)
-	.handler(async ({ data: { endpointId, model, options } }) => {
-		const userId = await getCurrentUserId();
-		await upsertModelSetting({ endpointId, model, options, ownerId: userId });
+	.handler(async ({ data: { endpointId, model, options }, context }) => {
+		await upsertModelSetting({ endpointId, model, options, ownerId: context.userId });
 	});
 
 export const resetModelSetting = createServerFn({ method: "POST" })
+	.middleware([authedFn])
 	.validator(modelSettingInput)
-	.handler(async ({ data: { endpointId, model } }) => {
-		const userId = await getCurrentUserId();
-		await deleteModelSetting({ endpointId, model, ownerId: userId });
+	.handler(async ({ data: { endpointId, model }, context }) => {
+		await deleteModelSetting({ endpointId, model, ownerId: context.userId });
 	});
 
 export const modelSettingQueryOptions = ({

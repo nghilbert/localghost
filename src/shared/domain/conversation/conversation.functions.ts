@@ -1,7 +1,7 @@
 import type { UIMessage } from "@tanstack/ai-client";
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
-import { getCurrentUserId } from "#/shared/lib/session.server";
+import { authedFn } from "#/shared/lib/middleware";
 import {
 	findConversation,
 	findConversations,
@@ -23,18 +23,17 @@ import {
 } from "./schemas";
 
 /** Sidebar list: only the fields needed to render and order conversation links. */
-export const listConversations = createServerFn({ method: "GET" }).handler(async () => {
-	const userId = await getCurrentUserId();
-	return findConversations({ ownerId: userId });
-});
+export const listConversations = createServerFn({ method: "GET" })
+	.middleware([authedFn])
+	.handler(async ({ context }) => findConversations({ ownerId: context.userId }));
 
 /** Full-text search over conversation transcripts; empty for a blank query. */
 export const searchConversationsFn = createServerFn({ method: "GET" })
+	.middleware([authedFn])
 	.validator(searchConversationsInput)
-	.handler(async ({ data: { query } }) => {
+	.handler(async ({ data: { query }, context }) => {
 		if (!query.trim()) return [];
-		const userId = await getCurrentUserId();
-		return searchConversations({ ownerId: userId, query });
+		return searchConversations({ ownerId: context.userId, query });
 	});
 
 /**
@@ -42,10 +41,10 @@ export const searchConversationsFn = createServerFn({ method: "GET" })
  * @throws If no conversation with that id is owned by the current user.
  */
 export const getConversation = createServerFn({ method: "POST" })
+	.middleware([authedFn])
 	.validator(conversationIdInput)
-	.handler(async ({ data: { id } }) => {
-		const userId = await getCurrentUserId();
-		const conversation = await findConversation({ id, ownerId: userId });
+	.handler(async ({ data: { id }, context }) => {
+		const conversation = await findConversation({ id, ownerId: context.userId });
 		if (!conversation) throw new Error("Not found");
 		return conversation;
 	});
@@ -60,10 +59,9 @@ export type ConversationDetail = Omit<Awaited<ReturnType<typeof getConversation>
  * Prefers the user's most recently used model. A fully null selection means the
  * page prompts the user.
  */
-export const getDefaultSelection = createServerFn({ method: "GET" }).handler(async () => {
-	const userId = await getCurrentUserId();
-	return findDefaultSelection({ ownerId: userId });
-});
+export const getDefaultSelection = createServerFn({ method: "GET" })
+	.middleware([authedFn])
+	.handler(async ({ context }) => findDefaultSelection({ ownerId: context.userId }));
 
 /**
  * Creates a conversation locked to the model selection, seeded with the first
@@ -71,17 +69,17 @@ export const getDefaultSelection = createServerFn({ method: "GET" }).handler(asy
  * are persisted and the message survives navigation to the conversation view.
  */
 export const createConversation = createServerFn({ method: "POST" })
+	.middleware([authedFn])
 	.validator(createConversationInput)
-	.handler(async ({ data: { selection, firstMessage, attachments } }) => {
-		const userId = await getCurrentUserId();
-		return insertConversation({
-			ownerId: userId,
+	.handler(async ({ data: { selection, firstMessage, attachments }, context }) =>
+		insertConversation({
+			ownerId: context.userId,
 			endpointId: selection.endpointId,
 			model: selection.model,
 			firstMessage,
 			attachments,
-		});
-	});
+		}),
+	);
 
 /**
  * Persist the conversation's `messages` blob. Called by the client persistence
@@ -89,10 +87,10 @@ export const createConversation = createServerFn({ method: "POST" })
  * content (the stream route writes nothing).
  */
 export const saveConversationMessages = createServerFn({ method: "POST" })
+	.middleware([authedFn])
 	.validator(saveMessagesInput)
-	.handler(async ({ data: { id, messages } }) => {
-		const userId = await getCurrentUserId();
-		await saveMessages({ id, ownerId: userId, messages });
+	.handler(async ({ data: { id, messages }, context }) => {
+		await saveMessages({ id, ownerId: context.userId, messages });
 	});
 
 /**
@@ -101,26 +99,26 @@ export const saveConversationMessages = createServerFn({ method: "POST" })
  * @throws If no conversation with that id is owned by the current user.
  */
 export const updateConversation = createServerFn({ method: "POST" })
+	.middleware([authedFn])
 	.validator(updateConversationInput)
-	.handler(async ({ data: { id, data: patch } }) => {
-		const userId = await getCurrentUserId();
-		return patchConversation({ id, ownerId: userId, patch });
-	});
+	.handler(async ({ data: { id, data: patch }, context }) =>
+		patchConversation({ id, ownerId: context.userId, patch }),
+	);
 
-/** Whether the conversation's model is still loading into memory (Ollama warm-up). */
+/** Whether the conversation's model is still loading into memory (local runtime warm-up). */
 export const getModelRunState = createServerFn({ method: "POST" })
+	.middleware([authedFn])
 	.validator(conversationIdInput)
-	.handler(async ({ data: { id } }) => {
-		const userId = await getCurrentUserId();
-		return probeModelRunState({ id, ownerId: userId });
-	});
+	.handler(async ({ data: { id }, context }) =>
+		probeModelRunState({ id, ownerId: context.userId }),
+	);
 
 /** Delete a conversation by id. No-op when the id isn't owned by the current user. */
 export const deleteConversation = createServerFn({ method: "POST" })
+	.middleware([authedFn])
 	.validator(conversationIdInput)
-	.handler(async ({ data: { id } }) => {
-		const userId = await getCurrentUserId();
-		await removeConversation({ id, ownerId: userId });
+	.handler(async ({ data: { id }, context }) => {
+		await removeConversation({ id, ownerId: context.userId });
 	});
 
 // ── Query options (for TanStack Query) ───────────────────────
