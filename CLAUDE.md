@@ -4,8 +4,8 @@ Guidance for Claude Code working in this repository.
 
 ## Non-negotiable Rules
 
-- **Work with the framework:** never hand-roll what a dependency does; no parallel implementation, bridge, or shim. Adopt the library's native model (types, persistence, helpers) even if the diff grows.
-- **shadcn-first:** compose shadcn primitives (consult the MCP registry); no raw HTML where a shadcn equivalent exists, no forking `ui/`. Stack is shadcn on Base UI (`@base-ui/react/*`), not Radix: compose with the `render={<El/>}` prop (Base UI's `asChild`). Themeable via CSS variables only, no hardcoded colors. `src/shared/components/ui/*` is registry output: prefer regenerating (`npx shadcn@latest add <component> --overwrite`) over hand-editing; a hand-edit is allowed rarely and only with a stated reason (`sonner.tsx`'s `ThemeContext` wiring is the precedent).
+- **Work with the framework:** never hand-roll what a dependency does; no parallel implementation, bridge, or shim. Adopt the library's native model (types, persistence, helpers) even if the diff grows. Implementing a library's own documented extension point (e.g. `@tanstack/ai`'s `ServerTool`) against our backend counts as adoption, not a shim — a shim is hand-rolled logic running *alongside* the library instead of through it.
+- **shadcn-first:** compose shadcn primitives (consult the MCP registry); no raw HTML where a shadcn equivalent exists, no forking `ui/`. Stack is shadcn on Base UI (`@base-ui/react/*`), not Radix: compose with the `render={<El/>}` prop (Base UI's `asChild`). Themeable via CSS variables only, no hardcoded colors. `src/shared/components/ui/*` is registry output: prefer regenerating (`npx shadcn@latest add <component> --overwrite`) over hand-editing; rare, stated-reason hand-edits are fine (`sonner.tsx`'s `ThemeContext` wiring is the precedent).
 - **Prisma:** app model IDs `@default(dbgenerated("uuidv7()")) @db.Uuid`; auth-table IDs `@id @db.Uuid` with no `@default`; all FKs `@db.Uuid`; all camelCase fields `@map("snake_case")`.
 - **Biome:** never `biome-ignore`; fix the real issue.
 - **Server-only:** never import `.server.ts` from client code.
@@ -20,7 +20,7 @@ Guidance for Claude Code working in this repository.
 
 ## Project Purpose
 
-A modern, local-first AI chat app: install any model you want (local via Ollama, or a bring-your-own cloud endpoint) and chat with it, as polished as the big brands but yours. The **Library** is the core surface (browse and install models, then chat). Capabilities are **inline tools, never tabs**: web search, MCP servers, and a long-term **Memory** live inside chat, toggled per message.
+A modern, local-first AI chat app: install any model you want (local via Ollama, or a bring-your-own cloud endpoint) and chat with it, as polished as the big brands but yours. The **Library** is the core surface (browse and install models, then chat). Capabilities are **inline tools, never tabs**: web search and a long-term **Memory** live inside chat, toggled per message.
 
 ## Commands
 
@@ -45,8 +45,8 @@ Commits, pushes, and prisma commands are the user's job (a PreToolUse guard bloc
 - Before finishing, verify your edits: `npm run check`, plus `npm run build` for types.
 - End the summary with one section per logical change: a fenced `git add <paths>`, then the commit message in its own fenced block (imperative subject under 70 chars, one to three sentences of what and why). No co-author or generated-with lines.
 - Prisma: edit `prisma/schema/` only, then tell the user what to run.
-- Never edit generated output (`src/generated/`, `routeTree.gen.ts`); change the source and regenerate. `src/shared/components/ui/*` is regenerable too, but a rare, stated-reason hand-edit is fine (see shadcn-first above).
-- When delegating to sub agents (the `Agent` tool), prefer a smaller/cheaper model (e.g. `haiku`) over the default for mechanical or narrow-scope tasks (targeted search, simple lookups, single-file edits); reserve the default or larger models for sub agents doing non-trivial reasoning or design work.
+- Never edit generated output (`src/generated/`, `routeTree.gen.ts`); change the source and regenerate.
+- When delegating to sub agents, prefer a smaller/cheaper model (e.g. `haiku`) for mechanical or narrow-scope tasks (targeted search, single-file edits); reserve the default or larger models for non-trivial reasoning or design work.
 
 ## Environment
 
