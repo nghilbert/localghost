@@ -1,10 +1,10 @@
-import type { CatalogModel, HardwareInfo, ModelTagInfo } from "#/shared/domain/model/types";
+import type { CatalogModel, HardwareInfo, ModelVariantInfo } from "#/shared/domain/model/types";
 import { availableMemoryGb, requiredMemoryGb } from "./catalog";
 
 export type ModelVariantFit = "likely-fits" | "may-be-too-large" | "size-unknown";
 
 export type ModelVariantOption = {
-	tag: string;
+	quant: string;
 	modelId: string;
 	sizeGb: number | null;
 	contextK: number | null;
@@ -22,7 +22,7 @@ export type ModelVariantGroup = {
 };
 
 export type ModelVariants = {
-	initialTag: string;
+	initialQuant: string;
 	options: ModelVariantOption[];
 	groups: ModelVariantGroup[];
 };
@@ -33,48 +33,21 @@ const HARDWARE_GROUPS: { id: ModelVariantFit; label: string }[] = [
 	{ id: "size-unknown", label: "Size unknown" },
 ];
 
-/** The tag a catalog row pins, e.g. "8b" for `llama3.1:8b`; a bare id means `latest`. */
-function catalogTag(catalog: CatalogModel): { isBare: boolean; tag: string } {
-	const colon = catalog.id.indexOf(":");
-	if (colon === -1) return { isBare: true, tag: "latest" };
-	return { isBare: false, tag: catalog.id.slice(colon + 1) || "latest" };
+/** The quant a catalog row pins, e.g. "Q4_K_M" for `ggml-org/gemma-3-4b-it-GGUF:Q4_K_M`. */
+function catalogQuant(catalog: CatalogModel): string {
+	const colon = catalog.id.lastIndexOf(":");
+	return colon === -1 ? "latest" : catalog.id.slice(colon + 1);
 }
 
 function sourceVariants({
 	catalog,
-	currentTag,
+	currentQuant,
 }: {
 	catalog: CatalogModel;
-	currentTag: string;
-}): ModelTagInfo[] {
-	if (!catalog.variants || catalog.variants.length === 0) {
-		return [{ tag: currentTag, digest: null, sizeGb: catalog.sizeGb, contextK: catalog.contextK }];
-	}
-	const byTag = new Map<string, ModelTagInfo>();
-	for (const variant of catalog.variants) {
-		if (!byTag.has(variant.tag)) byTag.set(variant.tag, variant);
-	}
-	return [...byTag.values()];
-}
-
-/**
- * A catalog row is one model size, so its picker offers that size only: the row's own tag plus
- * its quantization variants (`8b`, `8b-q4_K_M`, …). A bare id pins no size, so it offers all tags,
- * as does a row whose tag the scrape never saw (scoping to it would leave nothing to pick).
- */
-function scopedVariants({
-	variants,
-	currentTag,
-	isBare,
-}: {
-	variants: ModelTagInfo[];
-	currentTag: string;
-	isBare: boolean;
-}): ModelTagInfo[] {
-	if (isBare || !variants.some((variant) => variant.tag === currentTag)) return variants;
-	return variants.filter(
-		(variant) => variant.tag === currentTag || variant.tag.startsWith(`${currentTag}-`),
-	);
+	currentQuant: string;
+}): ModelVariantInfo[] {
+	if (catalog.variants && catalog.variants.length > 0) return catalog.variants;
+	return [{ quant: currentQuant, sizeGb: catalog.sizeGb, fileName: "" }];
 }
 
 function compareOptions({
@@ -90,7 +63,7 @@ function compareOptions({
 		if (right.sizeGb === null) return -1;
 		return left.sizeGb - right.sizeGb;
 	}
-	return left.tag.localeCompare(right.tag, undefined, { numeric: true });
+	return left.quant.localeCompare(right.quant, undefined, { numeric: true });
 }
 
 function variantFit({
@@ -137,21 +110,17 @@ export function buildModelVariants({
 	catalog: CatalogModel;
 	hardware: HardwareInfo | undefined;
 }): ModelVariants {
-	const { tag: currentTag, isBare } = catalogTag(catalog);
-	const options = scopedVariants({
-		variants: sourceVariants({ catalog, currentTag }),
-		currentTag,
-		isBare,
-	})
+	const currentQuant = catalogQuant(catalog);
+	const options = sourceVariants({ catalog, currentQuant })
 		.map<ModelVariantOption>((variant) => {
-			const isCurrent = variant.tag === currentTag;
+			const isCurrent = variant.quant === currentQuant;
 			const sizeGb = variant.sizeGb ?? (isCurrent ? catalog.sizeGb : null);
 			const estimatedMemoryGb = requiredMemoryGb({ sizeGb, paramB: catalog.paramB });
 			return {
-				tag: variant.tag,
-				modelId: `${catalog.name}:${variant.tag}`,
+				quant: variant.quant,
+				modelId: `${catalog.name}:${variant.quant}`,
 				sizeGb,
-				contextK: variant.contextK ?? (isCurrent ? catalog.contextK : null),
+				contextK: isCurrent ? catalog.contextK : null,
 				estimatedMemoryGb,
 				fit: variantFit({ estimatedMemoryGb, hardware }),
 				isCurrent,
@@ -160,7 +129,8 @@ export function buildModelVariants({
 		.sort((left, right) => compareOptions({ left, right }));
 
 	return {
-		initialTag: options.find((option) => option.isCurrent)?.tag ?? options[0]?.tag ?? currentTag,
+		initialQuant:
+			options.find((option) => option.isCurrent)?.quant ?? options[0]?.quant ?? currentQuant,
 		options,
 		groups: groupOptions({ options, hardware }),
 	};
