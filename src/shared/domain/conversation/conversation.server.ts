@@ -1,5 +1,5 @@
 import { prisma } from "#/shared/lib/db.server";
-import { ollamaClient } from "#/shared/lib/ollama/client.server";
+import { listModels } from "#/shared/lib/llamacpp/client.server";
 import { buildFirstUserMessage, deriveConversationTitle } from "./messages";
 
 /** Sidebar list: only the fields needed to render and order conversation links. */
@@ -164,9 +164,11 @@ export async function patchConversation({
 export type ModelRunState = "warming" | "ready" | "unreachable";
 
 /**
- * Whether the conversation's model is still loading. Only Ollama has a warm-up
- * (`ps()` reports what's loaded); other providers read "ready". A failed probe
- * is "unreachable": reporting a down host as "ready" would hide the problem.
+ * Whether the conversation's model is still loading. Only llama.cpp has a
+ * warm-up (`GET /models`'s `status` reports it); other providers read "ready".
+ * A failed probe is "unreachable": reporting a down host as "ready" would hide
+ * the problem. The router autoloads on first request, so "unloaded" also
+ * reads as "ready" rather than "warming".
  */
 export async function probeModelRunState({
 	id,
@@ -179,16 +181,11 @@ export async function probeModelRunState({
 		where: { id, ownerId },
 		select: { model: true, endpoint: { select: { url: true, provider: true } } },
 	});
-	if (!conversation?.model || conversation.endpoint?.provider !== "ollama") return "ready";
+	if (!conversation?.model || conversation.endpoint?.provider !== "llamacpp") return "ready";
 	try {
-		const { models } = await ollamaClient({
-			host: conversation.endpoint.url,
-			timeoutMs: 3_000,
-		}).ps();
-		const loaded = models.some(({ name, model }) =>
-			[name, model].includes(conversation.model ?? ""),
-		);
-		return loaded ? "ready" : "warming";
+		const models = await listModels({ url: conversation.endpoint.url, timeoutMs: 3_000 });
+		const found = models.find((m) => m.id === conversation.model);
+		return found?.status.value === "loading" ? "warming" : "ready";
 	} catch (error) {
 		console.warn("Model run-state probe failed; reporting the host unreachable", {
 			url: conversation.endpoint.url,

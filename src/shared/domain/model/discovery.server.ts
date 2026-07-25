@@ -1,63 +1,75 @@
 import { trimPathRight } from "@tanstack/react-router";
-import { ollamaOptionsSchema } from "#/shared/domain/endpoint/schemas";
 import { prisma } from "#/shared/lib/db.server";
-import { ollamaClient } from "#/shared/lib/ollama/client.server";
-import type { OllamaInstalledModel } from "./types";
+import { listModels, serverProps } from "#/shared/lib/llamacpp/client.server";
+import type { InstalledModel } from "./types";
 
-const DEFAULT_OLLAMA_URL = "http://localhost:11434";
+const DEFAULT_RUNTIME_URL = "http://localhost:8080";
 
 const WELL_KNOWN_URLS = [
-	DEFAULT_OLLAMA_URL,
-	"http://127.0.0.1:11434",
-	// The compose-managed Ollama service (compose.yaml), resolvable by container name.
-	"http://ollama:11434",
-	"http://host.docker.internal:11434",
+	DEFAULT_RUNTIME_URL,
+	"http://127.0.0.1:8080",
+	// The compose-managed llama.cpp service (compose.yaml), resolvable by container name.
+	"http://llamacpp:8080",
+	"http://host.docker.internal:8080",
 ];
 
-/**
- * Resolves the Ollama base URL for a user: their configured ollama endpoint first,
- * then localhost.
- */
-export async function getOllamaUrl(userId: string): Promise<string> {
-	const endpoint = await prisma.endpoint.findFirst({
-		where: { ownerId: userId, provider: "ollama" },
-		orderBy: { id: "asc" },
-	});
-	return trimPathRight(endpoint?.url ?? DEFAULT_OLLAMA_URL);
+/** Parses the `:QUANT` suffix off a router model id (`repo:Q4_K_M` → `Q4_K_M`). */
+function parseQuant(id: string): string | null {
+	const idx = id.lastIndexOf(":");
+	return idx === -1 ? null : id.slice(idx + 1);
+}
+
+/** Parses billions-of-parameters out of an HF repo id, e.g. `Qwen3-8B` → 8. */
+function parseParamB(id: string): number | null {
+	const match = id.match(/(\d+(?:\.\d+)?)\s*[bB](?:-|:|$)/);
+	return match?.[1] ? Number.parseFloat(match[1]) : null;
 }
 
 /**
- * Ordered, deduplicated list of URLs where Ollama might be running: the user's
- * saved endpoints, then well-known local addresses.
+ * Resolves the llama.cpp base URL for a user: their configured llamacpp
+ * endpoint first, then localhost.
  */
-export function buildOllamaCandidateUrls(opts: { savedUrls: string[] }): string[] {
+export async function getRuntimeUrl(userId: string): Promise<string> {
+	const endpoint = await prisma.endpoint.findFirst({
+		where: { ownerId: userId, provider: "llamacpp" },
+		orderBy: { id: "asc" },
+	});
+	return trimPathRight(endpoint?.url ?? DEFAULT_RUNTIME_URL);
+}
+
+/**
+ * Ordered, deduplicated list of URLs where llama-server might be running: the
+ * user's saved endpoints, then well-known local addresses.
+ */
+export function buildRuntimeCandidateUrls(opts: { savedUrls: string[] }): string[] {
 	const candidates = [...opts.savedUrls, ...WELL_KNOWN_URLS]
 		.map((url) => trimPathRight(url.trim()))
 		.filter((url) => url.length > 0);
 	return [...new Set(candidates)];
 }
 
-export type OllamaProbeResult = {
+export type RuntimeProbeResult = {
 	reachable: boolean;
-	installedModels: OllamaInstalledModel[];
+	installedModels: InstalledModel[];
 };
 
-/** Checks whether an Ollama instance answers at the given base URL and lists its models. */
-export async function probeOllama({
+/** Checks whether a llama-server router answers at the given base URL and lists its models. */
+export async function probeRuntime({
 	url,
 	timeoutMs = 2500,
 }: {
 	url: string;
 	timeoutMs?: number;
-}): Promise<OllamaProbeResult> {
+}): Promise<RuntimeProbeResult> {
 	try {
-		const { models } = await ollamaClient({ host: url, timeoutMs }).list();
-		const installedModels = models.map((m) => ({
-			name: m.name,
-			sizeBytes: m.size,
-			family: m.details.family,
-			parameterSize: m.details.parameter_size,
-			quantizationLevel: m.details.quantization_level,
+		const models = await listModels({ url, timeoutMs });
+		const installedModels: InstalledModel[] = models.map((m) => ({
+			id: m.id,
+			sizeBytes: null,
+			quant: parseQuant(m.id),
+			paramB: parseParamB(m.id),
+			status: m.status.value,
+			vision: m.architecture?.input_modalities?.includes("image") ?? false,
 		}));
 		return { reachable: true, installedModels };
 	} catch {
@@ -65,30 +77,32 @@ export async function probeOllama({
 	}
 }
 
-/** The user's oldest saved ollama endpoint row, as far as discovery needs it. */
-export type SavedOllamaEndpoint = { id: string; url: string; options: unknown };
+/** The user's oldest saved llamacpp endpoint row, as far as discovery needs it. */
+export type SavedRuntimeEndpoint = { id: string; url: string };
 
-export type OllamaScanResult = {
+export type RuntimeScanResult = {
 	url: string;
-	installedModels: OllamaInstalledModel[];
-	/** The user's oldest saved ollama endpoint, so callers can sync it without re-querying. */
-	savedEndpoint: SavedOllamaEndpoint | null;
+	installedModels: InstalledModel[];
+	/** The user's oldest saved llamacpp endpoint, so callers can sync it without re-querying. */
+	savedEndpoint: SavedRuntimeEndpoint | null;
 };
 
 /**
  * Probes all candidate URLs for the user concurrently; the first reachable
  * instance in priority order wins.
  */
-export async function scanForOllama(userId: string): Promise<OllamaScanResult | null> {
+export async function scanForRuntime(userId: string): Promise<RuntimeScanResult | null> {
 	const saved = await prisma.endpoint.findMany({
-		where: { ownerId: userId, provider: "ollama" },
+		where: { ownerId: userId, provider: "llamacpp" },
 		orderBy: { id: "asc" },
-		select: { id: true, url: true, options: true },
+		select: { id: true, url: true },
 	});
-	const candidates = buildOllamaCandidateUrls({ savedUrls: saved.map((endpoint) => endpoint.url) });
+	const candidates = buildRuntimeCandidateUrls({
+		savedUrls: saved.map((endpoint) => endpoint.url),
+	});
 
 	const probes = await Promise.all(
-		candidates.map(async (url) => ({ url, ...(await probeOllama({ url })) })),
+		candidates.map(async (url) => ({ url, ...(await probeRuntime({ url })) })),
 	);
 	const found = probes.find((probe) => probe.reachable);
 	if (!found) return null;
@@ -101,29 +115,27 @@ export async function scanForOllama(userId: string): Promise<OllamaScanResult | 
 }
 
 /**
- * Keeps the user's ollama endpoint row in sync with where Ollama was found,
- * creating it on first detection. Pass `existing` when known to skip the lookup.
- * @param numCtx - A number saves the override, `null` clears it, `undefined` leaves it.
+ * Keeps the user's llamacpp endpoint row in sync with where the runtime was
+ * found, creating it on first detection. Pass `existing` when known to skip
+ * the lookup.
  */
-export async function upsertOllamaEndpoint({
+export async function upsertRuntimeEndpoint({
 	userId,
 	url,
 	existing,
-	numCtx,
 }: {
 	userId: string;
 	url: string;
-	existing?: SavedOllamaEndpoint | null;
-	numCtx?: number | null;
+	existing?: SavedRuntimeEndpoint | null;
 }): Promise<string> {
 	const normalizedUrl = trimPathRight(url);
 	const resolved =
 		existing !== undefined
 			? existing
 			: await prisma.endpoint.findFirst({
-					where: { ownerId: userId, provider: "ollama" },
+					where: { ownerId: userId, provider: "llamacpp" },
 					orderBy: { id: "asc" },
-					select: { id: true, url: true, options: true },
+					select: { id: true, url: true },
 				});
 
 	if (!resolved) {
@@ -132,40 +144,50 @@ export async function upsertOllamaEndpoint({
 		const endpoint = await prisma.endpoint.upsert({
 			where: { ownerId_discovered: { ownerId: userId, discovered: true } },
 			create: {
-				name: "Ollama (local)",
+				name: "llama.cpp (local)",
 				url: normalizedUrl,
-				provider: "ollama",
+				provider: "llamacpp",
 				ownerId: userId,
 				discovered: true,
-				...(typeof numCtx === "number" ? { options: { num_ctx: numCtx } } : {}),
 			},
-			update: {
-				url: normalizedUrl,
-				...(typeof numCtx === "number" ? { options: { num_ctx: numCtx } } : {}),
-			},
+			update: { url: normalizedUrl },
 			select: { id: true },
 		});
 		return endpoint.id;
 	}
 
-	const nextOptions =
-		numCtx === undefined ? undefined : mergeNumCtx({ options: resolved.options, numCtx });
-	if (resolved.url === normalizedUrl && nextOptions === undefined) return resolved.id;
-	await prisma.endpoint.update({
-		where: { id: resolved.id },
-		data: {
-			url: normalizedUrl,
-			...(nextOptions !== undefined ? { options: nextOptions } : {}),
-		},
-	});
+	if (resolved.url === normalizedUrl) return resolved.id;
+	await prisma.endpoint.update({ where: { id: resolved.id }, data: { url: normalizedUrl } });
 	return resolved.id;
 }
 
-/** Sets or clears num_ctx on an endpoint's options blob, keeping the other keys. */
-function mergeNumCtx({ options, numCtx }: { options: unknown; numCtx: number | null }) {
-	const parsed = ollamaOptionsSchema.safeParse(options);
-	const merged = { ...(parsed.success ? parsed.data : {}) };
-	if (numCtx === null) delete merged.num_ctx;
-	else merged.num_ctx = numCtx;
-	return merged;
+const CONTEXT_WINDOW_TTL_MS = 60_000;
+const contextWindowCache = new Map<string, { nCtx: number; expiresAt: number }>();
+
+/**
+ * The model's real `n_ctx`, read live from llama-server's `GET /props` and
+ * cached briefly per endpoint+model (it's constant while the model stays
+ * loaded, but chat streams shouldn't pay a round trip on every message).
+ * @returns `undefined` on any failure, so callers fall back to message-count bounding.
+ */
+export async function getContextWindow({
+	url,
+	model,
+}: {
+	url: string;
+	model: string;
+}): Promise<number | undefined> {
+	const key = `${url}:${model}`;
+	const cached = contextWindowCache.get(key);
+	if (cached && cached.expiresAt > Date.now()) return cached.nCtx;
+	try {
+		const props = await serverProps({ url, model, timeoutMs: 2000 });
+		contextWindowCache.set(key, {
+			nCtx: props.n_ctx,
+			expiresAt: Date.now() + CONTEXT_WINDOW_TTL_MS,
+		});
+		return props.n_ctx;
+	} catch {
+		return undefined;
+	}
 }
