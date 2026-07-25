@@ -8,6 +8,8 @@ type ActivityTrailProps = {
 	isStreaming?: boolean;
 	/** Overrides the pending head's "Thinking" label (warming up, host unreachable). */
 	pendingLabel?: string;
+	/** Resolves an approval-gated tool call (e.g. memory deletion). */
+	onToolApproval?: (response: { id: string; approved: boolean }) => Promise<void>;
 };
 
 /**
@@ -15,7 +17,12 @@ type ActivityTrailProps = {
  * order as markers, capped by a live "Thinking" head while the model works
  * between steps. The answer text is rendered separately by the caller.
  */
-export function ActivityTrail({ message, isStreaming, pendingLabel }: ActivityTrailProps) {
+export function ActivityTrail({
+	message,
+	isStreaming,
+	pendingLabel,
+	onToolApproval,
+}: ActivityTrailProps) {
 	const { parts } = message;
 	const lastPart = parts.at(-1);
 	// A step is "live" when it owns the spinner itself, so the head stays hidden.
@@ -37,7 +44,14 @@ export function ActivityTrail({ message, isStreaming, pendingLabel }: ActivityTr
 			];
 		}
 		if (part.type === "tool-call") {
-			return [<ToolCallStep key={part.id} toolCall={part} isStreaming={isStreaming} />];
+			return [
+				<ToolCallStep
+					key={part.id}
+					toolCall={part}
+					isStreaming={isStreaming}
+					onToolApproval={onToolApproval}
+				/>,
+			];
 		}
 		return [];
 	});

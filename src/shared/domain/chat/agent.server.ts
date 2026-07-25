@@ -1,7 +1,11 @@
 import type { ServerTool } from "@tanstack/ai";
 import { toolDefinition } from "@tanstack/ai";
 import type { z } from "zod";
-import { manageMemory, manageMemoryArgsSchema } from "#/shared/domain/memory/memory-tool.server";
+import {
+	deleteMemoryArgsSchema,
+	manageMemory,
+	manageMemoryArgsSchema,
+} from "#/shared/domain/memory/memory-tool.server";
 import { readUrl, readUrlArgsSchema } from "#/shared/lib/tools/read-url.server";
 import { webSearch, webSearchArgsSchema } from "#/shared/lib/tools/web-search.server";
 
@@ -63,21 +67,17 @@ function manageMemoryTool(ownerId: string): ServerTool {
 			"conversation or asks what you remember. Use add ONLY when the user shares a durable fact " +
 			"worth remembering across sessions (a stable preference, personal detail, ongoing project, " +
 			"or an explicit 'remember this'). Never save trivial or ephemeral conversation details. " +
-			"Use list or search to find a memory's id, then delete with that id to remove it.",
+			"Use list or search to find a memory's id; to remove one, call delete_memory with that id.",
 		inputSchema: {
 			type: "object",
 			properties: {
 				action: {
 					type: "string",
-					enum: ["add", "search", "list", "delete"],
+					enum: ["add", "search", "list"],
 					description: "What to do with memories",
 				},
 				text: { type: "string", description: "Memory text (required for add)" },
 				query: { type: "string", description: "Search query (required for search)" },
-				id: {
-					type: "string",
-					description: "Memory ID from a prior list or search result (required for delete)",
-				},
 				category: {
 					type: "string",
 					description: "Category hint: fact, preference, contact, project, instruction",
@@ -93,6 +93,27 @@ function manageMemoryTool(ownerId: string): ServerTool {
 	});
 }
 
+/** Split out from `manage_memory` so deletion, the one destructive action, pauses for approval. */
+function deleteMemoryTool(ownerId: string): ServerTool {
+	return toolDefinition({
+		name: "delete_memory",
+		description:
+			"Delete a saved memory by id. Find the id first with manage_memory's list or search.",
+		inputSchema: {
+			type: "object",
+			properties: {
+				id: { type: "string", description: "Memory ID from a prior list or search result" },
+			},
+			required: ["id"],
+		},
+		needsApproval: true,
+	}).server(async (args) => {
+		const parsed = deleteMemoryArgsSchema.safeParse(args);
+		if (!parsed.success) return invalidArgsMessage(parsed.error);
+		return manageMemory({ args: { action: "delete", id: parsed.data.id }, ownerId });
+	});
+}
+
 /**
  * Builders for every buildable tool, keyed by the id the client sends. The
  * source of truth for what can be turned on per request; `web_search` is offered
@@ -100,7 +121,7 @@ function manageMemoryTool(ownerId: string): ServerTool {
  */
 const TOOL_BUILDERS: Record<string, (ownerId: string) => ServerTool[]> = {
 	web_search: () => [webSearchTool(), readUrlTool()],
-	memory: (ownerId) => [manageMemoryTool(ownerId)],
+	memory: (ownerId) => [manageMemoryTool(ownerId), deleteMemoryTool(ownerId)],
 };
 
 type BuildChatToolsOptions = {

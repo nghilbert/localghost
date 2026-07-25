@@ -47,6 +47,8 @@ type ChatMessageProps = {
 	onRegenerate?: () => void;
 	/** Provided only when editing is allowed right now; replaces the text and resends. */
 	onEditResend?: (content: string) => void;
+	/** Resolves an approval-gated tool call (e.g. memory deletion). */
+	onToolApproval?: (response: { id: string; approved: boolean }) => Promise<void>;
 };
 export function ChatMessage({
 	message,
@@ -55,6 +57,7 @@ export function ChatMessage({
 	conversationTokens,
 	onRegenerate,
 	onEditResend,
+	onToolApproval,
 }: ChatMessageProps) {
 	const content = partsText(message.parts);
 	const imageSources = messageImageSources(message.parts);
@@ -161,7 +164,12 @@ export function ChatMessage({
 	return (
 		<Message role="article" aria-label="Assistant message" data-testid="chat-message">
 			<MessageContent>
-				<ActivityTrail message={message} isStreaming={isStreaming} pendingLabel={pendingLabel} />
+				<ActivityTrail
+					message={message}
+					isStreaming={isStreaming}
+					pendingLabel={pendingLabel}
+					onToolApproval={onToolApproval}
+				/>
 
 				{strandedTool && (
 					<Alert>

@@ -1,11 +1,13 @@
 import type { UIMessage } from "@tanstack/ai-client";
 import {
 	BrainIcon,
+	CheckIcon,
 	ChevronRightIcon,
 	GlobeIcon,
 	LinkIcon,
 	type LucideIcon,
 	TerminalIcon,
+	XIcon,
 } from "lucide-react";
 import { useState } from "react";
 import { ActivityMarker } from "#/routes/_authenticated/-components/chat/ActivityMarker";
@@ -101,6 +103,11 @@ export const TOOL_DISPLAY: Record<string, ToolDisplay> = {
 		running: (input) => MEMORY_LABELS[memoryAction(input) ?? ""]?.running ?? "Updating memory…",
 		done: (input) => MEMORY_LABELS[memoryAction(input) ?? ""]?.done ?? "Memory",
 	},
+	delete_memory: {
+		icon: BrainIcon,
+		running: () => "Delete a memory?",
+		done: () => "Deleted a memory",
+	},
 };
 
 export function display(name: string): ToolDisplay {
@@ -112,19 +119,56 @@ function outputText(output: ToolCall["output"]): string {
 	return typeof output === "string" ? output : JSON.stringify(output, null, 2);
 }
 
-type ToolCallStepProps = { toolCall: ToolCall; isStreaming?: boolean };
+type ToolCallStepProps = {
+	toolCall: ToolCall;
+	isStreaming?: boolean;
+	/** Resolves an approval-gated tool call (e.g. memory deletion). */
+	onToolApproval?: (response: { id: string; approved: boolean }) => Promise<void>;
+};
 
 /**
  * One tool step of the train of thought: a live marker with an elapsed timer
  * while the call runs, then a marker whose output reveals on click once it
- * resolves.
+ * resolves. A call that needs approval pauses on an Approve/Deny marker instead.
  */
-export function ToolCallStep({ toolCall, isStreaming }: ToolCallStepProps) {
+export function ToolCallStep({ toolCall, isStreaming, onToolApproval }: ToolCallStepProps) {
 	const { icon: Icon, running, done } = display(toolCall.name);
 	const input = callInput(toolCall);
 	const active = Boolean(isStreaming) && toolCall.output === undefined;
 	const { seconds } = useStepDuration(active);
 	const [open, setOpen] = useState(false);
+
+	if (toolCall.state === "approval-requested" && toolCall.approval) {
+		const approvalId = toolCall.approval.id;
+		return (
+			<Marker data-testid="tool-approval-marker">
+				<MarkerIcon>
+					<Icon />
+				</MarkerIcon>
+				<MarkerContent className="flex items-center gap-2">
+					{running(input)}
+					<Button
+						size="xs"
+						variant="outline"
+						data-testid="tool-approval-approve-button"
+						onClick={() => void onToolApproval?.({ id: approvalId, approved: true })}
+					>
+						<CheckIcon />
+						Approve
+					</Button>
+					<Button
+						size="xs"
+						variant="outline"
+						data-testid="tool-approval-deny-button"
+						onClick={() => void onToolApproval?.({ id: approvalId, approved: false })}
+					>
+						<XIcon />
+						Deny
+					</Button>
+				</MarkerContent>
+			</Marker>
+		);
+	}
 
 	if (active) {
 		return <ActivityMarker label={running(input)} icon={Icon} seconds={seconds} />;

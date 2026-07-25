@@ -10,6 +10,8 @@ export const manageMemoryArgsSchema = z.object({
 	limit: z.coerce.number().optional(),
 });
 
+export const deleteMemoryArgsSchema = z.object({ id: z.uuid() });
+
 type ManageMemoryArgs = z.infer<typeof manageMemoryArgsSchema>;
 
 /**

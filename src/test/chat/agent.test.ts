@@ -19,9 +19,25 @@ describe("buildChatTools", () => {
 		expect(names(tools)).toEqual(["web_search", "read_url"]);
 	});
 
-	it("maps the memory selection to manage_memory", () => {
+	it("maps the memory selection to manage_memory and delete_memory", () => {
 		const tools = buildChatTools({ ownerId: OWNER, enabledTools: ["memory"] });
-		expect(names(tools)).toEqual(["manage_memory"]);
+		expect(names(tools)).toEqual(["manage_memory", "delete_memory"]);
+	});
+
+	it("gates delete_memory behind approval but not manage_memory", () => {
+		const tools = buildChatTools({ ownerId: OWNER, enabledTools: ["memory"] });
+		const manageMemory = tools.find((tool) => tool.name === "manage_memory");
+		const deleteMemory = tools.find((tool) => tool.name === "delete_memory");
+		expect(manageMemory?.needsApproval).toBeFalsy();
+		expect(deleteMemory?.needsApproval).toBe(true);
+	});
+
+	it("excludes delete from manage_memory's action enum", () => {
+		const tools = buildChatTools({ ownerId: OWNER, enabledTools: ["memory"] });
+		const manageMemory = tools.find((tool) => tool.name === "manage_memory");
+		if (!manageMemory) throw new Error("manage_memory tool was not built");
+		const schema = convertSchemaToJsonSchema(manageMemory.inputSchema);
+		expect(schema).toMatchObject({ properties: { action: { enum: ["add", "search", "list"] } } });
 	});
 
 	it("ignores unknown selections", () => {
