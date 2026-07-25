@@ -2,6 +2,7 @@ import type { z } from "zod/v4";
 import type { Endpoint } from "#/generated/prisma/client";
 import { decrypt, encrypt } from "#/shared/lib/crypto.server";
 import { prisma } from "#/shared/lib/db.server";
+import { listModels as listLlamacppModels } from "#/shared/lib/llamacpp/client.server";
 import {
 	asLLMProvider,
 	type EndpointProbeResult,
@@ -9,7 +10,6 @@ import {
 	modelSupportsTools,
 	probeEndpoint,
 } from "#/shared/lib/llm.server";
-import { ollamaClient } from "#/shared/lib/ollama/client.server";
 import type { createEndpointSchema, updateEndpointSchema } from "./schemas";
 
 /** Strips the encrypted key off an endpoint row, replacing it with a `hasApiKey` flag. */
@@ -127,10 +127,7 @@ export async function fetchEndpointModels({
 	});
 }
 
-/**
- * Reachability of a saved endpoint: resolves it by id, decrypts its key, and
- * probes the provider's model list.
- * @returns `{ ok: true, modelCount }` when reachable, `{ ok: false, error }` otherwise.
+/** Probes a saved endpoint's model list after decrypting its API key.
  * @throws If no endpoint with that id is owned by the user.
  */
 export async function probeSavedEndpoint({
@@ -149,12 +146,8 @@ export async function probeSavedEndpoint({
 	});
 }
 
-/**
- * Whether a model can use tools and accept images. Tool support: Ollama via
- * `/api/show`, cloud providers via {@link modelSupportsTools}; unknown cases are
- * assumed capable, never wrongly blocking a working model. Image support: Ollama
- * reports it as the `vision` capability; cloud providers can't be probed, so we
- * stay permissive and let the model reject an image it can't read.
+/** Reports model tool, image, and document capabilities.
+ * llama.cpp reports image support from `/models`; cloud capabilities are permissive.
  */
 export async function probeModelCapabilities({
 	endpointId,
@@ -168,20 +161,17 @@ export async function probeModelCapabilities({
 	const endpoint = await prisma.endpoint.findFirst({ where: { id: endpointId, ownerId } });
 	if (!endpoint) return { supportsTools: true, supportsImages: false, supportsDocuments: false };
 	// Only the cloud providers whose adapters advertise document support get it;
-	// Ollama and unverified OpenAI-compatible endpoints stay images-only.
+	// llama.cpp and unverified OpenAI-compatible endpoints stay images-only.
 	const supportsDocuments = endpoint.provider === "anthropic" || endpoint.provider === "gemini";
-	if (endpoint.provider === "ollama") {
+	if (endpoint.provider === "llamacpp") {
 		try {
-			const { capabilities } = await ollamaClient({ host: endpoint.url, timeoutMs: 5000 }).show({
-				model,
-			});
-			return {
-				supportsTools: capabilities.includes("tools"),
-				supportsImages: capabilities.includes("vision"),
-				supportsDocuments: false,
-			};
+			const models = await listLlamacppModels({ url: endpoint.url, timeoutMs: 5000 });
+			const supportsImages =
+				models.find((m) => m.id === model)?.architecture?.input_modalities?.includes("image") ??
+				false;
+			return { supportsTools: true, supportsImages, supportsDocuments: false };
 		} catch (error) {
-			console.warn("Ollama capability probe failed; assuming tool support", {
+			console.warn("llama.cpp capability probe failed; assuming tool support", {
 				url: endpoint.url,
 				model,
 				error,
