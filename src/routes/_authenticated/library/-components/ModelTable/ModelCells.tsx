@@ -16,7 +16,7 @@ export function ModelIdentityCell({ row }: { row: ModelRow }) {
 	return (
 		<div className="min-w-0">
 			<div className="flex items-center gap-1.5">
-				<span className="font-medium">{name}</span>
+				<span className="font-medium">{catalog?.displayName || name}</span>
 				{catalog?.paramB != null && (
 					<span className="text-muted-foreground">{catalog.paramB}B</span>
 				)}

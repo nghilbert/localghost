@@ -48,24 +48,24 @@ export type CatalogModel = {
 	id: string;
 	/** The Hugging Face repo id, e.g. "ggml-org/gemma-3-4b-it-GGUF". */
 	name: string;
+	/** A human-readable name derived from the repo id, e.g. "Gemma 3 4B". */
+	displayName: string;
 	/** Billions of parameters parsed from the repo id; null when unparseable. */
 	paramB: number | null;
-	/** Exact GGUF file size in GB, from the repo's file tree. */
+	/** Exact GGUF file size in GB (the default quant's), from the repo's file tree. */
 	sizeGb: number | null;
 	/** Context window in K tokens, from the repo's `config.json` when cheaply available. */
 	contextK: number | null;
 	/** Display tags: capability badges plus derived "fast"/"code". */
 	tags: string[];
-	/** Raw capability hints derived from the repo's HF tags (vision, code, tools). */
+	/** Raw capability hints derived from the repo's HF tags (vision). */
 	capabilities: string[];
 	description: string;
 	/** Hugging Face download count for the repo. */
-	pullCount: string;
-	/** Relative update time, e.g. "1 year ago". */
-	updated: string;
+	pullCount: number;
 	/** Exact update timestamp (ISO), from the repo's `lastModified`. */
 	updatedAt?: string;
-	/** Every GGUF quant found in the repo's file tree, for the variant picker. */
+	/** Every GGUF quant found in the repo's file tree, for the variant picker, ascending by size. */
 	variants?: ModelVariantInfo[];
 };
 
