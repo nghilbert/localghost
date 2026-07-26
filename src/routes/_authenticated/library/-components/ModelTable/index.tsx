@@ -1,5 +1,5 @@
 import type { VisibilityState } from "@tanstack/react-table";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { buildModelRows } from "#/routes/_authenticated/library/-lib/model-rows";
 import { DataTable } from "#/shared/components/DataTable";
 import type {
@@ -11,7 +11,7 @@ import type {
 import { cn } from "#/shared/lib/utils";
 import { createModelColumns, MODEL_COLUMN_LABELS } from "./columns";
 import { ModelDetailPanel } from "./ModelDetailPanel";
-import { type ModelStatus, ModelStatusFilter } from "./ModelStatusFilter";
+import { ModelStatusFilter } from "./ModelStatusFilter";
 
 type ModelTableProps = {
 	catalog: CatalogModel[];
@@ -38,38 +38,25 @@ export function ModelTable({
 	onDelete,
 	initialColumnVisibility,
 }: ModelTableProps) {
-	const [status, setStatus] = useState<ModelStatus>("all");
-
 	const rows = useMemo(
 		() => buildModelRows({ catalog, installedModels, pulling }),
 		[catalog, installedModels, pulling],
 	);
-
-	const counts = useMemo(() => {
-		const installed = rows.filter((row) => row.installed).length;
-		return { all: rows.length, installed, available: rows.length - installed };
-	}, [rows]);
-
-	const filteredRows = useMemo(() => {
-		if (status === "installed") return rows.filter((row) => row.installed);
-		if (status === "available") return rows.filter((row) => !row.installed);
-		return rows;
-	}, [rows, status]);
 
 	const columns = useMemo(() => createModelColumns(), []);
 
 	return (
 		<DataTable
 			columns={columns}
-			data={filteredRows}
+			data={rows}
 			getRowId={(row) => row.id}
 			emptyMessage="No models found."
 			initialSorting={[{ id: "updated", desc: true }]}
-			initialColumnVisibility={initialColumnVisibility}
+			initialColumnVisibility={{ status: false, ...initialColumnVisibility }}
 			columnLabels={MODEL_COLUMN_LABELS}
 			pageSize={25}
 			searchPlaceholder="Search models…"
-			filters={<ModelStatusFilter value={status} onValueChange={setStatus} counts={counts} />}
+			filters={(table) => <ModelStatusFilter table={table} />}
 			getRowClassName={(row) => cn(row.installed && "bg-success/5")}
 			renderDetail={(row) => (
 				<ModelDetailPanel

@@ -115,16 +115,18 @@ describe("DataTable", () => {
 		await expect.element(screen.getByTestId("data-table-sort-count")).not.toBeInTheDocument();
 	});
 
-	it("renders caller-supplied filters in the toolbar", async () => {
+	it("renders caller-supplied filters in the toolbar, passing the table instance", async () => {
 		const screen = await render(
 			<DataTable
 				columns={columns}
 				data={fruits}
-				filters={<div data-testid="filters-probe">status filter</div>}
+				filters={(table) => (
+					<div data-testid="filters-probe">{table.getRowModel().rows.length} rows</div>
+				)}
 			/>,
 		);
 
-		await expect.element(screen.getByTestId("filters-probe")).toHaveTextContent("status filter");
+		await expect.element(screen.getByTestId("filters-probe")).toHaveTextContent("3 rows");
 	});
 
 	describe("row expansion", () => {

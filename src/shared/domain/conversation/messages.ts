@@ -14,12 +14,8 @@ type HistoryTrimOptions = {
 	historyBudgetTokens?: number;
 };
 
-/**
- * The index of the first message still sent to the model, 0 when nothing is
- * trimmed. The cut only lands on a user message: starting mid-turn can sever a
- * tool call from its result, which OpenAI-compatible providers 400 on. With a
- * `historyBudgetTokens`, it fits the window to that token budget; otherwise it
- * falls back to a fixed message-count cap.
+/** Finds the first message retained for model history.
+ * Cuts only at user messages, using a token budget or the message-count cap.
  */
 export function historyStartIndex(
 	messages: Array<UIMessage | ModelMessage>,
@@ -43,11 +39,8 @@ function countBasedStartIndex(messages: Array<UIMessage | ModelMessage>): number
 	return lastUserIndex(messages, windowStart - 1);
 }
 
-/**
- * The earliest user message whose window (that message and everything newer)
- * still fits `budget` estimated tokens. Walks back from the newest message so
- * the freshest turns are always kept; if even the last user turn overflows, that
- * turn is kept whole rather than severed.
+/** Finds the earliest user turn whose remaining history fits the token budget.
+ * Keeps the newest full user turn even when it alone exceeds the budget.
  */
 function tokenBasedStartIndex(messages: Array<UIMessage | ModelMessage>, budget: number): number {
 	let total = 0;
@@ -249,11 +242,8 @@ const SYSTEM_PROMPT_RESERVE_TOKENS = 1500;
 /** A conservative flat token cost per image part; vision token accounting varies by provider. */
 const IMAGE_TOKEN_ESTIMATE = 1000;
 
-/**
- * A rough token size for one message, for the token-budget trim: an assistant
- * reply's own reported `completionTokens` when known, otherwise a chars/4
- * estimate of its text plus a flat cost per image. (Never `totalTokens` — that
- * already folds in the whole prior prompt and would multiply-count on a walk.)
+/** Estimates message tokens from reported completion tokens or text and images.
+ * Does not use `totalTokens`, which includes the preceding prompt.
  */
 export function estimateMessageTokens(message: UIMessage | ModelMessage): number {
 	const completion = messageUsage(message)?.completionTokens;
@@ -269,13 +259,8 @@ export function estimateMessageTokens(message: UIMessage | ModelMessage): number
 	return Math.ceil(text.length / 4) + imageCount * IMAGE_TOKEN_ESTIMATE;
 }
 
-/**
- * The token budget available for prior history on the next request, or
- * `undefined` when the context window is large or unknown (cloud providers)
- * and history is bounded by message count instead. Local runtimes report a
- * real, small `n_ctx` (read live from llama-server's `/props`); the budget
- * subtracts the output reservation (`max_tokens`) and headroom for the system
- * prompt so the window it keeps actually fits.
+/** Returns the history budget for a known local context window.
+ * Reserves tokens for the output and system prompt; cloud windows return undefined.
  */
 export function historyBudgetTokens({
 	nCtx,
@@ -335,6 +320,24 @@ export function awaitingAssistantResponse(messages: Array<UIMessage>): boolean {
 	return last?.role === "user";
 }
 
+/** Splits on runs of whitespace, dropping empty tokens (a plain-string `/\s+/`). */
+function splitOnWhitespace(text: string): string[] {
+	const tokens: string[] = [];
+	let current = "";
+	for (const char of text) {
+		if (char.trim() === "") {
+			if (current) {
+				tokens.push(current);
+				current = "";
+			}
+		} else {
+			current += char;
+		}
+	}
+	if (current) tokens.push(current);
+	return tokens;
+}
+
 /**
  * Derives a chat title from the leading words of the first message.
  * Deterministic and model-free.
@@ -343,5 +346,5 @@ export function awaitingAssistantResponse(messages: Array<UIMessage>): boolean {
 export function deriveConversationTitle(text: string): string | null {
 	const trimmed = text.trim();
 	if (!trimmed) return null;
-	return trimmed.split(/\s+/).slice(0, 6).join(" ").slice(0, 80);
+	return splitOnWhitespace(trimmed).slice(0, 6).join(" ").slice(0, 80);
 }

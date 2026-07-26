@@ -1,12 +1,16 @@
 import {
 	type ColumnDef,
+	type ColumnFiltersState,
 	type ExpandedState,
 	flexRender,
 	getCoreRowModel,
 	getExpandedRowModel,
+	getFacetedRowModel,
+	getFacetedUniqueValues,
 	getFilteredRowModel,
 	getPaginationRowModel,
 	getSortedRowModel,
+	type Table as ReactTable,
 	type RowData,
 	type SortingState,
 	type TableOptions,
@@ -49,8 +53,14 @@ type DataTableProps<TData> = {
 	pageSize?: number;
 	/** Placeholder for the toolbar's fuzzy search box; omit to render no search box. */
 	searchPlaceholder?: string;
-	/** Domain-specific filter controls, rendered in the toolbar beside the search box. */
-	filters?: ReactNode;
+	/**
+	 * Domain-specific filter controls, rendered in the toolbar beside the search
+	 * box. Receives the table instance so a filter control can read post-search
+	 * facet counts (`column.getFacetedUniqueValues()`) and drive a column filter
+	 * directly, instead of the caller hand-filtering rows before DataTable sees
+	 * them (which would disagree with the search box).
+	 */
+	filters?: (table: ReactTable<TData>) => ReactNode;
 	/** Stable identifier used to preserve row state when the data changes. */
 	getRowId?: TableOptions<TData>["getRowId"];
 	getRowClassName?: (row: TData) => string | undefined;
@@ -78,6 +88,7 @@ export function DataTable<TData>({
 }: DataTableProps<TData>) {
 	const [globalFilter, setGlobalFilter] = useState("");
 	const [sorting, setSorting] = useState<SortingState>(initialSorting);
+	const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
 	const [columnVisibility, setColumnVisibility] =
 		useState<VisibilityState>(initialColumnVisibility);
 	/** Only one row's detail panel is open at a time, so this tracks a single id rather than a set. */
@@ -95,8 +106,9 @@ export function DataTable<TData>({
 	const table = useReactTable({
 		data,
 		columns: tableColumns,
-		state: { sorting, globalFilter, columnVisibility, expanded },
+		state: { sorting, globalFilter, columnFilters, columnVisibility, expanded },
 		onSortingChange: setSorting,
+		onColumnFiltersChange: setColumnFilters,
 		onColumnVisibilityChange: setColumnVisibility,
 		onExpandedChange: (updater) => {
 			const current: Record<string, boolean> = expandedRowId ? { [expandedRowId]: true } : {};
@@ -111,6 +123,8 @@ export function DataTable<TData>({
 		getCoreRowModel: getCoreRowModel(),
 		getSortedRowModel: getSortedRowModel(),
 		getFilteredRowModel: getFilteredRowModel(),
+		getFacetedRowModel: getFacetedRowModel(),
+		getFacetedUniqueValues: getFacetedUniqueValues(),
 		getPaginationRowModel: pageSize ? getPaginationRowModel() : undefined,
 		getExpandedRowModel: renderDetail ? getExpandedRowModel() : undefined,
 		getRowCanExpand: renderDetail ? () => true : undefined,
@@ -132,7 +146,7 @@ export function DataTable<TData>({
 							data-testid="data-table-search"
 						/>
 					)}
-					{filters}
+					{filters?.(table)}
 					<div className="ml-auto">
 						<DataTableViewOptions table={table} labels={columnLabels} />
 					</div>

@@ -121,10 +121,19 @@ function openaiAdapter({
 	});
 }
 
+/** Strips a trailing `/v1` segment, so callers that append their own `/v1/...` don't double it. */
+function stripTrailingV1(url: string): string {
+	const trimmed = trimPathRight(url);
+	return trimmed.endsWith("/v1") ? trimmed.slice(0, -"/v1".length) : trimmed;
+}
+
 const OPENAI_COMPATIBLE: ProviderConfig = {
 	// Normalize to end at `/v1`; the SDK appends `/chat/completions`.
 	chatBaseUrl: (url) => {
-		const base = trimPathRight(url).replace(/\/chat\/completions$/, "");
+		const trimmed = trimPathRight(url);
+		const base = trimmed.endsWith("/chat/completions")
+			? trimmed.slice(0, -"/chat/completions".length)
+			: trimmed;
 		return base.endsWith("/v1") ? base : `${base}/v1`;
 	},
 	buildAdapter: (args) => openaiAdapter(args),
@@ -143,7 +152,7 @@ const OPENAI_COMPATIBLE: ProviderConfig = {
 const PROVIDERS: Record<LLMProvider, ProviderConfig> = {
 	anthropic: {
 		// Strip a trailing slash and a redundant `/v1` so the SDK appends its own path.
-		chatBaseUrl: (url) => trimPathRight(url).replace(/\/v1$/, ""),
+		chatBaseUrl: (url) => stripTrailingV1(url),
 		buildAdapter: ({ model, apiKey, baseUrl }) => {
 			// `createAnthropicChat` type-constrains the model to a fixed list; widen it with a
 			// runtime model definition so any bring-your-own Claude model name is accepted.
@@ -181,14 +190,15 @@ const PROVIDERS: Record<LLMProvider, ProviderConfig> = {
 		// Gemini authenticates via a `?key=` query parameter, not an Authorization header.
 		modelsHeaders: () => ({ "Content-Type": "application/json" }),
 		modelsUrl: ({ base, apiKey }) => `${base}/v1beta/models?key=${apiKey ?? ""}`,
-		parseModels: (json) => (json.models ?? []).map((m) => m.name.replace(/^models\//, "")),
+		parseModels: (json) =>
+			(json.models ?? []).map((m) => (m.name.startsWith("models/") ? m.name.slice(7) : m.name)),
 	},
 	llamacpp: {
 		...OPENAI_COMPATIBLE,
-		modelsHeaders: () => ({ "Content-Type": "application/json" }),
 		// `GET /models` (router mode) also lists downloaded-but-unloaded models,
-		// which `/v1/models` may omit; chat, `chatBaseUrl` and `buildAdapter` all
-		// inherit OPENAI_COMPATIBLE since router-mode chat is plain OpenAI-compatible.
+		// which `/v1/models` may omit; chat, `chatBaseUrl`, `buildAdapter` and
+		// `modelsHeaders` all inherit OPENAI_COMPATIBLE, since router-mode chat is
+		// plain OpenAI-compatible and `--api-key` is a Bearer header like the rest.
 		modelsUrl: ({ base }) => `${base}/models`,
 		parseModels: (json) => (json.data ?? []).map((m) => m.id),
 	},
@@ -272,11 +282,6 @@ export function streamLLMEvents(opts: StreamLLMOptions): AsyncIterable<StreamChu
 
 export type EndpointProbeResult = { ok: true; modelCount: number } | { ok: false; error: string };
 
-/** Strips a trailing `/v1` so `modelsUrl`, which appends its own `/v1/...`, doesn't double it. */
-function stripTrailingApiVersion(url: string): string {
-	return trimPathRight(url).replace(/\/v1$/, "");
-}
-
 /** The model-list request for an endpoint, extracted from {@link listModels} for testing. */
 export function buildModelsRequest({
 	url,
@@ -288,7 +293,7 @@ export function buildModelsRequest({
 	provider?: LLMProvider;
 }): { url: string; headers: Record<string, string> } {
 	const config = PROVIDERS[provider ?? detectProvider(url)];
-	const base = stripTrailingApiVersion(url);
+	const base = stripTrailingV1(url);
 	return { url: config.modelsUrl({ base, apiKey }), headers: config.modelsHeaders(apiKey) };
 }
 
