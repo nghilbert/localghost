@@ -25,7 +25,11 @@ export function makeCatalogModel(overrides: Partial<CatalogModel> = {}): Catalog
 		tags: ["chat"],
 		capabilities: ["tools"],
 		description: faker.lorem.sentence(),
+		author: faker.internet.username(),
+		license: "apache-2.0",
+		likes: 100,
 		pullCount: 1_000_000,
+		createdAt: null,
 		...overrides,
 	};
 }

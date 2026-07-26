@@ -6,6 +6,7 @@ import {
 	type ModelVariantGroup,
 	type ModelVariantOption,
 } from "#/routes/_authenticated/library/-lib/model-variants";
+import { Badge } from "#/shared/components/ui/badge";
 import {
 	Card,
 	CardContent,
@@ -108,6 +109,11 @@ export function ModelVariantCard({
 																<span className="block truncate text-xs text-muted-foreground">
 																	{formatModelVariantDetails(option)}
 																</span>
+																{!option.isSameRepoAsPrimary && (
+																	<span className="block truncate text-[11px] text-muted-foreground">
+																		from {option.repoId}
+																	</span>
+																)}
 															</span>
 														</ComboboxItem>
 													)}
@@ -127,9 +133,15 @@ export function ModelVariantCard({
 					/>
 				</div>
 
-				<p className="text-xs text-muted-foreground" data-testid="model-variant-target">
+				<p
+					className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground"
+					data-testid="model-variant-target"
+				>
 					<span className="font-medium text-foreground">{targetModel}</span>
 					{selectedOption && ` · ${formatModelVariantDetails(selectedOption)}`}
+					{selectedOption && !selectedOption.isSameRepoAsPrimary && (
+						<Badge variant="outline">{selectedOption.repoId}</Badge>
+					)}
 				</p>
 				{selectedOption?.fit === "may-be-too-large" && (
 					<p className="text-xs text-destructive">Likely too large for this machine's memory.</p>

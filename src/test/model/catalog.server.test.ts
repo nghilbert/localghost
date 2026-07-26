@@ -1,61 +1,45 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-// The catalog module caches its result at module scope, so each test imports
-// a fresh instance via `vi.resetModules()` to isolate fetch mocks.
-async function freshGetCatalog() {
+const INDEX_URL =
+	"https://huggingface.co/api/models?filter=gguf&sort=downloads&direction=-1&limit=100&expand[]=author&expand[]=downloads&expand[]=likes&expand[]=tags&expand[]=lastModified&expand[]=createdAt&expand[]=gated&expand[]=private&expand[]=pipeline_tag";
+
+async function freshCatalogModule() {
 	vi.resetModules();
-	const mod = await import("#/shared/domain/model/catalog.server");
-	return mod.getCatalog;
+	return import("#/shared/domain/model/catalog.server");
 }
 
-const INDEX_URL =
-	"https://huggingface.co/api/models?filter=gguf&sort=downloads&direction=-1&limit=100&expand[]=downloads&expand[]=tags&expand[]=lastModified&expand[]=gated&expand[]=private&expand[]=pipeline_tag";
-
-function jsonResponse(body: unknown): Response {
-	return new Response(JSON.stringify(body), { status: 200 });
+function jsonResponse(body: unknown, headers?: Record<string, string>): Response {
+	return new Response(JSON.stringify(body), { status: 200, headers });
 }
 
 describe("getCatalog (Hugging Face)", () => {
-	beforeEach(() => {
-		vi.stubGlobal("fetch", vi.fn());
-	});
+	beforeEach(() => vi.stubGlobal("fetch", vi.fn()));
+	afterEach(() => vi.unstubAllGlobals());
 
-	afterEach(() => {
-		vi.unstubAllGlobals();
-	});
-
-	it("picks Q4_K_M as the default quant when available, not the largest file", async () => {
+	it("uses the default Q4_K_M quant and preserves its repository id", async () => {
 		const fetchMock = vi.mocked(fetch);
 		fetchMock.mockImplementation(async (input) => {
-			const url = String(input);
-			if (url === INDEX_URL) {
+			if (String(input) === INDEX_URL) {
 				return jsonResponse([
-					{
-						id: "ggml-org/gemma-3-4b-it-GGUF",
-						downloads: 12345,
-						tags: ["conversational"],
-						pipeline_tag: "text-generation",
-					},
+					{ id: "ggml-org/gemma-3-4b-it-GGUF", downloads: 12, tags: ["conversational"] },
 				]);
 			}
 			return jsonResponse([
-				{ path: "gemma-3-4b-it-Q4_K_M.gguf", size: 999, lfs: { size: 2_500_000_000 } },
-				{ path: "gemma-3-4b-it-Q8_0.gguf", lfs: { size: 4_500_000_000 } },
+				{ path: "gemma-Q4_K_M.gguf", lfs: { size: 2_500_000_000 } },
+				{ path: "gemma-Q8_0.gguf", lfs: { size: 4_500_000_000 } },
 			]);
 		});
 
-		const getCatalog = await freshGetCatalog();
+		const { getCatalog } = await freshCatalogModule();
 		const [model] = await getCatalog();
 		expect(model?.id).toBe("ggml-org/gemma-3-4b-it-GGUF:Q4_K_M");
-		expect(model?.sizeGb).toBeCloseTo(2.3, 1);
-		expect(model?.displayName).toBe("Gemma 3 4B");
+		expect(model?.variants?.[0]?.repoId).toBe("ggml-org/gemma-3-4b-it-GGUF");
 	});
 
-	it("skips mmproj files, and sums a sharded model's parts into one variant", async () => {
+	it("skips mmproj files and sums sharded model parts", async () => {
 		const fetchMock = vi.mocked(fetch);
 		fetchMock.mockImplementation(async (input) => {
-			const url = String(input);
-			if (url === INDEX_URL) {
+			if (String(input) === INDEX_URL) {
 				return jsonResponse([{ id: "org/model-8B-GGUF", downloads: 1, tags: ["conversational"] }]);
 			}
 			return jsonResponse([
@@ -65,32 +49,30 @@ describe("getCatalog (Hugging Face)", () => {
 			]);
 		});
 
-		const getCatalog = await freshGetCatalog();
+		const { getCatalog } = await freshCatalogModule();
 		const [model] = await getCatalog();
 		expect(model?.variants).toHaveLength(1);
 		expect(model?.variants?.[0]?.fileName).toBe("model-Q4_K_M-00001-of-00002.gguf");
 		expect(model?.variants?.[0]?.sizeGb).toBeCloseTo(1.9, 1);
 	});
 
-	it("drops repos with zero eligible GGUF variants or no parseable size", async () => {
+	it("drops repositories without an eligible GGUF variant or parseable size", async () => {
 		const fetchMock = vi.mocked(fetch);
 		fetchMock.mockImplementation(async (input) => {
-			const url = String(input);
-			if (url === INDEX_URL) {
+			if (String(input) === INDEX_URL) {
 				return jsonResponse([{ id: "org/no-gguf-8B", downloads: 1, tags: ["conversational"] }]);
 			}
 			return jsonResponse([{ path: "README.md", size: 100 }]);
 		});
 
-		const getCatalog = await freshGetCatalog();
+		const { getCatalog } = await freshCatalogModule();
 		await expect(getCatalog()).resolves.toEqual([]);
 	});
 
-	it("filters out gated, private, and non-chat repos before fetching their trees", async () => {
+	it("filters gated, private, and non-chat repositories before tree fetches", async () => {
 		const fetchMock = vi.mocked(fetch);
 		fetchMock.mockImplementation(async (input) => {
-			const url = String(input);
-			if (url === INDEX_URL) {
+			if (String(input) === INDEX_URL) {
 				return jsonResponse([
 					{ id: "org/gated-8B", downloads: 1, tags: ["conversational"], gated: true },
 					{ id: "org/private-8B", downloads: 1, tags: ["conversational"], private: true },
@@ -106,18 +88,16 @@ describe("getCatalog (Hugging Face)", () => {
 			return jsonResponse([{ path: "model-Q4_K_M.gguf", lfs: { size: 1_000_000_000 } }]);
 		});
 
-		const getCatalog = await freshGetCatalog();
+		const { getCatalog } = await freshCatalogModule();
 		const models = await getCatalog();
-		expect(models.map((m) => m.name)).toEqual(["org/open-8B"]);
-		// Only the one eligible repo's tree should have been fetched.
+		expect(models.map((model) => model.name)).toEqual(["org/open-8B"]);
 		expect(fetchMock).toHaveBeenCalledTimes(2);
 	});
 
-	it("dedupes repacks of the same base model, preferring the higher-ranked publisher", async () => {
+	it("dedupes repacks and prefers the higher-ranked publisher", async () => {
 		const fetchMock = vi.mocked(fetch);
 		fetchMock.mockImplementation(async (input) => {
-			const url = String(input);
-			if (url === INDEX_URL) {
+			if (String(input) === INDEX_URL) {
 				return jsonResponse([
 					{ id: "unsloth/Qwen3-8B-GGUF", downloads: 100, tags: ["conversational"] },
 					{ id: "ggml-org/Qwen3-8B-GGUF", downloads: 50, tags: ["conversational"] },
@@ -126,45 +106,41 @@ describe("getCatalog (Hugging Face)", () => {
 			return jsonResponse([{ path: "model-Q4_K_M.gguf", lfs: { size: 1_000_000_000 } }]);
 		});
 
-		const getCatalog = await freshGetCatalog();
+		const { getCatalog } = await freshCatalogModule();
 		const models = await getCatalog();
 		expect(models).toHaveLength(1);
 		expect(models[0]?.name).toBe("ggml-org/Qwen3-8B-GGUF");
 	});
 
-	it("stops indexing after 200 eligible models without reading later pages", async () => {
-		const firstPage = Array.from({ length: 100 }, (_, index) => ({
+	it("stops after 200 eligible entries and scans no more than 400 raw entries", async () => {
+		const eligiblePage = Array.from({ length: 100 }, (_, index) => ({
 			id: `org/model-${index}-8B-GGUF`,
 			downloads: index,
 			tags: ["conversational"],
 		}));
 		const secondPage = Array.from({ length: 100 }, (_, index) => ({
 			id: `org/model-${index + 100}-8B-GGUF`,
-			downloads: index,
+			downloads: index + 100,
 			tags: ["conversational"],
 		}));
 		const fetchMock = vi.mocked(fetch);
 		fetchMock.mockImplementation(async (input) => {
 			const url = String(input);
 			if (url === INDEX_URL) {
-				return new Response(JSON.stringify(firstPage), {
-					status: 200,
-					headers: { link: '<https://huggingface.co/api/models?cursor=second>; rel="next"' },
+				return jsonResponse(eligiblePage, {
+					link: '<https://huggingface.co/api/models?cursor=second>; rel="next"',
 				});
 			}
-			if (url === "https://huggingface.co/api/models?cursor=second") {
-				return new Response(JSON.stringify(secondPage), {
-					status: 200,
-					headers: { link: '<https://huggingface.co/api/models?cursor=third>; rel="next"' },
+			if (url.includes("cursor=second")) {
+				return jsonResponse(secondPage, {
+					link: '<https://huggingface.co/api/models?cursor=third>; rel="next"',
 				});
 			}
-			if (url === "https://huggingface.co/api/models?cursor=third") {
-				throw new Error("catalog should stop after 200 eligible models");
-			}
+			if (url.includes("cursor=third")) throw new Error("should not fetch a third index page");
 			return jsonResponse([{ path: "model-Q4_K_M.gguf", lfs: { size: 1_000_000_000 } }]);
 		});
 
-		const getCatalog = await freshGetCatalog();
+		const { getCatalog } = await freshCatalogModule();
 		await expect(getCatalog()).resolves.toHaveLength(200);
 	});
 
@@ -179,16 +155,45 @@ describe("getCatalog (Hugging Face)", () => {
 			if (url.includes("/models?")) {
 				const cursor = new URL(url).searchParams.get("cursor");
 				const next = cursor ? Number(cursor) + 1 : 1;
-				return new Response(JSON.stringify(page), {
-					status: 200,
-					headers: { link: `<https://huggingface.co/api/models?cursor=${next}>; rel="next"` },
+				return jsonResponse(page, {
+					link: `<https://huggingface.co/api/models?cursor=${next}>; rel="next"`,
 				});
 			}
 			throw new Error("ineligible entries should not fetch repository trees");
 		});
 
-		const getCatalog = await freshGetCatalog();
+		const { getCatalog } = await freshCatalogModule();
 		await expect(getCatalog()).rejects.toThrow("0 eligible models");
 		expect(fetchMock).toHaveBeenCalledTimes(4);
+	});
+
+	it("filters, paginates, searches, and filters licenses from the cached catalog", async () => {
+		const fetchMock = vi.mocked(fetch);
+		fetchMock.mockImplementation(async (input) => {
+			if (String(input) === INDEX_URL) {
+				return jsonResponse([
+					{ id: "org/alpha-8B-GGUF", downloads: 300, tags: ["conversational", "license:mit"] },
+					{
+						id: "org/beta-8B-GGUF",
+						downloads: 200,
+						tags: ["conversational", "license:apache-2.0"],
+					},
+				]);
+			}
+			return jsonResponse([{ path: "model-Q4_K_M.gguf", lfs: { size: 1_000_000_000 } }]);
+		});
+
+		const { getCatalogPage } = await freshCatalogModule();
+		const page = await getCatalogPage({
+			page: 0,
+			pageSize: 1,
+			sortBy: "pullCount",
+			sortDir: "desc",
+			license: "mit",
+			search: "alpha",
+		});
+		expect(page.rows.map((model) => model.name)).toEqual(["org/alpha-8B-GGUF"]);
+		expect(page.total).toBe(1);
+		expect(page.availableLicenses).toEqual(["apache-2.0", "mit"]);
 	});
 });

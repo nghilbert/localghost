@@ -4,14 +4,26 @@ import type { ModelVariantInfo } from "./types";
 
 const HF_API = "https://huggingface.co/api";
 const REQUEST_TIMEOUT_MS = 15_000;
-const HF_INDEX_FIELDS = ["downloads", "tags", "lastModified", "gated", "private", "pipeline_tag"];
+const HF_INDEX_FIELDS = [
+	"author",
+	"downloads",
+	"likes",
+	"tags",
+	"lastModified",
+	"createdAt",
+	"gated",
+	"private",
+	"pipeline_tag",
+];
 
 const hfIndexModelSchema = z.object({
 	id: z.string(),
+	author: z.string().optional(),
 	downloads: z.number().optional(),
 	likes: z.number().optional(),
 	tags: z.array(z.string()).optional(),
 	lastModified: z.string().optional(),
+	createdAt: z.string().optional(),
 	gated: z.union([z.boolean(), z.string()]).optional(),
 	private: z.boolean().optional(),
 	pipeline_tag: z.string().optional(),
@@ -96,6 +108,7 @@ export async function getHfGgufVariants({
 			quant,
 			sizeGb: bytes ? Math.round((bytes / 1024 ** 3) * 10) / 10 : null,
 			fileName: entry.path,
+			repoId,
 		});
 	}
 	return variants.sort((a, b) => (a.sizeGb ?? 0) - (b.sizeGb ?? 0));

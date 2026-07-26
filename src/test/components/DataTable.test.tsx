@@ -1,4 +1,5 @@
-import type { ColumnDef } from "@tanstack/react-table";
+import type { ColumnDef, PaginationState, SortingState } from "@tanstack/react-table";
+import { useState } from "react";
 import { describe, expect, it } from "vitest";
 import type { RenderResult } from "vitest-browser-react";
 import { DataTable } from "#/shared/components/DataTable";
@@ -225,6 +226,86 @@ describe("DataTable", () => {
 			await expect
 				.element(screen.getByTestId("detail-content"))
 				.toHaveTextContent("banana details");
+		});
+	});
+
+	describe("manual/server mode", () => {
+		it("advances the caller's page state without a client row model, leaving data order alone", async () => {
+			function Harness() {
+				const [pagination, setPagination] = useState<PaginationState>({
+					pageIndex: 0,
+					pageSize: 2,
+				});
+				const page = pagination.pageIndex === 0 ? [banana, apple] : [cherry];
+				return (
+					<DataTable
+						columns={columns}
+						data={page}
+						manualPagination
+						pagination={pagination}
+						onPaginationChange={setPagination}
+						rowCount={fruits.length}
+					/>
+				);
+			}
+			const screen = await render(<Harness />);
+
+			await expect.poll(() => rowTexts(screen)).toEqual(["banana", "apple"]);
+
+			await screen.getByTestId("data-table-next-page").first().click();
+
+			await expect.poll(() => rowTexts(screen)).toEqual(["cherry"]);
+		});
+
+		it("fires onSortingChange without reordering data itself", async () => {
+			function Harness() {
+				const [sorting, setSorting] = useState<SortingState>([]);
+				return (
+					<DataTable
+						columns={columns}
+						data={fruits}
+						sorting={sorting}
+						onSortingChange={setSorting}
+					/>
+				);
+			}
+			const screen = await render(<Harness />);
+
+			await screen.getByTestId("data-table-sort-count").click();
+
+			// Manual sorting: the caller's data order is left exactly as given.
+			await expect.poll(() => rowTexts(screen)).toEqual(["banana", "apple", "cherry"]);
+		});
+
+		it("reflects a controlled search value without filtering data locally", async () => {
+			function Harness() {
+				const [searchValue, setSearchValue] = useState("");
+				return (
+					<DataTable
+						columns={columns}
+						data={fruits}
+						searchPlaceholder="Search fruit…"
+						searchValue={searchValue}
+						onSearchChange={setSearchValue}
+					/>
+				);
+			}
+			const screen = await render(<Harness />);
+
+			await screen.getByTestId("data-table-search").fill("cher");
+
+			await expect.element(screen.getByTestId("data-table-search")).toHaveValue("cher");
+			// Manual filtering: the caller's data is left exactly as given, unfiltered.
+			await expect.poll(() => rowTexts(screen)).toEqual(["banana", "apple", "cherry"]);
+		});
+
+		it("renders skeleton rows instead of data while isLoading", async () => {
+			const screen = await render(<DataTable columns={columns} data={fruits} isLoading />);
+
+			await expect.element(screen.getByTestId("data-table-row")).not.toBeInTheDocument();
+			await expect
+				.element(screen.getByTestId("data-table-skeleton-row").first())
+				.toBeInTheDocument();
 		});
 	});
 });

@@ -1,5 +1,5 @@
+import { availableMemoryGb, requiredMemoryGb } from "#/shared/domain/model/hardware-fit";
 import type { CatalogModel, HardwareInfo, ModelVariantInfo } from "#/shared/domain/model/types";
-import { availableMemoryGb, requiredMemoryGb } from "./catalog";
 
 export type ModelVariantFit = "likely-fits" | "may-be-too-large" | "size-unknown";
 
@@ -11,6 +11,10 @@ export type ModelVariantOption = {
 	estimatedMemoryGb: number | null;
 	fit: ModelVariantFit | null;
 	isCurrent: boolean;
+	/** The Hugging Face repo this quant actually lives in. */
+	repoId: string;
+	/** False when this quant was merged in from a different (losing dedupe) repo. */
+	isSameRepoAsPrimary: boolean;
 };
 
 export type ModelVariantGroupId = ModelVariantFit | "variants";
@@ -47,7 +51,7 @@ function sourceVariants({
 	currentQuant: string;
 }): ModelVariantInfo[] {
 	if (catalog.variants && catalog.variants.length > 0) return catalog.variants;
-	return [{ quant: currentQuant, sizeGb: catalog.sizeGb, fileName: "" }];
+	return [{ quant: currentQuant, sizeGb: catalog.sizeGb, fileName: "", repoId: catalog.name }];
 }
 
 function compareOptions({
@@ -118,12 +122,14 @@ export function buildModelVariants({
 			const estimatedMemoryGb = requiredMemoryGb({ sizeGb, paramB: catalog.paramB });
 			return {
 				quant: variant.quant,
-				modelId: `${catalog.name}:${variant.quant}`,
+				modelId: `${variant.repoId}:${variant.quant}`,
 				sizeGb,
 				contextK: isCurrent ? catalog.contextK : null,
 				estimatedMemoryGb,
 				fit: variantFit({ estimatedMemoryGb, hardware }),
 				isCurrent,
+				repoId: variant.repoId,
+				isSameRepoAsPrimary: variant.repoId === catalog.name,
 			};
 		})
 		.sort((left, right) => compareOptions({ left, right }));

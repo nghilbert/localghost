@@ -9,11 +9,13 @@ import { makeCatalogModel, makeHardware } from "#/test/factories";
 function variant({
 	quant,
 	sizeGb = null,
+	repoId = "org/model-GGUF",
 }: {
 	quant: string;
 	sizeGb?: number | null;
+	repoId?: string;
 }): ModelVariantInfo {
-	return { quant, sizeGb, fileName: `model-${quant}.gguf` };
+	return { quant, sizeGb, fileName: `model-${quant}.gguf`, repoId };
 }
 
 describe("buildModelVariants", () => {
@@ -22,8 +24,8 @@ describe("buildModelVariants", () => {
 			id: "org/llama3.1-GGUF:Q4_K_M",
 			name: "org/llama3.1-GGUF",
 			variants: [
-				variant({ quant: "Q8_0", sizeGb: 8.5 }),
-				variant({ quant: "Q4_K_M", sizeGb: 4.9 }),
+				variant({ quant: "Q8_0", sizeGb: 8.5, repoId: "org/llama3.1-GGUF" }),
+				variant({ quant: "Q4_K_M", sizeGb: 4.9, repoId: "org/llama3.1-GGUF" }),
 			],
 		});
 
@@ -70,6 +72,8 @@ describe("buildModelVariants", () => {
 				estimatedMemoryGb: 6.6,
 				fit: null,
 				isCurrent: true,
+				repoId: "org/llama3.1-GGUF",
+				isSameRepoAsPrimary: true,
 			},
 		]);
 	});
@@ -166,5 +170,31 @@ describe("buildModelVariants", () => {
 			"4.9 GB download · 128K context · ~6.6 GB memory",
 		);
 		expect(formatModelVariantDetails(unavailable)).toBe("Details unavailable");
+	});
+
+	it("keeps a merged-in variant's own repo, so its pull target isn't the winning repo's", () => {
+		const catalog = makeCatalogModel({
+			id: "ggml-org/model-GGUF:Q4_K_M",
+			name: "ggml-org/model-GGUF",
+			variants: [
+				variant({ quant: "Q4_K_M", sizeGb: 4, repoId: "ggml-org/model-GGUF" }),
+				// Merged from a losing dedupe candidate; only that repo has this quant.
+				variant({ quant: "Q8_0", sizeGb: 8, repoId: "unsloth/model-GGUF" }),
+			],
+		});
+
+		const variants = buildModelVariants({ catalog, hardware: undefined });
+
+		const winning = variants.options.find((option) => option.quant === "Q4_K_M");
+		const mergedIn = variants.options.find((option) => option.quant === "Q8_0");
+		expect(winning).toMatchObject({
+			modelId: "ggml-org/model-GGUF:Q4_K_M",
+			isSameRepoAsPrimary: true,
+		});
+		expect(mergedIn).toMatchObject({
+			modelId: "unsloth/model-GGUF:Q8_0",
+			repoId: "unsloth/model-GGUF",
+			isSameRepoAsPrimary: false,
+		});
 	});
 });

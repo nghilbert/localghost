@@ -1,13 +1,33 @@
 import { describe, expect, it } from "vitest";
+import type { CatalogCandidate } from "#/shared/domain/model/catalog-curation";
 import {
 	baseModelKey,
 	dedupeByBaseModel,
 	deriveDisplayName,
+	deriveLicense,
 	isChatModel,
 	pickDefaultVariant,
 } from "#/shared/domain/model/catalog-curation";
 import { isMmprojFile, parseQuantFromFilename, parseShardParts } from "#/shared/domain/model/gguf";
 import { parseParamB } from "#/shared/domain/model/model-id";
+
+/** A minimal `CatalogCandidate`, filling irrelevant fields with neutral defaults. */
+function candidate(overrides: Partial<CatalogCandidate> & Pick<CatalogCandidate, "name">) {
+	const base: CatalogCandidate = {
+		name: overrides.name,
+		paramB: 8,
+		capabilities: [],
+		updatedAt: undefined,
+		author: null,
+		license: null,
+		likes: 0,
+		createdAt: null,
+		contextK: null,
+		pullCount: 0,
+		variants: [],
+	};
+	return { ...base, ...overrides };
+}
 
 describe("parseQuantFromFilename", () => {
 	it("matches known quants, longest token first", () => {
@@ -81,9 +101,36 @@ describe("isChatModel", () => {
 	});
 });
 
+describe("deriveLicense", () => {
+	it("prefers card-data license over a tag", () => {
+		expect(deriveLicense({ cardDataLicense: "apache-2.0", tags: ["license:mit"] })).toBe(
+			"apache-2.0",
+		);
+	});
+
+	it("falls back to a license: tag when card data has none", () => {
+		expect(deriveLicense({ cardDataLicense: undefined, tags: ["gguf", "license:mit"] })).toBe(
+			"mit",
+		);
+	});
+
+	it("is null when neither source has a license", () => {
+		expect(deriveLicense({ cardDataLicense: undefined, tags: ["gguf"] })).toBeNull();
+	});
+});
+
 describe("baseModelKey / deriveDisplayName", () => {
-	it("strips org, GGUF suffix, and repack markers to collide repacks", () => {
+	it("strips org, GGUF suffix, and canonical instruct markers to collide repacks", () => {
 		expect(baseModelKey("unsloth/Qwen3-8B-GGUF")).toBe(baseModelKey("ggml-org/Qwen3-8B-it-GGUF"));
+	});
+
+	it("does not collide a training-stage or safety-tuned variant with the base model", () => {
+		const base = baseModelKey("org/Model-8B-Instruct-GGUF");
+		expect(baseModelKey("org/Model-8B-Instruct-qat-GGUF")).not.toBe(base);
+		expect(baseModelKey("org/Model-8B-Instruct-mtp-GGUF")).not.toBe(base);
+		expect(baseModelKey("org/Model-8B-Instruct-abliterated-GGUF")).not.toBe(base);
+		expect(baseModelKey("org/Model-8B-Instruct-uncensored-GGUF")).not.toBe(base);
+		expect(baseModelKey("org/Model-8B-chat-GGUF")).not.toBe(base);
 	});
 
 	it("derives a clean display name", () => {
@@ -95,22 +142,16 @@ describe("baseModelKey / deriveDisplayName", () => {
 describe("dedupeByBaseModel", () => {
 	it("collapses repacks to the best-ranked publisher and merges variants", () => {
 		const merged = dedupeByBaseModel([
-			{
+			candidate({
 				name: "unsloth/Qwen3-8B-GGUF",
-				paramB: 8,
-				capabilities: [],
-				updatedAt: undefined,
 				pullCount: 100,
-				variants: [{ quant: "Q4_K_M", sizeGb: 5, fileName: "a" }],
-			},
-			{
+				variants: [{ quant: "Q4_K_M", sizeGb: 5, fileName: "a", repoId: "unsloth/Qwen3-8B-GGUF" }],
+			}),
+			candidate({
 				name: "ggml-org/Qwen3-8B-GGUF",
-				paramB: 8,
-				capabilities: [],
-				updatedAt: undefined,
 				pullCount: 50,
-				variants: [{ quant: "Q8_0", sizeGb: 9, fileName: "b" }],
-			},
+				variants: [{ quant: "Q8_0", sizeGb: 9, fileName: "b", repoId: "ggml-org/Qwen3-8B-GGUF" }],
+			}),
 		]);
 		expect(merged).toHaveLength(1);
 		expect(merged[0]?.name).toBe("ggml-org/Qwen3-8B-GGUF");
@@ -119,41 +160,53 @@ describe("dedupeByBaseModel", () => {
 
 	it("keeps unrelated models separate", () => {
 		const merged = dedupeByBaseModel([
-			{
+			candidate({
 				name: "org/model-a-8B-GGUF",
-				paramB: 8,
-				capabilities: [],
-				updatedAt: undefined,
 				pullCount: 1,
-				variants: [{ quant: "Q4_K_M", sizeGb: 5, fileName: "a" }],
-			},
-			{
+				variants: [{ quant: "Q4_K_M", sizeGb: 5, fileName: "a", repoId: "org/model-a-8B-GGUF" }],
+			}),
+			candidate({
 				name: "org/model-b-8B-GGUF",
-				paramB: 8,
-				capabilities: [],
-				updatedAt: undefined,
 				pullCount: 1,
-				variants: [{ quant: "Q4_K_M", sizeGb: 5, fileName: "b" }],
-			},
+				variants: [{ quant: "Q4_K_M", sizeGb: 5, fileName: "b", repoId: "org/model-b-8B-GGUF" }],
+			}),
 		]);
 		expect(merged).toHaveLength(2);
+	});
+
+	it("keeps a merged-in variant's own repo id, not the winning candidate's", () => {
+		const merged = dedupeByBaseModel([
+			candidate({
+				name: "unsloth/Qwen3-8B-GGUF",
+				pullCount: 100,
+				variants: [{ quant: "Q4_K_M", sizeGb: 5, fileName: "a", repoId: "unsloth/Qwen3-8B-GGUF" }],
+			}),
+			candidate({
+				name: "ggml-org/Qwen3-8B-GGUF",
+				pullCount: 50,
+				variants: [{ quant: "Q8_0", sizeGb: 9, fileName: "b", repoId: "ggml-org/Qwen3-8B-GGUF" }],
+			}),
+		]);
+		expect(merged[0]?.name).toBe("ggml-org/Qwen3-8B-GGUF");
+		const mergedInVariant = merged[0]?.variants.find((v) => v.quant === "Q4_K_M");
+		expect(mergedInVariant?.repoId).toBe("unsloth/Qwen3-8B-GGUF");
 	});
 });
 
 describe("pickDefaultVariant", () => {
 	it("prefers Q4_K_M over the largest file", () => {
 		const variants = [
-			{ quant: "Q4_K_M", sizeGb: 2.5, fileName: "a" },
-			{ quant: "Q8_0", sizeGb: 4.5, fileName: "b" },
-			{ quant: "BF16", sizeGb: 8, fileName: "c" },
+			{ quant: "Q4_K_M", sizeGb: 2.5, fileName: "a", repoId: "org/model" },
+			{ quant: "Q8_0", sizeGb: 4.5, fileName: "b", repoId: "org/model" },
+			{ quant: "BF16", sizeGb: 8, fileName: "c", repoId: "org/model" },
 		];
 		expect(pickDefaultVariant(variants)?.quant).toBe("Q4_K_M");
 	});
 
 	it("falls back to the largest variant under 8GB when no preferred quant exists", () => {
 		const variants = [
-			{ quant: "IQ2_M", sizeGb: 3, fileName: "a" },
-			{ quant: "F32", sizeGb: 20, fileName: "b" },
+			{ quant: "IQ2_M", sizeGb: 3, fileName: "a", repoId: "org/model" },
+			{ quant: "F32", sizeGb: 20, fileName: "b", repoId: "org/model" },
 		];
 		expect(pickDefaultVariant(variants)?.quant).toBe("IQ2_M");
 	});

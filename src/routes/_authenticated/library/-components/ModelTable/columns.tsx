@@ -1,7 +1,7 @@
 import type { ColumnDef } from "@tanstack/react-table";
-import { formatPullCount, requiredMemoryGb } from "#/routes/_authenticated/library/-lib/catalog";
 import type { ModelRow } from "#/routes/_authenticated/library/-lib/model-rows";
 import { DataTableColumnHeader } from "#/shared/components/DataTable/DataTableColumnHeader";
+import { formatPullCount, requiredMemoryGb } from "#/shared/domain/model/hardware-fit";
 import { MemoryCell, ModelIdentityCell, ParamsCell, SizeCell, TextCell } from "./ModelCells";
 
 /** Display names for the column-visibility menu, keyed by column id. */
@@ -12,6 +12,11 @@ export const MODEL_COLUMN_LABELS: Record<string, string> = {
 	size: "Size",
 	pulls: "Pulls",
 	updated: "Updated",
+	author: "Author",
+	license: "License",
+	likes: "Likes",
+	context: "Context",
+	created: "Created",
 };
 
 /** `null`/`undefined` sort last regardless of direction. */
@@ -21,16 +26,6 @@ function nullableNumber(value: number | null | undefined): number {
 
 export function createModelColumns(): ColumnDef<ModelRow>[] {
 	return [
-		{
-			// Hidden always: exists only so ModelStatusFilter can drive a real
-			// column filter and read post-search facet counts, instead of the
-			// table pre-filtering rows itself (which disagreed with the search box).
-			id: "status",
-			accessorFn: (row) => (row.installed ? "installed" : "available"),
-			enableHiding: false,
-			enableGlobalFilter: false,
-			filterFn: "equals",
-		},
 		{
 			id: "name",
 			accessorFn: (row) =>
@@ -94,6 +89,61 @@ export function createModelColumns(): ColumnDef<ModelRow>[] {
 				/>
 			),
 			meta: { className: "hidden lg:table-cell" },
+		},
+		{
+			id: "author",
+			accessorFn: (row) => row.catalog?.author ?? "",
+			header: ({ column }) => <DataTableColumnHeader column={column} title="Author" />,
+			cell: ({ row }) => <TextCell value={row.original.catalog?.author ?? undefined} />,
+			meta: { className: "hidden xl:table-cell" },
+		},
+		{
+			id: "license",
+			accessorFn: (row) => row.catalog?.license ?? "",
+			header: ({ column }) => <DataTableColumnHeader column={column} title="License" />,
+			cell: ({ row }) => <TextCell value={row.original.catalog?.license ?? undefined} />,
+			meta: { className: "hidden xl:table-cell" },
+		},
+		{
+			id: "likes",
+			accessorFn: (row) => nullableNumber(row.catalog?.likes),
+			header: ({ column }) => <DataTableColumnHeader column={column} title="Likes" />,
+			cell: ({ row }) => (
+				<TextCell
+					value={
+						row.original.catalog?.likes != null
+							? formatPullCount(row.original.catalog.likes)
+							: undefined
+					}
+				/>
+			),
+			meta: { className: "hidden xl:table-cell" },
+		},
+		{
+			id: "context",
+			accessorFn: (row) => nullableNumber(row.catalog?.contextK),
+			header: ({ column }) => <DataTableColumnHeader column={column} title="Context" />,
+			cell: ({ row }) => (
+				<TextCell
+					value={row.original.catalog?.contextK ? `${row.original.catalog.contextK}K` : undefined}
+				/>
+			),
+			meta: { className: "hidden lg:table-cell" },
+		},
+		{
+			id: "created",
+			accessorFn: (row) => row.catalog?.createdAt ?? "",
+			header: ({ column }) => <DataTableColumnHeader column={column} title="Created" />,
+			cell: ({ row }) => (
+				<TextCell
+					value={
+						row.original.catalog?.createdAt
+							? new Date(row.original.catalog.createdAt).toLocaleDateString()
+							: undefined
+					}
+				/>
+			),
+			meta: { className: "hidden xl:table-cell" },
 		},
 	];
 }

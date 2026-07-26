@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildModelRows } from "#/routes/_authenticated/library/-lib/model-rows";
-import type { PullProgress } from "#/shared/domain/model/types";
+import type { CatalogModel, PullProgress } from "#/shared/domain/model/types";
 import { makeCatalogModel, makeInstalledModel } from "#/test/factories";
 
 function rowById(rows: ReturnType<typeof buildModelRows>, id: string) {
@@ -9,9 +9,13 @@ function rowById(rows: ReturnType<typeof buildModelRows>, id: string) {
 	return row;
 }
 
+function catalogById(models: CatalogModel[]) {
+	return new Map(models.map((model) => [model.id, model]));
+}
+
 describe("buildModelRows", () => {
-	it("unions catalog, installed models, and active downloads without duplicates", () => {
-		const catalog = [
+	it("unions the catalog page, installed models, and active downloads without duplicates", () => {
+		const catalogPage = [
 			makeCatalogModel({ id: "org/llama3.2-GGUF:Q4_K_M" }),
 			makeCatalogModel({ id: "org/qwen2.5-GGUF:Q4_K_M" }),
 		];
@@ -21,9 +25,11 @@ describe("buildModelRows", () => {
 		};
 
 		const rows = buildModelRows({
-			catalog,
+			catalogPage,
+			catalogById: catalogById(catalogPage),
 			installedModels: installed,
 			pulling,
+			includeOffPageInstalled: true,
 		});
 
 		expect(rows.map((r) => r.id).sort()).toEqual([
@@ -40,14 +46,50 @@ describe("buildModelRows", () => {
 		};
 
 		const rows = buildModelRows({
-			catalog: [],
+			catalogPage: [],
+			catalogById: new Map(),
 			installedModels: installed,
 			pulling,
+			includeOffPageInstalled: true,
 		});
 
 		expect(rows).toHaveLength(1);
 		const row = rowById(rows, "org/llama3.2-GGUF:Q4_K_M");
 		expect(row.installed).not.toBeNull();
 		expect(row.pullState).toEqual({ status: "Downloading…" });
+	});
+
+	it("enriches an off-page installed model from the by-id lookup", () => {
+		const offPageModel = makeCatalogModel({
+			id: "org/llama3.2-GGUF:Q4_K_M",
+			name: "org/llama3.2-GGUF",
+		});
+		const installed = [makeInstalledModel({ id: "org/llama3.2-GGUF:Q4_K_M" })];
+
+		const rows = buildModelRows({
+			catalogPage: [],
+			catalogById: catalogById([offPageModel]),
+			installedModels: installed,
+			pulling: {},
+			includeOffPageInstalled: true,
+		});
+
+		const row = rowById(rows, "org/llama3.2-GGUF:Q4_K_M");
+		expect(row.catalog).toBe(offPageModel);
+	});
+
+	it("excludes installed/pulling ids not already on the page when includeOffPageInstalled is false", () => {
+		const catalogPage = [makeCatalogModel({ id: "org/qwen2.5-GGUF:Q4_K_M" })];
+		const installed = [makeInstalledModel({ id: "org/llama3.2-GGUF:Q4_K_M" })];
+
+		const rows = buildModelRows({
+			catalogPage,
+			catalogById: catalogById(catalogPage),
+			installedModels: installed,
+			pulling: {},
+			includeOffPageInstalled: false,
+		});
+
+		expect(rows.map((r) => r.id)).toEqual(["org/qwen2.5-GGUF:Q4_K_M"]);
 	});
 });

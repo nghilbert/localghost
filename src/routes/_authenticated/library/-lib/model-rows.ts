@@ -8,28 +8,35 @@ export type ModelRow = {
 	pullState: PullProgress | undefined;
 };
 
-/**
- * Unions the catalog with installed models and in-flight downloads into one
- * row per model id; the single source of rows for the Library table. Off-catalog
- * installs still surface, carrying llama.cpp's own metadata.
+/** Builds Library rows from the catalog page, installed models, and downloads.
+ * `catalogById` enriches off-page rows; `includeOffPageInstalled` controls whether
+ * installed and downloading models outside the current catalog page are included.
  */
 export function buildModelRows({
-	catalog,
+	catalogPage,
+	catalogById,
 	installedModels,
 	pulling,
+	includeOffPageInstalled,
 }: {
-	catalog: CatalogModel[];
+	catalogPage: CatalogModel[];
+	catalogById: Map<string, CatalogModel>;
 	installedModels: InstalledModel[];
 	pulling: Record<string, PullProgress>;
+	includeOffPageInstalled: boolean;
 }): ModelRow[] {
-	const catalogById = new Map(catalog.map((model) => [model.id, model]));
+	const catalogPageById = new Map(catalogPage.map((model) => [model.id, model]));
 	const installedById = new Map(installedModels.map((m) => [m.id, m]));
 	const pullingById = new Map(Object.entries(pulling));
 
-	const ids = new Set([...catalogById.keys(), ...installedById.keys(), ...pullingById.keys()]);
+	const ids = new Set(catalogPageById.keys());
+	if (includeOffPageInstalled) {
+		for (const id of installedById.keys()) ids.add(id);
+		for (const id of pullingById.keys()) ids.add(id);
+	}
 
 	return [...ids].map((id) => {
-		const model = catalogById.get(id) ?? null;
+		const model = catalogPageById.get(id) ?? catalogById.get(id) ?? null;
 		return {
 			id,
 			name: model?.name ?? id,

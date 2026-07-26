@@ -15,11 +15,8 @@ function round1(value: number): number {
 	return Math.round(value * 10) / 10;
 }
 
-/**
- * Memory needed to run a model: its exact GGUF file size (from the Hugging
- * Face repo tree) plus ~15% KV cache and ~1 GB runtime overhead. Falls back to
- * a param-count estimate only when the exact size wasn't fetched. Null when
- * neither size nor parameter count is known.
+/** Estimates model memory from exact size or a parameter-count fallback.
+ * Includes KV cache and runtime overhead; returns null when size is unknown.
  */
 export function requiredMemoryGb({
 	sizeGb,

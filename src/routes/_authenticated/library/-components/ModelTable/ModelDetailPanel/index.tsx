@@ -11,6 +11,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "#/shared/components/ui/card";
+import { formatPullCount } from "#/shared/domain/model/hardware-fit";
 import type { HardwareInfo, PullProgress } from "#/shared/domain/model/types";
 import { ModelVariantCard } from "./ModelVariantCard";
 
@@ -55,22 +56,40 @@ export function ModelDetailPanel({
 	);
 }
 
-/** The model's identity and what it can do; every number here already has a column. */
+type OverviewFact = { label: string; value: string };
+
+/** The model's identity, its Hugging Face facts, and what it can do. */
 function ModelOverviewCard({ row }: { row: ModelRow }) {
-	const { catalog, installed } = row;
+	const { catalog, installed, id } = row;
 	const localFacts =
 		installed &&
 		[installed.quant, installed.paramB ? `${installed.paramB}B` : null].filter(Boolean);
+	const facts = catalog ? buildOverviewFacts(catalog) : [];
+	const caption =
+		catalog?.description || (installed ? "Installed model metadata reported by llama.cpp." : null);
 
 	return (
 		<Card size="sm">
 			<CardHeader>
-				<CardTitle>{row.id}</CardTitle>
-				<CardDescription>
-					{catalog?.description || "Installed model metadata reported by llama.cpp."}
-				</CardDescription>
+				<CardTitle>{catalog?.displayName || id}</CardTitle>
+				<CardDescription className="truncate font-mono text-xs">{id}</CardDescription>
 			</CardHeader>
-			<CardContent className="space-y-2">
+			<CardContent className="space-y-3">
+				{facts.length > 0 && (
+					<dl
+						className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3"
+						data-testid="model-detail-facts"
+					>
+						{facts.map((fact) => (
+							<div key={fact.label} className="min-w-0">
+								<dt className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+									{fact.label}
+								</dt>
+								<dd className="truncate text-sm font-medium">{fact.value}</dd>
+							</div>
+						))}
+					</dl>
+				)}
 				{catalog && catalog.capabilities.length > 0 && (
 					<div className="flex flex-wrap gap-1" data-testid="model-detail-capabilities">
 						{catalog.capabilities.map((capability) => (
@@ -83,9 +102,28 @@ function ModelOverviewCard({ row }: { row: ModelRow }) {
 				{localFacts && localFacts.length > 0 && (
 					<p className="text-xs text-muted-foreground">{localFacts.join(" · ")}</p>
 				)}
+				{caption && <p className="text-xs text-muted-foreground">{caption}</p>}
 			</CardContent>
 		</Card>
 	);
+}
+
+/** The overview card's facts list, in priority order, omitting anything the catalog doesn't know. */
+function buildOverviewFacts(catalog: NonNullable<ModelRow["catalog"]>): OverviewFact[] {
+	const facts: (OverviewFact | null)[] = [
+		catalog.author ? { label: "Author", value: catalog.author } : null,
+		catalog.license ? { label: "License", value: catalog.license } : null,
+		catalog.contextK ? { label: "Context", value: `${catalog.contextK}K tokens` } : null,
+		{ label: "Pulls", value: formatPullCount(catalog.pullCount) },
+		catalog.likes > 0 ? { label: "Likes", value: formatPullCount(catalog.likes) } : null,
+		catalog.createdAt
+			? { label: "Created", value: new Date(catalog.createdAt).toLocaleDateString() }
+			: null,
+		catalog.updatedAt
+			? { label: "Updated", value: new Date(catalog.updatedAt).toLocaleDateString() }
+			: null,
+	];
+	return facts.filter((fact): fact is OverviewFact => fact !== null);
 }
 
 function ModelSettingsCard({

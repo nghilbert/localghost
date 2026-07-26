@@ -1,10 +1,10 @@
-import { queryOptions } from "@tanstack/react-query";
+import { keepPreviousData, queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod/v4";
 import { downloadModel, unloadModel } from "#/shared/lib/llamacpp/client.server";
 import { llamacppConnectionSchema, llamacppUrlSchema } from "#/shared/lib/llamacpp/url";
 import { authedFn } from "#/shared/lib/middleware";
-import { getCatalog } from "./catalog.server";
+import { getCatalogModelsByIds, getCatalogPage } from "./catalog.server";
 import {
 	getRuntimeEndpointById,
 	probeRuntime,
@@ -13,6 +13,7 @@ import {
 } from "./discovery.server";
 import { getHardwareInfo } from "./hardware.server";
 import { removeInstalledModel } from "./models.server";
+import { type CatalogQuery, catalogModelsByIdsInput, catalogQuerySchema } from "./schemas";
 import type { RuntimeStatus } from "./types";
 
 export const getHardware = createServerFn({ method: "GET" })
@@ -21,7 +22,13 @@ export const getHardware = createServerFn({ method: "GET" })
 
 export const getModelCatalog = createServerFn({ method: "GET" })
 	.middleware([authedFn])
-	.handler(async () => getCatalog());
+	.validator(catalogQuerySchema)
+	.handler(async ({ data }) => getCatalogPage(data));
+
+export const getModelCatalogByIds = createServerFn({ method: "GET" })
+	.middleware([authedFn])
+	.validator(catalogModelsByIdsInput)
+	.handler(async ({ data }) => getCatalogModelsByIds(data.ids));
 
 export const scanRuntimeStatus = createServerFn({ method: "GET" })
 	.middleware([authedFn])
@@ -121,10 +128,19 @@ export const hardwareQueryOptions = () =>
 		staleTime: 60_000,
 	});
 
-export const catalogQueryOptions = () =>
+export const catalogQueryOptions = (query: CatalogQuery) =>
 	queryOptions({
-		queryKey: ["library-catalog"],
-		queryFn: () => getModelCatalog(),
+		queryKey: ["library-catalog", query],
+		queryFn: () => getModelCatalog({ data: query }),
 		// Matches the server-side fetch TTL; the catalog changes slowly.
+		staleTime: 6 * 60 * 60_000,
+		// Keep showing the previous page's rows while the next page loads, instead of flashing empty.
+		placeholderData: keepPreviousData,
+	});
+
+export const catalogByIdsQueryOptions = (ids: string[]) =>
+	queryOptions({
+		queryKey: ["library-catalog-by-ids", ids],
+		queryFn: () => getModelCatalogByIds({ data: { ids } }),
 		staleTime: 6 * 60 * 60_000,
 	});

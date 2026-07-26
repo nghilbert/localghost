@@ -46,36 +46,46 @@ export type RuntimeStatus =
 	  };
 
 export type CatalogModel = {
-	/** `"{repo}:{QUANT}"`, as accepted by router-mode `POST /models`. */
+	/** `"{repo}:{QUANT}"`: the row's default variant exactly as `POST /models` takes it. */
 	id: string;
 	/** The Hugging Face repo id, e.g. "ggml-org/gemma-3-4b-it-GGUF". */
 	name: string;
 	/** A human-readable name derived from the repo id, e.g. "Gemma 3 4B". */
 	displayName: string;
-	/** Billions of parameters parsed from the repo id; null when unparseable. */
+	/** Billions of parameters, from the repo's `gguf.total` metadata when available, else parsed from the repo id. */
 	paramB: number | null;
-	/** Exact GGUF file size in GB (the default quant's), from the repo's file tree. */
+	/** Exact GGUF file size in GB (the default quant's), from the repo's file listing. */
 	sizeGb: number | null;
-	/** Context window in K tokens, from the repo's `config.json` when cheaply available. */
+	/** Context window in K tokens, from the repo's `gguf.context_length` metadata. */
 	contextK: number | null;
 	/** Display tags: capability badges plus derived "fast"/"code". */
 	tags: string[];
 	/** Raw capability hints derived from the repo's HF tags (vision). */
 	capabilities: string[];
 	description: string;
+	/** The Hugging Face org/user that owns the repo. */
+	author: string | null;
+	/** SPDX-ish license id, from the repo's card data or a `license:` tag. */
+	license: string | null;
+	/** Hugging Face like count for the repo. */
+	likes: number;
 	/** Hugging Face download count for the repo. */
 	pullCount: number;
 	/** Exact update timestamp (ISO), from the repo's `lastModified`. */
 	updatedAt?: string;
-	/** Every GGUF quant found in the repo's file tree, for the variant picker, ascending by size. */
+	/** Exact ISO creation timestamp from the repo's `createdAt`, distinct from `updatedAt`. */
+	createdAt: string | null;
+	/** Every GGUF quant found across the dedupe group's repos, for the variant picker, ascending by size. */
 	variants?: ModelVariantInfo[];
 };
 
-/** One GGUF file found in a Hugging Face repo's tree, for the variant picker. */
+/** One GGUF file found in a Hugging Face repo, for the variant picker. */
 export type ModelVariantInfo = {
 	quant: string;
 	sizeGb: number | null;
 	fileName: string;
+	/** The repo this file actually lives in; may differ from the parent `CatalogModel.name` when merged in from a losing dedupe candidate. */
+	repoId: string;
 };
 
 export type PullProgress = {

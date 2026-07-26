@@ -28,9 +28,9 @@ const catalog = makeCatalogModel({
 	tags: ["tools", "chat"],
 	capabilities: ["tools"],
 	variants: [
-		{ quant: "Q4_K_M", sizeGb: 4.9, fileName: "llama3.1-Q4_K_M.gguf" },
-		{ quant: "Q70B", sizeGb: 43, fileName: "llama3.1-Q70B.gguf" },
-		{ quant: "Q8_0", sizeGb: 8.5, fileName: "llama3.1-Q8_0.gguf" },
+		{ quant: "Q4_K_M", sizeGb: 4.9, fileName: "llama3.1-Q4_K_M.gguf", repoId: "org/llama3.1-GGUF" },
+		{ quant: "Q70B", sizeGb: 43, fileName: "llama3.1-Q70B.gguf", repoId: "org/llama3.1-GGUF" },
+		{ quant: "Q8_0", sizeGb: 8.5, fileName: "llama3.1-Q8_0.gguf", repoId: "org/llama3.1-GGUF" },
 	],
 });
 

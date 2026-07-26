@@ -23,6 +23,19 @@ export function deriveTags({
 	return tags;
 }
 
+/** A repo's license: prefers card-data metadata, falling back to a `license:xxx` tag. */
+export function deriveLicense({
+	cardDataLicense,
+	tags,
+}: {
+	cardDataLicense: string | undefined;
+	tags: string[];
+}): string | null {
+	if (cardDataLicense) return cardDataLicense;
+	const tag = tags.find((t) => t.startsWith("license:"));
+	return tag ? tag.slice("license:".length) : null;
+}
+
 /** Preferred default quant order: a solid quality/size tradeoff first, then progressively looser. */
 const PREFERRED_QUANT_ORDER: GgufQuant[] = [
 	"Q4_K_M",
@@ -81,7 +94,7 @@ export function isChatModel({
 	return tags.includes("conversational");
 }
 
-/** Tiered publisher trust, used only to break dedupe ties — an unlisted publisher still appears. */
+/** Tiered publisher trust used only to break dedupe ties; unlisted publishers still appear. */
 const PUBLISHER_RANK: Record<string, number> = {
 	"ggml-org": 0,
 	google: 1,
@@ -101,17 +114,10 @@ function publisherRank(repoId: string): number {
 	return PUBLISHER_RANK[publisher] ?? 4;
 }
 
-// Repack/training-stage markers stripped off the tail when computing a dedupe key.
-const REPACK_SUFFIXES = [
-	"-gguf",
-	"-it",
-	"-instruct",
-	"-qat",
-	"-mtp",
-	"-abliterated",
-	"-uncensored",
-	"-chat",
-];
+/** Packaging markers removed when computing a dedupe key.
+ * Training and safety-tuning markers stay because they identify distinct fine-tunes.
+ */
+const REPACK_SUFFIXES = ["-gguf", "-it", "-instruct"];
 
 /** Normalizes a repo id to a base key so repacks of the same model by different publishers collide. */
 export function baseModelKey(repoId: string): string {
@@ -152,7 +158,15 @@ export function deriveDisplayName(repoId: string): string {
 /** One catalog candidate before dedupe: enough to rank and merge. */
 export type CatalogCandidate = Pick<
 	CatalogModel,
-	"name" | "paramB" | "capabilities" | "updatedAt"
+	| "name"
+	| "paramB"
+	| "capabilities"
+	| "updatedAt"
+	| "author"
+	| "license"
+	| "likes"
+	| "createdAt"
+	| "contextK"
 > & {
 	pullCount: number;
 	variants: ModelVariantInfo[];

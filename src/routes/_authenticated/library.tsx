@@ -1,12 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { CircleAlertIcon } from "lucide-react";
 import { useState } from "react";
 import { HardwareCard } from "#/routes/_authenticated/library/-components/HardwareCard";
 import { ModelTable } from "#/routes/_authenticated/library/-components/ModelTable";
 import { RemoteRuntimeForm } from "#/routes/_authenticated/library/-components/RemoteRuntimeForm";
 import { RuntimeSetupCard } from "#/routes/_authenticated/library/-components/RuntimeSetupCard";
-import { Alert, AlertAction, AlertDescription, AlertTitle } from "#/shared/components/ui/alert";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -35,12 +33,19 @@ import {
 import { useModelDownload } from "#/shared/domain/model/use-model-download";
 import { useRuntime } from "#/shared/domain/model/use-runtime";
 
+const DEFAULT_CATALOG_QUERY = {
+	page: 0,
+	pageSize: 25,
+	sortBy: "pullCount",
+	sortDir: "desc",
+} as const;
+
 export const Route = createFileRoute("/_authenticated/library")({
 	head: () => ({ meta: [{ title: "Library · localghost" }] }),
 	loader: ({ context }) => {
 		context.queryClient.prefetchQuery(hardwareQueryOptions());
 		context.queryClient.prefetchQuery(libraryStatusQueryOptions());
-		context.queryClient.prefetchQuery(catalogQueryOptions());
+		context.queryClient.prefetchQuery(catalogQueryOptions(DEFAULT_CATALOG_QUERY));
 	},
 	component: LibraryPage,
 });
@@ -49,13 +54,6 @@ function LibraryPage() {
 	const { data: hardware, isLoading: isLoadingHardware } = useQuery(hardwareQueryOptions());
 
 	const { data: runtimeStatus, isPending: isStatusPending } = useQuery(libraryStatusQueryOptions());
-
-	const {
-		data: catalog = [],
-		isPending: isCatalogPending,
-		isError: isCatalogError,
-		refetch: refetchCatalog,
-	} = useQuery(catalogQueryOptions());
 
 	const { pulling, pull, stop } = useModelDownload(runtimeStatus?.endpointId ?? null);
 	const { deleteModel } = useRuntime();
@@ -96,35 +94,15 @@ function LibraryPage() {
 									</Button>
 								</ItemActions>
 							</Item>
-							{isCatalogError && (
-								<Alert variant="destructive">
-									<CircleAlertIcon />
-									<AlertTitle>Couldn't load the model catalog</AlertTitle>
-									<AlertDescription>
-										Hugging Face couldn't be reached or didn't return a readable catalog, so only
-										installed models are listed.
-									</AlertDescription>
-									<AlertAction>
-										<Button size="sm" variant="outline" onClick={() => refetchCatalog()}>
-											Try again
-										</Button>
-									</AlertAction>
-								</Alert>
-							)}
-							{isCatalogPending ? (
-								<Skeleton className="h-72 w-full" />
-							) : (
-								<ModelTable
-									catalog={catalog}
-									installedModels={runtimeStatus.installedModels}
-									pulling={pulling}
-									hardware={hardware}
-									endpointId={runtimeStatus.endpointId}
-									onPull={handlePull}
-									onStop={stop}
-									onDelete={(model) => setPendingDelete(model)}
-								/>
-							)}
+							<ModelTable
+								installedModels={runtimeStatus.installedModels}
+								pulling={pulling}
+								hardware={hardware}
+								endpointId={runtimeStatus.endpointId}
+								onPull={handlePull}
+								onStop={stop}
+								onDelete={(model) => setPendingDelete(model)}
+							/>
 						</>
 					)
 				) : (
