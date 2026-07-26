@@ -2,13 +2,13 @@ import { code } from "@streamdown/code";
 import type { UIMessage } from "@tanstack/ai-client";
 import { CircleAlertIcon, CopyIcon, OctagonXIcon, PencilIcon, RefreshCwIcon } from "lucide-react";
 import { type KeyboardEvent, useState } from "react";
-import { toast } from "sonner";
 import { Streamdown } from "streamdown";
 import { Alert, AlertDescription, AlertTitle } from "#/shared/components/ui/alert";
 import { Bubble, BubbleContent } from "#/shared/components/ui/bubble";
 import { Button } from "#/shared/components/ui/button";
 import { InputGroup, InputGroupTextarea } from "#/shared/components/ui/input-group";
 import { Message, MessageContent, MessageFooter } from "#/shared/components/ui/message";
+import { toast } from "#/shared/components/ui/toast";
 import { Tooltip, TooltipContent, TooltipTrigger } from "#/shared/components/ui/tooltip";
 import {
 	isInterrupted,
@@ -27,8 +27,8 @@ import { chatLinkSafety } from "./LinkSafetyDialog";
 function copyToClipboard(text: string) {
 	navigator.clipboard
 		.writeText(text)
-		.then(() => toast.success("Copied to clipboard"))
-		.catch(() => toast.error("Couldn't copy to clipboard"));
+		.then(() => toast.add({ title: "Copied to clipboard", type: "success" }))
+		.catch(() => toast.add({ title: "Couldn't copy to clipboard", type: "error" }));
 }
 
 const tokenFormatter = new Intl.NumberFormat("en-US", {

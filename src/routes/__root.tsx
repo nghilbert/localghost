@@ -20,7 +20,7 @@ import {
 	EmptyHeader,
 	EmptyTitle,
 } from "#/shared/components/ui/empty";
-import { Toaster } from "#/shared/components/ui/sonner";
+import { Toaster } from "#/shared/components/ui/toast";
 import { TooltipProvider } from "#/shared/components/ui/tooltip";
 import { getAuthSession } from "#/shared/domain/auth/auth.functions";
 import globalCss from "#/shared/lib/globals.css?url";
@@ -57,7 +57,7 @@ function RootDocument() {
 					<ThemeProvider defaultMode="system">
 						<TooltipProvider>
 							<Outlet />
-							<Toaster richColors position="bottom-right" />
+							<Toaster />
 							<TanStackDevtools
 								plugins={[
 									{ name: "TanStack Query", render: <ReactQueryDevtoolsPanel /> },

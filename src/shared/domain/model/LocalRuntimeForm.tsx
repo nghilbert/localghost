@@ -1,11 +1,11 @@
 import { revalidateLogic } from "@tanstack/react-form";
 import { useQuery } from "@tanstack/react-query";
 import { CheckCircle2Icon, CircleAlertIcon } from "lucide-react";
-import { toast } from "sonner";
 import type { z } from "zod/v4";
 import { Badge } from "#/shared/components/ui/badge";
 import { Button } from "#/shared/components/ui/button";
 import { Field, FieldDescription, FieldLegend, FieldSet } from "#/shared/components/ui/field";
+import { toast } from "#/shared/components/ui/toast";
 import { useAppForm } from "#/shared/hooks/use-app-form";
 import { llamacppUrlSchema } from "#/shared/lib/llamacpp/url";
 import { libraryStatusQueryOptions } from "./model.functions";
@@ -64,14 +64,17 @@ function RuntimeConnectionForm({ currentUrl }: { currentUrl: string }) {
 	function handleTest() {
 		const parsed = llamacppUrlSchema.safeParse(form.state.values);
 		if (!parsed.success) {
-			toast.error("Enter a valid URL first");
+			toast.add({ title: "Enter a valid URL first", type: "error" });
 			return;
 		}
 		testRemote.reset();
 		testRemote.mutate(parsed.data.url, {
 			onSuccess: (result) => {
 				if (result.reachable) {
-					toast.success(`Connection works: ${result.modelCount} models available`);
+					toast.add({
+						title: `Connection works: ${result.modelCount} models available`,
+						type: "success",
+					});
 				}
 			},
 		});

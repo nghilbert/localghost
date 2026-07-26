@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
-import { toast } from "sonner";
+import { toast } from "#/shared/components/ui/toast";
 import {
 	cancelModelDownload,
 	libraryStatusQueryOptions,
@@ -27,8 +27,8 @@ export function useModelDownload(endpointId: string | null) {
 			if (!installed.has(model) && !observedDownloads.current.has(model)) continue;
 			startedModels.current.delete(model);
 			observedDownloads.current.delete(model);
-			if (installed.has(model)) toast.success(`${model} is ready`);
-			else toast.error(`Download failed for ${model}`);
+			if (installed.has(model)) toast.add({ title: `${model} is ready`, type: "success" });
+			else toast.add({ title: `Download failed for ${model}`, type: "error" });
 		}
 	}, [runtimeStatus]);
 
@@ -43,7 +43,7 @@ export function useModelDownload(endpointId: string | null) {
 		onError: (error, model) => {
 			startedModels.current.delete(model);
 			observedDownloads.current.delete(model);
-			toast.error("Failed to start download", { description: error.message });
+			toast.add({ title: "Failed to start download", type: "error", description: error.message });
 		},
 	});
 
@@ -56,9 +56,10 @@ export function useModelDownload(endpointId: string | null) {
 			startedModels.current.delete(model);
 			observedDownloads.current.delete(model);
 			queryClient.invalidateQueries({ queryKey: libraryStatusQueryOptions().queryKey });
-			toast.info(`Stopped downloading ${model}`);
+			toast.add({ title: `Stopped downloading ${model}`, type: "info" });
 		},
-		onError: (error) => toast.error("Failed to stop download", { description: error.message }),
+		onError: (error) =>
+			toast.add({ title: "Failed to stop download", type: "error", description: error.message }),
 	});
 
 	return { pulling, pull: pullMutation.mutate, stop: stopMutation.mutate };

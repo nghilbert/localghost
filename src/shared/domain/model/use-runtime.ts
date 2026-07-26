@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { toast } from "#/shared/components/ui/toast";
 import {
 	deleteModel,
 	libraryStatusQueryOptions,
@@ -14,9 +14,10 @@ export function useRuntime() {
 		mutationFn: (input: { endpointId: string; model: string }) => deleteModel({ data: input }),
 		onSuccess: (_data, { model }) => {
 			queryClient.invalidateQueries({ queryKey: libraryStatusQueryOptions().queryKey });
-			toast.success(`${model} deleted`);
+			toast.add({ title: `${model} deleted`, type: "success" });
 		},
-		onError: (error) => toast.error("Failed to delete model", { description: error.message }),
+		onError: (error) =>
+			toast.add({ title: "Failed to delete model", type: "error", description: error.message }),
 	});
 
 	const connectRemoteMutation = useMutation({
@@ -24,10 +25,14 @@ export function useRuntime() {
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: libraryStatusQueryOptions().queryKey });
 			queryClient.invalidateQueries({ queryKey: ["endpoints"] });
-			toast.success("Connected to llama.cpp");
+			toast.add({ title: "Connected to llama.cpp", type: "success" });
 		},
 		onError: (error) =>
-			toast.error("Failed to connect to llama.cpp", { description: error.message }),
+			toast.add({
+				title: "Failed to connect to llama.cpp",
+				type: "error",
+				description: error.message,
+			}),
 	});
 
 	const testRemoteMutation = useMutation({

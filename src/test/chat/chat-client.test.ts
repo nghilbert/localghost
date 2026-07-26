@@ -2,10 +2,10 @@ import type { UIMessage } from "@tanstack/ai-client";
 import { QueryClient } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { saveConversationMessages, deleteConversation, toastError } = vi.hoisted(() => ({
+const { saveConversationMessages, deleteConversation, toastAdd } = vi.hoisted(() => ({
 	saveConversationMessages: vi.fn(),
 	deleteConversation: vi.fn(),
-	toastError: vi.fn(),
+	toastAdd: vi.fn(),
 }));
 
 vi.mock("#/shared/domain/conversation/conversation.functions", () => ({
@@ -15,7 +15,7 @@ vi.mock("#/shared/domain/conversation/conversation.functions", () => ({
 	conversationsQueryOptions: () => ({ queryKey: ["conversations"] }),
 }));
 
-vi.mock("sonner", () => ({ toast: { error: toastError, success: vi.fn() } }));
+vi.mock("#/shared/components/ui/toast", () => ({ toast: { add: toastAdd } }));
 
 import { createChatPersistence, flushAll } from "#/routes/_authenticated/-lib/chat-client";
 
@@ -94,7 +94,10 @@ describe("createChatPersistence: commit write-back", () => {
 		await vi.advanceTimersByTimeAsync(500);
 
 		expect(queryClient.getQueryData(queryKey("c1"))).toEqual({ id: "c1", messages: [] });
-		expect(toastError).toHaveBeenCalledWith("Failed to save the conversation");
+		expect(toastAdd).toHaveBeenCalledWith({
+			title: "Failed to save the conversation",
+			type: "error",
+		});
 	});
 });
 
@@ -136,7 +139,7 @@ describe("flushAll", () => {
 		expect(saveConversationMessages).toHaveBeenCalledTimes(2);
 		const [retry] = saveConversationMessages.mock.calls[1] ?? [];
 		expect(retry.fetch).toBeUndefined();
-		expect(toastError).not.toHaveBeenCalled();
+		expect(toastAdd).not.toHaveBeenCalled();
 		expect(queryClient.getQueryData(queryKey("c1"))).toEqual({
 			id: "c1",
 			messages: [message("m1", "a")],

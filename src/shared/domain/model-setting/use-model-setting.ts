@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
 import type { z } from "zod/v4";
+import { toast } from "#/shared/components/ui/toast";
 import {
 	modelSettingQueryOptions,
 	resetModelSetting,
@@ -20,20 +20,28 @@ export function useModelSetting({ endpointId, model }: { endpointId: string; mod
 			saveModelSetting({ data: { endpointId, model, options } }),
 		onSuccess: () => {
 			invalidate();
-			toast.success("Model settings saved");
+			toast.add({ title: "Model settings saved", type: "success" });
 		},
 		onError: (error) =>
-			toast.error("Failed to save model settings", { description: error.message }),
+			toast.add({
+				title: "Failed to save model settings",
+				type: "error",
+				description: error.message,
+			}),
 	});
 
 	const resetMutation = useMutation({
 		mutationFn: () => resetModelSetting({ data: { endpointId, model } }),
 		onSuccess: () => {
 			invalidate();
-			toast.success("Model settings reset to defaults");
+			toast.add({ title: "Model settings reset to defaults", type: "success" });
 		},
 		onError: (error) =>
-			toast.error("Failed to reset model settings", { description: error.message }),
+			toast.add({
+				title: "Failed to reset model settings",
+				type: "error",
+				description: error.message,
+			}),
 	});
 
 	return { setting, isPending, save: saveMutation, reset: resetMutation };

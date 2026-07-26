@@ -1,7 +1,7 @@
 import type { ChatClientPersistence, UIMessage } from "@tanstack/ai-client";
 import { createChatClientOptions, fetchServerSentEvents } from "@tanstack/ai-client";
 import type { QueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { toast } from "#/shared/components/ui/toast";
 import {
 	conversationQueryOptions,
 	conversationsQueryOptions,
@@ -78,7 +78,7 @@ function commit(id: string, { keepalive = false }: { keepalive?: boolean } = {})
 				void queryClient.invalidateQueries({ queryKey: conversationsQueryOptions().queryKey });
 			})
 			.catch(() => {
-				toast.error("Failed to save the conversation");
+				toast.add({ title: "Failed to save the conversation", type: "error" });
 			});
 
 	// Dispatch immediately when nothing is in flight (so the tab-hide keepalive

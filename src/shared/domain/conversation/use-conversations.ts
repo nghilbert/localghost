@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { toast } from "#/shared/components/ui/toast";
 import {
 	conversationsQueryOptions,
 	deleteConversation,
@@ -16,16 +16,18 @@ export function useConversations() {
 		mutationFn: ({ id, title }: { id: string; title: string }) =>
 			updateConversation({ data: { id, data: { title } } }),
 		onSuccess: invalidate,
-		onError: (error) => toast.error("Failed to rename chat", { description: error.message }),
+		onError: (error) =>
+			toast.add({ title: "Failed to rename chat", type: "error", description: error.message }),
 	});
 
 	const deleteConversationMutation = useMutation({
 		mutationFn: (id: string) => deleteConversation({ data: { id } }),
 		onSuccess: () => {
 			invalidate();
-			toast.success("Chat deleted");
+			toast.add({ title: "Chat deleted", type: "success" });
 		},
-		onError: (error) => toast.error("Failed to delete chat", { description: error.message }),
+		onError: (error) =>
+			toast.add({ title: "Failed to delete chat", type: "error", description: error.message }),
 	});
 
 	return {
