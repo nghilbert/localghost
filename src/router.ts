@@ -20,6 +20,8 @@ export function getRouter() {
 		context: { queryClient },
 		scrollRestoration: true,
 		defaultErrorComponent: RouteErrorScreen,
+		// Preload a route's loader on link hover/focus, not just on click.
+		defaultPreload: "intent",
 	});
 	setupRouterSsrQueryIntegration({ router, queryClient });
 	return router;

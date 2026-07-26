@@ -16,6 +16,10 @@ export const auth = betterAuth({
 	advanced: { database: { generateId: "uuid" } }, // Better Auth allows Postgres to generates the UUID
 	secret: getSecret(),
 	emailAndPassword: { enabled: true },
+	// A signed, short-lived cookie carries the session so most requests skip the
+	// session + user table lookups entirely (root `beforeLoad` and every server
+	// fn's auth check both resolve through this).
+	session: { cookieCache: { enabled: true, maxAge: 5 * 60 } },
 	rateLimit: {
 		enabled: true,
 		customRules: {

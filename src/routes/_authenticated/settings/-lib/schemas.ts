@@ -4,11 +4,6 @@ export const TAB_VALUES = ["account", "memory", "endpoints", "appearance"] as co
 
 export type TabValue = (typeof TAB_VALUES)[number];
 
-/** Narrows an arbitrary string to a settings tab id. */
-export function isTabValue(value: string): value is TabValue {
-	return TAB_VALUES.some((tab) => tab === value);
-}
-
 export const settingsSearchSchema = z.object({
 	tab: z.enum(TAB_VALUES).optional().catch(undefined),
 });

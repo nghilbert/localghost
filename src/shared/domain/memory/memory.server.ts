@@ -38,19 +38,11 @@ export async function insertMemory({
 /** Whether {@link saveMemory} stored a new row or found the fact already remembered. */
 export type SaveMemoryResult = { status: "saved" } | { status: "duplicate"; text: string };
 
-/**
- * A stored memory whose embedding is within this cosine distance of a new one is
- * treated as the same fact, so a rephrasing ("prefers TypeScript" vs "likes to
- * use TypeScript") is caught before it bloats the list. Tight on purpose;
- * loosen only if the model keeps re-saving near-identical facts.
- */
+/** Maximum cosine distance for treating two memory embeddings as duplicates. */
 const DEDUP_MAX_COSINE_DISTANCE = 0.08;
 
-/**
- * Persists one memory with its embedding, skipping facts already remembered.
- * A failed embedding stores a NULL vector rather than aborting the write.
- * @param source Provenance; defaults to `"agent"`, overridden on import.
- * @returns Whether a row was stored or an equivalent memory already existed.
+/** Persists a memory and its embedding, skipping an existing equivalent fact.
+ * A failed embedding stores a NULL vector instead of aborting the write.
  */
 export async function saveMemory({
 	ownerId,
@@ -65,23 +57,31 @@ export async function saveMemory({
 }): Promise<SaveMemoryResult> {
 	const embedding = await embed({ text, ownerId });
 
-	// Cheap exact match first (mirrors the backup importer's dedup key).
-	const exact = await prisma.memory.findFirst({
-		where: { ownerId, text, category: category ?? "fact" },
-		select: { text: true },
-	});
-	if (exact) return { status: "duplicate", text: exact.text };
+	// Serializable so two concurrent saves of the same fact can't both pass the
+	// dedup check and both insert; the loser's transaction fails and retries as
+	// a plain duplicate result on the caller's next attempt.
+	return prisma.$transaction(
+		async (tx) => {
+			// Cheap exact match first (mirrors the backup importer's dedup key).
+			const exact = await tx.memory.findFirst({
+				where: { ownerId, text, category: category ?? "fact" },
+				select: { text: true },
+			});
+			if (exact) return { status: "duplicate", text: exact.text };
 
-	// Then a semantic near-duplicate check, reusing the embedding we just computed.
-	if (embedding) {
-		const nearest = await nearestMemory({ ownerId, embedding });
-		if (nearest && nearest.distance < DEDUP_MAX_COSINE_DISTANCE) {
-			return { status: "duplicate", text: nearest.text };
-		}
-	}
+			// Then a semantic near-duplicate check, reusing the embedding we just computed.
+			if (embedding) {
+				const nearest = await nearestMemory({ db: tx, ownerId, embedding });
+				if (nearest && nearest.distance < DEDUP_MAX_COSINE_DISTANCE) {
+					return { status: "duplicate", text: nearest.text };
+				}
+			}
 
-	await insertMemory({ db: prisma, ownerId, text, category, source, embedding });
-	return { status: "saved" };
+			await insertMemory({ db: tx, ownerId, text, category, source, embedding });
+			return { status: "saved" };
+		},
+		{ isolationLevel: "Serializable" },
+	);
 }
 
 /**
@@ -90,14 +90,16 @@ export async function saveMemory({
  * vector's dimension mismatches, same as {@link recallMemories}.
  */
 async function nearestMemory({
+	db = prisma,
 	ownerId,
 	embedding,
 }: {
+	db?: Prisma.TransactionClient;
 	ownerId: string;
 	embedding: number[];
 }): Promise<{ text: string; distance: number } | null> {
 	try {
-		const rows = await prisma.$queryRaw<Array<{ text: string; distance: number }>>`
+		const rows = await db.$queryRaw<Array<{ text: string; distance: number }>>`
 			SELECT text, embedding <=> ${toVectorLiteral(embedding)}::vector AS distance
 			FROM memory
 			WHERE owner_id = ${ownerId}::uuid AND embedding IS NOT NULL
@@ -147,11 +149,8 @@ export async function recallMemories({
 	return keywordRecall({ ownerId, query: trimmed, limit: capped });
 }
 
-/**
- * Keyword fallback used when no embedding endpoint is configured or vector
- * recall fails. Matches memories containing any query word and ranks them by how
- * many distinct words hit, so a multi-word query no longer needs the whole
- * string to appear verbatim.
+/** Keyword fallback when embedding recall is unavailable or fails.
+ * Ranks memories by the number of distinct query words they contain.
  */
 function keywordRecall({
 	ownerId,
@@ -180,12 +179,36 @@ function keywordRecall({
  * escaping LIKE metacharacters. Words shorter than two chars are dropped; if
  * that leaves nothing, the whole trimmed query is used as a single pattern.
  */
+const LIKE_METACHARACTERS = ["\\", "%", "_"];
+
+function escapeLike(word: string): string {
+	let escaped = word;
+	for (const char of LIKE_METACHARACTERS) {
+		escaped = escaped.split(char).join(`\\${char}`);
+	}
+	return escaped;
+}
+
+/** Splits on runs of whitespace, dropping empty tokens (a plain-string `/\s+/`). */
+function splitOnWhitespace(text: string): string[] {
+	const tokens: string[] = [];
+	let current = "";
+	for (const char of text) {
+		if (char.trim() === "") {
+			if (current) {
+				tokens.push(current);
+				current = "";
+			}
+		} else {
+			current += char;
+		}
+	}
+	if (current) tokens.push(current);
+	return tokens;
+}
+
 function likePatterns(query: string): string[] {
-	const escapeLike = (word: string) => word.replace(/[\\%_]/g, (char) => `\\${char}`);
-	const words = query
-		.toLowerCase()
-		.split(/\s+/)
-		.filter((word) => word.length >= 2);
+	const words = splitOnWhitespace(query.toLowerCase()).filter((word) => word.length >= 2);
 	const tokens = words.length > 0 ? words : [query.trim().toLowerCase()];
 	return tokens.map((word) => `%${escapeLike(word)}%`);
 }
