@@ -1,14 +1,21 @@
 import { deriveTags } from "#/routes/_authenticated/library/-lib/catalog";
-import { parseParamB } from "./model-id";
+import {
+	type CatalogCandidate,
+	dedupeByBaseModel,
+	deriveDisplayName,
+	isChatModel,
+	isMmprojFile,
+	parseParamB,
+	parseQuantFromFilename,
+	parseShardParts,
+	pickDefaultVariant,
+} from "./catalog-curation";
 import type { CatalogModel, ModelVariantInfo } from "./types";
 
 const HF_API = "https://huggingface.co/api";
-const INDEX_LIMIT = 200;
+const INDEX_LIMIT = 400;
 const CACHE_TTL_MS = 6 * 60 * 60_000;
 const TREE_CONCURRENCY = 8;
-
-/** GGUF filenames that aren't a chat model's own weights (multimodal projector, shards). */
-const SKIP_FILE = /^mmproj-|-\d{5}-of-\d{5}\.gguf$/i;
 
 function hfHeaders(): Record<string, string> {
 	const token = process.env.HF_TOKEN;
@@ -38,12 +45,6 @@ type HfTreeEntry = {
 	lfs?: { size: number };
 };
 
-/** Parses the quant out of a GGUF filename, e.g. "gemma-3-4b-it-Q4_K_M.gguf" → "Q4_K_M". */
-function parseQuantFromFilename(fileName: string): string | null {
-	const match = fileName.match(/[-.](Q\d[_A-Z0-9]*|IQ\d[_A-Z0-9]*|F16|F32|BF16)\.gguf$/i);
-	return match?.[1]?.toUpperCase() ?? null;
-}
-
 async function forEachWithConcurrency<T>({
 	items,
 	limit,
@@ -62,46 +63,63 @@ async function forEachWithConcurrency<T>({
 	await Promise.all(workers);
 }
 
-/** GGUF variants (one per quant) found in a repo's file tree, largest first. */
+/**
+ * GGUF variants (one per quant) found in a repo's file tree, ascending by
+ * size. A sharded model's first part represents the whole download, with its
+ * sibling shards' sizes summed in — llama.cpp's HF downloader fetches every
+ * shard for a `repo:QUANT` id, so the reported size should match.
+ */
 async function fetchVariants(repoId: string): Promise<ModelVariantInfo[]> {
 	const entries = await fetchJson<HfTreeEntry[]>(
 		`${HF_API}/models/${repoId}/tree/main?recursive=true`,
 	);
-	const variants: ModelVariantInfo[] = [];
+	const shardTotals = new Map<string, number>();
 	for (const entry of entries) {
-		if (!entry.path.toLowerCase().endsWith(".gguf")) continue;
-		if (SKIP_FILE.test(entry.path)) continue;
+		if (!entry.path.toLowerCase().endsWith(".gguf") || isMmprojFile(entry.path)) continue;
+		const shard = parseShardParts(entry.path);
+		if (!shard) continue;
+		const bytes = entry.lfs?.size ?? entry.size ?? 0;
+		shardTotals.set(shard.prefix, (shardTotals.get(shard.prefix) ?? 0) + bytes);
+	}
+
+	const variants: ModelVariantInfo[] = [];
+	const seenQuants = new Set<string>();
+	for (const entry of entries) {
+		if (!entry.path.toLowerCase().endsWith(".gguf") || isMmprojFile(entry.path)) continue;
+		const shard = parseShardParts(entry.path);
+		if (shard && shard.part !== 1) continue; // only the first shard represents the download
 		const quant = parseQuantFromFilename(entry.path);
-		if (!quant) continue;
-		const bytes = entry.lfs?.size ?? entry.size;
+		if (!quant || seenQuants.has(quant)) continue;
+		seenQuants.add(quant);
+		const bytes = shard ? (shardTotals.get(shard.prefix) ?? 0) : (entry.lfs?.size ?? entry.size);
 		variants.push({
 			quant,
 			sizeGb: bytes ? Math.round((bytes / 1024 ** 3) * 10) / 10 : null,
 			fileName: entry.path,
 		});
 	}
-	return variants.sort((a, b) => (b.sizeGb ?? 0) - (a.sizeGb ?? 0));
+	return variants.sort((a, b) => (a.sizeGb ?? 0) - (b.sizeGb ?? 0));
 }
 
 /** Capability hints derived from an HF repo's tags, in place of ollama.com's badges. */
 function capabilitiesFromTags(tags: string[]): string[] {
-	const capabilities: string[] = [];
-	if (tags.includes("image-text-to-text") || tags.includes("vision")) capabilities.push("vision");
-	if (tags.includes("conversational")) capabilities.push("tools");
-	return capabilities;
+	return tags.includes("image-text-to-text") || tags.includes("vision") ? ["vision"] : [];
 }
 
-/** Fetches the GGUF model index plus per-repo file trees for exact quant sizes. */
+/** Fetches the GGUF model index plus per-repo file trees, filtered and deduped to chat models. */
 async function fetchHfCatalog(): Promise<CatalogModel[]> {
 	const index = await fetchJson<HfIndexModel[]>(
 		`${HF_API}/models?filter=gguf&sort=downloads&direction=-1&limit=${INDEX_LIMIT}&full=true`,
 	);
-	const eligible = index.filter((m) => !m.gated && !m.private);
+	const eligible = index.filter(
+		(m) =>
+			!m.gated && !m.private && isChatModel({ pipelineTag: m.pipeline_tag, tags: m.tags ?? [] }),
+	);
 	if (eligible.length === 0) {
 		throw new Error("Hugging Face GGUF index returned 0 eligible models");
 	}
 
-	const models: CatalogModel[] = [];
+	const candidates: CatalogCandidate[] = [];
 	await forEachWithConcurrency({
 		items: eligible,
 		limit: TREE_CONCURRENCY,
@@ -113,38 +131,52 @@ async function fetchHfCatalog(): Promise<CatalogModel[]> {
 				console.warn("Failed to fetch a repo's GGUF file tree", { repo: repo.id, error });
 				return;
 			}
-			if (variants.length === 0) return;
-
 			const paramB = parseParamB(repo.id);
-			const capabilities = capabilitiesFromTags(repo.tags ?? []);
-			const best = variants[0];
-			models.push({
-				id: `${repo.id}:${best?.quant ?? "latest"}`,
+			if (variants.length === 0 || paramB === null) return; // drop tombstones/non-model repos
+
+			candidates.push({
 				name: repo.id,
 				paramB,
-				sizeGb: best?.sizeGb ?? null,
-				contextK: null,
-				tags: deriveTags({ name: repo.id, description: "", paramB, capabilities }),
-				capabilities,
-				description: "",
-				pullCount: String(repo.downloads ?? 0),
-				updated: "",
+				capabilities: capabilitiesFromTags(repo.tags ?? []),
+				pullCount: repo.downloads ?? 0,
 				updatedAt: repo.lastModified,
 				variants,
 			});
 		},
 	});
 
-	return models;
+	return dedupeByBaseModel(candidates).map((candidate) => {
+		const defaultVariant = pickDefaultVariant(candidate.variants);
+		return {
+			id: `${candidate.name}:${defaultVariant?.quant ?? "latest"}`,
+			name: candidate.name,
+			displayName: deriveDisplayName(candidate.name),
+			paramB: candidate.paramB,
+			sizeGb: defaultVariant?.sizeGb ?? null,
+			contextK: null,
+			tags: deriveTags({
+				name: candidate.name,
+				paramB: candidate.paramB,
+				capabilities: candidate.capabilities,
+			}),
+			capabilities: candidate.capabilities,
+			description: "",
+			pullCount: candidate.pullCount,
+			updatedAt: candidate.updatedAt,
+			variants: candidate.variants,
+		};
+	});
 }
 
 let cache: { data: CatalogModel[]; fetchedAt: number } | null = null;
 let refreshInFlight: Promise<CatalogModel[]> | null = null;
 
 /**
- * Returns cached data immediately while an expired cache refreshes in the
- * background. With no cache, the caller waits for the fetch.
- * @throws when no cache exists and the fetch fails or returns no models
+ * Returns the catalog, re-fetching at most once per TTL. A stale cache is
+ * served immediately while the refresh runs in the background; with no cache
+ * at all the caller waits, and a failed fetch propagates so the client can
+ * show its retry affordance instead of an empty library.
+ * @throws when no cached catalog exists and the fetch fails or returns zero models
  */
 export async function getCatalog(): Promise<CatalogModel[]> {
 	if (cache && Date.now() - cache.fetchedAt < CACHE_TTL_MS) return cache.data;

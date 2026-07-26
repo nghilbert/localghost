@@ -14,17 +14,18 @@ import type {
  */
 
 export function makeCatalogModel(overrides: Partial<CatalogModel> = {}): CatalogModel {
+	const name = faker.commerce.productName();
 	return {
 		id: faker.string.uuid(),
-		name: faker.commerce.productName(),
+		name,
+		displayName: name,
 		paramB: 7,
 		sizeGb: null,
 		contextK: null,
 		tags: ["chat"],
 		capabilities: ["tools"],
 		description: faker.lorem.sentence(),
-		pullCount: "1M",
-		updated: "1 year ago",
+		pullCount: 1_000_000,
 		...overrides,
 	};
 }

@@ -1,5 +1,5 @@
 import type { ColumnDef } from "@tanstack/react-table";
-import { parsePullCount, requiredMemoryGb } from "#/routes/_authenticated/library/-lib/catalog";
+import { formatPullCount, requiredMemoryGb } from "#/routes/_authenticated/library/-lib/catalog";
 import type { ModelRow } from "#/routes/_authenticated/library/-lib/model-rows";
 import { DataTableColumnHeader } from "#/shared/components/DataTable/DataTableColumnHeader";
 import { MemoryCell, ModelIdentityCell, ParamsCell, SizeCell, TextCell } from "./ModelCells";
@@ -21,6 +21,16 @@ function nullableNumber(value: number | null | undefined): number {
 
 export function createModelColumns(): ColumnDef<ModelRow>[] {
 	return [
+		{
+			// Hidden always: exists only so ModelStatusFilter can drive a real
+			// column filter and read post-search facet counts, instead of the
+			// table pre-filtering rows itself (which disagreed with the search box).
+			id: "status",
+			accessorFn: (row) => (row.installed ? "installed" : "available"),
+			enableHiding: false,
+			enableGlobalFilter: false,
+			filterFn: "equals",
+		},
 		{
 			id: "name",
 			accessorFn: (row) =>
@@ -57,16 +67,32 @@ export function createModelColumns(): ColumnDef<ModelRow>[] {
 		},
 		{
 			id: "pulls",
-			accessorFn: (row) => parsePullCount(row.catalog?.pullCount ?? ""),
+			accessorFn: (row) => row.catalog?.pullCount ?? 0,
 			header: ({ column }) => <DataTableColumnHeader column={column} title="Pulls" />,
-			cell: ({ row }) => <TextCell value={row.original.catalog?.pullCount} />,
+			cell: ({ row }) => (
+				<TextCell
+					value={
+						row.original.catalog?.pullCount != null
+							? formatPullCount(row.original.catalog.pullCount)
+							: undefined
+					}
+				/>
+			),
 			meta: { className: "hidden xl:table-cell" },
 		},
 		{
 			id: "updated",
 			accessorFn: (row) => row.catalog?.updatedAt ?? "",
 			header: ({ column }) => <DataTableColumnHeader column={column} title="Updated" />,
-			cell: ({ row }) => <TextCell value={row.original.catalog?.updated} />,
+			cell: ({ row }) => (
+				<TextCell
+					value={
+						row.original.catalog?.updatedAt
+							? new Date(row.original.catalog.updatedAt).toLocaleDateString()
+							: undefined
+					}
+				/>
+			),
 			meta: { className: "hidden lg:table-cell" },
 		},
 	];

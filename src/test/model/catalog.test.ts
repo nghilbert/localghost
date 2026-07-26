@@ -3,52 +3,20 @@ import {
 	availableMemoryGb,
 	deriveTags,
 	fitsHardware,
-	parseParamB,
-	parsePullCount,
+	formatPullCount,
 	requiredMemoryGb,
 } from "#/routes/_authenticated/library/-lib/catalog";
 import { makeGpu, makeHardware } from "#/test/factories";
 
-describe("parseParamB", () => {
-	it("parses billion-scale HF repo ids", () => {
-		expect(parseParamB("Qwen3-8B")).toBe(8);
-		expect(parseParamB("gemma-3-4b-it")).toBe(4);
-		expect(parseParamB("Llama-3.1-405B-Instruct")).toBe(405);
+describe("formatPullCount", () => {
+	it("scales K/M/B for display", () => {
+		expect(formatPullCount(116_600_000)).toBe("116.6M");
+		expect(formatPullCount(9_400)).toBe("9.4K");
+		expect(formatPullCount(2_000_000_000)).toBe("2B");
 	});
 
-	it("parses million-scale tags into fractional billions", () => {
-		expect(parseParamB("gemma-3-270m-it")).toBeCloseTo(0.27);
-	});
-
-	it("multiplies mixture-of-experts naming", () => {
-		expect(parseParamB("Mixtral-8x7B-Instruct")).toBe(56);
-	});
-
-	it("parses a size token embedded in a longer repo path", () => {
-		expect(parseParamB("ggml-org/embeddinggemma-300M-GGUF")).toBeCloseTo(0.3);
-	});
-
-	it("returns null for unparseable ids", () => {
-		expect(parseParamB("some-repo-without-a-size")).toBeNull();
-		expect(parseParamB("")).toBeNull();
-	});
-});
-
-describe("parsePullCount", () => {
-	it("scales K/M/B suffixes", () => {
-		expect(parsePullCount("116.6M")).toBe(116_600_000);
-		expect(parsePullCount("9.4K")).toBe(9400);
-		expect(parsePullCount("2B")).toBe(2_000_000_000);
-	});
-
-	it("parses plain integers and is case-insensitive", () => {
-		expect(parsePullCount("523")).toBe(523);
-		expect(parsePullCount("1.2m")).toBe(1_200_000);
-	});
-
-	it("returns 0 for empty or unparseable values", () => {
-		expect(parsePullCount("")).toBe(0);
-		expect(parsePullCount("lots")).toBe(0);
+	it("leaves small counts as plain integers", () => {
+		expect(formatPullCount(523)).toBe("523");
 	});
 });
 
@@ -102,26 +70,17 @@ describe("fitsHardware", () => {
 
 describe("deriveTags", () => {
 	it("keeps capability badges and flags small models fast", () => {
-		const tags = deriveTags({
-			name: "gemma3",
-			description: "small",
-			paramB: 1,
-			capabilities: ["vision"],
-		});
+		const tags = deriveTags({ name: "gemma3", paramB: 1, capabilities: ["vision"] });
 		expect(tags).toContain("vision");
 		expect(tags).toContain("fast");
 		expect(tags).not.toContain("code");
 	});
 
-	it("flags coding models via name or description", () => {
-		expect(
-			deriveTags({ name: "qwen2.5-coder", description: "", paramB: 7, capabilities: [] }),
-		).toContain("code");
+	it("flags coding models via name", () => {
+		expect(deriveTags({ name: "qwen2.5-coder", paramB: 7, capabilities: [] })).toContain("code");
 	});
 
 	it("does not flag large models fast", () => {
-		expect(deriveTags({ name: "x", description: "", paramB: 14, capabilities: [] })).not.toContain(
-			"fast",
-		);
+		expect(deriveTags({ name: "x", paramB: 14, capabilities: [] })).not.toContain("fast");
 	});
 });

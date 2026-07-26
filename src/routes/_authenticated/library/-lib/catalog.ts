@@ -1,33 +1,11 @@
 import type { CatalogModel, GpuInfo, HardwareInfo } from "#/shared/domain/model/types";
 
-/**
- * Parses billions of parameters out of an HF repo id or size tag, e.g.
- * "Qwen3-8B", "gemma-3-4b-it", "Mixtral-8x7B" (→ 56), "gemma-3-270m" (→ 0.27).
- * Returns null when no size token is found.
- */
-export function parseParamB(id: string): number | null {
-	const moe = id.match(/(\d+(?:\.\d+)?)[xX](\d+(?:\.\d+)?)[bB](?:[-._]|$)/);
-	if (moe?.[1] && moe[2]) return Number(moe[1]) * Number(moe[2]);
-
-	const billions = id.match(/(?:^|[-._/])(\d+(?:\.\d+)?)[bB](?:[-._]|$)/);
-	if (billions?.[1]) return Number(billions[1]);
-
-	const millions = id.match(/(?:^|[-._/])(\d+(?:\.\d+)?)[mM](?:[-._]|$)/);
-	if (millions?.[1]) return Number(millions[1]) / 1000;
-
-	return null;
-}
-
-/**
- * Parses the library's abbreviated pull count into a number for sorting/ranking.
- * Handles plain counts and K/M/B suffixes ("116.6M" → 116_600_000, "9.4K" → 9400).
- * Returns 0 when the value isn't parseable.
- */
-export function parsePullCount(value: string): number {
-	const match = value.trim().match(/^([\d.]+)\s*([kmb])?$/i);
-	if (!match) return 0;
-	const multiplier = { k: 1e3, m: 1e6, b: 1e9 }[match[2]?.toLowerCase() ?? ""] ?? 1;
-	return Number(match[1]) * multiplier;
+/** Formats a raw Hugging Face download count for display, e.g. 4983180 → "5.0M". */
+export function formatPullCount(value: number): string {
+	if (value >= 1e9) return `${round1(value / 1e9)}B`;
+	if (value >= 1e6) return `${round1(value / 1e6)}M`;
+	if (value >= 1e3) return `${round1(value / 1e3)}K`;
+	return String(value);
 }
 
 /** Fallback GB-per-billion-parameters estimate, only used when a variant has no exact file size. */
@@ -82,17 +60,15 @@ export function fitsHardware({
  */
 export function deriveTags({
 	name,
-	description,
 	paramB,
 	capabilities,
 }: {
 	name: string;
-	description: string;
 	paramB: number | null;
 	capabilities: string[];
 }): string[] {
 	const tags = [...capabilities];
 	if (paramB !== null && paramB <= 3) tags.push("fast");
-	if (/cod(e|er)/i.test(`${name} ${description}`)) tags.push("code");
+	if (name.toLowerCase().includes("code")) tags.push("code");
 	return tags;
 }
