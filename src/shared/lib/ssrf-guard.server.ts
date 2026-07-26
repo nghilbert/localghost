@@ -25,8 +25,7 @@ function isPrivateIPv6(address: string): boolean {
 	if (lower === "::1" || lower === "::") return true;
 	if (lower.startsWith("fe80:")) return true;
 	if (lower.startsWith("fc") || lower.startsWith("fd")) return true;
-	const mapped = lower.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);
-	if (mapped?.[1]) return isPrivateIPv4(mapped[1]);
+	if (lower.startsWith("::ffff:")) return isPrivateIPv4(lower.slice("::ffff:".length));
 	return false;
 }
 
@@ -109,7 +108,10 @@ export function assertPublicUrl(input: string): URL {
 		throw new UnsafeUrlError("Only http and https URLs are allowed.");
 	}
 	// WHATWG URL keeps IPv6 hosts bracketed; strip for isIP/isPrivateAddress.
-	const host = url.hostname.replace(/^\[|\]$/g, "");
+	const host =
+		url.hostname.startsWith("[") && url.hostname.endsWith("]")
+			? url.hostname.slice(1, -1)
+			: url.hostname;
 	if (isIP(host) !== 0 && isPrivateAddress(host)) {
 		throw new UnsafeUrlError("Refusing to fetch a local or private network address.");
 	}

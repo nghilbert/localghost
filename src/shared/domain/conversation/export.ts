@@ -52,10 +52,23 @@ export function conversationExportFilename({
 	title: string | null;
 	extension: "md" | "json";
 }): string {
-	const slug = (title ?? "")
-		.toLowerCase()
-		.replace(/[^a-z0-9]+/g, "-")
-		.replace(/^-+|-+$/g, "")
-		.slice(0, 60);
+	const isAlphanumeric = (char: string) =>
+		(char >= "a" && char <= "z") || (char >= "0" && char <= "9");
+	let dashed = "";
+	let lastWasDash = false;
+	for (const char of (title ?? "").toLowerCase()) {
+		if (isAlphanumeric(char)) {
+			dashed += char;
+			lastWasDash = false;
+		} else if (!lastWasDash) {
+			dashed += "-";
+			lastWasDash = true;
+		}
+	}
+	let start = 0;
+	let end = dashed.length;
+	while (start < end && dashed[start] === "-") start++;
+	while (end > start && dashed[end - 1] === "-") end--;
+	const slug = dashed.slice(start, end).slice(0, 60);
 	return `${slug || "conversation"}.${extension}`;
 }

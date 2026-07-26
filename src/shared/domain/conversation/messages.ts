@@ -335,6 +335,24 @@ export function awaitingAssistantResponse(messages: Array<UIMessage>): boolean {
 	return last?.role === "user";
 }
 
+/** Splits on runs of whitespace, dropping empty tokens (a plain-string `/\s+/`). */
+function splitOnWhitespace(text: string): string[] {
+	const tokens: string[] = [];
+	let current = "";
+	for (const char of text) {
+		if (char.trim() === "") {
+			if (current) {
+				tokens.push(current);
+				current = "";
+			}
+		} else {
+			current += char;
+		}
+	}
+	if (current) tokens.push(current);
+	return tokens;
+}
+
 /**
  * Derives a chat title from the leading words of the first message.
  * Deterministic and model-free.
@@ -343,5 +361,5 @@ export function awaitingAssistantResponse(messages: Array<UIMessage>): boolean {
 export function deriveConversationTitle(text: string): string | null {
 	const trimmed = text.trim();
 	if (!trimmed) return null;
-	return trimmed.split(/\s+/).slice(0, 6).join(" ").slice(0, 80);
+	return splitOnWhitespace(trimmed).slice(0, 6).join(" ").slice(0, 80);
 }
