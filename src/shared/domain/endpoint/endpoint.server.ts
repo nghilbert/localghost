@@ -100,11 +100,12 @@ export async function removeEndpoint({ id, ownerId }: { id: string; ownerId: str
 	// Clear the model on conversations using this endpoint so the (endpointId, model)
 	// pair goes null together; the FK's SetNull only nulls endpointId. Keeps history,
 	// reopening the chat to a fresh model pick instead of an orphaned model string.
-	await prisma.conversation.updateMany({
-		where: { endpointId: id, ownerId },
-		data: { model: null },
-	});
-	await prisma.endpoint.deleteMany({ where: { id, ownerId } });
+	// Transactional so a failure between the two never leaves a conversation with
+	// model: null while the endpoint it belonged to still exists.
+	await prisma.$transaction([
+		prisma.conversation.updateMany({ where: { endpointId: id, ownerId }, data: { model: null } }),
+		prisma.endpoint.deleteMany({ where: { id, ownerId } }),
+	]);
 }
 
 /**
@@ -174,7 +175,11 @@ export async function probeModelCapabilities({
 	const supportsDocuments = endpoint.provider === "anthropic" || endpoint.provider === "gemini";
 	if (endpoint.provider === "llamacpp") {
 		try {
-			const models = await listLlamacppModels({ url: endpoint.url, timeoutMs: 5000 });
+			const models = await listLlamacppModels({
+				url: endpoint.url,
+				apiKey: endpointApiKey(endpoint),
+				timeoutMs: 5000,
+			});
 			const supportsImages =
 				models.find((m) => m.id === model)?.architecture?.input_modalities?.includes("image") ??
 				false;

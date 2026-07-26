@@ -1,3 +1,4 @@
+import { endpointApiKey } from "#/shared/domain/endpoint/endpoint.server";
 import { prisma } from "#/shared/lib/db.server";
 import { listModels } from "#/shared/lib/llamacpp/client.server";
 import { buildFirstUserMessage, deriveConversationTitle } from "./messages";
@@ -179,11 +180,18 @@ export async function probeModelRunState({
 }): Promise<ModelRunState> {
 	const conversation = await prisma.conversation.findFirst({
 		where: { id, ownerId },
-		select: { model: true, endpoint: { select: { url: true, provider: true } } },
+		select: {
+			model: true,
+			endpoint: { select: { url: true, provider: true, apiKeyEncrypted: true } },
+		},
 	});
 	if (!conversation?.model || conversation.endpoint?.provider !== "llamacpp") return "ready";
 	try {
-		const models = await listModels({ url: conversation.endpoint.url, timeoutMs: 3_000 });
+		const models = await listModels({
+			url: conversation.endpoint.url,
+			apiKey: endpointApiKey(conversation.endpoint),
+			timeoutMs: 3_000,
+		});
 		const found = models.find((m) => m.id === conversation.model);
 		return found?.status.value === "loading" ? "warming" : "ready";
 	} catch (error) {

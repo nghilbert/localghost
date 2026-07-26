@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	buildRuntimeCandidateUrls,
-	getRuntimeUrl,
+	getRuntimeEndpoint,
 	upsertRuntimeEndpoint,
 } from "#/shared/domain/model/discovery.server";
 
@@ -16,7 +16,7 @@ vi.mock("#/shared/lib/db.server", () => ({
 	prisma: { endpoint: { findFirst, findMany, upsert, update } },
 }));
 
-describe("getRuntimeUrl", () => {
+describe("getRuntimeEndpoint", () => {
 	beforeEach(() => {
 		findFirst.mockReset();
 		vi.unstubAllEnvs();
@@ -28,17 +28,23 @@ describe("getRuntimeUrl", () => {
 
 	it("prefers the user's configured llamacpp endpoint", async () => {
 		findFirst.mockResolvedValue({ url: "http://my-llamacpp:9999/" });
-		await expect(getRuntimeUrl("user-1")).resolves.toBe("http://my-llamacpp:9999");
+		await expect(getRuntimeEndpoint("user-1")).resolves.toEqual({
+			url: "http://my-llamacpp:9999",
+			apiKey: undefined,
+		});
 	});
 
 	it("falls back to localhost when no endpoint is set", async () => {
 		findFirst.mockResolvedValue(null);
-		await expect(getRuntimeUrl("user-1")).resolves.toBe("http://localhost:8080");
+		await expect(getRuntimeEndpoint("user-1")).resolves.toEqual({
+			url: "http://localhost:8080",
+			apiKey: undefined,
+		});
 	});
 
 	it("queries the oldest llamacpp endpoint for the user", async () => {
 		findFirst.mockResolvedValue(null);
-		await getRuntimeUrl("user-42");
+		await getRuntimeEndpoint("user-42");
 		expect(findFirst).toHaveBeenCalledWith({
 			where: { ownerId: "user-42", provider: "llamacpp" },
 			orderBy: { id: "asc" },

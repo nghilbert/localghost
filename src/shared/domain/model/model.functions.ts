@@ -6,7 +6,7 @@ import { llamacppConnectionSchema, llamacppUrlSchema } from "#/shared/lib/llamac
 import { authedFn } from "#/shared/lib/middleware";
 import { getCatalog } from "./catalog.server";
 import {
-	getRuntimeUrl,
+	getRuntimeEndpoint,
 	probeRuntime,
 	scanForRuntime,
 	upsertRuntimeEndpoint,
@@ -42,7 +42,7 @@ export const scanRuntimeStatus = createServerFn({ method: "GET" })
 			url: found.url,
 			existing: found.savedEndpoint,
 		});
-		ensureWatching(found.url);
+		ensureWatching(found.url, found.apiKey);
 		return {
 			found: true,
 			runtimeUrl: found.url,
@@ -81,26 +81,24 @@ export const startModelDownload = createServerFn({ method: "POST" })
 	.middleware([authedFn])
 	.validator(z.object({ model: z.string().min(1), runtimeUrl: z.string().optional() }))
 	.handler(async ({ data, context }) => {
-		const url = data.runtimeUrl
-			? trimPathRight(data.runtimeUrl)
-			: await getRuntimeUrl(context.userId);
-		await startDownload({ url, model: data.model });
+		const resolved = await getRuntimeEndpoint(context.userId);
+		const url = data.runtimeUrl ? trimPathRight(data.runtimeUrl) : resolved.url;
+		await startDownload({ url, model: data.model, apiKey: resolved.apiKey });
 	});
 
 export const cancelModelDownload = createServerFn({ method: "POST" })
 	.middleware([authedFn])
 	.validator(z.object({ model: z.string().min(1), runtimeUrl: z.string().optional() }))
 	.handler(async ({ data, context }) => {
-		const url = data.runtimeUrl
-			? trimPathRight(data.runtimeUrl)
-			: await getRuntimeUrl(context.userId);
-		await cancelDownload({ url, model: data.model });
+		const resolved = await getRuntimeEndpoint(context.userId);
+		const url = data.runtimeUrl ? trimPathRight(data.runtimeUrl) : resolved.url;
+		await cancelDownload({ url, model: data.model, apiKey: resolved.apiKey });
 	});
 
 export const listActiveDownloadsFn = createServerFn({ method: "GET" })
 	.middleware([authedFn])
 	.handler(async ({ context }) => {
-		const url = await getRuntimeUrl(context.userId);
+		const { url } = await getRuntimeEndpoint(context.userId);
 		return listActiveDownloads(url);
 	});
 

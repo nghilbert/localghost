@@ -74,7 +74,11 @@ export const Route = createFileRoute("/api/chat/stream")({
 				// back to message-count bounding (their windows are large/unknown here).
 				const nCtx =
 					endpoint.provider === "llamacpp"
-						? await getContextWindow({ url: endpoint.url, model: conversation.model })
+						? await getContextWindow({
+								url: endpoint.url,
+								model: conversation.model,
+								apiKey: endpointApiKey(endpoint),
+							})
 						: undefined;
 
 				// One controller cancels the whole run: `toServerSentEventsResponse`

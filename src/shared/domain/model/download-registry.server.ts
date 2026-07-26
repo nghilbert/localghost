@@ -51,7 +51,7 @@ type EndpointWatch = {
 const watches = new Map<string, EndpointWatch>();
 
 /** Starts (or reuses) the SSE subscription for `url`. */
-function watchFor(url: string): EndpointWatch {
+function watchFor(url: string, apiKey?: string): EndpointWatch {
 	const existing = watches.get(url);
 	if (existing) return existing;
 
@@ -59,22 +59,53 @@ function watchFor(url: string): EndpointWatch {
 	const watch: EndpointWatch = { downloads: new Map(), abort };
 	watches.set(url, watch);
 
-	void consumeEvents({ url, watch });
+	void consumeEvents({ url, apiKey, watch });
 	return watch;
 }
 
-async function consumeEvents({ url, watch }: { url: string; watch: EndpointWatch }): Promise<void> {
-	try {
-		for await (const event of watchModels({ url, signal: watch.abort.signal })) {
-			applyEvent({ watch, event });
+const RECONNECT_MIN_MS = 1_000;
+const RECONNECT_MAX_MS = 30_000;
+
+/**
+ * Consumes the SSE stream until it ends, then reconnects with capped
+ * exponential backoff — the router-side stream can drop on its own (a body
+ * timeout, a server restart) with no client-side signal to distinguish that
+ * from a deliberate teardown other than the abort flag. Only a deliberate
+ * `abort()` (from a caller that no longer wants this watch) stops retrying.
+ */
+async function consumeEvents({
+	url,
+	apiKey,
+	watch,
+}: {
+	url: string;
+	apiKey?: string;
+	watch: EndpointWatch;
+}): Promise<void> {
+	let backoffMs = RECONNECT_MIN_MS;
+	while (!watch.abort.signal.aborted) {
+		try {
+			for await (const event of watchModels({ url, apiKey, signal: watch.abort.signal })) {
+				applyEvent({ watch, event });
+			}
+			backoffMs = RECONNECT_MIN_MS; // a clean end (server closed politely) resets backoff
+		} catch (error) {
+			if (watch.abort.signal.aborted) break;
+			console.warn("llama.cpp model-state stream ended unexpectedly; reconnecting", {
+				url,
+				error,
+				backoffMs,
+			});
 		}
-	} catch (error) {
-		if (!watch.abort.signal.aborted) {
-			console.warn("llama.cpp model-state stream ended unexpectedly", { url, error });
-		}
-	} finally {
-		watches.delete(url);
+		if (watch.abort.signal.aborted) break;
+		await sleep(backoffMs);
+		backoffMs = Math.min(backoffMs * 2, RECONNECT_MAX_MS);
 	}
+	watches.delete(url);
+}
+
+function sleep(ms: number): Promise<void> {
+	return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function applyEvent({ watch, event }: { watch: EndpointWatch; event: ModelStateEvent }): void {
@@ -129,21 +160,31 @@ function updateRate({
 }
 
 /** Begin downloading a model, or no-op if a download for it is already tracked. */
-export async function startDownload({ url, model }: { url: string; model: string }): Promise<void> {
-	const watch = watchFor(url);
+export async function startDownload({
+	url,
+	model,
+	apiKey,
+}: {
+	url: string;
+	model: string;
+	apiKey?: string;
+}): Promise<void> {
+	const watch = watchFor(url, apiKey);
 	const existing = watch.downloads.get(model);
 	if (existing && !existing.done) return;
 	watch.downloads.set(model, { status: "Starting…", done: false });
-	await downloadModel({ url, model });
+	await downloadModel({ url, model, apiKey });
 }
 
 /** Cancels an in-flight download (unloading also cancels the download, per the router API). */
 export async function cancelDownload({
 	url,
 	model,
+	apiKey,
 }: {
 	url: string;
 	model: string;
+	apiKey?: string;
 }): Promise<void> {
 	const watch = watches.get(url);
 	const entry = watch?.downloads.get(model);
@@ -151,7 +192,7 @@ export async function cancelDownload({
 		watch?.downloads.delete(model);
 		return;
 	}
-	await unloadModel({ url, model });
+	await unloadModel({ url, model, apiKey });
 	watch?.downloads.delete(model);
 }
 
@@ -182,6 +223,6 @@ export function listActiveDownloads(url: string): DownloadSnapshot[] {
 }
 
 /** Ensures a live SSE subscription exists for `url`, so `listActiveDownloads` has data. */
-export function ensureWatching(url: string): void {
-	watchFor(url);
+export function ensureWatching(url: string, apiKey?: string): void {
+	watchFor(url, apiKey);
 }

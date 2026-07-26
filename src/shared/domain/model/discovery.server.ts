@@ -1,6 +1,8 @@
 import { trimPathRight } from "@tanstack/react-router";
+import { endpointApiKey } from "#/shared/domain/endpoint/endpoint.server";
 import { prisma } from "#/shared/lib/db.server";
 import { listModels, serverProps } from "#/shared/lib/llamacpp/client.server";
+import { parseParamB } from "./catalog-curation";
 import type { InstalledModel } from "./types";
 
 const DEFAULT_RUNTIME_URL = "http://localhost:8080";
@@ -19,22 +21,22 @@ function parseQuant(id: string): string | null {
 	return idx === -1 ? null : id.slice(idx + 1);
 }
 
-/** Parses billions-of-parameters out of an HF repo id, e.g. `Qwen3-8B` → 8. */
-function parseParamB(id: string): number | null {
-	const match = id.match(/(\d+(?:\.\d+)?)\s*[bB](?:-|:|$)/);
-	return match?.[1] ? Number.parseFloat(match[1]) : null;
-}
-
 /**
- * Resolves the llama.cpp base URL for a user: their configured llamacpp
- * endpoint first, then localhost.
+ * Resolves the llama.cpp base URL and (if the saved endpoint carries one) API
+ * key for a user: their configured llamacpp endpoint first, then localhost.
  */
-export async function getRuntimeUrl(userId: string): Promise<string> {
+export async function getRuntimeEndpoint(userId: string): Promise<{
+	url: string;
+	apiKey: string | undefined;
+}> {
 	const endpoint = await prisma.endpoint.findFirst({
 		where: { ownerId: userId, provider: "llamacpp" },
 		orderBy: { id: "asc" },
 	});
-	return trimPathRight(endpoint?.url ?? DEFAULT_RUNTIME_URL);
+	return {
+		url: trimPathRight(endpoint?.url ?? DEFAULT_RUNTIME_URL),
+		apiKey: endpoint ? endpointApiKey(endpoint) : undefined,
+	};
 }
 
 /**
@@ -56,13 +58,15 @@ export type RuntimeProbeResult = {
 /** Checks whether a llama-server router answers at the given base URL and lists its models. */
 export async function probeRuntime({
 	url,
+	apiKey,
 	timeoutMs = 2500,
 }: {
 	url: string;
+	apiKey?: string;
 	timeoutMs?: number;
 }): Promise<RuntimeProbeResult> {
 	try {
-		const models = await listModels({ url, timeoutMs });
+		const models = await listModels({ url, apiKey, timeoutMs });
 		const installedModels: InstalledModel[] = models.map((m) => ({
 			id: m.id,
 			sizeBytes: null,
@@ -83,26 +87,35 @@ export type SavedRuntimeEndpoint = { id: string; url: string };
 export type RuntimeScanResult = {
 	url: string;
 	installedModels: InstalledModel[];
+	/** The API key that reached this URL, if any, so callers can reuse it without re-querying. */
+	apiKey: string | undefined;
 	/** The user's oldest saved llamacpp endpoint, so callers can sync it without re-querying. */
 	savedEndpoint: SavedRuntimeEndpoint | null;
 };
 
 /**
  * Probes all candidate URLs for the user concurrently; the first reachable
- * instance in priority order wins.
+ * instance in priority order wins. A candidate matching a saved endpoint's
+ * URL is probed with that endpoint's decrypted API key; well-known addresses
+ * with no saved endpoint are probed keyless.
  */
 export async function scanForRuntime(userId: string): Promise<RuntimeScanResult | null> {
 	const saved = await prisma.endpoint.findMany({
 		where: { ownerId: userId, provider: "llamacpp" },
 		orderBy: { id: "asc" },
-		select: { id: true, url: true },
 	});
+	const keyByUrl = new Map(
+		saved.map((endpoint) => [trimPathRight(endpoint.url), endpointApiKey(endpoint)]),
+	);
 	const candidates = buildRuntimeCandidateUrls({
 		savedUrls: saved.map((endpoint) => endpoint.url),
 	});
 
 	const probes = await Promise.all(
-		candidates.map(async (url) => ({ url, ...(await probeRuntime({ url })) })),
+		candidates.map(async (url) => ({
+			url,
+			...(await probeRuntime({ url, apiKey: keyByUrl.get(url) })),
+		})),
 	);
 	const found = probes.find((probe) => probe.reachable);
 	if (!found) return null;
@@ -110,7 +123,8 @@ export async function scanForRuntime(userId: string): Promise<RuntimeScanResult 
 	return {
 		url: found.url,
 		installedModels: found.installedModels,
-		savedEndpoint: saved[0] ?? null,
+		apiKey: keyByUrl.get(found.url),
+		savedEndpoint: saved[0] ? { id: saved[0].id, url: saved[0].url } : null,
 	};
 }
 
@@ -173,15 +187,17 @@ const contextWindowCache = new Map<string, { nCtx: number; expiresAt: number }>(
 export async function getContextWindow({
 	url,
 	model,
+	apiKey,
 }: {
 	url: string;
 	model: string;
+	apiKey?: string;
 }): Promise<number | undefined> {
 	const key = `${url}:${model}`;
 	const cached = contextWindowCache.get(key);
 	if (cached && cached.expiresAt > Date.now()) return cached.nCtx;
 	try {
-		const props = await serverProps({ url, model, timeoutMs: 2000 });
+		const props = await serverProps({ url, model, apiKey, timeoutMs: 2000 });
 		contextWindowCache.set(key, {
 			nCtx: props.n_ctx,
 			expiresAt: Date.now() + CONTEXT_WINDOW_TTL_MS,
