@@ -1,25 +1,12 @@
 import type { ServerTool } from "@tanstack/ai";
 import { toolDefinition } from "@tanstack/ai";
-import type { z } from "zod";
 import {
 	deleteMemoryArgsSchema,
 	manageMemory,
-	manageMemoryArgsSchema,
+	manageMemoryToolArgsSchema,
 } from "#/shared/domain/memory/memory-tool.server";
 import { readUrl, readUrlArgsSchema } from "#/shared/lib/tools/read-url.server";
 import { webSearch, webSearchArgsSchema } from "#/shared/lib/tools/web-search.server";
-
-/**
- * A short corrective message a model can act on. A thrown ZodError would abort
- * the whole run; returning this as the tool result lets the model fix its
- * arguments and retry.
- */
-function invalidArgsMessage(error: z.ZodError): string {
-	const issues = error.issues.map(
-		(issue) => `${issue.path.join(".") || "arguments"}: ${issue.message}`,
-	);
-	return `Invalid tool arguments, fix and retry. ${issues.join("; ")}`;
-}
 
 function webSearchTool(): ServerTool {
 	return toolDefinition({
@@ -44,18 +31,8 @@ function readUrlTool(): ServerTool {
 		description:
 			"Fetch a web page and return its main content as clean text. " +
 			"Use after web_search to read a result in full.",
-		inputSchema: {
-			type: "object",
-			properties: {
-				url: { type: "string", description: "The page URL to read" },
-			},
-			required: ["url"],
-		},
-	}).server(async (args) => {
-		const parsed = readUrlArgsSchema.safeParse(args);
-		if (!parsed.success) return invalidArgsMessage(parsed.error);
-		return readUrl(parsed.data.url);
-	});
+		inputSchema: readUrlArgsSchema,
+	}).server(async ({ url }) => readUrl(url));
 }
 
 function manageMemoryTool(ownerId: string): ServerTool {
@@ -68,29 +45,12 @@ function manageMemoryTool(ownerId: string): ServerTool {
 			"worth remembering across sessions (a stable preference, personal detail, ongoing project, " +
 			"or an explicit 'remember this'). Never save trivial or ephemeral conversation details. " +
 			"Use list or search to find a memory's id; to remove one, call delete_memory with that id.",
-		inputSchema: {
-			type: "object",
-			properties: {
-				action: {
-					type: "string",
-					enum: ["add", "search", "list"],
-					description: "What to do with memories",
-				},
-				text: { type: "string", description: "Memory text (required for add)" },
-				query: { type: "string", description: "Search query (required for search)" },
-				category: {
-					type: "string",
-					description: "Category hint: fact, preference, contact, project, instruction",
-				},
-				limit: { type: "number", description: "Max results (default 5)" },
-			},
-			required: ["action"],
-		},
-	}).server(async (args) => {
-		const parsed = manageMemoryArgsSchema.safeParse(args);
-		if (!parsed.success) return invalidArgsMessage(parsed.error);
-		return manageMemory({ args: parsed.data, ownerId });
-	});
+		inputSchema: manageMemoryToolArgsSchema,
+		// `limit` is `z.coerce.number()`, so the pre-coercion input type (unknown)
+		// leaks into the handler's args; re-parsing recovers the coerced number.
+	}).server(async (args) =>
+		manageMemory({ args: manageMemoryToolArgsSchema.parse(args), ownerId }),
+	);
 }
 
 /** Split out from `manage_memory` so deletion, the one destructive action, pauses for approval. */
@@ -99,19 +59,9 @@ function deleteMemoryTool(ownerId: string): ServerTool {
 		name: "delete_memory",
 		description:
 			"Delete a saved memory by id. Find the id first with manage_memory's list or search.",
-		inputSchema: {
-			type: "object",
-			properties: {
-				id: { type: "string", description: "Memory ID from a prior list or search result" },
-			},
-			required: ["id"],
-		},
+		inputSchema: deleteMemoryArgsSchema,
 		needsApproval: true,
-	}).server(async (args) => {
-		const parsed = deleteMemoryArgsSchema.safeParse(args);
-		if (!parsed.success) return invalidArgsMessage(parsed.error);
-		return manageMemory({ args: { action: "delete", id: parsed.data.id }, ownerId });
-	});
+	}).server(async ({ id }) => manageMemory({ args: { action: "delete", id }, ownerId }));
 }
 
 /**

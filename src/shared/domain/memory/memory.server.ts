@@ -65,23 +65,31 @@ export async function saveMemory({
 }): Promise<SaveMemoryResult> {
 	const embedding = await embed({ text, ownerId });
 
-	// Cheap exact match first (mirrors the backup importer's dedup key).
-	const exact = await prisma.memory.findFirst({
-		where: { ownerId, text, category: category ?? "fact" },
-		select: { text: true },
-	});
-	if (exact) return { status: "duplicate", text: exact.text };
+	// Serializable so two concurrent saves of the same fact can't both pass the
+	// dedup check and both insert; the loser's transaction fails and retries as
+	// a plain duplicate result on the caller's next attempt.
+	return prisma.$transaction(
+		async (tx) => {
+			// Cheap exact match first (mirrors the backup importer's dedup key).
+			const exact = await tx.memory.findFirst({
+				where: { ownerId, text, category: category ?? "fact" },
+				select: { text: true },
+			});
+			if (exact) return { status: "duplicate", text: exact.text };
 
-	// Then a semantic near-duplicate check, reusing the embedding we just computed.
-	if (embedding) {
-		const nearest = await nearestMemory({ ownerId, embedding });
-		if (nearest && nearest.distance < DEDUP_MAX_COSINE_DISTANCE) {
-			return { status: "duplicate", text: nearest.text };
-		}
-	}
+			// Then a semantic near-duplicate check, reusing the embedding we just computed.
+			if (embedding) {
+				const nearest = await nearestMemory({ db: tx, ownerId, embedding });
+				if (nearest && nearest.distance < DEDUP_MAX_COSINE_DISTANCE) {
+					return { status: "duplicate", text: nearest.text };
+				}
+			}
 
-	await insertMemory({ db: prisma, ownerId, text, category, source, embedding });
-	return { status: "saved" };
+			await insertMemory({ db: tx, ownerId, text, category, source, embedding });
+			return { status: "saved" };
+		},
+		{ isolationLevel: "Serializable" },
+	);
 }
 
 /**
@@ -90,14 +98,16 @@ export async function saveMemory({
  * vector's dimension mismatches, same as {@link recallMemories}.
  */
 async function nearestMemory({
+	db = prisma,
 	ownerId,
 	embedding,
 }: {
+	db?: Prisma.TransactionClient;
 	ownerId: string;
 	embedding: number[];
 }): Promise<{ text: string; distance: number } | null> {
 	try {
-		const rows = await prisma.$queryRaw<Array<{ text: string; distance: number }>>`
+		const rows = await db.$queryRaw<Array<{ text: string; distance: number }>>`
 			SELECT text, embedding <=> ${toVectorLiteral(embedding)}::vector AS distance
 			FROM memory
 			WHERE owner_id = ${ownerId}::uuid AND embedding IS NOT NULL
@@ -180,12 +190,36 @@ function keywordRecall({
  * escaping LIKE metacharacters. Words shorter than two chars are dropped; if
  * that leaves nothing, the whole trimmed query is used as a single pattern.
  */
+const LIKE_METACHARACTERS = ["\\", "%", "_"];
+
+function escapeLike(word: string): string {
+	let escaped = word;
+	for (const char of LIKE_METACHARACTERS) {
+		escaped = escaped.split(char).join(`\\${char}`);
+	}
+	return escaped;
+}
+
+/** Splits on runs of whitespace, dropping empty tokens (a plain-string `/\s+/`). */
+function splitOnWhitespace(text: string): string[] {
+	const tokens: string[] = [];
+	let current = "";
+	for (const char of text) {
+		if (char.trim() === "") {
+			if (current) {
+				tokens.push(current);
+				current = "";
+			}
+		} else {
+			current += char;
+		}
+	}
+	if (current) tokens.push(current);
+	return tokens;
+}
+
 function likePatterns(query: string): string[] {
-	const escapeLike = (word: string) => word.replace(/[\\%_]/g, (char) => `\\${char}`);
-	const words = query
-		.toLowerCase()
-		.split(/\s+/)
-		.filter((word) => word.length >= 2);
+	const words = splitOnWhitespace(query.toLowerCase()).filter((word) => word.length >= 2);
 	const tokens = words.length > 0 ? words : [query.trim().toLowerCase()];
 	return tokens.map((word) => `%${escapeLike(word)}%`);
 }
