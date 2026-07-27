@@ -73,6 +73,17 @@ CREATE TABLE "model_setting" (
 );
 
 -- CreateTable
+CREATE TABLE "ollama_pull" (
+    "id" UUID NOT NULL DEFAULT uuidv7(),
+    "model" TEXT NOT NULL,
+    "ollama_url" TEXT NOT NULL,
+    "owner_id" UUID NOT NULL,
+    "started_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "ollama_pull_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "session" (
     "id" UUID NOT NULL DEFAULT uuidv7(),
     "expires_at" TIMESTAMP(3) NOT NULL,
@@ -132,6 +143,9 @@ CREATE INDEX "memory_owner_id_idx" ON "memory"("owner_id");
 CREATE UNIQUE INDEX "model_setting_endpoint_id_model_key" ON "model_setting"("endpoint_id", "model");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "ollama_pull_owner_id_model_key" ON "ollama_pull"("owner_id", "model");
+
+-- CreateIndex
 CREATE INDEX "session_user_id_idx" ON "session"("user_id");
 
 -- CreateIndex
@@ -163,6 +177,9 @@ ALTER TABLE "model_setting" ADD CONSTRAINT "model_setting_endpoint_id_fkey" FORE
 
 -- AddForeignKey
 ALTER TABLE "model_setting" ADD CONSTRAINT "model_setting_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ollama_pull" ADD CONSTRAINT "ollama_pull_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "session" ADD CONSTRAINT "session_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
