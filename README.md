@@ -79,6 +79,11 @@ Author new migrations against the dockerized dev DB with:
 docker compose exec web-dev npm run prisma -- migrate dev --name <name>
 ```
 
+When upgrading from an Ollama-backed build, user-added Ollama endpoints remain
+available through Ollama's OpenAI-compatible `/v1` API. The machine-discovered
+endpoint is replaced by llama.cpp. In-flight `ollama_pull` records are removed;
+downloaded Ollama model files are not imported into llama.cpp's cache.
+
 ## Deploy
 
 The `prod` profile builds the production image (the `web` service) and serves it
