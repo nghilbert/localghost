@@ -2,7 +2,6 @@ import {
 	type ColumnDef,
 	type ColumnFiltersState,
 	type ExpandedState,
-	flexRender,
 	getCoreRowModel,
 	getExpandedRowModel,
 	getFacetedRowModel,
@@ -19,21 +18,10 @@ import {
 	useReactTable,
 	type VisibilityState,
 } from "@tanstack/react-table";
-import { ChevronRightIcon } from "lucide-react";
-import { Fragment, type ReactNode, useMemo, useState } from "react";
-import { Input } from "#/shared/components/ui/input";
-import { Skeleton } from "#/shared/components/ui/skeleton";
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "#/shared/components/ui/table";
-import { cn } from "#/shared/lib/utils";
+import { type ReactNode, useMemo, useState } from "react";
+import { buildExpandColumn, DataTableBody } from "./DataTableBody";
 import { DataTablePagination } from "./DataTablePagination";
-import { DataTableViewOptions } from "./DataTableViewOptions";
+import { DataTableToolbar } from "./DataTableToolbar";
 import { fuzzyFilter } from "./fuzzyFilter";
 
 declare module "@tanstack/react-table" {
@@ -42,8 +30,6 @@ declare module "@tanstack/react-table" {
 		className?: string;
 	}
 }
-
-const SKELETON_WIDTHS = ["w-32", "w-20", "w-24", "w-16"];
 
 type DataTableProps<TData> = {
 	columns: ColumnDef<TData>[];
@@ -68,7 +54,7 @@ type DataTableProps<TData> = {
 	rowCount?: number;
 	/**
 	 * Controlled sorting state. Supplying this (with `onSortingChange`) hands
-	 * sorting to the caller — `data` is assumed pre-sorted, so the client-side
+	 * sorting to the caller: `data` is assumed pre-sorted, so the client-side
 	 * sorted row model is skipped. Omit both for the default client-side behavior.
 	 */
 	sorting?: SortingState;
@@ -77,17 +63,13 @@ type DataTableProps<TData> = {
 	searchPlaceholder?: string;
 	/**
 	 * Controlled search text. Supplying this (with `onSearchChange`) hands
-	 * search to the caller — `data` is assumed pre-filtered, so the client-side
+	 * search to the caller: `data` is assumed pre-filtered, so the client-side
 	 * global fuzzy filter is skipped. Omit both to filter `data` client-side.
 	 */
 	searchValue?: string;
 	onSearchChange?: (value: string) => void;
-	/**
-	 * Domain-specific filter controls, rendered in the toolbar beside the search
-	 * box. Receives the table instance so a filter control can read post-search
-	 * facet counts (`column.getFacetedUniqueValues()`) and drive a column filter
-	 * directly, instead of the caller hand-filtering rows before DataTable sees
-	 * them (which would disagree with the search box).
+	/** Domain-specific toolbar filters receive the table instance.
+	 * They can read faceted counts and set column filters after the search filter.
 	 */
 	filters?: (table: ReactTable<TData>) => ReactNode;
 	/** Stable identifier used to preserve row state when the data changes. */
@@ -213,140 +195,25 @@ export function DataTable<TData>({
 
 	return (
 		<div className="space-y-3">
-			{(searchPlaceholder || filters) && (
-				<div className="flex flex-wrap items-center gap-2">
-					{searchPlaceholder && (
-						<Input
-							placeholder={searchPlaceholder}
-							value={globalFilter}
-							onChange={(event) => handleSearchChange(event.target.value)}
-							className="w-full sm:max-w-xs"
-							data-testid="data-table-search"
-						/>
-					)}
-					{filters?.(table)}
-					<div className="ml-auto">
-						<DataTableViewOptions table={table} labels={columnLabels} />
-					</div>
-				</div>
-			)}
+			<DataTableToolbar
+				table={table}
+				searchPlaceholder={searchPlaceholder}
+				searchValue={globalFilter}
+				onSearchChange={handleSearchChange}
+				filters={filters}
+				columnLabels={columnLabels}
+			/>
 			{(pageSize || manualPagination) && <DataTablePagination table={table} />}
-			<div className="rounded-md border">
-				<Table>
-					<TableHeader>
-						{table.getHeaderGroups().map((headerGroup) => (
-							<TableRow key={headerGroup.id}>
-								{headerGroup.headers.map((header) => (
-									<TableHead key={header.id} className={header.column.columnDef.meta?.className}>
-										{header.isPlaceholder
-											? null
-											: flexRender(header.column.columnDef.header, header.getContext())}
-									</TableHead>
-								))}
-							</TableRow>
-						))}
-					</TableHeader>
-					<TableBody>
-						{isLoading ? (
-							skeletonRowIds.map((rowId) => (
-								<TableRow key={rowId} data-testid="data-table-skeleton-row">
-									{skeletonColumnIds.map((colId, colIndex) => (
-										<TableCell key={colId}>
-											<Skeleton
-												className={cn("h-4", SKELETON_WIDTHS[colIndex % SKELETON_WIDTHS.length])}
-											/>
-										</TableCell>
-									))}
-								</TableRow>
-							))
-						) : table.getRowModel().rows.length === 0 ? (
-							<TableRow>
-								<TableCell
-									colSpan={visibleColumnCount}
-									className="h-24 text-center text-muted-foreground"
-									data-testid="data-table-empty"
-								>
-									{emptyMessage}
-								</TableCell>
-							</TableRow>
-						) : (
-							table.getRowModel().rows.map((row) => (
-								<Fragment key={row.id}>
-									<TableRow
-										key={row.id}
-										data-testid="data-table-row"
-										role={renderDetail ? "button" : undefined}
-										tabIndex={renderDetail ? 0 : undefined}
-										aria-expanded={renderDetail ? row.getIsExpanded() : undefined}
-										className={cn(
-											renderDetail &&
-												"cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-											getRowClassName?.(row.original),
-										)}
-										onClick={(event) => {
-											if (!renderDetail) return;
-											const target = event.target as HTMLElement;
-											const interactive = target.closest('button, a, input, [role="button"]');
-											if (interactive && interactive !== event.currentTarget) return;
-											row.toggleExpanded();
-										}}
-										onKeyDown={(event) => {
-											if (!renderDetail) return;
-											if (event.target !== event.currentTarget) return;
-											if (event.key !== "Enter" && event.key !== " ") return;
-											event.preventDefault();
-											row.toggleExpanded();
-										}}
-									>
-										{row.getVisibleCells().map((cell) => (
-											<TableCell
-												key={cell.id}
-												className={cell.column.columnDef.meta?.className}
-												data-testid="data-table-cell"
-											>
-												{flexRender(cell.column.columnDef.cell, cell.getContext())}
-											</TableCell>
-										))}
-									</TableRow>
-									{renderDetail && row.getIsExpanded() && (
-										<TableRow key={`${row.id}-detail`} data-testid="data-table-detail-row">
-											<TableCell
-												colSpan={visibleColumnCount}
-												className="whitespace-normal bg-muted/30 p-4"
-											>
-												{renderDetail(row.original)}
-											</TableCell>
-										</TableRow>
-									)}
-								</Fragment>
-							))
-						)}
-					</TableBody>
-				</Table>
-			</div>
+			<DataTableBody
+				table={table}
+				emptyMessage={emptyMessage}
+				isLoading={isLoading}
+				skeletonRowIds={skeletonRowIds}
+				skeletonColumnIds={skeletonColumnIds}
+				getRowClassName={getRowClassName}
+				renderDetail={renderDetail}
+			/>
 			{(pageSize || manualPagination) && <DataTablePagination table={table} />}
 		</div>
 	);
-}
-
-function buildExpandColumn<TData>(): ColumnDef<TData> {
-	return {
-		id: "__expand",
-		header: () => null,
-		enableHiding: false,
-		enableSorting: false,
-		size: 32,
-		cell: ({ row }) => (
-			<span
-				data-testid="data-table-expand-toggle"
-				aria-hidden="true"
-				className="flex size-6 items-center justify-center text-muted-foreground"
-			>
-				<ChevronRightIcon
-					size={14}
-					className={cn("transition-transform", row.getIsExpanded() && "rotate-90")}
-				/>
-			</span>
-		),
-	};
 }

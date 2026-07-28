@@ -13,7 +13,7 @@ import { findConversationWithEndpoint } from "#/shared/domain/conversation/conve
 import { historyBudgetTokens, trimHistory } from "#/shared/domain/conversation/messages";
 import { endpointApiKey } from "#/shared/domain/endpoint/endpoint.server";
 import { samplingOptionsSchema } from "#/shared/domain/endpoint/schemas";
-import { getContextWindow } from "#/shared/domain/model/discovery.server";
+import { getContextWindow } from "#/shared/domain/model/runtime-metadata.server";
 import { getModelSetting } from "#/shared/domain/model-setting/model-setting.server";
 import { findUserSettings } from "#/shared/domain/user-settings/user-settings.server";
 import { BodyTooLargeError, readJsonWithLimit } from "#/shared/lib/http.server";

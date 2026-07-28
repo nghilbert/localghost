@@ -2,7 +2,7 @@ import { trimPathRight } from "@tanstack/react-router";
 import { endpointApiKey } from "#/shared/domain/endpoint/endpoint.server";
 import { parseParamB } from "#/shared/domain/model/model-id";
 import { prisma } from "#/shared/lib/db.server";
-import { type LlamaModel, listModels, serverProps } from "#/shared/lib/llamacpp/client.server";
+import { type LlamaModel, listModels } from "#/shared/lib/llamacpp/client.server";
 import type { InstalledModel, PullProgress } from "./types";
 
 const DEFAULT_RUNTIME_URL = "http://localhost:8080";
@@ -216,35 +216,4 @@ export async function upsertRuntimeEndpoint({
 	if (resolved.url === normalizedUrl) return resolved.id;
 	await prisma.endpoint.update({ where: { id: resolved.id }, data: { url: normalizedUrl } });
 	return resolved.id;
-}
-
-const CONTEXT_WINDOW_TTL_MS = 60_000;
-const contextWindowCache = new Map<string, { nCtx: number; expiresAt: number }>();
-
-/**
- * Reads `n_ctx` from `GET /props` and caches it briefly per endpoint and model.
- * @returns `undefined` on failure so callers can use message-count bounding
- */
-export async function getContextWindow({
-	url,
-	model,
-	apiKey,
-}: {
-	url: string;
-	model: string;
-	apiKey?: string;
-}): Promise<number | undefined> {
-	const key = `${url}:${model}`;
-	const cached = contextWindowCache.get(key);
-	if (cached && cached.expiresAt > Date.now()) return cached.nCtx;
-	try {
-		const props = await serverProps({ url, model, apiKey, timeoutMs: 2000 });
-		contextWindowCache.set(key, {
-			nCtx: props.n_ctx,
-			expiresAt: Date.now() + CONTEXT_WINDOW_TTL_MS,
-		});
-		return props.n_ctx;
-	} catch {
-		return undefined;
-	}
 }
