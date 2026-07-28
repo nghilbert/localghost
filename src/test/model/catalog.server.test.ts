@@ -9,7 +9,7 @@ async function freshGetCatalog() {
 }
 
 const INDEX_URL =
-	"https://huggingface.co/api/models?filter=gguf&sort=downloads&direction=-1&limit=400&full=true";
+	"https://huggingface.co/api/models?filter=gguf&sort=downloads&direction=-1&limit=100&expand[]=downloads&expand[]=tags&expand[]=lastModified&expand[]=gated&expand[]=private&expand[]=pipeline_tag";
 
 function jsonResponse(body: unknown): Response {
 	return new Response(JSON.stringify(body), { status: 200 });
@@ -130,5 +130,65 @@ describe("getCatalog (Hugging Face)", () => {
 		const models = await getCatalog();
 		expect(models).toHaveLength(1);
 		expect(models[0]?.name).toBe("ggml-org/Qwen3-8B-GGUF");
+	});
+
+	it("stops indexing after 200 eligible models without reading later pages", async () => {
+		const firstPage = Array.from({ length: 100 }, (_, index) => ({
+			id: `org/model-${index}-8B-GGUF`,
+			downloads: index,
+			tags: ["conversational"],
+		}));
+		const secondPage = Array.from({ length: 100 }, (_, index) => ({
+			id: `org/model-${index + 100}-8B-GGUF`,
+			downloads: index,
+			tags: ["conversational"],
+		}));
+		const fetchMock = vi.mocked(fetch);
+		fetchMock.mockImplementation(async (input) => {
+			const url = String(input);
+			if (url === INDEX_URL) {
+				return new Response(JSON.stringify(firstPage), {
+					status: 200,
+					headers: { link: '<https://huggingface.co/api/models?cursor=second>; rel="next"' },
+				});
+			}
+			if (url === "https://huggingface.co/api/models?cursor=second") {
+				return new Response(JSON.stringify(secondPage), {
+					status: 200,
+					headers: { link: '<https://huggingface.co/api/models?cursor=third>; rel="next"' },
+				});
+			}
+			if (url === "https://huggingface.co/api/models?cursor=third") {
+				throw new Error("catalog should stop after 200 eligible models");
+			}
+			return jsonResponse([{ path: "model-Q4_K_M.gguf", lfs: { size: 1_000_000_000 } }]);
+		});
+
+		const getCatalog = await freshGetCatalog();
+		await expect(getCatalog()).resolves.toHaveLength(200);
+	});
+
+	it("does not scan more than 400 raw index entries", async () => {
+		const page = Array.from({ length: 100 }, (_, index) => ({
+			id: `org/embedder-${index}-8B`,
+			pipeline_tag: "feature-extraction",
+		}));
+		const fetchMock = vi.mocked(fetch);
+		fetchMock.mockImplementation(async (input) => {
+			const url = String(input);
+			if (url.includes("/models?")) {
+				const cursor = new URL(url).searchParams.get("cursor");
+				const next = cursor ? Number(cursor) + 1 : 1;
+				return new Response(JSON.stringify(page), {
+					status: 200,
+					headers: { link: `<https://huggingface.co/api/models?cursor=${next}>; rel="next"` },
+				});
+			}
+			throw new Error("ineligible entries should not fetch repository trees");
+		});
+
+		const getCatalog = await freshGetCatalog();
+		await expect(getCatalog()).rejects.toThrow("0 eligible models");
+		expect(fetchMock).toHaveBeenCalledTimes(4);
 	});
 });

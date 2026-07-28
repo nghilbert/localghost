@@ -1,108 +1,26 @@
-import { z } from "zod/v4";
+import type { GgufQuant } from "./gguf";
 import type { CatalogModel, ModelVariantInfo } from "./types";
 
-/** Splits `text` on any of the literal single-character `delimiters`, dropping empty tokens. */
 function splitOnDelimiters(text: string, delimiters: string): string[] {
 	let parts = [text];
-	for (const delimiter of delimiters) {
-		parts = parts.flatMap((part) => part.split(delimiter));
-	}
+	for (const delimiter of delimiters) parts = parts.flatMap((part) => part.split(delimiter));
 	return parts.filter((part) => part.length > 0);
 }
 
-/** Every GGUF quant name llama.cpp produces; a closed set, so parsing is a lookup, not a pattern. */
-export const GGUF_QUANTS = [
-	"Q2_K",
-	"Q3_K_S",
-	"Q3_K_M",
-	"Q3_K_L",
-	"Q4_0",
-	"Q4_K_S",
-	"Q4_K_M",
-	"Q5_K_S",
-	"Q5_K_M",
-	"Q6_K",
-	"Q8_0",
-	"IQ2_M",
-	"IQ3_M",
-	"IQ4_XS",
-	"IQ4_NL",
-	"MXFP4",
-	"MXFP4_MOE",
-	"TQ1_0",
-	"TQ2_0",
-	"F16",
-	"F32",
-	"BF16",
-] as const;
-export const ggufQuantSchema = z.enum(GGUF_QUANTS);
-export type GgufQuant = z.infer<typeof ggufQuantSchema>;
-
-// Longest-first so "Q4_K_M" matches before the shorter "Q4" would.
-const QUANTS_LONGEST_FIRST = [...GGUF_QUANTS].sort((a, b) => b.length - a.length);
-
-/** Parses the quant out of a GGUF filename by matching a `-`/`.`-delimited token against the known set. */
-export function parseQuantFromFilename(fileName: string): GgufQuant | null {
-	const upper = fileName.toUpperCase();
-	const tokens = splitOnDelimiters(upper, "-.");
-	for (const quant of QUANTS_LONGEST_FIRST) {
-		if (tokens.includes(quant)) return quant;
-	}
-	return null;
-}
-
-/** True for a multimodal projector file, never a chat model's own weights. */
-export function isMmprojFile(fileName: string): boolean {
-	return fileName.toLowerCase().startsWith("mmproj-");
-}
-
-/** The `{prefix}-{part}-of-{total}.gguf` pieces of a sharded GGUF filename, or null if not sharded. */
-export function parseShardParts(
-	fileName: string,
-): { prefix: string; part: number; total: number } | null {
-	const lower = fileName.toLowerCase();
-	if (!lower.endsWith(".gguf")) return null;
-	const stem = fileName.slice(0, -".gguf".length);
-	const tokens = stem.split("-");
-	const ofIndex = tokens.indexOf("of");
-	if (ofIndex < 2) return null;
-	const part = Number(tokens[ofIndex - 1]);
-	const total = Number(tokens[ofIndex + 1]);
-	if (!Number.isInteger(part) || !Number.isInteger(total)) return null;
-	return { prefix: tokens.slice(0, ofIndex - 1).join("-"), part, total };
-}
-
-/** Parses a mixture-of-experts token like "8x7b" into total params (8 * 7 = 56), or null. */
-function parseMoeToken(token: string): number | null {
-	const lower = token.toLowerCase();
-	if (!lower.endsWith("b") || lower.length < 2) return null;
-	const withoutSuffix = lower.slice(0, -1);
-	const xIndex = withoutSuffix.indexOf("x");
-	if (xIndex <= 0 || xIndex >= withoutSuffix.length - 1) return null;
-	const experts = Number(withoutSuffix.slice(0, xIndex));
-	const sizeB = Number(withoutSuffix.slice(xIndex + 1));
-	if (Number.isNaN(experts) || Number.isNaN(sizeB)) return null;
-	return experts * sizeB;
-}
-
-/** Billions of parameters parsed from an HF repo id or GGUF filename, e.g. "Qwen3-8B" → 8. */
-export function parseParamB(id: string): number | null {
-	const tokens = splitOnDelimiters(id, "-._/");
-	for (const token of tokens) {
-		const moe = parseMoeToken(token);
-		if (moe !== null) return moe;
-
-		const lower = token.toLowerCase();
-		if (lower.endsWith("b") && lower.length > 1) {
-			const value = Number(lower.slice(0, -1));
-			if (!Number.isNaN(value)) return value;
-		}
-		if (lower.endsWith("m") && lower.length > 1) {
-			const value = Number(lower.slice(0, -1));
-			if (!Number.isNaN(value)) return value / 1000;
-		}
-	}
-	return null;
+/** Builds capability and search tags for one catalog model. */
+export function deriveTags({
+	name,
+	paramB,
+	capabilities,
+}: {
+	name: string;
+	paramB: number | null;
+	capabilities: string[];
+}): string[] {
+	const tags = [...capabilities];
+	if (paramB !== null && paramB <= 3) tags.push("fast");
+	if (name.toLowerCase().includes("code")) tags.push("code");
+	return tags;
 }
 
 /** Preferred default quant order: a solid quality/size tradeoff first, then progressively looser. */

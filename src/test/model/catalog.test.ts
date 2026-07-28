@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
 	availableMemoryGb,
-	deriveTags,
 	fitsHardware,
 	formatPullCount,
 	requiredMemoryGb,
 } from "#/routes/_authenticated/library/-lib/catalog";
+import { deriveTags } from "#/shared/domain/model/catalog-curation";
 import { makeGpu, makeHardware } from "#/test/factories";
 
 describe("formatPullCount", () => {

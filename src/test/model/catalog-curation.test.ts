@@ -4,12 +4,10 @@ import {
 	dedupeByBaseModel,
 	deriveDisplayName,
 	isChatModel,
-	isMmprojFile,
-	parseParamB,
-	parseQuantFromFilename,
-	parseShardParts,
 	pickDefaultVariant,
 } from "#/shared/domain/model/catalog-curation";
+import { isMmprojFile, parseQuantFromFilename, parseShardParts } from "#/shared/domain/model/gguf";
+import { parseParamB } from "#/shared/domain/model/model-id";
 
 describe("parseQuantFromFilename", () => {
 	it("matches known quants, longest token first", () => {
@@ -31,6 +29,7 @@ describe("parseQuantFromFilename", () => {
 describe("isMmprojFile / parseShardParts", () => {
 	it("identifies multimodal projector files", () => {
 		expect(isMmprojFile("mmproj-model-f16.gguf")).toBe(true);
+		expect(isMmprojFile("vision/mmproj-model-f16.gguf")).toBe(true);
 		expect(isMmprojFile("model-Q4_K_M.gguf")).toBe(false);
 	});
 

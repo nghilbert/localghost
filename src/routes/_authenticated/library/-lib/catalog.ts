@@ -53,22 +53,3 @@ export function fitsHardware({
 	const required = requiredMemoryGb(model);
 	return required !== null && required <= availableMemoryGb(hardware);
 }
-
-/**
- * Builds the display tags for a catalog model: the raw capability badges plus
- * derived search hints ("fast" for small models, "code" for coding-focused ones).
- */
-export function deriveTags({
-	name,
-	paramB,
-	capabilities,
-}: {
-	name: string;
-	paramB: number | null;
-	capabilities: string[];
-}): string[] {
-	const tags = [...capabilities];
-	if (paramB !== null && paramB <= 3) tags.push("fast");
-	if (name.toLowerCase().includes("code")) tags.push("code");
-	return tags;
-}
