@@ -1,4 +1,5 @@
-import { deriveTags, parseParamB } from "#/routes/_authenticated/library/-lib/catalog";
+import { deriveTags } from "#/routes/_authenticated/library/-lib/catalog";
+import { parseParamB } from "./model-id";
 import type { CatalogModel, ModelVariantInfo } from "./types";
 
 const HF_API = "https://huggingface.co/api";
@@ -141,11 +142,9 @@ let cache: { data: CatalogModel[]; fetchedAt: number } | null = null;
 let refreshInFlight: Promise<CatalogModel[]> | null = null;
 
 /**
- * Returns the catalog, re-fetching at most once per TTL. A stale cache is
- * served immediately while the refresh runs in the background; with no cache
- * at all the caller waits, and a failed fetch propagates so the client can
- * show its retry affordance instead of an empty library.
- * @throws when no cached catalog exists and the fetch fails or returns zero models
+ * Returns cached data immediately while an expired cache refreshes in the
+ * background. With no cache, the caller waits for the fetch.
+ * @throws when no cache exists and the fetch fails or returns no models
  */
 export async function getCatalog(): Promise<CatalogModel[]> {
 	if (cache && Date.now() - cache.fetchedAt < CACHE_TTL_MS) return cache.data;

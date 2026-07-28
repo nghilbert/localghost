@@ -11,8 +11,8 @@ export function useRuntime() {
 	const queryClient = useQueryClient();
 
 	const deleteModelMutation = useMutation({
-		mutationFn: (model: string) => deleteModel({ data: { model } }),
-		onSuccess: (_data, model) => {
+		mutationFn: (input: { endpointId: string; model: string }) => deleteModel({ data: input }),
+		onSuccess: (_data, { model }) => {
 			queryClient.invalidateQueries({ queryKey: libraryStatusQueryOptions().queryKey });
 			toast.success(`${model} deleted`);
 		},

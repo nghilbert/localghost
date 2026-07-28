@@ -40,7 +40,6 @@ type ModelVariantCardProps = {
 	pulling: Record<string, PullProgress>;
 	onPull: (model: string) => void;
 	onStop: (model: string) => void;
-	onDismiss: (model: string) => void;
 };
 
 /** Variant selection and pull controls for an available catalog row. */
@@ -52,7 +51,6 @@ export function ModelVariantCard({
 	pulling,
 	onPull,
 	onStop,
-	onDismiss,
 }: ModelVariantCardProps) {
 	const fieldId = useId();
 	const variants = catalog ? buildModelVariants({ catalog, hardware }) : null;
@@ -126,7 +124,6 @@ export function ModelVariantCard({
 						pullState={pullState}
 						onPull={onPull}
 						onStop={onStop}
-						onDismiss={onDismiss}
 					/>
 				</div>
 

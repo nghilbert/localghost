@@ -5,7 +5,7 @@
 # in-container. Omit on CPU-only hosts.
 services:
   llamacpp:
-    image: ghcr.io/ggml-org/llama.cpp:server-rocm
+    image: ghcr.io/ggml-org/llama.cpp:server-rocm@sha256:36bd528235ab24e0e9d88a11da55a6b142e2f13c1ede97d8f038dc46a5014765
     devices: &amd-devices
       - /dev/kfd
       - /dev/dri

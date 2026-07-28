@@ -1,22 +1,16 @@
 import { queryOptions } from "@tanstack/react-query";
-import { trimPathRight } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod/v4";
+import { downloadModel, unloadModel } from "#/shared/lib/llamacpp/client.server";
 import { llamacppConnectionSchema, llamacppUrlSchema } from "#/shared/lib/llamacpp/url";
 import { authedFn } from "#/shared/lib/middleware";
 import { getCatalog } from "./catalog.server";
 import {
-	getRuntimeUrl,
+	getRuntimeEndpointById,
 	probeRuntime,
 	scanForRuntime,
 	upsertRuntimeEndpoint,
 } from "./discovery.server";
-import {
-	cancelDownload,
-	ensureWatching,
-	listActiveDownloads,
-	startDownload,
-} from "./download-registry.server";
 import { getHardwareInfo } from "./hardware.server";
 import { removeInstalledModel } from "./models.server";
 import type { RuntimeStatus } from "./types";
@@ -34,7 +28,13 @@ export const scanRuntimeStatus = createServerFn({ method: "GET" })
 	.handler(async ({ context }): Promise<RuntimeStatus> => {
 		const found = await scanForRuntime(context.userId);
 		if (!found) {
-			return { found: false, runtimeUrl: null, installedModels: [], endpointId: null };
+			return {
+				found: false,
+				runtimeUrl: null,
+				installedModels: [],
+				downloads: {},
+				endpointId: null,
+			};
 		}
 
 		const endpointId = await upsertRuntimeEndpoint({
@@ -42,20 +42,24 @@ export const scanRuntimeStatus = createServerFn({ method: "GET" })
 			url: found.url,
 			existing: found.savedEndpoint,
 		});
-		ensureWatching(found.url);
 		return {
 			found: true,
 			runtimeUrl: found.url,
 			installedModels: found.installedModels,
+			downloads: found.downloads,
 			endpointId,
 		};
 	});
 
 export const deleteModel = createServerFn({ method: "POST" })
 	.middleware([authedFn])
-	.validator(z.object({ model: z.string().min(1) }))
+	.validator(z.object({ endpointId: z.uuid(), model: z.string().min(1) }))
 	.handler(async ({ data, context }) => {
-		await removeInstalledModel({ userId: context.userId, model: data.model });
+		await removeInstalledModel({
+			userId: context.userId,
+			endpointId: data.endpointId,
+			model: data.model,
+		});
 	});
 
 export const testRemoteRuntime = createServerFn({ method: "POST" })
@@ -79,45 +83,35 @@ export const registerRemoteRuntime = createServerFn({ method: "POST" })
 
 export const startModelDownload = createServerFn({ method: "POST" })
 	.middleware([authedFn])
-	.validator(z.object({ model: z.string().min(1), runtimeUrl: z.string().optional() }))
+	.validator(z.object({ endpointId: z.uuid(), model: z.string().min(1) }))
 	.handler(async ({ data, context }) => {
-		const url = data.runtimeUrl
-			? trimPathRight(data.runtimeUrl)
-			: await getRuntimeUrl(context.userId);
-		await startDownload({ url, model: data.model });
+		const resolved = await getRuntimeEndpointById({
+			userId: context.userId,
+			endpointId: data.endpointId,
+		});
+		await downloadModel({ url: resolved.url, model: data.model, apiKey: resolved.apiKey });
 	});
 
 export const cancelModelDownload = createServerFn({ method: "POST" })
 	.middleware([authedFn])
-	.validator(z.object({ model: z.string().min(1), runtimeUrl: z.string().optional() }))
+	.validator(z.object({ endpointId: z.uuid(), model: z.string().min(1) }))
 	.handler(async ({ data, context }) => {
-		const url = data.runtimeUrl
-			? trimPathRight(data.runtimeUrl)
-			: await getRuntimeUrl(context.userId);
-		await cancelDownload({ url, model: data.model });
-	});
-
-export const listActiveDownloadsFn = createServerFn({ method: "GET" })
-	.middleware([authedFn])
-	.handler(async ({ context }) => {
-		const url = await getRuntimeUrl(context.userId);
-		return listActiveDownloads(url);
+		const resolved = await getRuntimeEndpointById({
+			userId: context.userId,
+			endpointId: data.endpointId,
+		});
+		await unloadModel({ url: resolved.url, model: data.model, apiKey: resolved.apiKey });
 	});
 
 export const libraryStatusQueryOptions = () =>
 	queryOptions({
 		queryKey: ["library-status"],
 		queryFn: () => scanRuntimeStatus(),
-		// Re-probe slowly once reachable, quickly while it's down so recovery shows fast.
-		refetchInterval: (query) => (query.state.data?.found ? 30_000 : 5_000),
-	});
-
-export const activeDownloadsQueryOptions = () =>
-	queryOptions({
-		queryKey: ["library", "active-downloads"],
-		queryFn: () => listActiveDownloadsFn(),
-		// Poll while a download is in flight; idle otherwise so there's no wasted traffic.
-		refetchInterval: (query) => (query.state.data && query.state.data.length > 0 ? 600 : false),
+		refetchInterval: (query) => {
+			const status = query.state.data;
+			if (!status?.found) return 5_000;
+			return Object.keys(status.downloads).length > 0 ? 1_000 : 30_000;
+		},
 	});
 
 export const hardwareQueryOptions = () =>

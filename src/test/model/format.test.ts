@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatBytes, formatBytesPerSec, formatDuration } from "#/shared/domain/model/pull-format";
+import { formatBytes, formatPullDetail } from "#/shared/domain/model/pull-format";
 
 describe("formatBytes", () => {
 	it("formats gigabytes with one decimal", () => {
@@ -23,26 +23,14 @@ describe("formatBytes", () => {
 	});
 });
 
-describe("formatBytesPerSec", () => {
-	it("appends /s to the byte size unit", () => {
-		expect(formatBytesPerSec(12_300_000)).toBe("12.3 MB/s");
+describe("formatPullDetail", () => {
+	it("formats aggregate router file progress", () => {
+		expect(formatPullDetail({ completed: 12_300_000, total: 20_000_000 })).toBe(
+			"12.3 MB / 20.0 MB",
+		);
 	});
 
-	it("scales up to GB/s", () => {
-		expect(formatBytesPerSec(2_000_000_000)).toBe("2.0 GB/s");
-	});
-});
-
-describe("formatDuration", () => {
-	it("formats minutes and seconds", () => {
-		expect(formatDuration(187)).toBe("3m 7s");
-	});
-
-	it("formats sub-minute durations with zero minutes", () => {
-		expect(formatDuration(42)).toBe("0m 42s");
-	});
-
-	it("rounds fractional seconds", () => {
-		expect(formatDuration(59.6)).toBe("1m 0s");
+	it("omits progress until the router reports a total", () => {
+		expect(formatPullDetail({ completed: 12_300_000 })).toBeNull();
 	});
 });

@@ -1,4 +1,4 @@
-import { CheckCircle2Icon, CircleAlertIcon } from "lucide-react";
+import { CheckCircle2Icon } from "lucide-react";
 import type { ModelRow } from "#/routes/_authenticated/library/-lib/model-rows";
 import { Badge } from "#/shared/components/ui/badge";
 import { Spinner } from "#/shared/components/ui/spinner";
@@ -20,12 +20,7 @@ export function ModelIdentityCell({ row }: { row: ModelRow }) {
 				{catalog?.paramB != null && (
 					<span className="text-muted-foreground">{catalog.paramB}B</span>
 				)}
-				{pullState?.error ? (
-					<Badge variant="destructive">
-						<CircleAlertIcon data-icon="inline-start" />
-						Pull failed
-					</Badge>
-				) : pullState ? (
+				{pullState ? (
 					<Badge variant="secondary">
 						<Spinner className="size-3" />
 						Downloading

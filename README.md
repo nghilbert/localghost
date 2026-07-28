@@ -27,7 +27,8 @@ automatically; override it (or any `POSTGRES_*`) with a plain `KEY=` line.
 
 Optional: `SEARXNG_URL` enables the web-search tool (Docker wires this for you,
 see below), `BETTER_AUTH_URL` sets the public origin behind a reverse proxy, and
-`HF_TOKEN` lifts Hugging Face's anonymous rate limit on the Library catalog.
+`HF_TOKEN` lifts Hugging Face's anonymous limits for the Library catalog and
+bundled llama.cpp downloads.
 
 The **first account to sign up owns the instance**; sign-up is disabled once that
 account exists.
@@ -53,6 +54,9 @@ keyless SearXNG so web search works out of the box:
 ```bash
 COMPOSE_PROFILES=llamacpp,dev docker compose up --build
 ```
+
+The bundled llama.cpp images are pinned to build `b10143` (revision `88b47a7`),
+which includes the router download endpoints used by the Library.
 
 On a GPU host, append the matching hardware overlay via `COMPOSE_FILE` to give
 both llama.cpp and the Library hardware panel GPU access (needs the matching host

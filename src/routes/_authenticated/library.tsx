@@ -57,7 +57,7 @@ function LibraryPage() {
 		refetch: refetchCatalog,
 	} = useQuery(catalogQueryOptions());
 
-	const { pulling, pull, stop, dismiss } = useModelDownload();
+	const { pulling, pull, stop } = useModelDownload(runtimeStatus?.endpointId ?? null);
 	const { deleteModel } = useRuntime();
 
 	const [isReconnecting, setIsReconnecting] = useState(false);
@@ -65,7 +65,7 @@ function LibraryPage() {
 
 	function handlePull(model: string) {
 		if (!runtimeStatus?.found) return;
-		pull({ model, runtimeUrl: runtimeStatus.runtimeUrl });
+		pull(model);
 	}
 
 	return (
@@ -122,7 +122,6 @@ function LibraryPage() {
 									endpointId={runtimeStatus.endpointId}
 									onPull={handlePull}
 									onStop={stop}
-									onDismiss={dismiss}
 									onDelete={(model) => setPendingDelete(model)}
 								/>
 							)}
@@ -151,7 +150,12 @@ function LibraryPage() {
 						<AlertDialogAction
 							variant="destructive"
 							onClick={() => {
-								if (pendingDelete) deleteModel.mutate(pendingDelete);
+								if (pendingDelete && runtimeStatus?.found) {
+									deleteModel.mutate({
+										endpointId: runtimeStatus.endpointId,
+										model: pendingDelete,
+									});
+								}
 								setPendingDelete(null);
 							}}
 						>

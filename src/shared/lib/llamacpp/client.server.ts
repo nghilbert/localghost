@@ -1,125 +1,169 @@
+import { z } from "zod/v4";
+
 /**
  * Thin `fetch` wrapper over `llama-server`'s router-mode HTTP API. There is no
- * official JS SDK for it (unlike Ollama); the surface is five small REST calls.
+ * official JS SDK for it (unlike Ollama); the surface is a few small REST calls.
  */
+const llamaModelStatusSchema = z.enum(["loaded", "loading", "unloaded", "sleeping", "downloading"]);
+export type LlamaModelStatus = z.infer<typeof llamaModelStatusSchema>;
 
-type LlamaModelStatus = "loaded" | "loading" | "unloaded";
+const llamaDownloadFileProgressSchema = z.object({
+	done: z.number(),
+	total: z.number(),
+});
+const llamaModelSchema = z.object({
+	id: z.string(),
+	path: z.string().optional(),
+	status: z.object({
+		value: llamaModelStatusSchema,
+		progress: z.record(z.string(), llamaDownloadFileProgressSchema).optional(),
+		failed: z.boolean().optional(),
+		exit_code: z.number().optional(),
+	}),
+	architecture: z
+		.object({
+			input_modalities: z.array(z.string()).optional(),
+			output_modalities: z.array(z.string()).optional(),
+		})
+		.optional(),
+});
+const llamaModelListSchema = z.object({ data: z.array(llamaModelSchema) });
+const llamaPropsSchema = z.object({
+	n_ctx: z.number(),
+	modalities: z.object({ vision: z.boolean().optional() }).optional(),
+	chat_template_caps: z.object({ tool_calls: z.boolean().optional() }).optional(),
+});
 
-export type LlamaModel = {
-	id: string;
-	path: string;
-	status: { value: LlamaModelStatus };
-	architecture?: { input_modalities?: string[]; output_modalities?: string[] };
-};
+export type LlamaModel = z.infer<typeof llamaModelSchema>;
+export type LlamaProps = z.infer<typeof llamaPropsSchema>;
 
-export type LlamaProps = {
-	n_ctx: number;
-	modalities?: { vision?: boolean };
-	chat_template_caps?: { tool_calls?: boolean };
-};
+async function timeoutFetch({
+	url,
+	init,
+	timeoutMs,
+}: {
+	url: string;
+	init: RequestInit;
+	timeoutMs: number;
+}): Promise<Response> {
+	return fetch(url, { ...init, signal: AbortSignal.timeout(timeoutMs) });
+}
 
-async function timeoutFetch(url: string, init: RequestInit, ms: number): Promise<Response> {
-	return fetch(url, { ...init, signal: AbortSignal.timeout(ms) });
+async function responseError({
+	response,
+	operation,
+}: {
+	response: Response;
+	operation: string;
+}): Promise<Error> {
+	const body: unknown = await response.json().catch(() => null);
+	if (typeof body === "object" && body !== null && "error" in body) {
+		const error = body.error;
+		if (typeof error === "object" && error !== null && "message" in error) {
+			const message = error.message;
+			if (typeof message === "string") return new Error(message);
+		}
+	}
+	return new Error(`${operation} failed: ${response.status}`);
+}
+
+/** `Authorization` header for `--api-key`-protected llama-server instances; empty when unset. */
+function authHeaders(apiKey: string | undefined): Record<string, string> {
+	return apiKey ? { Authorization: `Bearer ${apiKey}` } : {};
 }
 
 /** Lists every model the router has discovered, with its load status. */
 export async function listModels({
 	url,
+	apiKey,
 	timeoutMs = 2500,
 }: {
 	url: string;
+	apiKey?: string;
 	timeoutMs?: number;
 }): Promise<LlamaModel[]> {
-	const res = await timeoutFetch(`${url}/models`, {}, timeoutMs);
-	if (!res.ok) throw new Error(`GET /models failed: ${res.status}`);
-	const json = (await res.json()) as { data: LlamaModel[] };
-	return json.data;
+	const response = await timeoutFetch({
+		url: `${url}/models`,
+		init: { headers: authHeaders(apiKey) },
+		timeoutMs,
+	});
+	if (!response.ok) throw await responseError({ response, operation: "GET /models" });
+	return llamaModelListSchema.parse(await response.json()).data;
 }
 
 /** Server properties for the currently (or about-to-be) loaded model, notably `n_ctx`. */
 export async function serverProps({
 	url,
 	model,
+	apiKey,
 	timeoutMs = 2500,
 }: {
 	url: string;
 	model?: string;
+	apiKey?: string;
 	timeoutMs?: number;
 }): Promise<LlamaProps> {
 	const query = model ? `?model=${encodeURIComponent(model)}` : "";
-	const res = await timeoutFetch(`${url}/props${query}`, {}, timeoutMs);
-	if (!res.ok) throw new Error(`GET /props failed: ${res.status}`);
-	return res.json() as Promise<LlamaProps>;
+	const response = await timeoutFetch({
+		url: `${url}/props${query}`,
+		init: { headers: authHeaders(apiKey) },
+		timeoutMs,
+	});
+	if (!response.ok) throw await responseError({ response, operation: "GET /props" });
+	return llamaPropsSchema.parse(await response.json());
 }
 
 /** Triggers a non-blocking download of `model` (a `repo:QUANT` id) from Hugging Face. */
-export async function downloadModel({ url, model }: { url: string; model: string }): Promise<void> {
-	const res = await fetch(`${url}/models`, {
+export async function downloadModel({
+	url,
+	model,
+	apiKey,
+}: {
+	url: string;
+	model: string;
+	apiKey?: string;
+}): Promise<void> {
+	const response = await fetch(`${url}/models`, {
 		method: "POST",
-		headers: { "Content-Type": "application/json" },
+		headers: { "Content-Type": "application/json", ...authHeaders(apiKey) },
 		body: JSON.stringify({ model }),
 	});
-	if (!res.ok) {
-		const body = await res.json().catch(() => null);
-		throw new Error(body?.error?.message ?? `POST /models failed: ${res.status}`);
-	}
+	if (!response.ok) throw await responseError({ response, operation: "POST /models" });
 }
 
 /** Removes a downloaded model's files from disk. */
-export async function deleteModel({ url, model }: { url: string; model: string }): Promise<void> {
-	const res = await fetch(`${url}/models?model=${encodeURIComponent(model)}`, { method: "DELETE" });
-	if (!res.ok) throw new Error(`DELETE /models failed: ${res.status}`);
+export async function deleteModel({
+	url,
+	model,
+	apiKey,
+}: {
+	url: string;
+	model: string;
+	apiKey?: string;
+}): Promise<void> {
+	const response = await fetch(`${url}/models?model=${encodeURIComponent(model)}`, {
+		method: "DELETE",
+		headers: authHeaders(apiKey),
+	});
+	if (!response.ok) throw await responseError({ response, operation: "DELETE /models" });
 }
 
 /** Unloads a model; also cancels an in-flight download for it. */
-export async function unloadModel({ url, model }: { url: string; model: string }): Promise<void> {
-	const res = await fetch(`${url}/models/unload`, {
-		method: "POST",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify({ model }),
-	});
-	if (!res.ok) throw new Error(`POST /models/unload failed: ${res.status}`);
-}
-
-/** One `/models/sse` event: the router's current view of a model's state. */
-export type ModelStateEvent = {
-	model: string;
-	status: LlamaModelStatus | "downloading" | "error";
-	completed?: number;
-	total?: number;
-	error?: string;
-};
-
-/** Subscribes to the router's live model-state stream until `signal` aborts. */
-export async function* watchModels({
+export async function unloadModel({
 	url,
-	signal,
+	model,
+	apiKey,
 }: {
 	url: string;
-	signal: AbortSignal;
-}): AsyncGenerator<ModelStateEvent> {
-	const res = await fetch(`${url}/models/sse`, { signal });
-	if (!res.ok || !res.body) throw new Error(`GET /models/sse failed: ${res.status}`);
-	const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
-	let buffer = "";
-	try {
-		while (true) {
-			const { done, value } = await reader.read();
-			if (done) return;
-			buffer += value;
-			const lines = buffer.split("\n\n");
-			buffer = lines.pop() ?? "";
-			for (const chunk of lines) {
-				const data = chunk
-					.split("\n")
-					.find((line) => line.startsWith("data:"))
-					?.slice(5)
-					.trim();
-				if (!data) continue;
-				yield JSON.parse(data) as ModelStateEvent;
-			}
-		}
-	} finally {
-		reader.releaseLock();
+	model: string;
+	apiKey?: string;
+}): Promise<void> {
+	const response = await fetch(`${url}/models/unload`, {
+		method: "POST",
+		headers: { "Content-Type": "application/json", ...authHeaders(apiKey) },
+		body: JSON.stringify({ model }),
+	});
+	if (!response.ok) {
+		throw await responseError({ response, operation: "POST /models/unload" });
 	}
 }

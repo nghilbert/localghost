@@ -2,87 +2,64 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 import {
-	activeDownloadsQueryOptions,
 	cancelModelDownload,
 	libraryStatusQueryOptions,
 	startModelDownload,
 } from "./model.functions";
-import type { PullProgress } from "./types";
 
-/**
- * Drives llama.cpp model downloads off the server-side registry: starting a
- * download kicks off the router's own download, and progress comes from
- * polling that registry, so the `pulling` map survives navigation or a reload
- * mid-download (the router keeps downloading regardless).
- */
-export function useModelDownload() {
+/** Starts and stops router-owned downloads while the runtime query reports progress. */
+export function useModelDownload(endpointId: string | null) {
 	const queryClient = useQueryClient();
-	const { data: activeDownloads } = useQuery(activeDownloadsQueryOptions());
-	const toastedModels = useRef<Set<string>>(new Set());
+	const { data: runtimeStatus } = useQuery(libraryStatusQueryOptions());
+	const startedModels = useRef<Set<string>>(new Set());
+	const observedDownloads = useRef<Set<string>>(new Set());
+	const pulling = runtimeStatus?.found ? runtimeStatus.downloads : {};
 
-	// Announce completions and refresh installed models the moment a download finishes.
 	useEffect(() => {
-		if (!activeDownloads) return;
-		const present = new Set(activeDownloads.map((download) => download.model));
-
-		for (const download of activeDownloads) {
-			if (!download.done || toastedModels.current.has(download.model)) continue;
-			toastedModels.current.add(download.model);
-			if (download.error) {
-				toast.error(`Failed to download ${download.model}`, { description: download.error });
-			} else {
-				toast.success(`${download.model} is ready`);
-				queryClient.invalidateQueries({ queryKey: libraryStatusQueryOptions().queryKey });
+		if (!runtimeStatus?.found) return;
+		const downloading = new Set(Object.keys(runtimeStatus.downloads));
+		const installed = new Set(runtimeStatus.installedModels.map((model) => model.id));
+		for (const model of startedModels.current) {
+			if (downloading.has(model)) {
+				observedDownloads.current.add(model);
+				continue;
 			}
+			if (!installed.has(model) && !observedDownloads.current.has(model)) continue;
+			startedModels.current.delete(model);
+			observedDownloads.current.delete(model);
+			if (installed.has(model)) toast.success(`${model} is ready`);
+			else toast.error(`Download failed for ${model}`);
 		}
-
-		// Forget models that aged out so a later re-download can announce again.
-		for (const model of toastedModels.current) {
-			if (!present.has(model)) toastedModels.current.delete(model);
-		}
-	}, [activeDownloads, queryClient]);
-
-	const pulling: Record<string, PullProgress> = {};
-	for (const download of activeDownloads ?? []) {
-		if (download.done && !download.error) continue; // succeeded → no longer downloading
-		pulling[download.model] = {
-			status: download.status,
-			completed: download.completed,
-			total: download.total,
-			error: download.error,
-			bytesPerSec: download.bytesPerSec,
-		};
-	}
+	}, [runtimeStatus]);
 
 	const pullMutation = useMutation({
-		mutationFn: (vars: { model: string; runtimeUrl: string }) => startModelDownload({ data: vars }),
-		onMutate: ({ model }) => toastedModels.current.delete(model),
+		mutationFn: async (model: string) => {
+			if (!endpointId) throw new Error("llama.cpp endpoint not found");
+			await startModelDownload({ data: { endpointId, model } });
+		},
+		onMutate: (model) => startedModels.current.add(model),
 		onSuccess: () =>
-			queryClient.invalidateQueries({ queryKey: activeDownloadsQueryOptions().queryKey }),
-		onError: (error) => toast.error("Failed to start download", { description: error.message }),
+			queryClient.invalidateQueries({ queryKey: libraryStatusQueryOptions().queryKey }),
+		onError: (error, model) => {
+			startedModels.current.delete(model);
+			observedDownloads.current.delete(model);
+			toast.error("Failed to start download", { description: error.message });
+		},
 	});
 
 	const stopMutation = useMutation({
-		mutationFn: (model: string) => cancelModelDownload({ data: { model } }),
+		mutationFn: async (model: string) => {
+			if (!endpointId) throw new Error("llama.cpp endpoint not found");
+			await cancelModelDownload({ data: { endpointId, model } });
+		},
 		onSuccess: (_data, model) => {
-			queryClient.invalidateQueries({ queryKey: activeDownloadsQueryOptions().queryKey });
+			startedModels.current.delete(model);
+			observedDownloads.current.delete(model);
+			queryClient.invalidateQueries({ queryKey: libraryStatusQueryOptions().queryKey });
 			toast.info(`Stopped downloading ${model}`);
 		},
 		onError: (error) => toast.error("Failed to stop download", { description: error.message }),
 	});
 
-	// Clears a failed download's row; same server call as stop, minus the toast.
-	const dismissMutation = useMutation({
-		mutationFn: (model: string) => cancelModelDownload({ data: { model } }),
-		onSuccess: () =>
-			queryClient.invalidateQueries({ queryKey: activeDownloadsQueryOptions().queryKey }),
-		onError: (error) => toast.error("Failed to dismiss", { description: error.message }),
-	});
-
-	return {
-		pulling,
-		pull: pullMutation.mutate,
-		stop: stopMutation.mutate,
-		dismiss: dismissMutation.mutate,
-	};
+	return { pulling, pull: pullMutation.mutate, stop: stopMutation.mutate };
 }

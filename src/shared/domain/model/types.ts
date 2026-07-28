@@ -16,7 +16,7 @@ export type HardwareInfo = {
 };
 
 export type InstalledModel = {
-	/** The router model id, `"{repo}:{QUANT}"` — verbatim what `POST /models` takes. */
+	/** The router model id, `"{repo}:{QUANT}"`, as accepted by `POST /models`. */
 	id: string;
 	/** From the matching catalog entry when found; the router doesn't report file size. */
 	sizeBytes: number | null;
@@ -24,7 +24,7 @@ export type InstalledModel = {
 	quant: string | null;
 	/** Billions of parameters parsed from the id, when derivable. */
 	paramB: number | null;
-	status: "loaded" | "loading" | "unloaded";
+	status: "loaded" | "loading" | "unloaded" | "sleeping";
 	vision: boolean;
 };
 
@@ -33,6 +33,7 @@ export type RuntimeStatus =
 			found: true;
 			runtimeUrl: string;
 			installedModels: InstalledModel[];
+			downloads: Record<string, PullProgress>;
 			/** The discovered llama.cpp endpoint's id, for per-model settings scoping. */
 			endpointId: string;
 	  }
@@ -40,11 +41,12 @@ export type RuntimeStatus =
 			found: false;
 			runtimeUrl: null;
 			installedModels: InstalledModel[];
+			downloads: Record<string, PullProgress>;
 			endpointId: null;
 	  };
 
 export type CatalogModel = {
-	/** `"{repo}:{QUANT}"` — verbatim what `POST /models` (router mode) takes. */
+	/** `"{repo}:{QUANT}"`, as accepted by router-mode `POST /models`. */
 	id: string;
 	/** The Hugging Face repo id, e.g. "ggml-org/gemma-3-4b-it-GGUF". */
 	name: string;
@@ -80,6 +82,4 @@ export type PullProgress = {
 	status: string;
 	completed?: number;
 	total?: number;
-	error?: string;
-	bytesPerSec?: number;
 };

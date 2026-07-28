@@ -1,9 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	buildRuntimeCandidateUrls,
-	getRuntimeUrl,
+	getRuntimeEndpoint,
+	getRuntimeEndpointById,
+	toRuntimeModels,
 	upsertRuntimeEndpoint,
 } from "#/shared/domain/model/discovery.server";
+import type { LlamaModel } from "#/shared/lib/llamacpp/client.server";
 
 const { findFirst, findMany, upsert, update } = vi.hoisted(() => ({
 	findFirst: vi.fn(),
@@ -16,7 +19,7 @@ vi.mock("#/shared/lib/db.server", () => ({
 	prisma: { endpoint: { findFirst, findMany, upsert, update } },
 }));
 
-describe("getRuntimeUrl", () => {
+describe("getRuntimeEndpoint", () => {
 	beforeEach(() => {
 		findFirst.mockReset();
 		vi.unstubAllEnvs();
@@ -28,20 +31,119 @@ describe("getRuntimeUrl", () => {
 
 	it("prefers the user's configured llamacpp endpoint", async () => {
 		findFirst.mockResolvedValue({ url: "http://my-llamacpp:9999/" });
-		await expect(getRuntimeUrl("user-1")).resolves.toBe("http://my-llamacpp:9999");
+		await expect(getRuntimeEndpoint("user-1")).resolves.toEqual({
+			url: "http://my-llamacpp:9999",
+			apiKey: undefined,
+		});
 	});
 
 	it("falls back to localhost when no endpoint is set", async () => {
 		findFirst.mockResolvedValue(null);
-		await expect(getRuntimeUrl("user-1")).resolves.toBe("http://localhost:8080");
+		await expect(getRuntimeEndpoint("user-1")).resolves.toEqual({
+			url: "http://localhost:8080",
+			apiKey: undefined,
+		});
 	});
 
 	it("queries the oldest llamacpp endpoint for the user", async () => {
 		findFirst.mockResolvedValue(null);
-		await getRuntimeUrl("user-42");
+		await getRuntimeEndpoint("user-42");
 		expect(findFirst).toHaveBeenCalledWith({
 			where: { ownerId: "user-42", provider: "llamacpp" },
 			orderBy: { id: "asc" },
+		});
+	});
+});
+
+describe("getRuntimeEndpointById", () => {
+	it("resolves only the requested user-owned llama.cpp endpoint", async () => {
+		findFirst.mockResolvedValue({ url: "http://my-llamacpp:9999/", apiKeyEncrypted: null });
+		await expect(
+			getRuntimeEndpointById({ userId: "user-42", endpointId: "endpoint-7" }),
+		).resolves.toEqual({ url: "http://my-llamacpp:9999", apiKey: undefined });
+		expect(findFirst).toHaveBeenCalledWith({
+			where: { id: "endpoint-7", ownerId: "user-42", provider: "llamacpp" },
+		});
+	});
+
+	it("rejects an endpoint the user does not own", async () => {
+		findFirst.mockResolvedValue(null);
+		await expect(
+			getRuntimeEndpointById({ userId: "user-42", endpointId: "endpoint-7" }),
+		).rejects.toThrow("llama.cpp endpoint not found");
+	});
+});
+
+describe("toRuntimeModels", () => {
+	it("keeps sleeping models installed and aggregates all download files", () => {
+		const models: LlamaModel[] = [
+			{ id: "org/loaded-GGUF:Q4_K_M", path: "/models/loaded.gguf", status: { value: "loaded" } },
+			{
+				id: "org/loading-GGUF:Q4_K_M",
+				path: "/models/loading.gguf",
+				status: { value: "loading" },
+			},
+			{
+				id: "org/unloaded-GGUF:Q4_K_M",
+				path: "/models/unloaded.gguf",
+				status: { value: "unloaded" },
+			},
+			{
+				id: "org/model-GGUF:Q4_K_M",
+				path: "/models/model.gguf",
+				status: { value: "sleeping" },
+			},
+			{
+				id: "org/download-GGUF:Q4_K_M",
+				path: "/models/download.gguf",
+				status: {
+					value: "downloading",
+					progress: {
+						first: { done: 4, total: 10 },
+						second: { done: 12, total: 20 },
+					},
+				},
+			},
+		];
+
+		expect(toRuntimeModels(models)).toEqual({
+			installedModels: [
+				{
+					id: "org/loaded-GGUF:Q4_K_M",
+					sizeBytes: null,
+					quant: "Q4_K_M",
+					paramB: null,
+					status: "loaded",
+					vision: false,
+				},
+				{
+					id: "org/loading-GGUF:Q4_K_M",
+					sizeBytes: null,
+					quant: "Q4_K_M",
+					paramB: null,
+					status: "loading",
+					vision: false,
+				},
+				{
+					id: "org/unloaded-GGUF:Q4_K_M",
+					sizeBytes: null,
+					quant: "Q4_K_M",
+					paramB: null,
+					status: "unloaded",
+					vision: false,
+				},
+				{
+					id: "org/model-GGUF:Q4_K_M",
+					sizeBytes: null,
+					quant: "Q4_K_M",
+					paramB: null,
+					status: "sleeping",
+					vision: false,
+				},
+			],
+			downloads: {
+				"org/download-GGUF:Q4_K_M": { status: "Downloading", completed: 16, total: 30 },
+			},
 		});
 	});
 });

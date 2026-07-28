@@ -46,7 +46,6 @@ describe("ModelDetailPanel", () => {
 	it("selects a searched variant and binds every pull action to its exact id", async () => {
 		const onPull = vi.fn();
 		const onStop = vi.fn();
-		const onDismiss = vi.fn();
 		const renderPanel = ({ pulling }: { pulling: Record<string, PullProgress> }) => (
 			<ModelDetailPanel
 				row={availableRow}
@@ -55,7 +54,6 @@ describe("ModelDetailPanel", () => {
 				endpointId="endpoint-1"
 				onPull={onPull}
 				onStop={onStop}
-				onDismiss={onDismiss}
 				onDelete={vi.fn()}
 			/>
 		);
@@ -80,17 +78,6 @@ describe("ModelDetailPanel", () => {
 		await expect.element(screen.getByTestId("model-pull-progress")).toBeInTheDocument();
 		await screen.getByTestId("model-pull-stop").click();
 		expect(onStop).toHaveBeenCalledWith("org/llama3.1-GGUF:Q8_0");
-
-		await screen.rerender(
-			renderPanel({
-				pulling: { "org/llama3.1-GGUF:Q8_0": { status: "Error", error: "disk full" } },
-			}),
-		);
-		await expect.element(screen.getByTestId("model-pull-error")).toBeInTheDocument();
-		await screen.getByTestId("model-pull-retry").click();
-		await screen.getByTestId("model-pull-dismiss").click();
-		expect(onPull).toHaveBeenLastCalledWith("org/llama3.1-GGUF:Q8_0");
-		expect(onDismiss).toHaveBeenCalledWith("org/llama3.1-GGUF:Q8_0");
 	});
 
 	it("hides variant selection and keeps settings and deletion on the installed id", async () => {
@@ -106,7 +93,6 @@ describe("ModelDetailPanel", () => {
 				endpointId="endpoint-1"
 				onPull={vi.fn()}
 				onStop={vi.fn()}
-				onDismiss={vi.fn()}
 				onDelete={onDelete}
 			/>,
 		);

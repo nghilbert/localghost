@@ -19,6 +19,7 @@ x-app: &app
     BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
     ENCRYPTION_KEY: ${ENCRYPTION_KEY:?set ENCRYPTION_KEY (64-char hex) in .env}
     SEARXNG_URL: ${SEARXNG_URL:-http://searxng:8080}
+    HF_TOKEN: ${HF_TOKEN:-}
   extra_hosts:
     - "host.docker.internal:host-gateway"
   depends_on:
@@ -79,30 +80,21 @@ services:
     restart: unless-stopped
 
   # Bundled llama.cpp (llama-server, router mode), reachable by the app at
-  # http://llamacpp:8080. CPU-only here; a GPU hardware overlay
-  # (compose.nvidia.yaml / compose.amd.yaml / compose.vulkan.yaml, merged via
-  # COMPOSE_FILE) patches this service for the GPU. Gated by the `llamacpp`
-  # profile so omitting it falls back to a host-native llama-server (hence no
-  # app depends_on). Router mode discovers GGUFs from the mounted cache dir;
-  # models download on demand via the app's Library.
+  # http://llamacpp:8080. Gated by the `llamacpp` profile; omitting it falls
+  # back to a host-native llama-server. GPU overlays patch this service (see
+  # compose.nvidia/amd/vulkan.yaml). --host/--port are the image's own env
+  # defaults (passing them again warns); no --api-key since this service is
+  # never published beyond the compose network. Healthcheck comes from the
+  # image itself.
   llamacpp:
-    image: ghcr.io/ggml-org/llama.cpp:server
+    image: ghcr.io/ggml-org/llama.cpp:server@sha256:a576442ad3649c0b5ea74e20ad29a17c121117f32607cfe59ff27cc38066f874
     profiles: [ llamacpp ]
-    command: [ "--models-dir", "/models", "--host", "0.0.0.0", "--port", "8080", "--models-max", "2" ]
+    environment:
+      LLAMA_CACHE: /models
+      HF_TOKEN: ${HF_TOKEN:-}
     volumes:
       - llamacpp:/models
     restart: unless-stopped
-    # Unverified: assumes curl is present in the `server` image (unconfirmed —
-    # ggml-org doesn't document its base image). Nothing depends_on this
-    # service's health, so a wrong probe only affects `docker compose ps`
-    # output; confirm during the compose smoke test and swap for a wget- or
-    # /dev/tcp-based check if curl isn't there.
-    healthcheck:
-      test: [ "CMD", "curl", "-fsS", "http://localhost:8080/health" ]
-      interval: 15s
-      timeout: 5s
-      retries: 5
-      start_period: 20s
 
 volumes:
   pg:

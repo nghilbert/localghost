@@ -8,8 +8,6 @@ type PullFixture = {
 	status: string;
 	completed?: number;
 	total?: number;
-	bytesPerSec?: number;
-	done: boolean;
 };
 
 const { activePulls, stopMock } = vi.hoisted(() => {
@@ -18,16 +16,22 @@ const { activePulls, stopMock } = vi.hoisted(() => {
 });
 
 vi.mock("#/shared/domain/model/use-model-download", () => ({
-	useModelDownload: () => ({ pulling: {}, pull: vi.fn(), stop: stopMock, dismiss: vi.fn() }),
+	useModelDownload: () => ({ pulling: {}, pull: vi.fn(), stop: stopMock }),
 }));
 
 vi.mock("#/shared/domain/model/model.functions", () => ({
-	activeDownloadsQueryOptions: () => ({ queryKey: ["library", "active-downloads"] }),
+	libraryStatusQueryOptions: () => ({ queryKey: ["library-status"] }),
 }));
 
 vi.mock("@tanstack/react-query", async (importOriginal) => ({
 	...(await importOriginal<typeof import("@tanstack/react-query")>()),
-	useQuery: () => ({ data: activePulls }),
+	useQuery: () => ({
+		data: {
+			found: true,
+			endpointId: "endpoint-1",
+			downloads: Object.fromEntries(activePulls.map(({ model, ...progress }) => [model, progress])),
+		},
+	}),
 }));
 
 function renderCenter() {
@@ -49,9 +53,8 @@ describe("NotificationCenter", () => {
 	it("shows a trigger and lists each in-flight pull once opened", async () => {
 		activePulls.length = 0;
 		activePulls.push(
-			{ model: "llama3.1:8b", status: "downloading", completed: 50, total: 100, done: false },
-			{ model: "qwen2.5:7b", status: "downloading", done: false },
-			{ model: "mistral:7b", status: "success", done: true },
+			{ model: "llama3.1:8b", status: "Downloading", completed: 50, total: 100 },
+			{ model: "qwen2.5:7b", status: "Downloading" },
 		);
 		const screen = await renderCenter();
 
@@ -64,7 +67,7 @@ describe("NotificationCenter", () => {
 
 	it("stops a pull when its stop button is clicked", async () => {
 		activePulls.length = 0;
-		activePulls.push({ model: "llama3.1:8b", status: "downloading", done: false });
+		activePulls.push({ model: "llama3.1:8b", status: "Downloading" });
 		stopMock.mockClear();
 		const screen = await renderCenter();
 

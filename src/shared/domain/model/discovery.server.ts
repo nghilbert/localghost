@@ -1,7 +1,9 @@
 import { trimPathRight } from "@tanstack/react-router";
+import { endpointApiKey } from "#/shared/domain/endpoint/endpoint.server";
+import { parseParamB } from "#/shared/domain/model/model-id";
 import { prisma } from "#/shared/lib/db.server";
-import { listModels, serverProps } from "#/shared/lib/llamacpp/client.server";
-import type { InstalledModel } from "./types";
+import { type LlamaModel, listModels, serverProps } from "#/shared/lib/llamacpp/client.server";
+import type { InstalledModel, PullProgress } from "./types";
 
 const DEFAULT_RUNTIME_URL = "http://localhost:8080";
 
@@ -19,22 +21,37 @@ function parseQuant(id: string): string | null {
 	return idx === -1 ? null : id.slice(idx + 1);
 }
 
-/** Parses billions-of-parameters out of an HF repo id, e.g. `Qwen3-8B` → 8. */
-function parseParamB(id: string): number | null {
-	const match = id.match(/(\d+(?:\.\d+)?)\s*[bB](?:-|:|$)/);
-	return match?.[1] ? Number.parseFloat(match[1]) : null;
-}
-
 /**
- * Resolves the llama.cpp base URL for a user: their configured llamacpp
- * endpoint first, then localhost.
+ * Resolves the llama.cpp base URL and (if the saved endpoint carries one) API
+ * key for a user: their configured llamacpp endpoint first, then localhost.
  */
-export async function getRuntimeUrl(userId: string): Promise<string> {
+export async function getRuntimeEndpoint(userId: string): Promise<{
+	url: string;
+	apiKey: string | undefined;
+}> {
 	const endpoint = await prisma.endpoint.findFirst({
 		where: { ownerId: userId, provider: "llamacpp" },
 		orderBy: { id: "asc" },
 	});
-	return trimPathRight(endpoint?.url ?? DEFAULT_RUNTIME_URL);
+	return {
+		url: trimPathRight(endpoint?.url ?? DEFAULT_RUNTIME_URL),
+		apiKey: endpoint ? endpointApiKey(endpoint) : undefined,
+	};
+}
+
+/** Resolves a user-owned llama.cpp endpoint for a runtime action. */
+export async function getRuntimeEndpointById({
+	userId,
+	endpointId,
+}: {
+	userId: string;
+	endpointId: string;
+}): Promise<{ url: string; apiKey: string | undefined }> {
+	const endpoint = await prisma.endpoint.findFirst({
+		where: { id: endpointId, ownerId: userId, provider: "llamacpp" },
+	});
+	if (!endpoint) throw new Error("llama.cpp endpoint not found");
+	return { url: trimPathRight(endpoint.url), apiKey: endpointApiKey(endpoint) };
 }
 
 /**
@@ -51,29 +68,57 @@ export function buildRuntimeCandidateUrls(opts: { savedUrls: string[] }): string
 export type RuntimeProbeResult = {
 	reachable: boolean;
 	installedModels: InstalledModel[];
+	downloads: Record<string, PullProgress>;
 };
+
+/** Converts llama.cpp router state into installed models and active download progress. */
+export function toRuntimeModels(models: LlamaModel[]): {
+	installedModels: InstalledModel[];
+	downloads: Record<string, PullProgress>;
+} {
+	const installedModels: InstalledModel[] = [];
+	const downloads: Record<string, PullProgress> = {};
+
+	for (const model of models) {
+		if (model.status.value === "downloading") {
+			const files = Object.values(model.status.progress ?? {});
+			const completed = files.reduce((sum, file) => sum + file.done, 0);
+			const total = files.reduce((sum, file) => sum + file.total, 0);
+			downloads[model.id] = {
+				status: "Downloading",
+				...(files.length > 0 && { completed, total }),
+			};
+			continue;
+		}
+
+		installedModels.push({
+			id: model.id,
+			sizeBytes: null,
+			quant: parseQuant(model.id),
+			paramB: parseParamB(model.id),
+			status: model.status.value,
+			vision: model.architecture?.input_modalities?.includes("image") ?? false,
+		});
+	}
+
+	return { installedModels, downloads };
+}
 
 /** Checks whether a llama-server router answers at the given base URL and lists its models. */
 export async function probeRuntime({
 	url,
+	apiKey,
 	timeoutMs = 2500,
 }: {
 	url: string;
+	apiKey?: string;
 	timeoutMs?: number;
 }): Promise<RuntimeProbeResult> {
 	try {
-		const models = await listModels({ url, timeoutMs });
-		const installedModels: InstalledModel[] = models.map((m) => ({
-			id: m.id,
-			sizeBytes: null,
-			quant: parseQuant(m.id),
-			paramB: parseParamB(m.id),
-			status: m.status.value,
-			vision: m.architecture?.input_modalities?.includes("image") ?? false,
-		}));
-		return { reachable: true, installedModels };
+		const models = await listModels({ url, apiKey, timeoutMs });
+		return { reachable: true, ...toRuntimeModels(models) };
 	} catch {
-		return { reachable: false, installedModels: [] };
+		return { reachable: false, installedModels: [], downloads: {} };
 	}
 }
 
@@ -83,34 +128,46 @@ export type SavedRuntimeEndpoint = { id: string; url: string };
 export type RuntimeScanResult = {
 	url: string;
 	installedModels: InstalledModel[];
+	downloads: Record<string, PullProgress>;
+	/** The API key that reached this URL, if any, so callers can reuse it without re-querying. */
+	apiKey: string | undefined;
 	/** The user's oldest saved llamacpp endpoint, so callers can sync it without re-querying. */
 	savedEndpoint: SavedRuntimeEndpoint | null;
 };
 
 /**
- * Probes all candidate URLs for the user concurrently; the first reachable
- * instance in priority order wins.
+ * Probes candidate URLs concurrently and returns the first reachable one in
+ * priority order. Saved endpoints use their API keys; fallback URLs do not.
  */
 export async function scanForRuntime(userId: string): Promise<RuntimeScanResult | null> {
 	const saved = await prisma.endpoint.findMany({
 		where: { ownerId: userId, provider: "llamacpp" },
 		orderBy: { id: "asc" },
-		select: { id: true, url: true },
 	});
+	const keyByUrl = new Map(
+		saved.map((endpoint) => [trimPathRight(endpoint.url), endpointApiKey(endpoint)]),
+	);
 	const candidates = buildRuntimeCandidateUrls({
 		savedUrls: saved.map((endpoint) => endpoint.url),
 	});
 
 	const probes = await Promise.all(
-		candidates.map(async (url) => ({ url, ...(await probeRuntime({ url })) })),
+		candidates.map(async (url) => ({
+			url,
+			...(await probeRuntime({ url, apiKey: keyByUrl.get(url) })),
+		})),
 	);
 	const found = probes.find((probe) => probe.reachable);
 	if (!found) return null;
+	const matchedEndpoint = saved.find((endpoint) => trimPathRight(endpoint.url) === found.url);
+	const savedEndpoint = matchedEndpoint ?? saved[0];
 
 	return {
 		url: found.url,
 		installedModels: found.installedModels,
-		savedEndpoint: saved[0] ?? null,
+		downloads: found.downloads,
+		apiKey: keyByUrl.get(found.url),
+		savedEndpoint: savedEndpoint ? { id: savedEndpoint.id, url: savedEndpoint.url } : null,
 	};
 }
 
@@ -165,23 +222,23 @@ const CONTEXT_WINDOW_TTL_MS = 60_000;
 const contextWindowCache = new Map<string, { nCtx: number; expiresAt: number }>();
 
 /**
- * The model's real `n_ctx`, read live from llama-server's `GET /props` and
- * cached briefly per endpoint+model (it's constant while the model stays
- * loaded, but chat streams shouldn't pay a round trip on every message).
- * @returns `undefined` on any failure, so callers fall back to message-count bounding.
+ * Reads `n_ctx` from `GET /props` and caches it briefly per endpoint and model.
+ * @returns `undefined` on failure so callers can use message-count bounding
  */
 export async function getContextWindow({
 	url,
 	model,
+	apiKey,
 }: {
 	url: string;
 	model: string;
+	apiKey?: string;
 }): Promise<number | undefined> {
 	const key = `${url}:${model}`;
 	const cached = contextWindowCache.get(key);
 	if (cached && cached.expiresAt > Date.now()) return cached.nCtx;
 	try {
-		const props = await serverProps({ url, model, timeoutMs: 2000 });
+		const props = await serverProps({ url, model, apiKey, timeoutMs: 2000 });
 		contextWindowCache.set(key, {
 			nCtx: props.n_ctx,
 			expiresAt: Date.now() + CONTEXT_WINDOW_TTL_MS,

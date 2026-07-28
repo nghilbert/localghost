@@ -22,7 +22,6 @@ type ModelTableProps = {
 	endpointId: string;
 	onPull: (model: string) => void;
 	onStop: (model: string) => void;
-	onDismiss: (model: string) => void;
 	onDelete: (model: string) => void;
 	initialColumnVisibility?: VisibilityState;
 };
@@ -36,7 +35,6 @@ export function ModelTable({
 	endpointId,
 	onPull,
 	onStop,
-	onDismiss,
 	onDelete,
 	initialColumnVisibility,
 }: ModelTableProps) {
@@ -81,7 +79,6 @@ export function ModelTable({
 					endpointId={endpointId}
 					onPull={onPull}
 					onStop={onStop}
-					onDismiss={onDismiss}
 					onDelete={onDelete}
 				/>
 			)}

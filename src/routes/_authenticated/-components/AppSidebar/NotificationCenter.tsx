@@ -9,19 +9,20 @@ import {
 	SidebarMenuButton,
 	SidebarMenuItem,
 } from "#/shared/components/ui/sidebar";
-import { activeDownloadsQueryOptions } from "#/shared/domain/model/model.functions";
+import { libraryStatusQueryOptions } from "#/shared/domain/model/model.functions";
 import { formatPullDetail } from "#/shared/domain/model/pull-format";
 import { useModelDownload } from "#/shared/domain/model/use-model-download";
 
 /**
  * Sidebar-footer notification center: today's only source is model downloads,
- * sourced from the same server-side download registry the Library page reads,
- * so progress survives navigation and reloads. Built to take more sources later.
+ * read from the same runtime-status query the Library page uses.
  */
 export function NotificationCenter() {
-	const { data: activePulls = [] } = useQuery(activeDownloadsQueryOptions());
-	const { stop } = useModelDownload();
-	const inFlight = activePulls.filter((pull) => !pull.done);
+	const { data: runtimeStatus } = useQuery(libraryStatusQueryOptions());
+	const { stop } = useModelDownload(runtimeStatus?.endpointId ?? null);
+	const inFlight = Object.entries(runtimeStatus?.found ? runtimeStatus.downloads : {}).map(
+		([model, progress]) => ({ model, ...progress }),
+	);
 
 	if (inFlight.length === 0) return null;
 
@@ -38,7 +39,7 @@ export function NotificationCenter() {
 						<div className="flex flex-col gap-3 p-1">
 							{inFlight.map((pull) => {
 								const pct =
-									pull.total && pull.completed
+									pull.total && pull.completed !== undefined
 										? Math.round((pull.completed / pull.total) * 100)
 										: null;
 								const detail = formatPullDetail(pull);

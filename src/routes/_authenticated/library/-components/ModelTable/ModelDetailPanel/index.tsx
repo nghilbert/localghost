@@ -22,7 +22,6 @@ type ModelDetailPanelProps = {
 	endpointId: string;
 	onPull: (model: string) => void;
 	onStop: (model: string) => void;
-	onDismiss: (model: string) => void;
 	onDelete: (model: string) => void;
 };
 
@@ -34,7 +33,6 @@ export function ModelDetailPanel({
 	endpointId,
 	onPull,
 	onStop,
-	onDismiss,
 	onDelete,
 }: ModelDetailPanelProps) {
 	return (
@@ -51,7 +49,6 @@ export function ModelDetailPanel({
 					pulling={pulling}
 					onPull={onPull}
 					onStop={onStop}
-					onDismiss={onDismiss}
 				/>
 			)}
 		</div>
