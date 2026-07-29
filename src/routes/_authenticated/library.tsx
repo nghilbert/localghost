@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { HardwareCard } from "#/routes/_authenticated/library/-components/HardwareCard";
-import { ModelTable } from "#/routes/_authenticated/library/-components/ModelTable";
+import { ModelList } from "#/routes/_authenticated/library/-components/ModelList";
 import { RemoteRuntimeForm } from "#/routes/_authenticated/library/-components/RemoteRuntimeForm";
 import { RuntimeSetupCard } from "#/routes/_authenticated/library/-components/RuntimeSetupCard";
 import {
@@ -94,7 +94,7 @@ function LibraryPage() {
 									</Button>
 								</ItemActions>
 							</Item>
-							<ModelTable
+							<ModelList
 								installedModels={runtimeStatus.installedModels}
 								pulling={pulling}
 								hardware={hardware}

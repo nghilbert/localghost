@@ -1,8 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import type { OnChangeFn, PaginationState, SortingState } from "@tanstack/react-table";
 import { useCallback, useMemo, useState } from "react";
-import { createModelColumns } from "#/routes/_authenticated/library/-components/ModelTable/columns";
-import type { ModelStatus } from "#/routes/_authenticated/library/-components/ModelTable/ModelStatusFilter";
+import type { ModelSort } from "#/routes/_authenticated/library/-components/ModelList/ModelSortSelect";
+import type { ModelStatus } from "#/routes/_authenticated/library/-components/ModelList/ModelStatusFilter";
 import { buildModelRows, type ModelRow } from "#/routes/_authenticated/library/-lib/model-rows";
 import { requiredMemoryGb } from "#/shared/domain/model/hardware-fit";
 import {
@@ -13,19 +12,8 @@ import type { CatalogSortBy } from "#/shared/domain/model/schemas";
 import type { CatalogModel, InstalledModel, PullProgress } from "#/shared/domain/model/types";
 import { useDebouncedValue } from "#/shared/hooks/use-debounced-value";
 
-const PAGE_SIZE = 25;
+const PAGE_SIZE = 20;
 const SEARCH_DEBOUNCE_MS = 300;
-
-const SORT_BY_COLUMN: Record<string, CatalogSortBy> = {
-	name: "name",
-	params: "paramB",
-	memory: "memory",
-	size: "sizeGb",
-	pulls: "pullCount",
-	likes: "likes",
-	updated: "updatedAt",
-	created: "createdAt",
-};
 
 function sortValueForRow(row: ModelRow, sortBy: CatalogSortBy): number | string {
 	const catalog = row.catalog;
@@ -65,30 +53,27 @@ function matchesSearch(row: ModelRow, search: string): boolean {
 	return haystack.includes(search.toLowerCase());
 }
 
-type UseModelTableProps = {
+type UseModelListProps = {
 	installedModels: InstalledModel[];
 	pulling: Record<string, PullProgress>;
 };
 
-/** Owns the Library model table's catalog queries, local merge, and table state. */
-export function useModelTable({ installedModels, pulling }: UseModelTableProps) {
+/** Owns the Library model list's catalog queries, local merge, and view state. */
+export function useModelList({ installedModels, pulling }: UseModelListProps) {
 	const [page, setPage] = useState(0);
-	const [sorting, setSorting] = useState<SortingState>([{ id: "updated", desc: true }]);
+	const [sort, setSort] = useState<ModelSort>({ sortBy: "pullCount", sortDir: "desc" });
 	const [search, setSearch] = useState("");
 	const debouncedSearch = useDebouncedValue(search, SEARCH_DEBOUNCE_MS);
 	const [status, setStatus] = useState<ModelStatus>("all");
 	const [license, setLicense] = useState<string | undefined>(undefined);
 
 	const isInstalledOnly = status === "installed";
-	const sortColumn = sorting[0];
-	const sortBy: CatalogSortBy = (sortColumn && SORT_BY_COLUMN[sortColumn.id]) || "pullCount";
-	const sortDir = sortColumn?.desc === false ? "asc" : "desc";
 	const catalogPageQuery = useQuery({
 		...catalogQueryOptions({
 			page,
 			pageSize: PAGE_SIZE,
-			sortBy,
-			sortDir,
+			sortBy: sort.sortBy,
+			sortDir: sort.sortDir,
 			search: debouncedSearch || undefined,
 			license,
 		}),
@@ -130,10 +115,10 @@ export function useModelTable({ installedModels, pulling }: UseModelTableProps) 
 			base = status === "available" ? merged.filter((row) => !row.installed) : merged;
 		}
 
-		const dir = sortDir === "asc" ? 1 : -1;
+		const dir = sort.sortDir === "asc" ? 1 : -1;
 		return [...base].sort((leftRow, rightRow) => {
-			const left = sortValueForRow(leftRow, sortBy);
-			const right = sortValueForRow(rightRow, sortBy);
+			const left = sortValueForRow(leftRow, sort.sortBy);
+			const right = sortValueForRow(rightRow, sort.sortBy);
 			if (left < right) return -1 * dir;
 			if (left > right) return dir;
 			return 0;
@@ -145,31 +130,19 @@ export function useModelTable({ installedModels, pulling }: UseModelTableProps) 
 		installedModels,
 		isInstalledOnly,
 		pulling,
-		sortBy,
-		sortDir,
+		sort,
 		status,
 	]);
 
-	const columns = useMemo(() => createModelColumns(), []);
 	const counts: Record<ModelStatus, number> = {
 		all: total,
 		installed: installedModels.length,
 		available: Math.max(total - installedModels.length, 0),
 	};
-	const pagination = useMemo<PaginationState>(
-		() => ({ pageIndex: page, pageSize: PAGE_SIZE }),
-		[page],
-	);
+	const pageCount = isInstalledOnly ? 1 : Math.max(1, Math.ceil(total / PAGE_SIZE));
 
-	const handlePaginationChange = useCallback<OnChangeFn<PaginationState>>((updater) => {
-		setPage((currentPage) => {
-			const current = { pageIndex: currentPage, pageSize: PAGE_SIZE };
-			const next = typeof updater === "function" ? updater(current) : updater;
-			return next.pageIndex;
-		});
-	}, []);
-	const handleSortingChange = useCallback<OnChangeFn<SortingState>>((updater) => {
-		setSorting((current) => (typeof updater === "function" ? updater(current) : updater));
+	const handleSortChange = useCallback((value: ModelSort) => {
+		setSort(value);
 		setPage(0);
 	}, []);
 	const handleSearchChange = useCallback((value: string) => {
@@ -188,19 +161,20 @@ export function useModelTable({ installedModels, pulling }: UseModelTableProps) 
 	return {
 		availableLicenses,
 		catalogPageQuery,
-		columns,
 		counts,
 		handleLicenseChange,
-		handlePaginationChange,
 		handleSearchChange,
-		handleSortingChange,
+		handleSortChange,
 		handleStatusChange,
 		isInstalledOnly,
-		pagination,
-		rows,
+		isLoading: !isInstalledOnly && catalogPageQuery.isPending,
 		license,
+		page,
+		pageCount,
+		rows,
 		search,
-		sorting,
+		setPage,
+		sort,
 		status,
 	};
 }

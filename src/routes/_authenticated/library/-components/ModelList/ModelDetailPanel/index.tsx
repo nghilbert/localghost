@@ -1,5 +1,5 @@
 import { Trash2Icon } from "lucide-react";
-import { ModelSettingsForm } from "#/routes/_authenticated/library/-components/ModelTable/ModelSettingsForm";
+import { ModelSettingsForm } from "#/routes/_authenticated/library/-components/ModelList/ModelSettingsForm";
 import type { ModelRow } from "#/routes/_authenticated/library/-lib/model-rows";
 import { Badge } from "#/shared/components/ui/badge";
 import { Button } from "#/shared/components/ui/button";

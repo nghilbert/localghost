@@ -55,9 +55,9 @@ export function ModelVariantCard({
 }: ModelVariantCardProps) {
 	const fieldId = useId();
 	const variants = catalog ? buildModelVariants({ catalog, hardware }) : null;
-	const [selectedQuant, setSelectedQuant] = useState(() => variants?.initialQuant);
+	const [selectedModelId, setSelectedModelId] = useState(() => variants?.initialModelId);
 	const selectedOption =
-		variants?.options.find((option) => option.quant === selectedQuant) ?? variants?.options[0];
+		variants?.options.find((option) => option.modelId === selectedModelId) ?? variants?.options[0];
 	const targetModel = selectedOption?.modelId ?? fallbackModelId;
 	const pullState =
 		pulling[targetModel] ?? (selectedOption?.isCurrent !== false ? fallbackPullState : undefined);
@@ -79,11 +79,11 @@ export function ModelVariantCard({
 								items={groups}
 								value={selectedOption}
 								onValueChange={(option) => {
-									if (option) setSelectedQuant(option.quant);
+									if (option) setSelectedModelId(option.modelId);
 								}}
 								itemToStringLabel={(option) => option.quant}
-								itemToStringValue={(option) => option.quant}
-								isItemEqualToValue={(option, value) => option.quant === value.quant}
+								itemToStringValue={(option) => option.modelId}
+								isItemEqualToValue={(option, value) => option.modelId === value.modelId}
 							>
 								<ComboboxInput
 									id={fieldId}
@@ -100,7 +100,7 @@ export function ModelVariantCard({
 												<ComboboxCollection>
 													{(option: ModelVariantOption) => (
 														<ComboboxItem
-															key={option.quant}
+															key={option.modelId}
 															value={option}
 															data-testid="model-variant-option"
 														>
