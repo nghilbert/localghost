@@ -1,3 +1,4 @@
+import { findNearestQuantType, GGMLFileQuantizationType } from "@huggingface/gguf";
 import type { CatalogModel, ModelVariantInfo } from "./types";
 
 function splitOnDelimiters(text: string, delimiters: string): string[] {
@@ -22,29 +23,45 @@ export function deriveTags({
 	return tags;
 }
 
-/** Preferred default quant order: a solid quality/size tradeoff first, then progressively looser. */
-const PREFERRED_QUANT_ORDER: string[] = [
-	"Q4_K_M",
-	"Q4_K_S",
-	"Q5_K_M",
-	"Q4_0",
-	"Q8_0",
-	"MXFP4",
-	"Q6_K",
-	"Q3_K_M",
-];
+/** Reverse lookup built once from the enum's own forward (name → value) entries. */
+const QUANT_LABEL_TO_TYPE = new Map<string, GGMLFileQuantizationType>(
+	Object.entries(GGMLFileQuantizationType).filter(
+		(entry): entry is [string, GGMLFileQuantizationType] => typeof entry[1] === "number",
+	),
+);
 
-/** Picks the variant to install by default: the best-tradeoff quant available, not the largest file. */
+/** Maps a parsed quant label (e.g. `"Q4_K_M"`, unsloth's `"UD-Q4_K_XL"`) to its enum member. */
+function quantTypeFromLabel(quant: string): GGMLFileQuantizationType | undefined {
+	const key = quant.startsWith("UD-") ? quant.slice("UD-".length) : quant;
+	return QUANT_LABEL_TO_TYPE.get(key);
+}
+
+/** Target quant for the default install: a solid quality/size tradeoff. */
+const DEFAULT_QUANT_TARGET = GGMLFileQuantizationType.Q4_K_M;
+
+/**
+ * Picks the variant to install by default: the quant nearest {@link DEFAULT_QUANT_TARGET}
+ * at or below it, not the largest file.
+ *
+ * Falls back to the smallest file only for labels outside the GGUF quant enum, which
+ * `parseGGUFQuantLabel` does not produce in practice.
+ */
 export function pickDefaultVariant(variants: ModelVariantInfo[]): ModelVariantInfo | null {
 	if (variants.length === 0) return null;
-	for (const preferred of PREFERRED_QUANT_ORDER) {
-		const match = variants.find((v) => v.quant === preferred);
-		if (match) return match;
+
+	const typed = variants.flatMap((variant) => {
+		const quantType = quantTypeFromLabel(variant.quant);
+		return quantType === undefined ? [] : [{ variant, quantType }];
+	});
+	if (typed.length > 0) {
+		const nearest = findNearestQuantType(
+			DEFAULT_QUANT_TARGET,
+			typed.map((entry) => entry.quantType),
+		);
+		const match = typed.find((entry) => entry.quantType === nearest);
+		if (match) return match.variant;
 	}
-	const underEightGb = variants.filter((v) => (v.sizeGb ?? Number.POSITIVE_INFINITY) <= 8);
-	if (underEightGb.length > 0) {
-		return underEightGb.reduce((best, v) => ((v.sizeGb ?? 0) > (best.sizeGb ?? 0) ? v : best));
-	}
+
 	return variants.reduce((smallest, v) =>
 		(v.sizeGb ?? Number.POSITIVE_INFINITY) < (smallest.sizeGb ?? Number.POSITIVE_INFINITY)
 			? v

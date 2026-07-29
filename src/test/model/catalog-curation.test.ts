@@ -227,7 +227,7 @@ describe("pickDefaultVariant", () => {
 		expect(pickDefaultVariant(variants)?.quant).toBe("Q4_K_M");
 	});
 
-	it("falls back to the largest variant under 8GB when no preferred quant exists", () => {
+	it("takes the nearest quant at or below the target when the target is absent", () => {
 		const variants = [
 			{ quant: "IQ2_M", sizeGb: 3, fileName: "a", repoId: "org/model" },
 			{ quant: "F32", sizeGb: 20, fileName: "b", repoId: "org/model" },
@@ -237,5 +237,22 @@ describe("pickDefaultVariant", () => {
 
 	it("returns null for an empty list", () => {
 		expect(pickDefaultVariant([])).toBeNull();
+	});
+
+	it("recognizes unsloth's UD-prefixed dynamic quants, which the old fixed list missed", () => {
+		const variants = [
+			{ quant: "UD-Q4_K_XL", sizeGb: 5, fileName: "a", repoId: "unsloth/model-GGUF" },
+			{ quant: "UD-Q2_K_XL", sizeGb: 3, fileName: "b", repoId: "unsloth/model-GGUF" },
+		];
+		// Q4_K_XL outranks the Q4_K_M target, so the nearest-at-or-below pick is Q2_K_XL.
+		expect(pickDefaultVariant(variants)?.quant).toBe("UD-Q2_K_XL");
+	});
+
+	it("picks the closest quant above target when every option outranks it", () => {
+		const variants = [
+			{ quant: "UD-Q6_K_XL", sizeGb: 7, fileName: "a", repoId: "unsloth/model-GGUF" },
+			{ quant: "UD-Q4_K_XL", sizeGb: 5, fileName: "b", repoId: "unsloth/model-GGUF" },
+		];
+		expect(pickDefaultVariant(variants)?.quant).toBe("UD-Q4_K_XL");
 	});
 });
