@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
-import { ModelDetailPanel } from "#/routes/_authenticated/library/-components/ModelTable/ModelDetailPanel";
+import { ModelDetailPanel } from "#/routes/_authenticated/library/-components/ModelList/ModelDetailPanel";
 import type { ModelRow } from "#/routes/_authenticated/library/-lib/model-rows";
 import type { PullProgress } from "#/shared/domain/model/types";
 import { makeCatalogModel, makeHardware, makeInstalledModel } from "#/test/factories";
 import { render } from "#/test/utils";
 
-vi.mock("#/routes/_authenticated/library/-components/ModelTable/ModelSettingsForm", () => ({
+vi.mock("#/routes/_authenticated/library/-components/ModelList/ModelSettingsForm", () => ({
 	ModelSettingsForm: ({ model }: { model: string }) => (
 		<div data-testid="model-settings-form">{model}</div>
 	),

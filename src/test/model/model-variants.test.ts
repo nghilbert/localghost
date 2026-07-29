@@ -31,8 +31,26 @@ describe("buildModelVariants", () => {
 
 		const variants = buildModelVariants({ catalog, hardware: undefined });
 
-		expect(variants.initialQuant).toBe("Q4_K_M");
+		expect(variants.initialModelId).toBe("org/llama3.1-GGUF:Q4_K_M");
 		expect(variants.options.map((option) => option.quant)).toEqual(["Q4_K_M", "Q8_0"]);
+	});
+
+	it("does not mark a merged-in publisher's same-named quant as current", () => {
+		const catalog = makeCatalogModel({
+			id: "ggml-org/llama3.1-GGUF:Q4_K_M",
+			name: "ggml-org/llama3.1-GGUF",
+			variants: [
+				variant({ quant: "Q4_K_M", sizeGb: 4.9, repoId: "ggml-org/llama3.1-GGUF" }),
+				variant({ quant: "Q4_K_M", sizeGb: 4.8, repoId: "unsloth/llama3.1-GGUF" }),
+			],
+		});
+
+		const variants = buildModelVariants({ catalog, hardware: undefined });
+
+		const current = variants.options.filter((option) => option.isCurrent);
+		expect(current).toHaveLength(1);
+		expect(current[0]?.repoId).toBe("ggml-org/llama3.1-GGUF");
+		expect(variants.initialModelId).toBe("ggml-org/llama3.1-GGUF:Q4_K_M");
 	});
 
 	it("lists every quant found in the repo, ordered current-first then by size", () => {

@@ -26,7 +26,8 @@ export type ModelVariantGroup = {
 };
 
 export type ModelVariants = {
-	initialQuant: string;
+	/** The default selection: a specific repo+quant pair, since the same quant can come from more than one publisher. */
+	initialModelId: string;
 	options: ModelVariantOption[];
 	groups: ModelVariantGroup[];
 };
@@ -37,10 +38,15 @@ const HARDWARE_GROUPS: { id: ModelVariantFit; label: string }[] = [
 	{ id: "size-unknown", label: "Size unknown" },
 ];
 
-/** The quant a catalog row pins, e.g. "Q4_K_M" for `ggml-org/gemma-3-4b-it-GGUF:Q4_K_M`. */
-function catalogQuant(catalog: CatalogModel): string {
+/**
+ * The exact repo+quant a catalog row pins, e.g. `{ repoId: "ggml-org/gemma-3-4b-it-GGUF", quant: "Q4_K_M" }`.
+ * Two publishers can share a quant name, so matching quant alone would mark both "current".
+ */
+function catalogVariantKey(catalog: CatalogModel): { repoId: string; quant: string } {
 	const colon = catalog.id.lastIndexOf(":");
-	return colon === -1 ? "latest" : catalog.id.slice(colon + 1);
+	return colon === -1
+		? { repoId: catalog.id, quant: "latest" }
+		: { repoId: catalog.id.slice(0, colon), quant: catalog.id.slice(colon + 1) };
 }
 
 function sourceVariants({
@@ -114,10 +120,10 @@ export function buildModelVariants({
 	catalog: CatalogModel;
 	hardware: HardwareInfo | undefined;
 }): ModelVariants {
-	const currentQuant = catalogQuant(catalog);
-	const options = sourceVariants({ catalog, currentQuant })
+	const current = catalogVariantKey(catalog);
+	const options = sourceVariants({ catalog, currentQuant: current.quant })
 		.map<ModelVariantOption>((variant) => {
-			const isCurrent = variant.quant === currentQuant;
+			const isCurrent = variant.repoId === current.repoId && variant.quant === current.quant;
 			const sizeGb = variant.sizeGb ?? (isCurrent ? catalog.sizeGb : null);
 			const estimatedMemoryGb = requiredMemoryGb({ sizeGb, paramB: catalog.paramB });
 			return {
@@ -135,8 +141,10 @@ export function buildModelVariants({
 		.sort((left, right) => compareOptions({ left, right }));
 
 	return {
-		initialQuant:
-			options.find((option) => option.isCurrent)?.quant ?? options[0]?.quant ?? currentQuant,
+		initialModelId:
+			options.find((option) => option.isCurrent)?.modelId ??
+			options[0]?.modelId ??
+			`${current.repoId}:${current.quant}`,
 		options,
 		groups: groupOptions({ options, hardware }),
 	};

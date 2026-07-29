@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { ModelStatusFilter } from "#/routes/_authenticated/library/-components/ModelTable/ModelStatusFilter";
+import { ModelStatusFilter } from "#/routes/_authenticated/library/-components/ModelList/ModelStatusFilter";
 import { render } from "#/test/utils";
 
 describe("ModelStatusFilter", () => {

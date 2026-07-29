@@ -50,3 +50,19 @@ export function fitsHardware({
 	const required = requiredMemoryGb(model);
 	return required !== null && required <= availableMemoryGb(hardware);
 }
+
+export type HardwareFit = "fits" | "tight" | "unknown";
+
+/** The three-way fit classification shown on a catalog row or variant option. */
+export function classifyHardwareFit({
+	model,
+	hardware,
+}: {
+	model: Pick<CatalogModel, "sizeGb" | "paramB">;
+	hardware: HardwareInfo | undefined;
+}): HardwareFit | null {
+	if (!hardware) return null;
+	const required = requiredMemoryGb(model);
+	if (required === null) return "unknown";
+	return required <= availableMemoryGb(hardware) ? "fits" : "tight";
+}
