@@ -2,13 +2,13 @@ import { describe, expect, it } from "vitest";
 import type { CatalogCandidate } from "#/shared/domain/model/catalog-curation";
 import {
 	baseModelKey,
+	contextKFromLength,
 	dedupeByBaseModel,
 	deriveDisplayName,
-	deriveLicense,
-	isChatModel,
+	groupKey,
+	paramBFromTotal,
 	pickDefaultVariant,
 } from "#/shared/domain/model/catalog-curation";
-import { isMmprojFile, parseQuantFromFilename, parseShardParts } from "#/shared/domain/model/gguf";
 import { parseParamB } from "#/shared/domain/model/model-id";
 
 /** A minimal `CatalogCandidate`, filling irrelevant fields with neutral defaults. */
@@ -25,43 +25,10 @@ function candidate(overrides: Partial<CatalogCandidate> & Pick<CatalogCandidate,
 		contextK: null,
 		pullCount: 0,
 		variants: [],
+		baseModelIds: [],
 	};
 	return { ...base, ...overrides };
 }
-
-describe("parseQuantFromFilename", () => {
-	it("matches known quants, longest token first", () => {
-		expect(parseQuantFromFilename("gemma-3-4b-it-Q4_K_M.gguf")).toBe("Q4_K_M");
-		expect(parseQuantFromFilename("model-Q4_0.gguf")).toBe("Q4_0");
-	});
-
-	it("resolves formats a plain regex would miss", () => {
-		expect(parseQuantFromFilename("gpt-oss-20b-MXFP4.gguf")).toBe("MXFP4");
-		expect(parseQuantFromFilename("gpt-oss-120b-MXFP4_MOE.gguf")).toBe("MXFP4_MOE");
-		expect(parseQuantFromFilename("model-TQ1_0.gguf")).toBe("TQ1_0");
-	});
-
-	it("returns null when no known quant token is present", () => {
-		expect(parseQuantFromFilename("README.gguf")).toBeNull();
-	});
-});
-
-describe("isMmprojFile / parseShardParts", () => {
-	it("identifies multimodal projector files", () => {
-		expect(isMmprojFile("mmproj-model-f16.gguf")).toBe(true);
-		expect(isMmprojFile("vision/mmproj-model-f16.gguf")).toBe(true);
-		expect(isMmprojFile("model-Q4_K_M.gguf")).toBe(false);
-	});
-
-	it("parses sharded filenames and rejects non-sharded ones", () => {
-		expect(parseShardParts("model-Q4_K_M-00001-of-00002.gguf")).toEqual({
-			prefix: "model-Q4_K_M",
-			part: 1,
-			total: 2,
-		});
-		expect(parseShardParts("model-Q4_K_M.gguf")).toBeNull();
-	});
-});
 
 describe("parseParamB", () => {
 	it("parses billion-scale HF repo ids", () => {
@@ -84,38 +51,53 @@ describe("parseParamB", () => {
 	});
 });
 
-describe("isChatModel", () => {
-	it("keeps text-generation and image-text-to-text pipeline tags", () => {
-		expect(isChatModel({ pipelineTag: "text-generation", tags: [] })).toBe(true);
-		expect(isChatModel({ pipelineTag: "image-text-to-text", tags: [] })).toBe(true);
+describe("paramBFromTotal", () => {
+	it("converts an exact GGUF parameter count to billions", () => {
+		expect(paramBFromTotal(8_190_735_360)).toBe(8.2);
+		expect(paramBFromTotal(307_581_696)).toBe(0.3);
 	});
 
-	it("rejects other pipeline tags outright", () => {
-		expect(isChatModel({ pipelineTag: "automatic-speech-recognition", tags: [] })).toBe(false);
+	it("rounds to a whole number at ten billion and above", () => {
+		expect(paramBFromTotal(27_320_697_856)).toBe(27);
 	});
 
-	it("falls back to the conversational tag when pipeline_tag is absent", () => {
-		expect(isChatModel({ pipelineTag: undefined, tags: ["conversational"] })).toBe(true);
-		expect(isChatModel({ pipelineTag: undefined, tags: ["feature-extraction"] })).toBe(false);
-		expect(isChatModel({ pipelineTag: undefined, tags: [] })).toBe(false);
+	it("is null when the Hub published no count", () => {
+		expect(paramBFromTotal(undefined)).toBeNull();
+		expect(paramBFromTotal(0)).toBeNull();
 	});
 });
 
-describe("deriveLicense", () => {
-	it("prefers card-data license over a tag", () => {
-		expect(deriveLicense({ cardDataLicense: "apache-2.0", tags: ["license:mit"] })).toBe(
-			"apache-2.0",
-		);
+describe("contextKFromLength", () => {
+	it("converts a token context length to K", () => {
+		expect(contextKFromLength(32_768)).toBe(32);
+		expect(contextKFromLength(262_144)).toBe(256);
 	});
 
-	it("falls back to a license: tag when card data has none", () => {
-		expect(deriveLicense({ cardDataLicense: undefined, tags: ["gguf", "license:mit"] })).toBe(
-			"mit",
-		);
+	it("is null when absent", () => {
+		expect(contextKFromLength(undefined)).toBeNull();
+		expect(contextKFromLength(0)).toBeNull();
+	});
+});
+
+describe("groupKey", () => {
+	it("prefers the Hub's base-model link over the name heuristic", () => {
+		const key = groupKey({
+			repoId: "bartowski/Qwen_Qwen3-8B-GGUF",
+			baseModelIds: ["Qwen/Qwen3-8B"],
+		});
+		expect(key).toBe("qwen/qwen3-8b");
 	});
 
-	it("is null when neither source has a license", () => {
-		expect(deriveLicense({ cardDataLicense: undefined, tags: ["gguf"] })).toBeNull();
+	it("collides two publishers' repacks of the same base model", () => {
+		expect(
+			groupKey({ repoId: "bartowski/Qwen_Qwen3-8B-GGUF", baseModelIds: ["Qwen/Qwen3-8B"] }),
+		).toBe(groupKey({ repoId: "unsloth/Qwen3-8B-GGUF", baseModelIds: ["Qwen/Qwen3-8B"] }));
+	});
+
+	it("falls back to the name heuristic when the repo omits the link", () => {
+		expect(groupKey({ repoId: "unsloth/Qwen3-8B-GGUF", baseModelIds: [] })).toBe(
+			baseModelKey("unsloth/Qwen3-8B-GGUF"),
+		);
 	});
 });
 
@@ -137,6 +119,10 @@ describe("baseModelKey / deriveDisplayName", () => {
 		expect(deriveDisplayName("unsloth/Qwen3.5-4B-GGUF")).toBe("Qwen3.5 4B");
 		expect(deriveDisplayName("ggml-org/gemma-4-12B-it-GGUF")).toBe("Gemma 4 12B");
 	});
+
+	it("reads a base-model id without the repacker's name doubled in", () => {
+		expect(deriveDisplayName("Qwen/Qwen3-8B")).toBe("Qwen3 8B");
+	});
 });
 
 describe("dedupeByBaseModel", () => {
@@ -156,6 +142,44 @@ describe("dedupeByBaseModel", () => {
 		expect(merged).toHaveLength(1);
 		expect(merged[0]?.name).toBe("ggml-org/Qwen3-8B-GGUF");
 		expect(merged[0]?.variants.map((v) => v.quant).sort()).toEqual(["Q4_K_M", "Q8_0"]);
+	});
+
+	it("groups on the base-model link across differently named repacks", () => {
+		const merged = dedupeByBaseModel([
+			candidate({
+				name: "bartowski/Qwen_Qwen3-8B-GGUF",
+				baseModelIds: ["Qwen/Qwen3-8B"],
+				variants: [
+					{ quant: "Q4_K_M", sizeGb: 5, fileName: "a", repoId: "bartowski/Qwen_Qwen3-8B-GGUF" },
+				],
+			}),
+			candidate({
+				name: "unsloth/Qwen3-8B-GGUF",
+				baseModelIds: ["Qwen/Qwen3-8B"],
+				variants: [{ quant: "Q4_K_M", sizeGb: 5, fileName: "b", repoId: "unsloth/Qwen3-8B-GGUF" }],
+			}),
+		]);
+		expect(merged).toHaveLength(1);
+	});
+
+	it("keeps the same quant from two publishers, so both stay selectable", () => {
+		const merged = dedupeByBaseModel([
+			candidate({
+				name: "unsloth/Qwen3-8B-GGUF",
+				baseModelIds: ["Qwen/Qwen3-8B"],
+				variants: [{ quant: "Q4_K_M", sizeGb: 5, fileName: "a", repoId: "unsloth/Qwen3-8B-GGUF" }],
+			}),
+			candidate({
+				name: "ggml-org/Qwen3-8B-GGUF",
+				baseModelIds: ["Qwen/Qwen3-8B"],
+				variants: [{ quant: "Q4_K_M", sizeGb: 5, fileName: "b", repoId: "ggml-org/Qwen3-8B-GGUF" }],
+			}),
+		]);
+		expect(merged).toHaveLength(1);
+		expect(merged[0]?.variants.map((v) => v.repoId).sort()).toEqual([
+			"ggml-org/Qwen3-8B-GGUF",
+			"unsloth/Qwen3-8B-GGUF",
+		]);
 	});
 
 	it("keeps unrelated models separate", () => {

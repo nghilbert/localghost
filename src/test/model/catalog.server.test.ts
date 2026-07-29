@@ -1,8 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const INDEX_URL =
-	"https://huggingface.co/api/models?filter=gguf&sort=downloads&direction=-1&limit=100&expand[]=author&expand[]=downloads&expand[]=likes&expand[]=tags&expand[]=lastModified&expand[]=createdAt&expand[]=gated&expand[]=private&expand[]=pipeline_tag";
-
 async function freshCatalogModule() {
 	vi.resetModules();
 	return import("#/shared/domain/model/catalog.server");
@@ -12,41 +9,98 @@ function jsonResponse(body: unknown, headers?: Record<string, string>): Response
 	return new Response(JSON.stringify(body), { status: 200, headers });
 }
 
+/** Minimal index-entry shape the real Hub API returns; `id` here is the repo id. */
+function indexEntry(
+	overrides: Partial<{
+		id: string;
+		downloads: number;
+		tags: string[];
+		gated: boolean;
+		private: boolean;
+		gguf: { total?: number; context_length?: number; architecture?: string };
+		baseModels: { models: { id: string }[] };
+	}> & { id: string },
+) {
+	return {
+		downloads: 0,
+		tags: [],
+		lastModified: "2026-01-01T00:00:00.000Z",
+		createdAt: "2025-01-01T00:00:00.000Z",
+		author: overrides.id.split("/")[0],
+		likes: 0,
+		...overrides,
+	};
+}
+
+/**
+ * Routes a mocked `fetch` by path shape and the `pipeline_tag` query param, rather
+ * than an exact query string — `@huggingface/hub` owns URL construction and its
+ * param order isn't our contract. Ingest makes one index pass per chat pipeline
+ * tag ("text-generation", "image-text-to-text"); `textGeneration` supplies the
+ * first, `imageTextToText` (default empty) the second.
+ */
+function mockHfFetch({
+	textGeneration,
+	imageTextToText = [],
+	tree = [{ path: "model-Q4_K_M.gguf", size: 1_000_000_000 }],
+}: {
+	textGeneration: unknown[];
+	imageTextToText?: unknown[];
+	tree?: Array<{ path: string; size?: number; lfs?: { size: number } }>;
+}): ReturnType<typeof vi.fn> {
+	const fetchMock = vi.mocked(fetch);
+	fetchMock.mockImplementation(async (input) => {
+		const url = new URL(String(input));
+		if (url.pathname === "/api/models") {
+			const task = url.searchParams.get("pipeline_tag");
+			return jsonResponse(task === "image-text-to-text" ? imageTextToText : textGeneration);
+		}
+		if (url.pathname.includes("/tree/")) {
+			return jsonResponse(tree.map((f) => ({ type: "file", ...f })));
+		}
+		throw new Error(`unexpected fetch: ${url}`);
+	});
+	return fetchMock;
+}
+
 describe("getCatalog (Hugging Face)", () => {
 	beforeEach(() => vi.stubGlobal("fetch", vi.fn()));
 	afterEach(() => vi.unstubAllGlobals());
 
-	it("uses the default Q4_K_M quant and preserves its repository id", async () => {
-		const fetchMock = vi.mocked(fetch);
-		fetchMock.mockImplementation(async (input) => {
-			if (String(input) === INDEX_URL) {
-				return jsonResponse([
-					{ id: "ggml-org/gemma-3-4b-it-GGUF", downloads: 12, tags: ["conversational"] },
-				]);
-			}
-			return jsonResponse([
+	it("uses the default Q4_K_M quant, preserves its repository id, and reads gguf metadata", async () => {
+		mockHfFetch({
+			textGeneration: [
+				indexEntry({
+					id: "ggml-org/gemma-3-4b-it-GGUF",
+					downloads: 12,
+					tags: ["conversational"],
+					gguf: { total: 4_300_000_000, context_length: 32_768 },
+				}),
+			],
+			tree: [
 				{ path: "gemma-Q4_K_M.gguf", lfs: { size: 2_500_000_000 } },
 				{ path: "gemma-Q8_0.gguf", lfs: { size: 4_500_000_000 } },
-			]);
+			],
 		});
 
 		const { getCatalog } = await freshCatalogModule();
 		const [model] = await getCatalog();
 		expect(model?.id).toBe("ggml-org/gemma-3-4b-it-GGUF:Q4_K_M");
 		expect(model?.variants?.[0]?.repoId).toBe("ggml-org/gemma-3-4b-it-GGUF");
+		expect(model?.paramB).toBe(4.3);
+		expect(model?.contextK).toBe(32);
 	});
 
 	it("skips mmproj files and sums sharded model parts", async () => {
-		const fetchMock = vi.mocked(fetch);
-		fetchMock.mockImplementation(async (input) => {
-			if (String(input) === INDEX_URL) {
-				return jsonResponse([{ id: "org/model-8B-GGUF", downloads: 1, tags: ["conversational"] }]);
-			}
-			return jsonResponse([
+		mockHfFetch({
+			textGeneration: [
+				indexEntry({ id: "org/model-8B-GGUF", downloads: 1, tags: ["conversational"] }),
+			],
+			tree: [
 				{ path: "mmproj-model-f16.gguf", lfs: { size: 1_000_000 } },
 				{ path: "model-Q4_K_M-00001-of-00002.gguf", lfs: { size: 1_000_000_000 } },
 				{ path: "model-Q4_K_M-00002-of-00002.gguf", lfs: { size: 1_000_000_000 } },
-			]);
+			],
 		});
 
 		const { getCatalog } = await freshCatalogModule();
@@ -56,131 +110,97 @@ describe("getCatalog (Hugging Face)", () => {
 		expect(model?.variants?.[0]?.sizeGb).toBeCloseTo(1.9, 1);
 	});
 
-	it("drops repositories without an eligible GGUF variant or parseable size", async () => {
-		const fetchMock = vi.mocked(fetch);
-		fetchMock.mockImplementation(async (input) => {
-			if (String(input) === INDEX_URL) {
-				return jsonResponse([{ id: "org/no-gguf-8B", downloads: 1, tags: ["conversational"] }]);
-			}
-			return jsonResponse([{ path: "README.md", size: 100 }]);
+	it("drops repositories with no eligible GGUF variant", async () => {
+		mockHfFetch({
+			textGeneration: [
+				indexEntry({ id: "org/no-gguf-8B", downloads: 1, tags: ["conversational"] }),
+			],
+			tree: [{ path: "README.md", size: 100 }],
 		});
 
 		const { getCatalog } = await freshCatalogModule();
 		await expect(getCatalog()).resolves.toEqual([]);
 	});
 
-	it("filters gated, private, and non-chat repositories before tree fetches", async () => {
-		const fetchMock = vi.mocked(fetch);
-		fetchMock.mockImplementation(async (input) => {
-			if (String(input) === INDEX_URL) {
-				return jsonResponse([
-					{ id: "org/gated-8B", downloads: 1, tags: ["conversational"], gated: true },
-					{ id: "org/private-8B", downloads: 1, tags: ["conversational"], private: true },
-					{
-						id: "org/embedder-8B",
-						downloads: 1,
-						tags: [],
-						pipeline_tag: "feature-extraction",
-					},
-					{ id: "org/open-8B", downloads: 1, tags: ["conversational"] },
-				]);
-			}
-			return jsonResponse([{ path: "model-Q4_K_M.gguf", lfs: { size: 1_000_000_000 } }]);
+	it("keeps a model whose id has no parseable size when the Hub reports one via gguf.total", async () => {
+		mockHfFetch({
+			textGeneration: [
+				indexEntry({
+					id: "org/no-size-in-name-GGUF",
+					downloads: 1,
+					tags: ["conversational"],
+					gguf: { total: 8_000_000_000 },
+				}),
+			],
+		});
+
+		const { getCatalog } = await freshCatalogModule();
+		const [model] = await getCatalog();
+		expect(model?.paramB).toBe(8);
+	});
+
+	it("drops gated and private repositories before any tree fetch", async () => {
+		const fetchMock = mockHfFetch({
+			textGeneration: [
+				indexEntry({ id: "org/gated-8B", downloads: 1, tags: ["conversational"], gated: true }),
+				indexEntry({ id: "org/private-8B", downloads: 1, tags: ["conversational"], private: true }),
+				indexEntry({ id: "org/open-8B", downloads: 1, tags: ["conversational"] }),
+			],
 		});
 
 		const { getCatalog } = await freshCatalogModule();
 		const models = await getCatalog();
 		expect(models.map((model) => model.name)).toEqual(["org/open-8B"]);
-		expect(fetchMock).toHaveBeenCalledTimes(2);
+		// Two index passes (one per chat pipeline tag) plus one tree fetch for the sole survivor.
+		expect(fetchMock).toHaveBeenCalledTimes(3);
 	});
 
-	it("dedupes repacks and prefers the higher-ranked publisher", async () => {
-		const fetchMock = vi.mocked(fetch);
-		fetchMock.mockImplementation(async (input) => {
-			if (String(input) === INDEX_URL) {
-				return jsonResponse([
-					{ id: "unsloth/Qwen3-8B-GGUF", downloads: 100, tags: ["conversational"] },
-					{ id: "ggml-org/Qwen3-8B-GGUF", downloads: 50, tags: ["conversational"] },
-				]);
-			}
-			return jsonResponse([{ path: "model-Q4_K_M.gguf", lfs: { size: 1_000_000_000 } }]);
+	it("dedupes repacks by base-model link and prefers the higher-ranked publisher", async () => {
+		mockHfFetch({
+			textGeneration: [
+				indexEntry({
+					id: "unsloth/Qwen3-8B-GGUF",
+					downloads: 100,
+					tags: ["conversational"],
+					baseModels: { models: [{ id: "Qwen/Qwen3-8B" }] },
+				}),
+				indexEntry({
+					id: "ggml-org/Qwen3-8B-GGUF",
+					downloads: 50,
+					tags: ["conversational"],
+					baseModels: { models: [{ id: "Qwen/Qwen3-8B" }] },
+				}),
+			],
 		});
 
 		const { getCatalog } = await freshCatalogModule();
 		const models = await getCatalog();
 		expect(models).toHaveLength(1);
 		expect(models[0]?.name).toBe("ggml-org/Qwen3-8B-GGUF");
+		expect(models[0]?.displayName).toBe("Qwen3 8B");
 	});
 
-	it("stops after 200 eligible entries and scans no more than 400 raw entries", async () => {
-		const eligiblePage = Array.from({ length: 100 }, (_, index) => ({
-			id: `org/model-${index}-8B-GGUF`,
-			downloads: index,
-			tags: ["conversational"],
-		}));
-		const secondPage = Array.from({ length: 100 }, (_, index) => ({
-			id: `org/model-${index + 100}-8B-GGUF`,
-			downloads: index + 100,
-			tags: ["conversational"],
-		}));
-		const fetchMock = vi.mocked(fetch);
-		fetchMock.mockImplementation(async (input) => {
-			const url = String(input);
-			if (url === INDEX_URL) {
-				return jsonResponse(eligiblePage, {
-					link: '<https://huggingface.co/api/models?cursor=second>; rel="next"',
-				});
-			}
-			if (url.includes("cursor=second")) {
-				return jsonResponse(secondPage, {
-					link: '<https://huggingface.co/api/models?cursor=third>; rel="next"',
-				});
-			}
-			if (url.includes("cursor=third")) throw new Error("should not fetch a third index page");
-			return jsonResponse([{ path: "model-Q4_K_M.gguf", lfs: { size: 1_000_000_000 } }]);
-		});
-
-		const { getCatalog } = await freshCatalogModule();
-		await expect(getCatalog()).resolves.toHaveLength(200);
-	});
-
-	it("does not scan more than 400 raw index entries", async () => {
-		const page = Array.from({ length: 100 }, (_, index) => ({
-			id: `org/embedder-${index}-8B`,
-			pipeline_tag: "feature-extraction",
-		}));
-		const fetchMock = vi.mocked(fetch);
-		fetchMock.mockImplementation(async (input) => {
-			const url = String(input);
-			if (url.includes("/models?")) {
-				const cursor = new URL(url).searchParams.get("cursor");
-				const next = cursor ? Number(cursor) + 1 : 1;
-				return jsonResponse(page, {
-					link: `<https://huggingface.co/api/models?cursor=${next}>; rel="next"`,
-				});
-			}
-			throw new Error("ineligible entries should not fetch repository trees");
-		});
+	it("raises when the Hub returns no models for either chat pipeline tag", async () => {
+		mockHfFetch({ textGeneration: [] });
 
 		const { getCatalog } = await freshCatalogModule();
 		await expect(getCatalog()).rejects.toThrow("0 eligible models");
-		expect(fetchMock).toHaveBeenCalledTimes(4);
 	});
 
-	it("filters, paginates, searches, and filters licenses from the cached catalog", async () => {
-		const fetchMock = vi.mocked(fetch);
-		fetchMock.mockImplementation(async (input) => {
-			if (String(input) === INDEX_URL) {
-				return jsonResponse([
-					{ id: "org/alpha-8B-GGUF", downloads: 300, tags: ["conversational", "license:mit"] },
-					{
-						id: "org/beta-8B-GGUF",
-						downloads: 200,
-						tags: ["conversational", "license:apache-2.0"],
-					},
-				]);
-			}
-			return jsonResponse([{ path: "model-Q4_K_M.gguf", lfs: { size: 1_000_000_000 } }]);
+	it("filters, paginates, searches, and lists licenses from the cached catalog", async () => {
+		mockHfFetch({
+			textGeneration: [
+				indexEntry({
+					id: "org/alpha-8B-GGUF",
+					downloads: 300,
+					tags: ["conversational", "license:mit"],
+				}),
+				indexEntry({
+					id: "org/beta-8B-GGUF",
+					downloads: 200,
+					tags: ["conversational", "license:apache-2.0"],
+				}),
+			],
 		});
 
 		const { getCatalogPage } = await freshCatalogModule();

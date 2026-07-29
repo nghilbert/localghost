@@ -1,4 +1,3 @@
-import type { GgufQuant } from "./gguf";
 import type { CatalogModel, ModelVariantInfo } from "./types";
 
 function splitOnDelimiters(text: string, delimiters: string): string[] {
@@ -23,21 +22,8 @@ export function deriveTags({
 	return tags;
 }
 
-/** A repo's license: prefers card-data metadata, falling back to a `license:xxx` tag. */
-export function deriveLicense({
-	cardDataLicense,
-	tags,
-}: {
-	cardDataLicense: string | undefined;
-	tags: string[];
-}): string | null {
-	if (cardDataLicense) return cardDataLicense;
-	const tag = tags.find((t) => t.startsWith("license:"));
-	return tag ? tag.slice("license:".length) : null;
-}
-
 /** Preferred default quant order: a solid quality/size tradeoff first, then progressively looser. */
-const PREFERRED_QUANT_ORDER: GgufQuant[] = [
+const PREFERRED_QUANT_ORDER: string[] = [
 	"Q4_K_M",
 	"Q4_K_S",
 	"Q5_K_M",
@@ -66,34 +52,6 @@ export function pickDefaultVariant(variants: ModelVariantInfo[]): ModelVariantIn
 	);
 }
 
-const CHAT_PIPELINE_TAGS = new Set(["text-generation", "image-text-to-text"]);
-const NON_CHAT_TAGS = new Set([
-	"automatic-speech-recognition",
-	"text-to-image",
-	"text-to-video",
-	"image-to-video",
-	"video-to-video",
-	"feature-extraction",
-	"sentence-similarity",
-	"text-to-speech",
-	"translation",
-	"image-to-image",
-	"any-to-any",
-]);
-
-/** Whether a repo (by its pipeline tag / tags) is something you'd chat with, not ASR/image-gen/embeddings. */
-export function isChatModel({
-	pipelineTag,
-	tags,
-}: {
-	pipelineTag: string | undefined;
-	tags: string[];
-}): boolean {
-	if (pipelineTag) return CHAT_PIPELINE_TAGS.has(pipelineTag);
-	if (tags.some((tag) => NON_CHAT_TAGS.has(tag))) return false;
-	return tags.includes("conversational");
-}
-
 /** Tiered publisher trust used only to break dedupe ties; unlisted publishers still appear. */
 const PUBLISHER_RANK: Record<string, number> = {
 	"ggml-org": 0,
@@ -118,6 +76,37 @@ function publisherRank(repoId: string): number {
  * Training and safety-tuning markers stay because they identify distinct fine-tunes.
  */
 const REPACK_SUFFIXES = ["-gguf", "-it", "-instruct"];
+
+/**
+ * The key that collapses every repack of one model into a single catalog entry.
+ *
+ * Prefers the Hub's own `baseModels` link, which quantizers are told to set on GGUF
+ * repacks, making it authoritative where the name heuristic is only a guess. Plenty
+ * of repos still omit it, so {@link baseModelKey} remains the fallback.
+ */
+export function groupKey({
+	repoId,
+	baseModelIds,
+}: {
+	repoId: string;
+	baseModelIds: string[];
+}): string {
+	const base = baseModelIds[0];
+	return base ? base.toLowerCase() : baseModelKey(repoId);
+}
+
+/** Billions of parameters from the Hub's parsed `gguf.total`, rounded for display. */
+export function paramBFromTotal(total: number | undefined): number | null {
+	if (total === undefined || total <= 0) return null;
+	const billions = total / 1e9;
+	return billions >= 10 ? Math.round(billions) : Math.round(billions * 10) / 10;
+}
+
+/** Context window in K tokens from the Hub's parsed `gguf.context_length`. */
+export function contextKFromLength(contextLength: number | undefined): number | null {
+	if (contextLength === undefined || contextLength <= 0) return null;
+	return Math.round(contextLength / 1024);
+}
 
 /** Normalizes a repo id to a base key so repacks of the same model by different publishers collide. */
 export function baseModelKey(repoId: string): string {
@@ -170,16 +159,21 @@ export type CatalogCandidate = Pick<
 > & {
 	pullCount: number;
 	variants: ModelVariantInfo[];
+	/** Repos this one derives from, per the Hub's `baseModels` link; empty when the repo omits it. */
+	baseModelIds: string[];
 };
 
 /**
- * Collapses repacks of the same base model to the best-ranked publisher's
- * entry, merging every duplicate's variants in so the quant picker stays rich.
+ * Collapses repacks of the same base model into one entry.
+ *
+ * The best-ranked publisher supplies the entry's metadata, but every member's files
+ * are kept — keyed by repo *and* quant rather than quant alone — so the same quant
+ * from two publishers stays selectable and the picker can offer both axes.
  */
 export function dedupeByBaseModel(candidates: CatalogCandidate[]): CatalogCandidate[] {
 	const groups = new Map<string, CatalogCandidate[]>();
 	for (const candidate of candidates) {
-		const key = baseModelKey(candidate.name);
+		const key = groupKey({ repoId: candidate.name, baseModelIds: candidate.baseModelIds });
 		const group = groups.get(key);
 		if (group) group.push(candidate);
 		else groups.set(key, [candidate]);
@@ -190,15 +184,15 @@ export function dedupeByBaseModel(candidates: CatalogCandidate[]): CatalogCandid
 		const winner = group.reduce((best, c) =>
 			publisherRank(c.name) < publisherRank(best.name) ? c : best,
 		);
-		const seenQuants = new Set(winner.variants.map((v) => v.quant));
-		const mergedVariants = [...winner.variants];
-		for (const other of group) {
-			if (other === winner) continue;
-			for (const variant of other.variants) {
-				if (!seenQuants.has(variant.quant)) {
-					seenQuants.add(variant.quant);
-					mergedVariants.push(variant);
-				}
+		const ordered = [winner, ...group.filter((member) => member !== winner)];
+		const seen = new Set<string>();
+		const mergedVariants: ModelVariantInfo[] = [];
+		for (const member of ordered) {
+			for (const variant of member.variants) {
+				const key = `${variant.repoId}:${variant.quant}`;
+				if (seen.has(key)) continue;
+				seen.add(key);
+				mergedVariants.push(variant);
 			}
 		}
 		merged.push({ ...winner, variants: mergedVariants });

@@ -25,6 +25,8 @@
 		"@base-ui/react": "^1.6.0",
 		"@dotenvx/dotenvx": "^2.18.0",
 		"@fontsource-variable/geist": "^5.3.0",
+		"@huggingface/gguf": "^0.4.4",
+		"@huggingface/hub": "^2.14.3",
 		"@prisma/adapter-pg": "^7.9.0",
 		"@prisma/client": "^7.9.0",
 		"@shadcn/react": "^0.2.1",
@@ -42,7 +44,6 @@
 		"@tanstack/react-router": "^1.168.24",
 		"@tanstack/react-router-ssr-query": "^1.167.1",
 		"@tanstack/react-start": "^1.168.32",
-		"@tanstack/react-table": "^8.21.3",
 		"better-auth": "^1.6.25",
 		"class-variance-authority": "^0.7.1",
 		"clsx": "^2.1.1",
@@ -64,7 +65,7 @@
 		"zod": "^4.4.3"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "2.5.5",
+		"@biomejs/biome": "2.5.6",
 		"@faker-js/faker": "^10.5.0",
 		"@tanstack/devtools-vite": "^0.8.3",
 		"@tanstack/react-ai-devtools": "^0.2.67",
@@ -84,10 +85,5 @@
 		"vite": "^8.1.5",
 		"vitest": "^4.1.10",
 		"vitest-browser-react": "^2.2.0"
-	},
-	"overrides": {
-		"@hono/node-server": "^2.0.11",
-		"find-my-way": "^9.7.0",
-		"valibot": "^1.4.2"
 	}
 }

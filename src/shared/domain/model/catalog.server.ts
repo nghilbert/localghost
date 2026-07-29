@@ -2,30 +2,28 @@ import { rankItem } from "@tanstack/match-sorter-utils";
 import { requiredMemoryGb } from "#/shared/domain/model/hardware-fit";
 import {
 	type CatalogCandidate,
+	contextKFromLength,
 	dedupeByBaseModel,
 	deriveDisplayName,
-	deriveLicense,
 	deriveTags,
-	isChatModel,
+	paramBFromTotal,
 	pickDefaultVariant,
 } from "./catalog-curation";
-import { getHfGgufIndexPage, getHfGgufVariants, type HfIndexModel } from "./huggingface.server";
+import {
+	CHAT_PIPELINE_TAGS,
+	type HfChatModel,
+	listGgufChatModels,
+	listGgufVariants,
+} from "./huggingface.server";
 import { parseParamB } from "./model-id";
 import type { CatalogQuery } from "./schemas";
-import type { CatalogModel, ModelVariantInfo } from "./types";
+import type { CatalogModel } from "./types";
 
-const CATALOG_TARGET = 200;
-const RAW_SCAN_LIMIT = 400;
+const CATALOG_TARGET = 300;
+/** Index entries pulled per pipeline tag. One request per 100, so this stays cheap. */
+const SCAN_LIMIT_PER_TAG = 600;
 const TREE_CONCURRENCY = 8;
 const CACHE_TTL_MS = 6 * 60 * 60_000;
-
-function isEligibleModel(model: HfIndexModel): boolean {
-	return (
-		!model.gated &&
-		!model.private &&
-		isChatModel({ pipelineTag: model.pipeline_tag, tags: model.tags ?? [] })
-	);
-}
 
 async function forEachWithConcurrency<T>({
 	items,
@@ -43,37 +41,39 @@ async function forEachWithConcurrency<T>({
 	await Promise.all(workers);
 }
 
-/** Collects up to 200 eligible models from at most 400 raw index entries. */
-async function collectEligibleModels(): Promise<HfIndexModel[]> {
-	const eligible: HfIndexModel[] = [];
-	let rawScanned = 0;
-	let nextUrl: string | null = null;
-
-	while (rawScanned < RAW_SCAN_LIMIT && eligible.length < CATALOG_TARGET) {
-		const page = await getHfGgufIndexPage({ url: nextUrl ?? undefined });
-		const remainingRaw = RAW_SCAN_LIMIT - rawScanned;
-		const models = page.models.slice(0, remainingRaw);
-		rawScanned += models.length;
-		for (const model of models) {
-			if (isEligibleModel(model)) eligible.push(model);
-			if (eligible.length === CATALOG_TARGET) return eligible;
-		}
-		if (!page.nextUrl || models.length === 0) break;
-		nextUrl = page.nextUrl;
-	}
-	return eligible;
-}
-
-function capabilitiesFromTags(tags: string[]): string[] {
-	return tags.includes("image-text-to-text") || tags.includes("vision") ? ["vision"] : [];
+/**
+ * A grouping candidate built from index metadata alone.
+ *
+ * Parameter count prefers the Hub's parsed GGUF header and falls back to the id;
+ * the fallback reads the *base model* id where one exists, which is far more
+ * parseable than a repacker's (`Qwen/Qwen3-8B`, not `bartowski/Qwen_Qwen3-8B-GGUF`).
+ */
+function toCandidate(model: HfChatModel): CatalogCandidate {
+	const canonicalId = model.baseModelIds[0] ?? model.repoId;
+	return {
+		name: model.repoId,
+		paramB: paramBFromTotal(model.paramTotal ?? undefined) ?? parseParamB(canonicalId),
+		contextK: contextKFromLength(model.contextLength ?? undefined),
+		capabilities: model.isVision ? ["vision"] : [],
+		pullCount: model.downloads,
+		updatedAt: model.updatedAt ?? undefined,
+		variants: [],
+		author: model.author,
+		license: model.license,
+		likes: model.likes,
+		createdAt: model.createdAt,
+		baseModelIds: model.baseModelIds,
+	};
 }
 
 function toCatalogModel(candidate: CatalogCandidate): CatalogModel {
 	const defaultVariant = pickDefaultVariant(candidate.variants);
+	/** The base-model link names the model itself; a repacker's id names their build of it. */
+	const canonicalId = candidate.baseModelIds[0] ?? candidate.name;
 	return {
 		id: `${defaultVariant?.repoId ?? candidate.name}:${defaultVariant?.quant ?? "latest"}`,
 		name: candidate.name,
-		displayName: deriveDisplayName(candidate.name),
+		displayName: deriveDisplayName(canonicalId),
 		paramB: candidate.paramB,
 		sizeGb: defaultVariant?.sizeGb ?? null,
 		contextK: candidate.contextK,
@@ -94,44 +94,41 @@ function toCatalogModel(candidate: CatalogCandidate): CatalogModel {
 	};
 }
 
-/** Fetches, enriches, and deduplicates the popular public GGUF catalog. */
+/**
+ * Fetches, groups, and enriches the popular public GGUF catalog.
+ *
+ * Grouping runs on index metadata alone so only surviving entries cost a file-tree
+ * request — one per group rather than one per repo, which keeps a refresh inside the
+ * Hub's 500-requests-per-5-minutes anonymous budget. A group's other publishers are
+ * still listed; their quants load when the user opens the model.
+ */
 async function fetchHfCatalog(): Promise<CatalogModel[]> {
-	const eligible = await collectEligibleModels();
-	if (eligible.length === 0) throw new Error("Hugging Face GGUF index returned 0 eligible models");
+	const accessToken = process.env.HF_TOKEN;
+	const listed: HfChatModel[] = [];
+	for (const task of CHAT_PIPELINE_TAGS) {
+		listed.push(...(await listGgufChatModels({ task, limit: SCAN_LIMIT_PER_TAG, accessToken })));
+	}
+	if (listed.length === 0) throw new Error("Hugging Face GGUF index returned 0 eligible models");
 
-	const candidates: CatalogCandidate[] = [];
+	const grouped = dedupeByBaseModel(listed.map(toCandidate))
+		.sort((a, b) => b.pullCount - a.pullCount)
+		.slice(0, CATALOG_TARGET);
+
+	const enriched: CatalogCandidate[] = [];
 	await forEachWithConcurrency({
-		items: eligible,
+		items: grouped,
 		limit: TREE_CONCURRENCY,
-		fn: async (repo) => {
-			let variants: ModelVariantInfo[];
+		fn: async (candidate) => {
 			try {
-				variants = await getHfGgufVariants({ repoId: repo.id });
+				const variants = await listGgufVariants({ repoId: candidate.name, accessToken });
+				if (variants.length > 0) enriched.push({ ...candidate, variants });
 			} catch (error) {
-				console.warn("Failed to fetch a repo's GGUF file tree", { repo: repo.id, error });
-				return;
+				console.warn("Failed to list a repo's GGUF files", { repo: candidate.name, error });
 			}
-			const paramB = parseParamB(repo.id);
-			if (variants.length === 0 || paramB === null) return;
-			candidates.push({
-				name: repo.id,
-				paramB,
-				capabilities: capabilitiesFromTags(repo.tags ?? []),
-				pullCount: repo.downloads ?? 0,
-				updatedAt: repo.lastModified,
-				variants,
-				author: repo.author ?? null,
-				license: deriveLicense({
-					cardDataLicense: undefined,
-					tags: repo.tags ?? [],
-				}),
-				likes: repo.likes ?? 0,
-				createdAt: repo.createdAt ?? null,
-				contextK: null,
-			});
 		},
 	});
-	return dedupeByBaseModel(candidates).map(toCatalogModel);
+
+	return enriched.map(toCatalogModel).sort((a, b) => b.pullCount - a.pullCount);
 }
 
 let cache: { data: CatalogModel[]; fetchedAt: number } | null = null;
