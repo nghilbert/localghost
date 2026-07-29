@@ -11,6 +11,7 @@ import {
 } from "./catalog-curation";
 import {
 	CHAT_PIPELINE_TAGS,
+	getGgufChatModel,
 	type HfChatModel,
 	listGgufChatModels,
 	listGgufVariants,
@@ -220,9 +221,50 @@ export async function getCatalogPage(
 	};
 }
 
-/** Looks up specific catalog entries by id out of the full cached array, for enriching installed/pulling rows. */
+/**
+ * Resolves one `"{repoId}:{quant}"` id directly, without a catalog scan.
+ *
+ * Passing a single-variant array into {@link toCatalogModel} makes `pickDefaultVariant`
+ * trivially select that one variant, so the result's `id` matches what was requested.
+ */
+async function resolveCatalogModelById({
+	id,
+	accessToken,
+}: {
+	id: string;
+	accessToken: string | undefined;
+}): Promise<CatalogModel | null> {
+	const separatorIndex = id.lastIndexOf(":");
+	if (separatorIndex === -1) return null;
+	const repoId = id.slice(0, separatorIndex);
+	const quant = id.slice(separatorIndex + 1);
+
+	const model = await getGgufChatModel({ repoId, accessToken });
+	if (!model) return null;
+
+	const variants = await listGgufVariants({ repoId, accessToken });
+	const variant = variants.find((v) => v.quant === quant);
+	if (!variant) return null;
+
+	return toCatalogModel({ ...toCandidate(model), variants: [variant] });
+}
+
+/**
+ * Looks up specific catalog entries by id, for enriching installed/pulling rows.
+ *
+ * Serves cache hits from the in-memory catalog when warm; resolves misses with a
+ * direct per-repo fetch rather than triggering a full catalog scan.
+ */
 export async function getCatalogModelsByIds(ids: string[]): Promise<CatalogModel[]> {
 	const idSet = new Set(ids);
-	const all = await getCatalog();
-	return all.filter((model) => idSet.has(model.id));
+	const cached = cache ? cache.data.filter((model) => idSet.has(model.id)) : [];
+	const cachedIds = new Set(cached.map((model) => model.id));
+	const missingIds = ids.filter((id) => !cachedIds.has(id));
+	if (missingIds.length === 0) return cached;
+
+	const accessToken = process.env.HF_TOKEN;
+	const resolved = await Promise.all(
+		missingIds.map((id) => resolveCatalogModelById({ id, accessToken })),
+	);
+	return [...cached, ...resolved.filter((model): model is CatalogModel => model !== null)];
 }

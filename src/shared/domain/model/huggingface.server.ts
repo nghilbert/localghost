@@ -1,5 +1,5 @@
 import { parseGGUFQuantLabel, parseGgufShardFilename, RE_GGUF_FILE } from "@huggingface/gguf";
-import { listFiles, listModels, type PipelineType } from "@huggingface/hub";
+import { HubApiError, listFiles, listModels, modelInfo, type PipelineType } from "@huggingface/hub";
 import { z } from "zod/v4";
 import type { ModelVariantInfo } from "./types";
 
@@ -56,10 +56,12 @@ export type HfChatModel = {
 };
 
 /**
- * A `fetch` for `listModels` that additionally requests and captures the GGUF fields.
+ * A `fetch` for `listModels`/`modelInfo` that additionally requests and captures the
+ * GGUF fields, keyed by repo id.
  *
  * The response is returned untouched — only a clone is read — so the library still
- * parses the body itself and owns pagination.
+ * parses the body itself and owns pagination. `listModels` returns an array and
+ * `modelInfo` a single object; both normalize to the same map.
  */
 function createExtrasCollector(): { hookedFetch: typeof fetch; extras: Map<string, IndexExtras> } {
 	const extras = new Map<string, IndexExtras>();
@@ -67,14 +69,20 @@ function createExtrasCollector(): { hookedFetch: typeof fetch; extras: Map<strin
 	const hookedFetch: typeof fetch = async (input, init) => {
 		const requested = input instanceof Request ? input.url : input.toString();
 		const url = new URL(requested);
-		if (!url.pathname.endsWith("/api/models")) return fetch(input, init);
+		if (!url.pathname.includes("/api/models")) return fetch(input, init);
 
-		url.searchParams.append("expand", "gguf");
-		url.searchParams.append("expand", "baseModels");
+		/** The Hub echoes the previous query back in its pagination Link header, so append once. */
+		const expandValues = url.searchParams.getAll("expand");
+		if (!expandValues.includes("gguf")) url.searchParams.append("expand", "gguf");
+		if (!expandValues.includes("baseModels")) url.searchParams.append("expand", "baseModels");
+
 		const response = await fetch(url, init);
 		if (!response.ok) return response;
 
-		const parsed = z.array(indexExtrasSchema).safeParse(await response.clone().json());
+		const payload = await response.clone().json();
+		const parsed = z
+			.array(indexExtrasSchema)
+			.safeParse(Array.isArray(payload) ? payload : [payload]);
 		if (parsed.success) for (const entry of parsed.data) extras.set(entry.id, entry);
 		return response;
 	};
@@ -93,6 +101,49 @@ function firstLicenseTag(tags: string[]): string | null {
 	return tag ? tag.slice("license:".length) : null;
 }
 
+const ADDITIONAL_FIELDS: Array<"cardData" | "tags" | "author" | "createdAt"> = [
+	"cardData",
+	"tags",
+	"author",
+	"createdAt",
+];
+
+/** A Hub model entry with our requested fields; `listModels` and `modelInfo` share this shape. */
+type HubModelEntry = Awaited<ReturnType<typeof modelInfo<(typeof ADDITIONAL_FIELDS)[number]>>>;
+
+/** Maps a Hub model entry (list or single-repo) plus its captured extras to {@link HfChatModel}. */
+function toHfChatModel({
+	model,
+	extra,
+	isVision,
+}: {
+	model: HubModelEntry;
+	extra: IndexExtras | undefined;
+	isVision: boolean;
+}): HfChatModel {
+	const tags = model.tags ?? [];
+	const cardLicense = model.cardData?.license;
+	const baseModel = model.cardData?.base_model;
+
+	return {
+		repoId: model.name,
+		author: model.author ?? null,
+		downloads: model.downloads,
+		likes: model.likes,
+		tags,
+		license: (typeof cardLicense === "string" ? cardLicense : null) ?? firstLicenseTag(tags),
+		createdAt: model.createdAt ?? null,
+		updatedAt: toIsoString(model.updatedAt),
+		paramTotal: extra?.gguf?.total ?? null,
+		contextLength: extra?.gguf?.context_length ?? null,
+		architecture: extra?.gguf?.architecture ?? null,
+		baseModelIds:
+			extra?.baseModels?.models?.map((entry) => entry.id) ??
+			(typeof baseModel === "string" ? [baseModel] : (baseModel ?? [])),
+		isVision,
+	};
+}
+
 /** Lists popular public GGUF repos for one pipeline tag, newest metadata first. */
 export async function listGgufChatModels({
 	task,
@@ -108,38 +159,61 @@ export async function listGgufChatModels({
 
 	for await (const model of listModels({
 		search: { task, tags: ["gguf"] },
-		additionalFields: ["cardData", "tags", "author", "createdAt"],
+		additionalFields: ADDITIONAL_FIELDS,
 		sort: "downloads",
 		limit,
 		fetch: hookedFetch,
 		...(accessToken ? { accessToken } : {}),
 	})) {
 		if (model.private || model.gated) continue;
-		const extra = extras.get(model.name);
-		const tags = model.tags ?? [];
-		const cardLicense = model.cardData?.license;
-		const baseModel = model.cardData?.base_model;
-
-		models.push({
-			repoId: model.name,
-			author: model.author ?? null,
-			downloads: model.downloads,
-			likes: model.likes,
-			tags,
-			license: (typeof cardLicense === "string" ? cardLicense : null) ?? firstLicenseTag(tags),
-			createdAt: model.createdAt ?? null,
-			updatedAt: toIsoString(model.updatedAt),
-			paramTotal: extra?.gguf?.total ?? null,
-			contextLength: extra?.gguf?.context_length ?? null,
-			architecture: extra?.gguf?.architecture ?? null,
-			baseModelIds:
-				extra?.baseModels?.models?.map((entry) => entry.id) ??
-				(typeof baseModel === "string" ? [baseModel] : (baseModel ?? [])),
-			isVision: task === "image-text-to-text" || tags.includes("image-text-to-text"),
-		});
+		models.push(
+			toHfChatModel({
+				model,
+				extra: extras.get(model.name),
+				isVision:
+					task === "image-text-to-text" || (model.tags ?? []).includes("image-text-to-text"),
+			}),
+		);
 	}
 
 	return models;
+}
+
+/**
+ * Fetches one GGUF repo directly, for enriching a single known id without a full
+ * catalog scan (`getCatalogModelsByIds`'s cache-miss fallback).
+ *
+ * Returns `null` for a private, gated, or missing (404) repo.
+ */
+export async function getGgufChatModel({
+	repoId,
+	accessToken,
+}: {
+	repoId: string;
+	accessToken: string | undefined;
+}): Promise<HfChatModel | null> {
+	const { hookedFetch, extras } = createExtrasCollector();
+
+	let model: HubModelEntry;
+	try {
+		model = await modelInfo({
+			name: repoId,
+			additionalFields: ADDITIONAL_FIELDS,
+			fetch: hookedFetch,
+			...(accessToken ? { accessToken } : {}),
+		});
+	} catch (error) {
+		if (error instanceof HubApiError && [401, 403, 404].includes(error.statusCode)) return null;
+		throw error;
+	}
+	if (model.private || model.gated) return null;
+
+	return toHfChatModel({
+		model,
+		extra: extras.get(model.name),
+		isVision:
+			model.task === "image-text-to-text" || (model.tags ?? []).includes("image-text-to-text"),
+	});
 }
 
 /** Every distinct GGUF quant in a repo, with sharded parts summed, ascending by size. */
