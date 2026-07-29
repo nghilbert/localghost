@@ -89,7 +89,7 @@ src/
     domain/        #   domain nouns, flat per noun: <noun>.server.ts (data access) + <noun>.functions.ts (thin RPC + queryOptions) + schemas.ts/types.ts + use-<noun>.ts hooks + any UI shared across routes
       endpoint/    #     the kernel other nouns lean on (conversation/memory/model-setting import it)
       conversation/  chat/  memory/  model/  model-setting/  user-settings/  auth/
-    components/    #   reusable components: ui/ (shadcn primitives, generated, flat) + our own (DataTable/, RouteErrorScreen/)
+    components/    #   reusable components: ui/ (shadcn primitives, generated, flat) + our own (RouteErrorScreen/)
     lib/           #   domain-free infra (*.server.ts): crypto/db/llm/auth/session, llama.cpp client + url, tools/, constants, globals.css
     hooks/         #   use-app-form/, use-is-mobile, use-sign-out
     theme/         #   ThemeContext provider + theme.ts
@@ -111,8 +111,6 @@ src/
 - **No barrels.** Import the specific module (`#/routes/_authenticated/-lib/chat-client`), not a slice root; barrels hurt Vite HMR and tree-shaking. `ComponentName/index.tsx` is a single component, not a re-export.
 - **`shared/domain` is flat per noun; route colocation uses `-components`/`-hooks`/`-lib`.** Components at 250+ lines or with sub-components become `ComponentName/index.tsx` folders.
 - **File suffixes are build boundaries:** `*.functions.ts` (the `createServerFn` RPC boundary), `*.server.ts` (server-only, stripped from the client bundle); `types.ts` for types, `schemas.ts` for Zod. The `.client.ts` suffix is banned (breaks SSR for isomorphic modules).
-- `src/shared/components/DataTable/` is the only table; never hand-roll `useReactTable`.
-
 ### Naming
 
 The mechanical rules (camelCase Zod schemas, the banned `.client.ts` suffix) are enforced by `.claude/hooks/text-check.ts`. The judgment calls it cannot decide:
@@ -129,7 +127,7 @@ Vitest in `src/test/<area>/` (folders named for the slice they test: the domain 
 
 - **Test our seams, not our dependencies.** Target logic we wrote (wiring, input parsing, transforms, registries, merge/normalize). Litmus: if it would still pass with our code deleted, it tests the library.
 - **Extract pure logic, test it plain** (inline inputs, no `render`, no DB): `toolRows` in `ToolsMenu.tsx`. A `.test.ts` in node beats a browser render it doesn't need.
-- `data-testid` is kebab-case and component-scoped (`model-picker-trigger`); the field/DataTable/ModelPicker tests are the reference. The testid exception: an element a library renders that won't forward one (Streamdown output, a Base UI Slider thumb).
+- `data-testid` is kebab-case and component-scoped (`model-picker-trigger`); the field/ModelPicker tests are the reference. The testid exception: an element a library renders that won't forward one (Streamdown output, a Base UI Slider thumb).
 - Folder = slice: `src/test/model/` tests model code (`shared/domain/model` + the Library UI), `src/test/endpoint/` tests `src/shared/domain/endpoint/`, `src/test/chat/` tests the chat surface. Domain-free infra keeps its `shared/lib` name (`src/test/lib/llamacpp-url.test.ts`).
 - **Derive minimal inputs inline; never commit recorded fixtures.**
 
@@ -138,7 +136,7 @@ Vitest in `src/test/<area>/` (folders named for the slice they test: the domain 
 | Area | Key files |
 |------|-----------|
 | Chat + streaming | chat UI `src/routes/_authenticated/-components/chat/` + `-hooks/` + `-lib/chat-client.ts`, server orchestration `src/shared/domain/chat/` (`agent.server.ts`, `system-prompt.ts`, `tools.functions.ts`), persisted `src/shared/domain/conversation/`, pages `src/routes/_authenticated/{new.tsx,chat/$conversationId.tsx}`, `src/routes/api/chat/stream.tsx` |
-| Library (core) | data `src/shared/domain/model/` (`catalog.server.ts` reads the Hugging Face GGUF index, `hardware.server.ts` probes the host, `download-registry.server.ts`, `model.functions.ts`), page UI `src/routes/_authenticated/library.tsx` + `library/-components/ModelTable/` + `library/-lib/catalog.ts` (scores hardware fit): browse and install local models |
+| Library (core) | data `src/shared/domain/model/` (`catalog.server.ts` reads the Hugging Face GGUF index via `huggingface.server.ts`, `hardware.server.ts` probes the host, `hardware-fit.ts` scores fit, `model.functions.ts`), page UI `src/routes/_authenticated/library.tsx` + `library/-components/ModelList/`: browse and install local models |
 | Endpoints / providers | domain `src/shared/domain/endpoint/` (the kernel: endpoint api, schemas, query hooks), config UI `src/routes/_authenticated/settings/-components/` (`EndpointItem`, `ProviderSetupForm/`) + `-lib/providers.ts` registry |
 | Memory (pgvector) | `src/shared/domain/memory/` (`memory.functions.ts` RPC, `memory.server.ts` data access, `memory-tool.server.ts` agent tool, `embeddings.server.ts`); opt-in per-message tool, browse/delete in Settings |
 | Built-in agent tools | wired in `src/shared/domain/chat/agent.server.ts`; handlers in `src/shared/lib/tools/{web-search,read-url}.server.ts` + `src/shared/domain/memory/memory-tool.server.ts`; client toggle list in `src/routes/_authenticated/-lib/tool-catalog.ts`, availability in `src/shared/domain/chat/tools.functions.ts` |
