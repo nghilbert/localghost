@@ -190,6 +190,7 @@ export function ToolCallStep({ toolCall, isStreaming, onToolApproval }: ToolCall
 		<div className="flex flex-col gap-1.5">
 			<Marker
 				data-testid="activity-trail-marker"
+				className="w-fit"
 				render={<Button variant="ghost" onClick={() => setOpen(!open)} />}
 			>
 				<MarkerIcon>
