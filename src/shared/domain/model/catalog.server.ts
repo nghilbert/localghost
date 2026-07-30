@@ -25,6 +25,8 @@ const CATALOG_TARGET = 300;
 const SCAN_LIMIT_PER_TAG = 600;
 const TREE_CONCURRENCY = 8;
 const CACHE_TTL_MS = 6 * 60 * 60_000;
+/** Sibling repos `listGroupVariants` will query; a dedupe group can have far more members. */
+const MAX_SIBLING_REPOS = 24;
 
 async function forEachWithConcurrency<T>({
 	items,
@@ -290,7 +292,9 @@ async function resolveCatalogModelById({
  *
  * Called lazily when a detail panel opens — never during the catalog scan, which is
  * what previously multiplied file-tree requests by group size and exceeded the Hub's
- * anonymous rate limit. Per-repo failures are skipped, not fatal.
+ * anonymous rate limit. Per-repo failures are skipped, not fatal. Siblings past
+ * {@link MAX_SIBLING_REPOS} are dropped: the primary repo's quants always load,
+ * and each extra publisher costs one more HF request.
  */
 export async function listGroupVariants({
 	repoId,
@@ -300,7 +304,7 @@ export async function listGroupVariants({
 	siblingRepoIds: string[];
 }): Promise<ModelVariantInfo[]> {
 	const accessToken = process.env.HF_TOKEN;
-	const repos = [repoId, ...siblingRepoIds];
+	const repos = [repoId, ...siblingRepoIds.slice(0, MAX_SIBLING_REPOS)];
 	const byRepo = new Map<string, ModelVariantInfo[]>();
 
 	await forEachWithConcurrency({

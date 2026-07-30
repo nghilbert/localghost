@@ -190,7 +190,7 @@ describe("upsertRuntimeEndpoint", () => {
 				ownerId: "user-1",
 				discovered: true,
 			},
-			update: { url: "http://localhost:8080" },
+			update: { url: "http://localhost:8080", provider: "llamacpp" },
 			select: { id: true },
 		});
 		expect(update).not.toHaveBeenCalled();
@@ -201,9 +201,22 @@ describe("upsertRuntimeEndpoint", () => {
 		await upsertRuntimeEndpoint({ userId: "user-1", url: "http://localhost:8080" });
 		expect(update).toHaveBeenCalledWith({
 			where: { id: "ep-1" },
-			data: { url: "http://localhost:8080" },
+			data: { url: "http://localhost:8080", provider: "llamacpp" },
 		});
 		expect(upsert).not.toHaveBeenCalled();
+	});
+
+	it("corrects a pre-migration discovered row still tagged provider ollama", async () => {
+		// The lookup that supplies `existing` (or `resolved` here) always filters
+		// on provider: "llamacpp", so a legacy row never surfaces there and this
+		// always takes the upsert path — which is why the upsert's `update` must
+		// carry `provider` too, not just `create`.
+		findFirst.mockResolvedValue(null);
+		upsert.mockResolvedValue({ id: "ep-legacy" });
+		await upsertRuntimeEndpoint({ userId: "user-1", url: "http://localhost:8080" });
+		expect(upsert).toHaveBeenCalledWith(
+			expect.objectContaining({ update: { url: "http://localhost:8080", provider: "llamacpp" } }),
+		);
 	});
 
 	it("does nothing when the saved url already matches", async () => {

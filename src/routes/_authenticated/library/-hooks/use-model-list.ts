@@ -102,16 +102,24 @@ export function useModelList({ installedModels, pulling }: UseModelListProps) {
 	const total = catalogPageQuery.data?.total ?? 0;
 	const availableLicenses = catalogPageQuery.data?.availableLicenses ?? [];
 
-	const rows = useMemo(() => {
-		let base: ModelRow[];
-		if (isInstalledOnly) {
-			base = buildModelRows({
+	// Every installed row, independent of the current status tab: the "Available"
+	// count below needs it regardless of which tab is showing.
+	const installedRows = useMemo(
+		() =>
+			buildModelRows({
 				catalogPage: [],
 				catalogById,
 				installedModels,
 				pulling,
 				includeOffPageInstalled: true,
-			});
+			}),
+		[catalogById, installedModels, pulling],
+	);
+
+	const rows = useMemo(() => {
+		let base: ModelRow[];
+		if (isInstalledOnly) {
+			base = installedRows;
 			if (debouncedSearch) base = base.filter((row) => matchesSearch(row, debouncedSearch));
 		} else {
 			const merged = buildModelRows({
@@ -142,6 +150,7 @@ export function useModelList({ installedModels, pulling }: UseModelListProps) {
 		debouncedSearch,
 		hasActiveFacets,
 		installedModels,
+		installedRows,
 		isInstalledOnly,
 		licenses,
 		pulling,
@@ -149,10 +158,24 @@ export function useModelList({ installedModels, pulling }: UseModelListProps) {
 		status,
 	]);
 
+	// `total` is the server's facet/search-filtered catalog count, which knows
+	// nothing about install status; subtracting the raw installed count would
+	// double-subtract whenever an active facet excludes some installed models.
+	// Only the installed rows that still match the current facets and search
+	// count against it.
+	const matchingInstalledCount = useMemo(() => {
+		let matched = installedRows;
+		if (debouncedSearch) matched = matched.filter((row) => matchesSearch(row, debouncedSearch));
+		if (hasActiveFacets) {
+			matched = matched.filter((row) => matchesModelFacets({ row, licenses, capabilities }));
+		}
+		return matched.length;
+	}, [installedRows, debouncedSearch, hasActiveFacets, licenses, capabilities]);
+
 	const counts: Record<ModelStatus, number> = {
 		all: total,
 		installed: installedModels.length,
-		available: Math.max(total - installedModels.length, 0),
+		available: Math.max(total - matchingInstalledCount, 0),
 	};
 	const pageCount = isInstalledOnly ? 1 : Math.max(1, Math.ceil(total / CATALOG_PAGE_SIZE));
 

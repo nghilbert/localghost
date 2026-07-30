@@ -344,4 +344,29 @@ describe("listGroupVariants", () => {
 			"org/sibling-GGUF:Q8_0",
 		]);
 	});
+
+	it("still returns the primary repo's quants when a group has far more siblings than get queried", async () => {
+		// Regression: a popular model can have dozens of repackers. The primary
+		// repo must never be dropped just because the sibling list is long.
+		const manySiblings = Array.from({ length: 40 }, (_, i) => `org/sibling-${i}-GGUF`);
+		mockHfFetch({
+			textGeneration: [],
+			treeByRepo: Object.fromEntries([
+				["org/primary-GGUF", [{ path: "model-Q4_K_M.gguf", lfs: { size: 2_000_000_000 } }]],
+				...manySiblings.map((repo) => [
+					repo,
+					[{ path: "model-Q4_K_M.gguf", lfs: { size: 2_000_000_000 } }],
+				]),
+			]),
+		});
+
+		const { listGroupVariants } = await freshCatalogModule();
+		const variants = await listGroupVariants({
+			repoId: "org/primary-GGUF",
+			siblingRepoIds: manySiblings,
+		});
+
+		expect(variants.some((v) => v.repoId === "org/primary-GGUF")).toBe(true);
+		expect(variants.length).toBeLessThan(manySiblings.length + 1);
+	});
 });

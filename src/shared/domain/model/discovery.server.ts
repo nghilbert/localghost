@@ -191,8 +191,9 @@ export async function upsertRuntimeEndpoint({
 				});
 
 	if (!resolved) {
-		// Upsert on the (ownerId, discovered) unique: concurrent first-time scans
-		// both land here, and the loser must update instead of inserting a duplicate.
+		// Upsert on the (ownerId, discovered) unique: concurrent first-time scans both
+		// land here, and the loser updates (also correcting `provider` on a row still
+		// tagged "ollama" from before this migration) instead of inserting a duplicate.
 		const endpoint = await prisma.endpoint.upsert({
 			where: { ownerId_discovered: { ownerId: userId, discovered: true } },
 			create: {
@@ -202,13 +203,16 @@ export async function upsertRuntimeEndpoint({
 				ownerId: userId,
 				discovered: true,
 			},
-			update: { url: normalizedUrl },
+			update: { url: normalizedUrl, provider: "llamacpp" },
 			select: { id: true },
 		});
 		return endpoint.id;
 	}
 
 	if (resolved.url === normalizedUrl) return resolved.id;
-	await prisma.endpoint.update({ where: { id: resolved.id }, data: { url: normalizedUrl } });
+	await prisma.endpoint.update({
+		where: { id: resolved.id },
+		data: { url: normalizedUrl, provider: "llamacpp" },
+	});
 	return resolved.id;
 }

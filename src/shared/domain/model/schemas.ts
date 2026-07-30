@@ -59,7 +59,7 @@ export const catalogModelsByIdsInput = z.object({ ids: z.array(z.string()) });
 
 export const modelVariantsInput = z.object({
 	repoId: z.string().min(1),
-	siblingRepoIds: z.array(z.string()).max(6),
+	siblingRepoIds: z.array(z.string()),
 });
 
 export const modelEventsQuerySchema = z.object({ endpointId: z.uuid() });
