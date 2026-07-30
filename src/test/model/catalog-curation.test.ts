@@ -26,6 +26,7 @@ function candidate(overrides: Partial<CatalogCandidate> & Pick<CatalogCandidate,
 		pullCount: 0,
 		variants: [],
 		baseModelIds: [],
+		siblingRepoIds: [],
 	};
 	return { ...base, ...overrides };
 }
@@ -196,6 +197,34 @@ describe("dedupeByBaseModel", () => {
 			}),
 		]);
 		expect(merged).toHaveLength(2);
+	});
+
+	it("records the group's other repos as siblings, ordered by publisher rank", () => {
+		const merged = dedupeByBaseModel([
+			candidate({
+				name: "mradermacher/Qwen3-8B-GGUF",
+				baseModelIds: ["Qwen/Qwen3-8B"],
+				variants: [
+					{ quant: "Q4_K_M", sizeGb: 5, fileName: "a", repoId: "mradermacher/Qwen3-8B-GGUF" },
+				],
+			}),
+			candidate({
+				name: "unsloth/Qwen3-8B-GGUF",
+				baseModelIds: ["Qwen/Qwen3-8B"],
+				variants: [{ quant: "Q8_0", sizeGb: 9, fileName: "b", repoId: "unsloth/Qwen3-8B-GGUF" }],
+			}),
+			candidate({
+				name: "ggml-org/Qwen3-8B-GGUF",
+				baseModelIds: ["Qwen/Qwen3-8B"],
+				variants: [{ quant: "F16", sizeGb: 16, fileName: "c", repoId: "ggml-org/Qwen3-8B-GGUF" }],
+			}),
+		]);
+		expect(merged).toHaveLength(1);
+		expect(merged[0]?.name).toBe("ggml-org/Qwen3-8B-GGUF");
+		expect(merged[0]?.siblingRepoIds).toEqual([
+			"unsloth/Qwen3-8B-GGUF",
+			"mradermacher/Qwen3-8B-GGUF",
+		]);
 	});
 
 	it("keeps a merged-in variant's own repo id, not the winning candidate's", () => {

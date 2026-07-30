@@ -25,3 +25,8 @@ export type CatalogQuery = z.infer<typeof catalogQuerySchema>;
 export type CatalogSortBy = z.infer<typeof catalogSortBySchema>;
 
 export const catalogModelsByIdsInput = z.object({ ids: z.array(z.string()) });
+
+export const modelVariantsInput = z.object({
+	repoId: z.string().min(1),
+	siblingRepoIds: z.array(z.string()).max(6),
+});

@@ -52,10 +52,13 @@ function catalogVariantKey(catalog: CatalogModel): { repoId: string; quant: stri
 function sourceVariants({
 	catalog,
 	currentQuant,
+	variants,
 }: {
 	catalog: CatalogModel;
 	currentQuant: string;
+	variants: ModelVariantInfo[] | undefined;
 }): ModelVariantInfo[] {
+	if (variants && variants.length > 0) return variants;
 	if (catalog.variants && catalog.variants.length > 0) return catalog.variants;
 	return [{ quant: currentQuant, sizeGb: catalog.sizeGb, fileName: "", repoId: catalog.name }];
 }
@@ -116,12 +119,15 @@ export function formatModelVariantDetails(option: ModelVariantOption): string {
 export function buildModelVariants({
 	catalog,
 	hardware,
+	variants,
 }: {
 	catalog: CatalogModel;
 	hardware: HardwareInfo | undefined;
+	/** A lazily-fetched cross-publisher variant list, preferred over `catalog.variants` when present. */
+	variants?: ModelVariantInfo[];
 }): ModelVariants {
 	const current = catalogVariantKey(catalog);
-	const options = sourceVariants({ catalog, currentQuant: current.quant })
+	const options = sourceVariants({ catalog, currentQuant: current.quant, variants })
 		.map<ModelVariantOption>((variant) => {
 			const isCurrent = variant.repoId === current.repoId && variant.quant === current.quant;
 			const sizeGb = variant.sizeGb ?? (isCurrent ? catalog.sizeGb : null);

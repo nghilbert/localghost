@@ -178,6 +178,8 @@ export type CatalogCandidate = Pick<
 	variants: ModelVariantInfo[];
 	/** Repos this one derives from, per the Hub's `baseModels` link; empty when the repo omits it. */
 	baseModelIds: string[];
+	/** Other repos this one's dedupe group collapsed, once merged; empty before merging. */
+	siblingRepoIds: string[];
 };
 
 /**
@@ -201,7 +203,10 @@ export function dedupeByBaseModel(candidates: CatalogCandidate[]): CatalogCandid
 		const winner = group.reduce((best, c) =>
 			publisherRank(c.name) < publisherRank(best.name) ? c : best,
 		);
-		const ordered = [winner, ...group.filter((member) => member !== winner)];
+		const others = group
+			.filter((member) => member !== winner)
+			.sort((a, b) => publisherRank(a.name) - publisherRank(b.name));
+		const ordered = [winner, ...others];
 		const seen = new Set<string>();
 		const mergedVariants: ModelVariantInfo[] = [];
 		for (const member of ordered) {
@@ -212,7 +217,11 @@ export function dedupeByBaseModel(candidates: CatalogCandidate[]): CatalogCandid
 				mergedVariants.push(variant);
 			}
 		}
-		merged.push({ ...winner, variants: mergedVariants });
+		merged.push({
+			...winner,
+			variants: mergedVariants,
+			siblingRepoIds: others.map((member) => member.name),
+		});
 	}
 	return merged;
 }

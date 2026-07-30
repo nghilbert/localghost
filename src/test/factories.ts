@@ -30,6 +30,7 @@ export function makeCatalogModel(overrides: Partial<CatalogModel> = {}): Catalog
 		likes: 100,
 		pullCount: 1_000_000,
 		createdAt: null,
+		siblingRepoIds: [],
 		...overrides,
 	};
 }

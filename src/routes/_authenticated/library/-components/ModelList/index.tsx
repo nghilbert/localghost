@@ -1,6 +1,10 @@
 import { CircleAlertIcon, SearchIcon } from "lucide-react";
-import { Fragment, useState } from "react";
-import { useModelList } from "#/routes/_authenticated/library/-hooks/use-model-list";
+import { Fragment } from "react";
+import {
+	CATALOG_PAGE_SIZE,
+	useModelList,
+} from "#/routes/_authenticated/library/-hooks/use-model-list";
+import { formatResultRange } from "#/routes/_authenticated/library/-lib/model-sort";
 import { Alert, AlertAction, AlertDescription, AlertTitle } from "#/shared/components/ui/alert";
 import { Button } from "#/shared/components/ui/button";
 import { Empty, EmptyDescription, EmptyTitle } from "#/shared/components/ui/empty";
@@ -12,8 +16,10 @@ import { LicenseFilter } from "./LicenseFilter";
 import { ModelDetailPanel } from "./ModelDetailPanel";
 import { ModelListItem } from "./ModelListItem";
 import { ModelPagination } from "./ModelPagination";
-import { ModelSortSelect } from "./ModelSortSelect";
+import { ModelSortControls } from "./ModelSortControls";
 import { ModelStatusFilter } from "./ModelStatusFilter";
+
+const SKELETON_KEYS = ["a", "b", "c", "d", "e", "f"];
 
 type ModelListProps = {
 	installedModels: InstalledModel[];
@@ -36,15 +42,18 @@ export function ModelList({
 	onStop,
 	onDelete,
 }: ModelListProps) {
-	const [expandedId, setExpandedId] = useState<string | null>(null);
 	const {
 		availableLicenses,
 		catalogPageQuery,
 		counts,
+		expandedId,
+		fetchedVariants,
 		handleLicenseChange,
 		handleSearchChange,
 		handleSortChange,
 		handleStatusChange,
+		handleToggleExpanded,
+		isInstalledOnly,
 		isLoading,
 		license,
 		page,
@@ -55,6 +64,14 @@ export function ModelList({
 		sort,
 		status,
 	} = useModelList({ installedModels, pulling });
+	const resultRange = isInstalledOnly
+		? `${counts[status].toLocaleString()} models`
+		: formatResultRange({
+				page,
+				pageSize: CATALOG_PAGE_SIZE,
+				rowCount: rows.length,
+				total: counts[status],
+			});
 
 	return (
 		<div className="space-y-3">
@@ -91,14 +108,20 @@ export function ModelList({
 					value={license}
 					onValueChange={handleLicenseChange}
 				/>
-				<ModelSortSelect value={sort} onValueChange={handleSortChange} />
+				<ModelSortControls value={sort} onValueChange={handleSortChange} />
+				{resultRange && (
+					<span className="text-xs text-muted-foreground" data-testid="model-list-total">
+						{resultRange}
+					</span>
+				)}
 			</div>
+
+			<ModelPagination page={page} pageCount={pageCount} onPageChange={setPage} position="top" />
 
 			{isLoading ? (
 				<div className="space-y-3">
-					{Array.from({ length: 6 }, (_, index) => (
-						// biome-ignore lint/suspicious/noArrayIndexKey: a fixed count of interchangeable skeleton rows
-						<Skeleton key={index} className="h-16 w-full" />
+					{SKELETON_KEYS.map((key) => (
+						<Skeleton key={key} className="h-16 w-full" />
 					))}
 				</div>
 			) : rows.length === 0 ? (
@@ -107,26 +130,28 @@ export function ModelList({
 					<EmptyDescription>Try a different search or filter.</EmptyDescription>
 				</Empty>
 			) : (
-				<ItemGroup>
+				<ItemGroup className="grid grid-cols-[repeat(auto-fit,minmax(min(22rem,100%),1fr))]">
 					{rows.map((row) => (
 						<Fragment key={row.id}>
 							<ModelListItem
 								row={row}
 								hardware={hardware}
 								expanded={expandedId === row.id}
-								onToggleExpanded={() =>
-									setExpandedId((current) => (current === row.id ? null : row.id))
-								}
+								onToggleExpanded={() => handleToggleExpanded(row.id)}
 								onPull={onPull}
 								onStop={onStop}
 							/>
 							{expandedId === row.id && (
-								<div className="rounded-lg border bg-muted/30 p-4" data-testid="model-list-detail">
+								<div
+									className="col-span-full rounded-lg border bg-muted/30 p-4"
+									data-testid="model-list-detail"
+								>
 									<ModelDetailPanel
 										row={row}
 										hardware={hardware}
 										pulling={pulling}
 										endpointId={endpointId}
+										fetchedVariants={fetchedVariants}
 										onPull={onPull}
 										onStop={onStop}
 										onDelete={onDelete}
@@ -138,7 +163,7 @@ export function ModelList({
 				</ItemGroup>
 			)}
 
-			<ModelPagination page={page} pageCount={pageCount} onPageChange={setPage} />
+			<ModelPagination page={page} pageCount={pageCount} onPageChange={setPage} position="bottom" />
 		</div>
 	);
 }

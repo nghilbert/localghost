@@ -4,7 +4,7 @@ import { z } from "zod/v4";
 import { downloadModel, unloadModel } from "#/shared/lib/llamacpp/client.server";
 import { llamacppConnectionSchema, llamacppUrlSchema } from "#/shared/lib/llamacpp/url";
 import { authedFn } from "#/shared/lib/middleware";
-import { getCatalogModelsByIds, getCatalogPage } from "./catalog.server";
+import { getCatalogModelsByIds, getCatalogPage, listGroupVariants } from "./catalog.server";
 import {
 	getRuntimeEndpointById,
 	probeRuntime,
@@ -13,7 +13,12 @@ import {
 } from "./discovery.server";
 import { getHardwareInfo } from "./hardware.server";
 import { removeInstalledModel } from "./models.server";
-import { type CatalogQuery, catalogModelsByIdsInput, catalogQuerySchema } from "./schemas";
+import {
+	type CatalogQuery,
+	catalogModelsByIdsInput,
+	catalogQuerySchema,
+	modelVariantsInput,
+} from "./schemas";
 import type { RuntimeStatus } from "./types";
 
 export const getHardware = createServerFn({ method: "GET" })
@@ -29,6 +34,11 @@ export const getModelCatalogByIds = createServerFn({ method: "GET" })
 	.middleware([authedFn])
 	.validator(catalogModelsByIdsInput)
 	.handler(async ({ data }) => getCatalogModelsByIds(data.ids));
+
+export const getModelVariants = createServerFn({ method: "GET" })
+	.middleware([authedFn])
+	.validator(modelVariantsInput)
+	.handler(async ({ data }) => listGroupVariants(data));
 
 export const scanRuntimeStatus = createServerFn({ method: "GET" })
 	.middleware([authedFn])
@@ -142,5 +152,12 @@ export const catalogByIdsQueryOptions = (ids: string[]) =>
 	queryOptions({
 		queryKey: ["library-catalog-by-ids", ids],
 		queryFn: () => getModelCatalogByIds({ data: { ids } }),
+		staleTime: 6 * 60 * 60_000,
+	});
+
+export const modelVariantsQueryOptions = (query: { repoId: string; siblingRepoIds: string[] }) =>
+	queryOptions({
+		queryKey: ["library-model-variants", query],
+		queryFn: () => getModelVariants({ data: query }),
 		staleTime: 6 * 60 * 60_000,
 	});

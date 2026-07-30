@@ -1,3 +1,4 @@
+import { CheckCircle2Icon } from "lucide-react";
 import { useId, useState } from "react";
 import { ModelPullControls } from "#/routes/_authenticated/library/-components/ModelPullControls";
 import {
@@ -26,7 +27,12 @@ import {
 	ComboboxList,
 } from "#/shared/components/ui/combobox";
 import { Field, FieldLabel } from "#/shared/components/ui/field";
-import type { CatalogModel, HardwareInfo, PullProgress } from "#/shared/domain/model/types";
+import type {
+	CatalogModel,
+	HardwareInfo,
+	ModelVariantInfo,
+	PullProgress,
+} from "#/shared/domain/model/types";
 import { cn } from "#/shared/lib/utils";
 
 type VariantComboboxGroup = Omit<ModelVariantGroup, "options"> & {
@@ -39,36 +45,51 @@ type ModelVariantCardProps = {
 	fallbackPullState: PullProgress | undefined;
 	hardware: HardwareInfo | undefined;
 	pulling: Record<string, PullProgress>;
+	/** A lazily-fetched cross-publisher variant list; falls back to `catalog.variants` while loading. */
+	fetchedVariants: ModelVariantInfo[] | undefined;
+	/** The row's exact installed quant, so the matching option can show "Installed" instead of a pull control. */
+	installedModelId: string | null;
 	onPull: (model: string) => void;
 	onStop: (model: string) => void;
+	className?: string;
 };
 
-/** Variant selection and pull controls for an available catalog row. */
+/** Variant selection for a catalog row: pull controls when uninstalled, an "Installed" badge for the current quant. */
 export function ModelVariantCard({
 	catalog,
 	fallbackModelId,
 	fallbackPullState,
 	hardware,
 	pulling,
+	fetchedVariants,
+	installedModelId,
 	onPull,
 	onStop,
+	className,
 }: ModelVariantCardProps) {
 	const fieldId = useId();
-	const variants = catalog ? buildModelVariants({ catalog, hardware }) : null;
+	const variants = catalog
+		? buildModelVariants({ catalog, hardware, variants: fetchedVariants })
+		: null;
 	const [selectedModelId, setSelectedModelId] = useState(() => variants?.initialModelId);
 	const selectedOption =
 		variants?.options.find((option) => option.modelId === selectedModelId) ?? variants?.options[0];
 	const targetModel = selectedOption?.modelId ?? fallbackModelId;
+	const isTargetInstalled = installedModelId !== null && targetModel === installedModelId;
 	const pullState =
 		pulling[targetModel] ?? (selectedOption?.isCurrent !== false ? fallbackPullState : undefined);
 	const groups: VariantComboboxGroup[] =
 		variants?.groups.map(({ options, ...group }) => ({ ...group, items: options })) ?? [];
 
 	return (
-		<Card size="sm">
+		<Card size="sm" className={className}>
 			<CardHeader>
-				<CardTitle>Pull a variant</CardTitle>
-				<CardDescription>Choose a quantization, then download it to this machine.</CardDescription>
+				<CardTitle>{installedModelId ? "Variants" : "Pull a variant"}</CardTitle>
+				<CardDescription>
+					{installedModelId
+						? "Other quantizations of this model, including from other publishers."
+						: "Choose a quantization, then download it to this machine."}
+				</CardDescription>
 			</CardHeader>
 			<CardContent className="space-y-2">
 				<div className={cn("flex gap-2", pullState ? "flex-col" : "items-end")}>
@@ -105,7 +126,15 @@ export function ModelVariantCard({
 															data-testid="model-variant-option"
 														>
 															<span className="min-w-0 flex-1">
-																<span className="block truncate font-medium">{option.quant}</span>
+																<span className="flex items-center gap-1.5">
+																	<span className="block truncate font-medium">{option.quant}</span>
+																	{option.modelId === installedModelId && (
+																		<Badge variant="secondary" className="shrink-0">
+																			<CheckCircle2Icon data-icon="inline-start" />
+																			Installed
+																		</Badge>
+																	)}
+																</span>
 																<span className="block truncate text-xs text-muted-foreground">
 																	{formatModelVariantDetails(option)}
 																</span>
@@ -125,12 +154,19 @@ export function ModelVariantCard({
 							</Combobox>
 						</Field>
 					)}
-					<ModelPullControls
-						modelId={targetModel}
-						pullState={pullState}
-						onPull={onPull}
-						onStop={onStop}
-					/>
+					{isTargetInstalled ? (
+						<Badge variant="secondary">
+							<CheckCircle2Icon data-icon="inline-start" />
+							Installed
+						</Badge>
+					) : (
+						<ModelPullControls
+							modelId={targetModel}
+							pullState={pullState}
+							onPull={onPull}
+							onStop={onStop}
+						/>
+					)}
 				</div>
 
 				<p

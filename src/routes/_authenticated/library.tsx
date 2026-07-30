@@ -5,6 +5,8 @@ import { HardwareCard } from "#/routes/_authenticated/library/-components/Hardwa
 import { ModelList } from "#/routes/_authenticated/library/-components/ModelList";
 import { RemoteRuntimeForm } from "#/routes/_authenticated/library/-components/RemoteRuntimeForm";
 import { RuntimeSetupCard } from "#/routes/_authenticated/library/-components/RuntimeSetupCard";
+import { CATALOG_PAGE_SIZE } from "#/routes/_authenticated/library/-hooks/use-model-list";
+import { DEFAULT_SORT } from "#/routes/_authenticated/library/-lib/model-sort";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -35,10 +37,10 @@ import { useRuntime } from "#/shared/domain/model/use-runtime";
 
 const DEFAULT_CATALOG_QUERY = {
 	page: 0,
-	pageSize: 25,
-	sortBy: "pullCount",
-	sortDir: "desc",
-} as const;
+	pageSize: CATALOG_PAGE_SIZE,
+	sortBy: DEFAULT_SORT.sortBy,
+	sortDir: DEFAULT_SORT.sortDir,
+};
 
 export const Route = createFileRoute("/_authenticated/library")({
 	head: () => ({ meta: [{ title: "Library · localghost" }] }),

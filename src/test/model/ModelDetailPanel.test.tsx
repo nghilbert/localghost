@@ -52,6 +52,7 @@ describe("ModelDetailPanel", () => {
 				hardware={makeHardware({ freeRamGb: 16, gpus: null })}
 				pulling={pulling}
 				endpointId="endpoint-1"
+				fetchedVariants={undefined}
 				onPull={onPull}
 				onStop={onStop}
 				onDelete={vi.fn()}
@@ -80,10 +81,11 @@ describe("ModelDetailPanel", () => {
 		expect(onStop).toHaveBeenCalledWith("org/llama3.1-GGUF:Q8_0");
 	});
 
-	it("hides variant selection and keeps settings and deletion on the installed id", async () => {
+	it("shows settings and variants for an installed row, with the installed quant unpullable", async () => {
 		const installed = makeInstalledModel({ id: "org/llama3.1-GGUF:Q4_K_M" });
 		const installedRow: ModelRow = { ...availableRow, installed };
 		const onDelete = vi.fn();
+		const onPull = vi.fn();
 
 		const screen = await render(
 			<ModelDetailPanel
@@ -91,17 +93,28 @@ describe("ModelDetailPanel", () => {
 				hardware={undefined}
 				pulling={{}}
 				endpointId="endpoint-1"
-				onPull={vi.fn()}
+				fetchedVariants={undefined}
+				onPull={onPull}
 				onStop={vi.fn()}
 				onDelete={onDelete}
 			/>,
 		);
 
-		await expect.element(screen.getByTestId("model-variant-combobox")).not.toBeInTheDocument();
 		await expect
 			.element(screen.getByTestId("model-settings-form"))
 			.toHaveTextContent("org/llama3.1-GGUF:Q4_K_M");
 		await screen.getByTestId("model-delete-button").click();
 		expect(onDelete).toHaveBeenCalledWith("org/llama3.1-GGUF:Q4_K_M");
+
+		await expect
+			.element(screen.getByTestId("model-variant-target"))
+			.toHaveTextContent("org/llama3.1-GGUF:Q4_K_M");
+		await expect.element(screen.getByTestId("model-pull-button")).not.toBeInTheDocument();
+
+		await screen.getByTestId("model-variant-combobox").fill("q8_0");
+		await screen.getByTestId("model-variant-option").first().click();
+		await expect.element(screen.getByTestId("model-pull-button")).toBeInTheDocument();
+		await screen.getByTestId("model-pull-button").click();
+		expect(onPull).toHaveBeenCalledWith("org/llama3.1-GGUF:Q8_0");
 	});
 });

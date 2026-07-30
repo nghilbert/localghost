@@ -43,10 +43,13 @@ function mockHfFetch({
 	textGeneration,
 	imageTextToText = [],
 	tree = [{ path: "model-Q4_K_M.gguf", size: 1_000_000_000 }],
+	treeByRepo = {},
 }: {
 	textGeneration: unknown[];
 	imageTextToText?: unknown[];
 	tree?: Array<{ path: string; size?: number; lfs?: { size: number } }>;
+	/** Per-repo override, for tests where different repos in a group expose different quants. */
+	treeByRepo?: Record<string, Array<{ path: string; size?: number; lfs?: { size: number } }>>;
 }): ReturnType<typeof vi.fn> {
 	const fetchMock = vi.mocked(fetch);
 	fetchMock.mockImplementation(async (input) => {
@@ -56,7 +59,23 @@ function mockHfFetch({
 			return jsonResponse(task === "image-text-to-text" ? imageTextToText : textGeneration);
 		}
 		if (url.pathname.includes("/tree/")) {
-			return jsonResponse(tree.map((f) => ({ type: "file", ...f })));
+			const repoId = url.pathname.slice("/api/models/".length).split("/tree/")[0] ?? "";
+			const files = treeByRepo[repoId] ?? tree;
+			return jsonResponse(files.map((f) => ({ type: "file", ...f })));
+		}
+		// `modelInfo` requests `/api/models/{name}/revision/{rev}`, not the bare index path.
+		if (url.pathname.includes("/revision/")) {
+			const repoId = decodeURIComponent(
+				url.pathname.slice("/api/models/".length).split("/revision/")[0] ?? "",
+			);
+			const entry = [...textGeneration, ...imageTextToText].find(
+				(candidate): candidate is { id: string } =>
+					typeof candidate === "object" &&
+					candidate !== null &&
+					"id" in candidate &&
+					(candidate as { id: unknown }).id === repoId,
+			);
+			return entry ? jsonResponse(entry) : new Response(null, { status: 404 });
 		}
 		throw new Error(`unexpected fetch: ${url}`);
 	});
@@ -215,5 +234,84 @@ describe("getCatalog (Hugging Face)", () => {
 		expect(page.rows.map((model) => model.name)).toEqual(["org/alpha-8B-GGUF"]);
 		expect(page.total).toBe(1);
 		expect(page.availableLicenses).toEqual(["apache-2.0", "mit"]);
+	});
+});
+
+describe("getCatalogModelsByIds (cache-miss resolution)", () => {
+	beforeEach(() => vi.stubGlobal("fetch", vi.fn()));
+	afterEach(() => vi.unstubAllGlobals());
+
+	it("returns every quant in the repo, not just the one requested, on a cold cache", async () => {
+		mockHfFetch({
+			textGeneration: [indexEntry({ id: "org/model-8B-GGUF", downloads: 10 })],
+			tree: [
+				{ path: "model-Q4_K_M.gguf", lfs: { size: 2_000_000_000 } },
+				{ path: "model-Q8_0.gguf", lfs: { size: 4_000_000_000 } },
+			],
+		});
+
+		const { getCatalogModelsByIds } = await freshCatalogModule();
+		const [resolved] = await getCatalogModelsByIds(["org/model-8B-GGUF:Q8_0"]);
+
+		expect(resolved?.id).toBe("org/model-8B-GGUF:Q8_0");
+		expect(resolved?.variants?.map((v) => v.quant).sort()).toEqual(["Q4_K_M", "Q8_0"]);
+	});
+
+	it("borrows a warm dedupe group's siblingRepoIds for a quant the cache didn't hit", async () => {
+		mockHfFetch({
+			textGeneration: [
+				indexEntry({
+					id: "unsloth/model-8B-GGUF",
+					downloads: 50,
+					baseModels: { models: [{ id: "org/model-8B" }] },
+				}),
+				indexEntry({
+					id: "ggml-org/model-8B-GGUF",
+					downloads: 100,
+					baseModels: { models: [{ id: "org/model-8B" }] },
+				}),
+			],
+			tree: [
+				{ path: "model-Q4_K_M.gguf", lfs: { size: 2_000_000_000 } },
+				{ path: "model-Q8_0.gguf", lfs: { size: 4_000_000_000 } },
+			],
+		});
+
+		const { getCatalog, getCatalogModelsByIds } = await freshCatalogModule();
+		await getCatalog();
+
+		const [resolved] = await getCatalogModelsByIds(["ggml-org/model-8B-GGUF:Q8_0"]);
+		expect(resolved?.id).toBe("ggml-org/model-8B-GGUF:Q8_0");
+		expect(resolved?.siblingRepoIds).toEqual(["unsloth/model-8B-GGUF"]);
+	});
+});
+
+describe("listGroupVariants", () => {
+	beforeEach(() => vi.stubGlobal("fetch", vi.fn()));
+	afterEach(() => vi.unstubAllGlobals());
+
+	it("merges the primary repo's quants with its siblings', primary first", async () => {
+		mockHfFetch({
+			textGeneration: [],
+			treeByRepo: {
+				"org/primary-GGUF": [{ path: "model-Q4_K_M.gguf", lfs: { size: 2_000_000_000 } }],
+				"org/sibling-GGUF": [
+					{ path: "model-Q4_K_M.gguf", lfs: { size: 2_100_000_000 } },
+					{ path: "model-Q8_0.gguf", lfs: { size: 4_000_000_000 } },
+				],
+			},
+		});
+
+		const { listGroupVariants } = await freshCatalogModule();
+		const variants = await listGroupVariants({
+			repoId: "org/primary-GGUF",
+			siblingRepoIds: ["org/sibling-GGUF"],
+		});
+
+		expect(variants.map((v) => `${v.repoId}:${v.quant}`)).toEqual([
+			"org/primary-GGUF:Q4_K_M",
+			"org/sibling-GGUF:Q4_K_M",
+			"org/sibling-GGUF:Q8_0",
+		]);
 	});
 });

@@ -1,18 +1,19 @@
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useMemo, useState } from "react";
-import type { ModelSort } from "#/routes/_authenticated/library/-components/ModelList/ModelSortSelect";
 import type { ModelStatus } from "#/routes/_authenticated/library/-components/ModelList/ModelStatusFilter";
 import { buildModelRows, type ModelRow } from "#/routes/_authenticated/library/-lib/model-rows";
+import { DEFAULT_SORT, type ModelSort } from "#/routes/_authenticated/library/-lib/model-sort";
 import { requiredMemoryGb } from "#/shared/domain/model/hardware-fit";
 import {
 	catalogByIdsQueryOptions,
 	catalogQueryOptions,
+	modelVariantsQueryOptions,
 } from "#/shared/domain/model/model.functions";
 import type { CatalogSortBy } from "#/shared/domain/model/schemas";
 import type { CatalogModel, InstalledModel, PullProgress } from "#/shared/domain/model/types";
 import { useDebouncedValue } from "#/shared/hooks/use-debounced-value";
 
-const PAGE_SIZE = 20;
+export const CATALOG_PAGE_SIZE = 24;
 const SEARCH_DEBOUNCE_MS = 300;
 
 function sortValueForRow(row: ModelRow, sortBy: CatalogSortBy): number | string {
@@ -61,17 +62,18 @@ type UseModelListProps = {
 /** Owns the Library model list's catalog queries, local merge, and view state. */
 export function useModelList({ installedModels, pulling }: UseModelListProps) {
 	const [page, setPage] = useState(0);
-	const [sort, setSort] = useState<ModelSort>({ sortBy: "pullCount", sortDir: "desc" });
+	const [sort, setSort] = useState<ModelSort>(DEFAULT_SORT);
 	const [search, setSearch] = useState("");
 	const debouncedSearch = useDebouncedValue(search, SEARCH_DEBOUNCE_MS);
 	const [status, setStatus] = useState<ModelStatus>("all");
 	const [license, setLicense] = useState<string | undefined>(undefined);
+	const [expandedId, setExpandedId] = useState<string | null>(null);
 
 	const isInstalledOnly = status === "installed";
 	const catalogPageQuery = useQuery({
 		...catalogQueryOptions({
 			page,
-			pageSize: PAGE_SIZE,
+			pageSize: CATALOG_PAGE_SIZE,
 			sortBy: sort.sortBy,
 			sortDir: sort.sortDir,
 			search: debouncedSearch || undefined,
@@ -139,7 +141,17 @@ export function useModelList({ installedModels, pulling }: UseModelListProps) {
 		installed: installedModels.length,
 		available: Math.max(total - installedModels.length, 0),
 	};
-	const pageCount = isInstalledOnly ? 1 : Math.max(1, Math.ceil(total / PAGE_SIZE));
+	const pageCount = isInstalledOnly ? 1 : Math.max(1, Math.ceil(total / CATALOG_PAGE_SIZE));
+
+	const expandedRow = rows.find((row) => row.id === expandedId) ?? null;
+	const expandedCatalog = expandedRow?.catalog ?? null;
+	const variantsQuery = useQuery({
+		...modelVariantsQueryOptions({
+			repoId: expandedCatalog?.name ?? "",
+			siblingRepoIds: expandedCatalog?.siblingRepoIds ?? [],
+		}),
+		enabled: expandedCatalog !== null,
+	});
 
 	const handleSortChange = useCallback((value: ModelSort) => {
 		setSort(value);
@@ -157,15 +169,21 @@ export function useModelList({ installedModels, pulling }: UseModelListProps) {
 		setLicense(value);
 		setPage(0);
 	}, []);
+	const handleToggleExpanded = useCallback((id: string) => {
+		setExpandedId((current) => (current === id ? null : id));
+	}, []);
 
 	return {
 		availableLicenses,
 		catalogPageQuery,
 		counts,
+		expandedId,
+		fetchedVariants: expandedCatalog !== null ? variantsQuery.data : undefined,
 		handleLicenseChange,
 		handleSearchChange,
 		handleSortChange,
 		handleStatusChange,
+		handleToggleExpanded,
 		isInstalledOnly,
 		isLoading: !isInstalledOnly && catalogPageQuery.isPending,
 		license,

@@ -4,9 +4,9 @@ import type { ModelRow } from "#/routes/_authenticated/library/-lib/model-rows";
 import { Badge } from "#/shared/components/ui/badge";
 import {
 	Item,
-	ItemActions,
 	ItemContent,
 	ItemDescription,
+	ItemFooter,
 	ItemMedia,
 	ItemTitle,
 } from "#/shared/components/ui/item";
@@ -85,7 +85,7 @@ export function ModelListItem({
 				</ItemTitle>
 				<ItemDescription>{specLine(row)}</ItemDescription>
 			</ItemContent>
-			<ItemActions onClick={(event) => event.stopPropagation()}>
+			<ItemFooter onClick={(event) => event.stopPropagation()}>
 				{fit && !installed && (
 					<Badge variant="outline" className={FIT_BADGE[fit].className}>
 						{FIT_BADGE[fit].label}
@@ -104,7 +104,7 @@ export function ModelListItem({
 						onStop={onStop}
 					/>
 				)}
-			</ItemActions>
+			</ItemFooter>
 		</Item>
 	);
 }

@@ -18,7 +18,7 @@ import {
 } from "./huggingface.server";
 import { parseParamB } from "./model-id";
 import type { CatalogQuery } from "./schemas";
-import type { CatalogModel } from "./types";
+import type { CatalogModel, ModelVariantInfo } from "./types";
 
 const CATALOG_TARGET = 300;
 /** Index entries pulled per pipeline tag. One request per 100, so this stays cheap. */
@@ -64,6 +64,7 @@ function toCandidate(model: HfChatModel): CatalogCandidate {
 		likes: model.likes,
 		createdAt: model.createdAt,
 		baseModelIds: model.baseModelIds,
+		siblingRepoIds: [],
 	};
 }
 
@@ -92,6 +93,7 @@ function toCatalogModel(candidate: CatalogCandidate): CatalogModel {
 		updatedAt: candidate.updatedAt,
 		createdAt: candidate.createdAt,
 		variants: candidate.variants,
+		siblingRepoIds: candidate.siblingRepoIds,
 	};
 }
 
@@ -222,10 +224,28 @@ export async function getCatalogPage(
 }
 
 /**
+ * The warm-cache entry whose dedupe group already contains `repoId`, if any.
+ *
+ * Best-effort only: it never triggers a fetch, so a cold cache simply finds nothing.
+ * Used to carry a group's `siblingRepoIds` over to a model resolved outside the
+ * catalog scan (an installed model whose exact quant isn't the group's default).
+ */
+function findCachedGroupByRepo(repoId: string): CatalogModel | null {
+	if (!cache) return null;
+	return (
+		cache.data.find((model) => model.name === repoId || model.siblingRepoIds.includes(repoId)) ??
+		null
+	);
+}
+
+/**
  * Resolves one `"{repoId}:{quant}"` id directly, without a catalog scan.
  *
- * Passing a single-variant array into {@link toCatalogModel} makes `pickDefaultVariant`
- * trivially select that one variant, so the result's `id` matches what was requested.
+ * Overrides {@link toCatalogModel}'s derived `id` with the exact one requested, since
+ * `pickDefaultVariant` may otherwise pick a different quant as the row's "default".
+ * `siblingRepoIds` is borrowed from the warm cache's dedupe group when this repo is a
+ * member of one, so a picker built from this row can still offer cross-publisher
+ * quants; on a cold cache it degrades to this repo's own quants.
  */
 async function resolveCatalogModelById({
 	id,
@@ -246,7 +266,58 @@ async function resolveCatalogModelById({
 	const variant = variants.find((v) => v.quant === quant);
 	if (!variant) return null;
 
-	return toCatalogModel({ ...toCandidate(model), variants: [variant] });
+	const cachedGroup = findCachedGroupByRepo(repoId);
+	const candidate = toCandidate(model);
+	const resolved = toCatalogModel({
+		...candidate,
+		variants,
+		siblingRepoIds: cachedGroup?.siblingRepoIds ?? candidate.siblingRepoIds,
+	});
+	return { ...resolved, id, sizeGb: variant.sizeGb ?? resolved.sizeGb };
+}
+
+/**
+ * Fetches every quant across one dedupe group's repos: the primary plus its known
+ * siblings, for the variant picker's cross-publisher option list.
+ *
+ * Called lazily when a detail panel opens — never during the catalog scan, which is
+ * what previously multiplied file-tree requests by group size and exceeded the Hub's
+ * anonymous rate limit. Per-repo failures are skipped, not fatal.
+ */
+export async function listGroupVariants({
+	repoId,
+	siblingRepoIds,
+}: {
+	repoId: string;
+	siblingRepoIds: string[];
+}): Promise<ModelVariantInfo[]> {
+	const accessToken = process.env.HF_TOKEN;
+	const repos = [repoId, ...siblingRepoIds];
+	const byRepo = new Map<string, ModelVariantInfo[]>();
+
+	await forEachWithConcurrency({
+		items: repos,
+		limit: TREE_CONCURRENCY,
+		fn: async (repo) => {
+			try {
+				byRepo.set(repo, await listGgufVariants({ repoId: repo, accessToken }));
+			} catch (error) {
+				console.warn("Failed to list a sibling repo's GGUF files", { repo, error });
+			}
+		},
+	});
+
+	const seen = new Set<string>();
+	const merged: ModelVariantInfo[] = [];
+	for (const repo of repos) {
+		for (const variant of byRepo.get(repo) ?? []) {
+			const key = `${variant.repoId}:${variant.quant}`;
+			if (seen.has(key)) continue;
+			seen.add(key);
+			merged.push(variant);
+		}
+	}
+	return merged;
 }
 
 /**

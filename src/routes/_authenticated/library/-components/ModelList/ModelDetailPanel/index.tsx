@@ -12,7 +12,7 @@ import {
 	CardTitle,
 } from "#/shared/components/ui/card";
 import { formatPullCount } from "#/shared/domain/model/hardware-fit";
-import type { HardwareInfo, PullProgress } from "#/shared/domain/model/types";
+import type { HardwareInfo, ModelVariantInfo, PullProgress } from "#/shared/domain/model/types";
 import { ModelVariantCard } from "./ModelVariantCard";
 
 type ModelDetailPanelProps = {
@@ -21,6 +21,8 @@ type ModelDetailPanelProps = {
 	pulling: Record<string, PullProgress>;
 	/** The local llama.cpp endpoint's id; scopes the per-model settings this panel edits. */
 	endpointId: string;
+	/** The expanded row's lazily-fetched cross-publisher variant list, once loaded. */
+	fetchedVariants: ModelVariantInfo[] | undefined;
 	onPull: (model: string) => void;
 	onStop: (model: string) => void;
 	onDelete: (model: string) => void;
@@ -32,6 +34,7 @@ export function ModelDetailPanel({
 	hardware,
 	pulling,
 	endpointId,
+	fetchedVariants,
 	onPull,
 	onStop,
 	onDelete,
@@ -40,7 +43,21 @@ export function ModelDetailPanel({
 		<div className="grid gap-4 lg:grid-cols-2">
 			<ModelOverviewCard row={row} />
 			{row.installed ? (
-				<ModelSettingsCard endpointId={endpointId} modelId={row.id} onDelete={onDelete} />
+				<>
+					<ModelSettingsCard endpointId={endpointId} modelId={row.id} onDelete={onDelete} />
+					<ModelVariantCard
+						catalog={row.catalog}
+						fallbackModelId={row.id}
+						fallbackPullState={row.pullState}
+						hardware={hardware}
+						pulling={pulling}
+						fetchedVariants={fetchedVariants}
+						installedModelId={row.installed.id}
+						onPull={onPull}
+						onStop={onStop}
+						className="lg:col-span-2"
+					/>
+				</>
 			) : (
 				<ModelVariantCard
 					catalog={row.catalog}
@@ -48,6 +65,8 @@ export function ModelDetailPanel({
 					fallbackPullState={row.pullState}
 					hardware={hardware}
 					pulling={pulling}
+					fetchedVariants={fetchedVariants}
+					installedModelId={null}
 					onPull={onPull}
 					onStop={onStop}
 				/>

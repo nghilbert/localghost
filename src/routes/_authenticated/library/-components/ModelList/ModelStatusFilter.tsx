@@ -38,7 +38,9 @@ export function ModelStatusFilter({ value, counts, onValueChange }: ModelStatusF
 			{MODEL_STATUSES.map((status) => (
 				<ToggleGroupItem key={status} value={status} data-testid={`model-status-${status}`}>
 					{STATUS_LABELS[status]}
-					<span className="text-muted-foreground tabular-nums">{counts[status]}</span>
+					<span className="text-muted-foreground tabular-nums">
+						{counts[status].toLocaleString()}
+					</span>
 				</ToggleGroupItem>
 			))}
 		</ToggleGroup>

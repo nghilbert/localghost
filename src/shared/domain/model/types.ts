@@ -77,6 +77,8 @@ export type CatalogModel = {
 	createdAt: string | null;
 	/** Every GGUF quant found across the dedupe group's repos, for the variant picker, ascending by size. */
 	variants?: ModelVariantInfo[];
+	/** Other repos this dedupe group collapsed, ordered by publisher rank, for lazily fetching their quants. */
+	siblingRepoIds: string[];
 };
 
 /** One GGUF file found in a Hugging Face repo, for the variant picker. */

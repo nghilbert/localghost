@@ -190,6 +190,27 @@ describe("buildModelVariants", () => {
 		expect(formatModelVariantDetails(unavailable)).toBe("Details unavailable");
 	});
 
+	it("prefers a lazily-fetched variants override over the catalog's own list", () => {
+		const catalog = makeCatalogModel({
+			id: "ggml-org/model-GGUF:Q4_K_M",
+			name: "ggml-org/model-GGUF",
+			variants: [variant({ quant: "Q4_K_M", sizeGb: 4, repoId: "ggml-org/model-GGUF" })],
+		});
+
+		const variants = buildModelVariants({
+			catalog,
+			hardware: undefined,
+			variants: [
+				variant({ quant: "Q4_K_M", sizeGb: 4, repoId: "ggml-org/model-GGUF" }),
+				variant({ quant: "Q8_0", sizeGb: 8, repoId: "unsloth/model-GGUF" }),
+			],
+		});
+
+		expect(variants.options.map((option) => option.quant)).toEqual(["Q4_K_M", "Q8_0"]);
+		const fromSibling = variants.options.find((option) => option.quant === "Q8_0");
+		expect(fromSibling).toMatchObject({ repoId: "unsloth/model-GGUF", isSameRepoAsPrimary: false });
+	});
+
 	it("keeps a merged-in variant's own repo, so its pull target isn't the winning repo's", () => {
 		const catalog = makeCatalogModel({
 			id: "ggml-org/model-GGUF:Q4_K_M",
