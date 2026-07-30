@@ -1,20 +1,15 @@
 import { CircleAlertIcon, SearchIcon } from "lucide-react";
 import { Fragment } from "react";
-import {
-	CATALOG_PAGE_SIZE,
-	useModelList,
-} from "#/routes/_authenticated/library/-hooks/use-model-list";
-import { formatResultRange } from "#/routes/_authenticated/library/-lib/model-sort";
+import { useModelList } from "#/routes/_authenticated/library/-hooks/use-model-list";
 import { Alert, AlertAction, AlertDescription, AlertTitle } from "#/shared/components/ui/alert";
 import { Button } from "#/shared/components/ui/button";
 import { Empty, EmptyDescription, EmptyTitle } from "#/shared/components/ui/empty";
 import { Input } from "#/shared/components/ui/input";
 import { ItemGroup } from "#/shared/components/ui/item";
-import { Skeleton } from "#/shared/components/ui/skeleton";
 import type { HardwareInfo, InstalledModel, PullProgress } from "#/shared/domain/model/types";
-import { LicenseFilter } from "./LicenseFilter";
 import { ModelDetailPanel } from "./ModelDetailPanel";
-import { ModelListItem } from "./ModelListItem";
+import { ModelFilterMenu } from "./ModelFilterMenu";
+import { ModelListItem, ModelListItemSkeleton } from "./ModelListItem";
 import { ModelPagination } from "./ModelPagination";
 import { ModelSortControls } from "./ModelSortControls";
 import { ModelStatusFilter } from "./ModelStatusFilter";
@@ -44,18 +39,19 @@ export function ModelList({
 }: ModelListProps) {
 	const {
 		availableLicenses,
+		capabilities,
 		catalogPageQuery,
 		counts,
 		expandedId,
 		fetchedVariants,
-		handleLicenseChange,
+		handleCapabilitiesChange,
+		handleLicensesChange,
 		handleSearchChange,
 		handleSortChange,
 		handleStatusChange,
 		handleToggleExpanded,
-		isInstalledOnly,
 		isLoading,
-		license,
+		licenses,
 		page,
 		pageCount,
 		rows,
@@ -64,13 +60,6 @@ export function ModelList({
 		sort,
 		status,
 	} = useModelList({ installedModels, pulling });
-	const resultRange = isInstalledOnly
-		? `${counts[status].toLocaleString()} models`
-		: formatResultRange({
-				page,
-				pageSize: CATALOG_PAGE_SIZE,
-				total: counts[status],
-			});
 
 	return (
 		<div className="space-y-3">
@@ -102,34 +91,30 @@ export function ModelList({
 					/>
 				</div>
 				<ModelStatusFilter value={status} counts={counts} onValueChange={handleStatusChange} />
-				<LicenseFilter
+				<ModelFilterMenu
 					licenses={availableLicenses}
-					value={license}
-					onValueChange={handleLicenseChange}
+					selectedLicenses={licenses}
+					selectedCapabilities={capabilities}
+					onLicensesChange={handleLicensesChange}
+					onCapabilitiesChange={handleCapabilitiesChange}
 				/>
 				<ModelSortControls value={sort} onValueChange={handleSortChange} />
-				{resultRange && (
-					<span className="text-xs text-muted-foreground" data-testid="model-list-total">
-						{resultRange}
-					</span>
-				)}
+				<ModelPagination page={page} pageCount={pageCount} onPageChange={setPage} />
 			</div>
 
-			<ModelPagination page={page} pageCount={pageCount} onPageChange={setPage} position="top" />
-
 			{isLoading ? (
-				<div className="space-y-3">
+				<ItemGroup className="grid grid-flow-row-dense grid-cols-[repeat(auto-fit,minmax(min(22rem,100%),1fr))]">
 					{SKELETON_KEYS.map((key) => (
-						<Skeleton key={key} className="h-16 w-full" />
+						<ModelListItemSkeleton key={key} />
 					))}
-				</div>
+				</ItemGroup>
 			) : rows.length === 0 ? (
 				<Empty data-testid="model-list-empty">
 					<EmptyTitle>No models found</EmptyTitle>
 					<EmptyDescription>Try a different search or filter.</EmptyDescription>
 				</Empty>
 			) : (
-				<ItemGroup className="grid grid-cols-[repeat(auto-fit,minmax(min(22rem,100%),1fr))]">
+				<ItemGroup className="grid grid-flow-row-dense grid-cols-[repeat(auto-fit,minmax(min(22rem,100%),1fr))]">
 					{rows.map((row) => (
 						<Fragment key={row.id}>
 							<ModelListItem
@@ -162,7 +147,7 @@ export function ModelList({
 				</ItemGroup>
 			)}
 
-			<ModelPagination page={page} pageCount={pageCount} onPageChange={setPage} position="bottom" />
+			<ModelPagination page={page} pageCount={pageCount} onPageChange={setPage} />
 		</div>
 	);
 }

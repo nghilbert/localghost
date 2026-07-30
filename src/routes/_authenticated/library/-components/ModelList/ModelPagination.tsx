@@ -10,31 +10,29 @@ type ModelPaginationProps = {
 	page: number;
 	pageCount: number;
 	onPageChange: (page: number) => void;
-	/** Disambiguates the two instances (above and below the grid) so their testids don't collide. */
-	position: "top" | "bottom";
 };
 
 /** Prev/next controls for the server-paginated catalog. */
-export function ModelPagination({ page, pageCount, onPageChange, position }: ModelPaginationProps) {
+export function ModelPagination({ page, pageCount, onPageChange }: ModelPaginationProps) {
 	if (pageCount <= 1) return null;
 
 	return (
-		<Pagination className="justify-between">
-			<span className="text-xs text-muted-foreground">
-				Page {page + 1} of {pageCount}
-			</span>
+		<Pagination className="justify-end">
 			<PaginationContent>
 				<PaginationItem>
 					<PaginationPrevious
-						data-testid={`model-list-${position}-prev-page`}
+						data-testid={`model-list-prev-page`}
 						onClick={() => onPageChange(Math.max(0, page - 1))}
 						aria-disabled={page === 0}
 						className={page === 0 ? "pointer-events-none opacity-50" : undefined}
 					/>
 				</PaginationItem>
+				<span className="text-sm text-muted-foreground">
+					Page {page + 1} of {pageCount}
+				</span>
 				<PaginationItem>
 					<PaginationNext
-						data-testid={`model-list-${position}-next-page`}
+						data-testid={`model-list-next-page`}
 						onClick={() => onPageChange(Math.min(pageCount - 1, page + 1))}
 						aria-disabled={page >= pageCount - 1}
 						className={page >= pageCount - 1 ? "pointer-events-none opacity-50" : undefined}

@@ -1,4 +1,5 @@
 import { z } from "zod/v4";
+import { llamaDownloadFileProgressSchema } from "#/shared/domain/model/schemas";
 
 /**
  * Thin `fetch` wrapper over `llama-server`'s router-mode HTTP API. There is no
@@ -7,10 +8,6 @@ import { z } from "zod/v4";
 const llamaModelStatusSchema = z.enum(["loaded", "loading", "unloaded", "sleeping", "downloading"]);
 export type LlamaModelStatus = z.infer<typeof llamaModelStatusSchema>;
 
-const llamaDownloadFileProgressSchema = z.object({
-	done: z.number(),
-	total: z.number(),
-});
 const llamaModelSchema = z.object({
 	id: z.string(),
 	path: z.string().optional(),
@@ -89,6 +86,25 @@ export async function listModels({
 	});
 	if (!response.ok) throw await responseError({ response, operation: "GET /models" });
 	return llamaModelListSchema.parse(await response.json()).data;
+}
+
+/** Opens llama.cpp's long-lived router model-event stream. */
+export async function openModelEventStream({
+	url,
+	apiKey,
+	signal,
+}: {
+	url: string;
+	apiKey?: string;
+	signal: AbortSignal;
+}): Promise<ReadableStream<Uint8Array>> {
+	const response = await fetch(`${url}/models/sse`, {
+		headers: { Accept: "text/event-stream", ...authHeaders(apiKey) },
+		signal,
+	});
+	if (!response.ok) throw await responseError({ response, operation: "GET /models/sse" });
+	if (!response.body) throw new Error("GET /models/sse returned no response body");
+	return response.body;
 }
 
 /** Server properties for the currently (or about-to-be) loaded model, notably `n_ctx`. */

@@ -22,6 +22,7 @@ import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiBackupExportRouteImport } from './routes/api/backup/export'
 import { Route as ApiBackupImportRouteImport } from './routes/api/backup/import'
 import { Route as ApiChatStreamRouteImport } from './routes/api/chat/stream'
+import { Route as ApiModelsEventsRouteImport } from './routes/api/models/events'
 
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
   id: '/_authenticated',
@@ -88,6 +89,11 @@ const ApiChatStreamRoute = ApiChatStreamRouteImport.update({
   path: '/api/chat/stream',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiModelsEventsRoute = ApiModelsEventsRouteImport.update({
+  id: '/api/models/events',
+  path: '/api/models/events',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -100,6 +106,7 @@ export interface FileRoutesByFullPath {
   '/api/backup/export': typeof ApiBackupExportRoute
   '/api/backup/import': typeof ApiBackupImportRoute
   '/api/chat/stream': typeof ApiChatStreamRoute
+  '/api/models/events': typeof ApiModelsEventsRoute
   '/settings/': typeof AuthenticatedSettingsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -113,6 +120,7 @@ export interface FileRoutesByTo {
   '/api/backup/export': typeof ApiBackupExportRoute
   '/api/backup/import': typeof ApiBackupImportRoute
   '/api/chat/stream': typeof ApiChatStreamRoute
+  '/api/models/events': typeof ApiModelsEventsRoute
   '/settings': typeof AuthenticatedSettingsIndexRoute
 }
 export interface FileRoutesById {
@@ -129,6 +137,7 @@ export interface FileRoutesById {
   '/api/backup/export': typeof ApiBackupExportRoute
   '/api/backup/import': typeof ApiBackupImportRoute
   '/api/chat/stream': typeof ApiChatStreamRoute
+  '/api/models/events': typeof ApiModelsEventsRoute
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
 }
 export interface FileRouteTypes {
@@ -144,6 +153,7 @@ export interface FileRouteTypes {
     | '/api/backup/export'
     | '/api/backup/import'
     | '/api/chat/stream'
+    | '/api/models/events'
     | '/settings/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -157,6 +167,7 @@ export interface FileRouteTypes {
     | '/api/backup/export'
     | '/api/backup/import'
     | '/api/chat/stream'
+    | '/api/models/events'
     | '/settings'
   id:
     | '__root__'
@@ -172,6 +183,7 @@ export interface FileRouteTypes {
     | '/api/backup/export'
     | '/api/backup/import'
     | '/api/chat/stream'
+    | '/api/models/events'
     | '/_authenticated/settings/'
   fileRoutesById: FileRoutesById
 }
@@ -182,6 +194,7 @@ export interface RootRouteChildren {
   ApiBackupExportRoute: typeof ApiBackupExportRoute
   ApiBackupImportRoute: typeof ApiBackupImportRoute
   ApiChatStreamRoute: typeof ApiChatStreamRoute
+  ApiModelsEventsRoute: typeof ApiModelsEventsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -277,6 +290,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiChatStreamRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/models/events': {
+      id: '/api/models/events'
+      path: '/api/models/events'
+      fullPath: '/api/models/events'
+      preLoaderRoute: typeof ApiModelsEventsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -320,6 +340,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiBackupExportRoute: ApiBackupExportRoute,
   ApiBackupImportRoute: ApiBackupImportRoute,
   ApiChatStreamRoute: ApiChatStreamRoute,
+  ApiModelsEventsRoute: ApiModelsEventsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

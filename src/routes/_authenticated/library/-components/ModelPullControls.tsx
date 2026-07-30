@@ -12,6 +12,7 @@ import { Progress } from "#/shared/components/ui/progress";
 import { Spinner } from "#/shared/components/ui/spinner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "#/shared/components/ui/tooltip";
 import { formatPullDetail } from "#/shared/domain/model/pull-format";
+import { pullProgressPercent } from "#/shared/domain/model/pull-progress";
 import type { PullProgress } from "#/shared/domain/model/types";
 
 type ModelPullControlsProps = {
@@ -24,17 +25,16 @@ type ModelPullControlsProps = {
 /** Renders the available actions and status for one exact model pull target. */
 export function ModelPullControls({ modelId, pullState, onPull, onStop }: ModelPullControlsProps) {
 	if (pullState) {
-		const progress =
-			pullState.total && pullState.completed !== undefined
-				? Math.round((pullState.completed / pullState.total) * 100)
-				: null;
+		const progress = pullProgressPercent(pullState);
 		const detail = formatPullDetail(pullState);
 
 		return (
 			<Item variant="muted" size="sm" data-testid="model-pull-progress">
-				<ItemMedia variant="icon">
-					<Spinner />
-				</ItemMedia>
+				{progress === null && (
+					<ItemMedia variant="icon">
+						<Spinner />
+					</ItemMedia>
+				)}
 				<ItemContent>
 					<ItemTitle>{pullState.status || "Downloading model"}</ItemTitle>
 					{detail && <ItemDescription className="tabular-nums">{detail}</ItemDescription>}

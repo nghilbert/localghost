@@ -1,3 +1,4 @@
+import type { CatalogCapability } from "#/shared/domain/model/schemas";
 import type { CatalogModel, InstalledModel, PullProgress } from "#/shared/domain/model/types";
 
 export type ModelRow = {
@@ -45,4 +46,26 @@ export function buildModelRows({
 			pullState: pullingById.get(id),
 		};
 	});
+}
+
+/** Whether a row matches the selected catalog facets. */
+export function matchesModelFacets({
+	row,
+	licenses,
+	capabilities,
+}: {
+	row: ModelRow;
+	licenses: string[];
+	capabilities: CatalogCapability[];
+}): boolean {
+	if (licenses.length === 0 && capabilities.length === 0) return true;
+	const catalog = row.catalog;
+	if (!catalog) return false;
+	if (licenses.length > 0 && (catalog.license === null || !licenses.includes(catalog.license))) {
+		return false;
+	}
+	return (
+		capabilities.length === 0 ||
+		capabilities.some((capability) => catalog.tags.includes(capability))
+	);
 }

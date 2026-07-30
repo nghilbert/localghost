@@ -1,7 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useMemo, useState } from "react";
 import type { ModelStatus } from "#/routes/_authenticated/library/-components/ModelList/ModelStatusFilter";
-import { buildModelRows, type ModelRow } from "#/routes/_authenticated/library/-lib/model-rows";
+import {
+	buildModelRows,
+	type ModelRow,
+	matchesModelFacets,
+} from "#/routes/_authenticated/library/-lib/model-rows";
 import { DEFAULT_SORT, type ModelSort } from "#/routes/_authenticated/library/-lib/model-sort";
 import { requiredMemoryGb } from "#/shared/domain/model/hardware-fit";
 import {
@@ -9,7 +13,7 @@ import {
 	catalogQueryOptions,
 	modelVariantsQueryOptions,
 } from "#/shared/domain/model/model.functions";
-import type { CatalogSortBy } from "#/shared/domain/model/schemas";
+import type { CatalogCapability, CatalogSortBy } from "#/shared/domain/model/schemas";
 import type { CatalogModel, InstalledModel, PullProgress } from "#/shared/domain/model/types";
 import { useDebouncedValue } from "#/shared/hooks/use-debounced-value";
 
@@ -66,10 +70,12 @@ export function useModelList({ installedModels, pulling }: UseModelListProps) {
 	const [search, setSearch] = useState("");
 	const debouncedSearch = useDebouncedValue(search, SEARCH_DEBOUNCE_MS);
 	const [status, setStatus] = useState<ModelStatus>("all");
-	const [license, setLicense] = useState<string | undefined>(undefined);
+	const [licenses, setLicenses] = useState<string[]>([]);
+	const [capabilities, setCapabilities] = useState<CatalogCapability[]>([]);
 	const [expandedId, setExpandedId] = useState<string | null>(null);
 
 	const isInstalledOnly = status === "installed";
+	const hasActiveFacets = licenses.length > 0 || capabilities.length > 0;
 	const catalogPageQuery = useQuery({
 		...catalogQueryOptions({
 			page,
@@ -77,7 +83,8 @@ export function useModelList({ installedModels, pulling }: UseModelListProps) {
 			sortBy: sort.sortBy,
 			sortDir: sort.sortDir,
 			search: debouncedSearch || undefined,
-			license,
+			licenses: licenses.length > 0 ? licenses : undefined,
+			capabilities: capabilities.length > 0 ? capabilities : undefined,
 		}),
 		enabled: !isInstalledOnly,
 	});
@@ -116,6 +123,9 @@ export function useModelList({ installedModels, pulling }: UseModelListProps) {
 			});
 			base = status === "available" ? merged.filter((row) => !row.installed) : merged;
 		}
+		if (hasActiveFacets) {
+			base = base.filter((row) => matchesModelFacets({ row, licenses, capabilities }));
+		}
 
 		const dir = sort.sortDir === "asc" ? 1 : -1;
 		return [...base].sort((leftRow, rightRow) => {
@@ -128,9 +138,12 @@ export function useModelList({ installedModels, pulling }: UseModelListProps) {
 	}, [
 		catalogById,
 		catalogPage,
+		capabilities,
 		debouncedSearch,
+		hasActiveFacets,
 		installedModels,
 		isInstalledOnly,
+		licenses,
 		pulling,
 		sort,
 		status,
@@ -165,8 +178,12 @@ export function useModelList({ installedModels, pulling }: UseModelListProps) {
 		setStatus(value);
 		setPage(0);
 	}, []);
-	const handleLicenseChange = useCallback((value: string | undefined) => {
-		setLicense(value);
+	const handleLicensesChange = useCallback((value: string[]) => {
+		setLicenses(value);
+		setPage(0);
+	}, []);
+	const handleCapabilitiesChange = useCallback((value: CatalogCapability[]) => {
+		setCapabilities(value);
 		setPage(0);
 	}, []);
 	const handleToggleExpanded = useCallback((id: string) => {
@@ -175,18 +192,21 @@ export function useModelList({ installedModels, pulling }: UseModelListProps) {
 
 	return {
 		availableLicenses,
+		capabilities,
 		catalogPageQuery,
 		counts,
 		expandedId,
 		fetchedVariants: expandedCatalog !== null ? variantsQuery.data : undefined,
-		handleLicenseChange,
+		handleCapabilitiesChange,
+		handleLicensesChange,
 		handleSearchChange,
 		handleSortChange,
 		handleStatusChange,
 		handleToggleExpanded,
-		isInstalledOnly,
-		isLoading: !isInstalledOnly && catalogPageQuery.isPending,
-		license,
+		isLoading:
+			(!isInstalledOnly && catalogPageQuery.isPending) ||
+			(isInstalledOnly && hasActiveFacets && byIdsQuery.isPending),
+		licenses,
 		page,
 		pageCount,
 		rows,

@@ -185,7 +185,7 @@ function sortValue(model: CatalogModel, sortBy: CatalogQuery["sortBy"]): number 
 }
 
 /**
- * A page of the cached catalog: search/license-filtered, sorted, and sliced
+ * A page of the cached catalog: search/license/capability-filtered, sorted, and sliced
  * in memory, never a new Hugging Face round-trip per page.
  */
 export async function getCatalogPage(
@@ -197,7 +197,15 @@ export async function getCatalogPage(
 		...new Set(all.map((m) => m.license).filter((license): license is string => license !== null)),
 	].sort();
 
-	let filtered = query.license ? all.filter((model) => model.license === query.license) : all;
+	let filtered = all;
+	if (query.licenses && query.licenses.length > 0) {
+		const licenses = new Set(query.licenses);
+		filtered = filtered.filter((model) => model.license !== null && licenses.has(model.license));
+	}
+	if (query.capabilities && query.capabilities.length > 0) {
+		const capabilities = new Set<string>(query.capabilities);
+		filtered = filtered.filter((model) => model.tags.some((tag) => capabilities.has(tag)));
+	}
 	if (query.search) {
 		const search = query.search;
 		filtered = filtered.filter(

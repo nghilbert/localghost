@@ -74,9 +74,19 @@ describe("ModelDetailPanel", () => {
 		expect(onPull).toHaveBeenLastCalledWith("org/llama3.1-GGUF:Q8_0");
 
 		await screen.rerender(
-			renderPanel({ pulling: { "org/llama3.1-GGUF:Q8_0": { status: "Downloading…" } } }),
+			renderPanel({
+				pulling: {
+					"org/llama3.1-GGUF:Q8_0": {
+						status: "Downloading…",
+						completed: 50,
+						total: 100,
+					},
+				},
+			}),
 		);
-		await expect.element(screen.getByTestId("model-pull-progress")).toBeInTheDocument();
+		await expect
+			.element(screen.getByTestId("model-pull-progress"))
+			.toHaveTextContent("50% · 0.05 KB / 0.10 KB");
 		await screen.getByTestId("model-pull-stop").click();
 		expect(onStop).toHaveBeenCalledWith("org/llama3.1-GGUF:Q8_0");
 	});
@@ -110,9 +120,13 @@ describe("ModelDetailPanel", () => {
 			.element(screen.getByTestId("model-variant-target"))
 			.toHaveTextContent("org/llama3.1-GGUF:Q4_K_M");
 		await expect.element(screen.getByTestId("model-pull-button")).not.toBeInTheDocument();
+		await expect.element(screen.getByTestId("model-variant-installed-hint")).toBeInTheDocument();
 
 		await screen.getByTestId("model-variant-combobox").fill("q8_0");
 		await screen.getByTestId("model-variant-option").first().click();
+		await expect
+			.element(screen.getByTestId("model-variant-installed-hint"))
+			.not.toBeInTheDocument();
 		await expect.element(screen.getByTestId("model-pull-button")).toBeInTheDocument();
 		await screen.getByTestId("model-pull-button").click();
 		expect(onPull).toHaveBeenCalledWith("org/llama3.1-GGUF:Q8_0");

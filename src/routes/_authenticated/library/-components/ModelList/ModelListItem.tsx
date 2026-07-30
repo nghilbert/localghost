@@ -10,6 +10,7 @@ import {
 	ItemMedia,
 	ItemTitle,
 } from "#/shared/components/ui/item";
+import { Skeleton } from "#/shared/components/ui/skeleton";
 import { classifyHardwareFit, formatPullCount } from "#/shared/domain/model/hardware-fit";
 import type { HardwareInfo } from "#/shared/domain/model/types";
 import { cn } from "#/shared/lib/utils";
@@ -85,7 +86,7 @@ export function ModelListItem({
 				</ItemTitle>
 				<ItemDescription>{specLine(row)}</ItemDescription>
 			</ItemContent>
-			<ItemFooter onClick={(event) => event.stopPropagation()}>
+			<ItemFooter className="justify-end" onClick={(event) => event.stopPropagation()}>
 				{fit && !installed && (
 					<Badge variant="outline" className={FIT_BADGE[fit].className}>
 						{FIT_BADGE[fit].label}
@@ -104,6 +105,34 @@ export function ModelListItem({
 						onStop={onStop}
 					/>
 				)}
+			</ItemFooter>
+		</Item>
+	);
+}
+
+/**
+ * The loading placeholder for one {@link ModelListItem}.
+ *
+ * Mirrors that component's slot structure exactly so the loading grid matches the loaded grid
+ * in column count, card height, and footer line — it lives here to stay in lockstep with it.
+ */
+export function ModelListItemSkeleton() {
+	return (
+		<Item variant="outline" className="items-start" data-testid="model-list-item-skeleton">
+			<ItemMedia variant="icon" className="mt-0.5">
+				<Skeleton className="size-4 rounded-sm" />
+			</ItemMedia>
+			<ItemContent>
+				<ItemTitle>
+					<Skeleton className="h-4 w-40" />
+				</ItemTitle>
+				<ItemDescription>
+					<Skeleton className="h-3.5 w-56" />
+				</ItemDescription>
+			</ItemContent>
+			<ItemFooter className="justify-end">
+				<Skeleton className="h-5 w-32 rounded-full" />
+				<Skeleton className="h-8 w-24" />
 			</ItemFooter>
 		</Item>
 	);

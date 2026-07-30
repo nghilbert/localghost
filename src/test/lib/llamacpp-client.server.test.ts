@@ -3,6 +3,7 @@ import {
 	deleteModel,
 	downloadModel,
 	listModels,
+	openModelEventStream,
 	serverProps,
 	unloadModel,
 } from "#/shared/lib/llamacpp/client.server";
@@ -67,6 +68,25 @@ describe("llama.cpp model status", () => {
 		await expect(
 			serverProps({ url: "http://localhost:8080", model: "org/model:Q4_K_M" }),
 		).resolves.toEqual({ n_ctx: 8192, chat_template_caps: { tool_calls: true } });
+	});
+
+	it("opens the authenticated model event stream with the caller's abort signal", async () => {
+		fetchMock.mockResolvedValue(
+			new Response("data: {}\n\n", { headers: { "Content-Type": "text/event-stream" } }),
+		);
+		const controller = new AbortController();
+
+		const body = await openModelEventStream({
+			url: "http://localhost:8080",
+			apiKey: "secret",
+			signal: controller.signal,
+		});
+
+		expect(body).toBeInstanceOf(ReadableStream);
+		expect(fetchMock).toHaveBeenCalledWith("http://localhost:8080/models/sse", {
+			headers: { Accept: "text/event-stream", Authorization: "Bearer secret" },
+			signal: controller.signal,
+		});
 	});
 });
 

@@ -21,26 +21,3 @@ export function defaultSortDirFor(field: CatalogSortBy): "asc" | "desc" {
 }
 
 export const DEFAULT_SORT: ModelSort = { sortBy: "pullCount", sortDir: "desc" };
-
-/**
- * The toolbar's "Showing X–Y of Z models" summary; `null` when there's nothing to show.
- *
- * Derived from the server's `total` rather than the rendered row count, because the
- * "All" tab merges off-page installed rows into the grid — counting those would push
- * the range past the page size and overlap the next page's numbering.
- */
-export function formatResultRange({
-	page,
-	pageSize,
-	total,
-}: {
-	page: number;
-	pageSize: number;
-	total: number;
-}): string | null {
-	if (total === 0) return null;
-	const start = page * pageSize + 1;
-	if (start > total) return null;
-	const end = Math.min((page + 1) * pageSize, total);
-	return `Showing ${start.toLocaleString()}–${end.toLocaleString()} of ${total.toLocaleString()} models`;
-}

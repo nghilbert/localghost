@@ -179,6 +179,11 @@ export function ModelVariantCard({
 						<Badge variant="outline">{selectedOption.repoId}</Badge>
 					)}
 				</p>
+				{isTargetInstalled && (
+					<p className="text-xs text-muted-foreground" data-testid="model-variant-installed-hint">
+						This quantization is installed. Pick another to add it alongside.
+					</p>
+				)}
 				{selectedOption?.fit === "may-be-too-large" && (
 					<p className="text-xs text-destructive">Likely too large for this machine's memory.</p>
 				)}

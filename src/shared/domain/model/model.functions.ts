@@ -127,7 +127,7 @@ export const libraryStatusQueryOptions = () =>
 		refetchInterval: (query) => {
 			const status = query.state.data;
 			if (!status?.found) return 5_000;
-			return Object.keys(status.downloads).length > 0 ? 1_000 : 30_000;
+			return 30_000;
 		},
 	});
 

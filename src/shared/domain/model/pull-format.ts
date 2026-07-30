@@ -1,3 +1,5 @@
+import { pullProgressPercent } from "#/shared/domain/model/pull-progress";
+
 /** Formats a byte count as KB, MB, or GB */
 export function formatBytes(bytes: number): string {
 	if (bytes >= 1e9) return `${(bytes / 1e9).toFixed(1)} GB`;
@@ -5,7 +7,7 @@ export function formatBytes(bytes: number): string {
 	return `${(bytes / 1e3).toFixed(2)} KB`;
 }
 
-/** One-line `<done> / <total>`, omitting it until llama.cpp reports file progress. */
+/** One-line percentage and byte detail, omitted until llama.cpp reports a usable total. */
 export function formatPullDetail({
 	completed,
 	total,
@@ -13,6 +15,7 @@ export function formatPullDetail({
 	completed?: number;
 	total?: number;
 }): string | null {
-	if (completed === undefined || !total) return null;
-	return `${formatBytes(completed)} / ${formatBytes(total)}`;
+	const percent = pullProgressPercent({ completed, total });
+	if (percent === null || completed === undefined || total === undefined) return null;
+	return `${Math.round(percent)}% · ${formatBytes(completed)} / ${formatBytes(total)}`;
 }

@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { buildModelRows } from "#/routes/_authenticated/library/-lib/model-rows";
+import {
+	buildModelRows,
+	matchesModelFacets,
+} from "#/routes/_authenticated/library/-lib/model-rows";
 import type { CatalogModel, PullProgress } from "#/shared/domain/model/types";
 import { makeCatalogModel, makeInstalledModel } from "#/test/factories";
 
@@ -57,12 +60,15 @@ describe("buildModelRows", () => {
 		const row = rowById(rows, "org/llama3.2-GGUF:Q4_K_M");
 		expect(row.installed).not.toBeNull();
 		expect(row.pullState).toEqual({ status: "Downloading…" });
+		expect(matchesModelFacets({ row, licenses: ["mit"], capabilities: [] })).toBe(false);
 	});
 
 	it("enriches an off-page installed model from the by-id lookup", () => {
 		const offPageModel = makeCatalogModel({
 			id: "org/llama3.2-GGUF:Q4_K_M",
 			name: "org/llama3.2-GGUF",
+			license: "mit",
+			tags: ["code"],
 		});
 		const installed = [makeInstalledModel({ id: "org/llama3.2-GGUF:Q4_K_M" })];
 
@@ -76,6 +82,7 @@ describe("buildModelRows", () => {
 
 		const row = rowById(rows, "org/llama3.2-GGUF:Q4_K_M");
 		expect(row.catalog).toBe(offPageModel);
+		expect(matchesModelFacets({ row, licenses: ["mit"], capabilities: ["code"] })).toBe(true);
 	});
 
 	it("excludes installed/pulling ids not already on the page when includeOffPageInstalled is false", () => {

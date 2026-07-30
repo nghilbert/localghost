@@ -1,10 +1,11 @@
-import { ArrowDownIcon, ArrowUpIcon } from "lucide-react";
+import { ArrowDownWideNarrowIcon, ArrowUpNarrowWideIcon } from "lucide-react";
 import {
 	defaultSortDirFor,
 	type ModelSort,
 	SORT_FIELDS,
 } from "#/routes/_authenticated/library/-lib/model-sort";
 import { Button } from "#/shared/components/ui/button";
+import { ButtonGroup } from "#/shared/components/ui/button-group";
 import {
 	Select,
 	SelectContent,
@@ -19,10 +20,16 @@ type ModelSortControlsProps = {
 	onValueChange: (value: ModelSort) => void;
 };
 
-/** Sort field and direction; replaces per-column header sorting now that rows aren't a table. */
+/**
+ * Sort field and direction; replaces per-column header sorting now that rows aren't a table.
+ *
+ * The direction button's icon is the narrow/wide-bars convention (Excel, Linear, GitHub) for
+ * "currently ascending" vs "currently descending" — it reflects state, so it stays legible
+ * across 8 differently-shaped fields (names, dates, sizes) without an always-visible label.
+ */
 export function ModelSortControls({ value, onValueChange }: ModelSortControlsProps) {
 	return (
-		<div className="flex items-center gap-1">
+		<ButtonGroup>
 			<Select
 				value={value.sortBy}
 				onValueChange={(sortBy: CatalogSortBy | null) => {
@@ -50,8 +57,8 @@ export function ModelSortControls({ value, onValueChange }: ModelSortControlsPro
 					onValueChange({ ...value, sortDir: value.sortDir === "asc" ? "desc" : "asc" })
 				}
 			>
-				{value.sortDir === "asc" ? <ArrowUpIcon /> : <ArrowDownIcon />}
+				{value.sortDir === "asc" ? <ArrowUpNarrowWideIcon /> : <ArrowDownWideNarrowIcon />}
 			</Button>
-		</div>
+		</ButtonGroup>
 	);
 }

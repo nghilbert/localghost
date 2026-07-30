@@ -19,6 +19,10 @@ vi.mock("#/shared/domain/model/use-model-download", () => ({
 	useModelDownload: () => ({ pulling: {}, pull: vi.fn(), stop: stopMock }),
 }));
 
+vi.mock("#/shared/domain/model/use-model-download-events", () => ({
+	useModelDownloadEvents: vi.fn(),
+}));
+
 vi.mock("#/shared/domain/model/model.functions", () => ({
 	libraryStatusQueryOptions: () => ({ queryKey: ["library-status"] }),
 }));
@@ -63,6 +67,8 @@ describe("NotificationCenter", () => {
 
 		const items = screen.getByTestId("notification-item");
 		await expect.poll(() => items.all().length).toBe(2);
+		await expect.element(items.first()).toHaveTextContent("50% · 0.05 KB / 0.10 KB");
+		await expect.element(items.last().getByRole("status")).toBeInTheDocument();
 	});
 
 	it("stops a pull when its stop button is clicked", async () => {

@@ -1,6 +1,7 @@
 import { trimPathRight } from "@tanstack/react-router";
 import { endpointApiKey } from "#/shared/domain/endpoint/endpoint.server";
 import { parseParamB } from "#/shared/domain/model/model-id";
+import { aggregatePullProgress } from "#/shared/domain/model/pull-progress";
 import { prisma } from "#/shared/lib/db.server";
 import { type LlamaModel, listModels } from "#/shared/lib/llamacpp/client.server";
 import type { InstalledModel, PullProgress } from "./types";
@@ -81,13 +82,7 @@ export function toRuntimeModels(models: LlamaModel[]): {
 
 	for (const model of models) {
 		if (model.status.value === "downloading") {
-			const files = Object.values(model.status.progress ?? {});
-			const completed = files.reduce((sum, file) => sum + file.done, 0);
-			const total = files.reduce((sum, file) => sum + file.total, 0);
-			downloads[model.id] = {
-				status: "Downloading",
-				...(files.length > 0 && { completed, total }),
-			};
+			downloads[model.id] = aggregatePullProgress(model.status.progress ?? {});
 			continue;
 		}
 

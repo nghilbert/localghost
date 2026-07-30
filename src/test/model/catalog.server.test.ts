@@ -206,11 +206,11 @@ describe("getCatalog (Hugging Face)", () => {
 		await expect(getCatalog()).rejects.toThrow("0 eligible models");
 	});
 
-	it("filters, paginates, searches, and lists licenses from the cached catalog", async () => {
+	it("combines multi-select facets before pagination and lists every license", async () => {
 		mockHfFetch({
 			textGeneration: [
 				indexEntry({
-					id: "org/alpha-8B-GGUF",
+					id: "org/alpha-code-8B-GGUF",
 					downloads: 300,
 					tags: ["conversational", "license:mit"],
 				}),
@@ -220,20 +220,50 @@ describe("getCatalog (Hugging Face)", () => {
 					tags: ["conversational", "license:apache-2.0"],
 				}),
 			],
+			imageTextToText: [
+				indexEntry({
+					id: "org/gamma-vision-8B-GGUF",
+					downloads: 100,
+					tags: ["conversational", "license:apache-2.0"],
+				}),
+			],
 		});
 
 		const { getCatalogPage } = await freshCatalogModule();
-		const page = await getCatalogPage({
+		const licensePage = await getCatalogPage({
+			page: 0,
+			pageSize: 10,
+			sortBy: "pullCount",
+			sortDir: "desc",
+			licenses: ["mit", "apache-2.0"],
+		});
+		expect(licensePage.rows.map((model) => model.name)).toEqual([
+			"org/alpha-code-8B-GGUF",
+			"org/beta-8B-GGUF",
+			"org/gamma-vision-8B-GGUF",
+		]);
+
+		const capabilityPage = await getCatalogPage({
 			page: 0,
 			pageSize: 1,
 			sortBy: "pullCount",
 			sortDir: "desc",
-			license: "mit",
-			search: "alpha",
+			licenses: ["mit", "apache-2.0"],
+			capabilities: ["code", "vision"],
 		});
-		expect(page.rows.map((model) => model.name)).toEqual(["org/alpha-8B-GGUF"]);
-		expect(page.total).toBe(1);
-		expect(page.availableLicenses).toEqual(["apache-2.0", "mit"]);
+		expect(capabilityPage.rows.map((model) => model.name)).toEqual(["org/alpha-code-8B-GGUF"]);
+		expect(capabilityPage.total).toBe(2);
+		expect(capabilityPage.availableLicenses).toEqual(["apache-2.0", "mit"]);
+
+		const intersection = await getCatalogPage({
+			page: 0,
+			pageSize: 10,
+			sortBy: "pullCount",
+			sortDir: "desc",
+			licenses: ["mit"],
+			capabilities: ["code", "vision"],
+		});
+		expect(intersection.rows.map((model) => model.name)).toEqual(["org/alpha-code-8B-GGUF"]);
 	});
 });
 
