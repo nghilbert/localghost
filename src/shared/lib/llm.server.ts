@@ -195,10 +195,10 @@ const PROVIDERS: Record<LLMProvider, ProviderConfig> = {
 	},
 	llamacpp: {
 		...OPENAI_COMPATIBLE,
+		buildAdapter: (args) => openaiAdapter({ ...args, apiKey: args.apiKey || "local-llamacpp" }),
 		// `GET /models` (router mode) also lists downloaded-but-unloaded models,
-		// which `/v1/models` may omit; chat, `chatBaseUrl`, `buildAdapter` and
-		// `modelsHeaders` all inherit OPENAI_COMPATIBLE, since router-mode chat is
-		// plain OpenAI-compatible and `--api-key` is a Bearer header like the rest.
+		// which `/v1/models` may omit. The SDK requires a nonempty key even when
+		// the local server does not; a configured `--api-key` still takes precedence.
 		modelsUrl: ({ base }) => `${base}/models`,
 		parseModels: (json) => (json.data ?? []).map((m) => m.id),
 	},
