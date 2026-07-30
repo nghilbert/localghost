@@ -1,12 +1,9 @@
-import { CpuIcon, MemoryStickIcon, MonitorIcon } from "lucide-react";
+import { CpuIcon, GpuIcon, MemoryStickIcon } from "lucide-react";
 import { Badge } from "#/shared/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "#/shared/components/ui/card";
 import { Skeleton } from "#/shared/components/ui/skeleton";
 import type { HardwareInfo } from "#/shared/domain/model/types";
-
-function gb(n: number) {
-	return `${n.toFixed(1)} GB`;
-}
+import { formatBytes } from "#/shared/lib/format";
 
 type HardwareCardProps = {
 	hardware: HardwareInfo | undefined;
@@ -35,8 +32,8 @@ export function HardwareCard({ hardware, isLoading }: HardwareCardProps) {
 		<div className="grid gap-3 sm:grid-cols-3">
 			<Card>
 				<CardHeader className="pb-1 pt-3">
-					<CardTitle className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">
-						<CpuIcon size={13} />
+					<CardTitle className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground uppercase tracking-wide">
+						<CpuIcon />
 						CPU
 					</CardTitle>
 				</CardHeader>
@@ -48,21 +45,23 @@ export function HardwareCard({ hardware, isLoading }: HardwareCardProps) {
 
 			<Card>
 				<CardHeader className="pb-1 pt-3">
-					<CardTitle className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">
-						<MemoryStickIcon size={13} />
+					<CardTitle className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground uppercase tracking-wide">
+						<MemoryStickIcon />
 						RAM
 					</CardTitle>
 				</CardHeader>
 				<CardContent className="pb-3">
-					<p className="text-sm font-medium">{gb(hardware.totalRamGb)} total</p>
-					<p className="text-xs text-muted-foreground">{gb(hardware.freeRamGb)} free</p>
+					<p className="text-sm font-medium">{formatBytes(hardware.totalRamGb * 1e9)} total</p>
+					<p className="text-xs text-muted-foreground">
+						{formatBytes(hardware.freeRamGb * 1e9)} free
+					</p>
 				</CardContent>
 			</Card>
 
 			<Card>
 				<CardHeader className="pb-1 pt-3">
-					<CardTitle className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">
-						<MonitorIcon size={13} />
+					<CardTitle className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground uppercase tracking-wide">
+						<GpuIcon />
 						GPU
 					</CardTitle>
 				</CardHeader>
@@ -71,7 +70,8 @@ export function HardwareCard({ hardware, isLoading }: HardwareCardProps) {
 						<>
 							<p className="truncate text-sm font-medium">{bestGpu.name}</p>
 							<p className="text-xs text-muted-foreground">
-								{gb(bestGpu.totalVramMb / 1024)} VRAM · {gb(bestGpu.freeVramMb / 1024)} free
+								{formatBytes(bestGpu.totalVramMb * 1e6)} VRAM ·{" "}
+								{formatBytes(bestGpu.freeVramMb * 1e6)} free
 							</p>
 							{hardware.gpus && hardware.gpus.length > 1 && (
 								<Badge variant="secondary" className="mt-1 text-xs">

@@ -86,7 +86,7 @@ describe("ModelDetailPanel", () => {
 		);
 		await expect
 			.element(screen.getByTestId("model-pull-progress"))
-			.toHaveTextContent("50% · 0.05 KB / 0.10 KB");
+			.toHaveTextContent("50% · 50 B / 100 B");
 		await screen.getByTestId("model-pull-stop").click();
 		expect(onStop).toHaveBeenCalledWith("org/llama3.1-GGUF:Q8_0");
 	});

@@ -1,18 +1,15 @@
 import type { CatalogModel, GpuInfo, HardwareInfo } from "#/shared/domain/model/types";
 
-/** Formats a raw Hugging Face download count for display, e.g. 4983180 → "5.0M". */
-export function formatPullCount(value: number): string {
-	if (value >= 1e9) return `${round1(value / 1e9)}B`;
-	if (value >= 1e6) return `${round1(value / 1e6)}M`;
-	if (value >= 1e3) return `${round1(value / 1e3)}K`;
-	return String(value);
-}
-
 /** Fallback GB-per-billion-parameters estimate, only used when a variant has no exact file size. */
 const Q4_GB_PER_B_ESTIMATE = 0.6;
 
 function round1(value: number): number {
 	return Math.round(value * 10) / 10;
+}
+
+/** Formats a model's parameter count, already in billions, e.g. 1800 → "1.8T". */
+export function formatParamCount(paramB: number): string {
+	return paramB >= 1000 ? `${round1(paramB / 1000)}T` : `${paramB}B`;
 }
 
 /** Estimates model memory from exact size or a parameter-count fallback.

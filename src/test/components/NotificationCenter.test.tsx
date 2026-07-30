@@ -67,7 +67,7 @@ describe("NotificationCenter", () => {
 
 		const items = screen.getByTestId("notification-item");
 		await expect.poll(() => items.all().length).toBe(2);
-		await expect.element(items.first()).toHaveTextContent("50% · 0.05 KB / 0.10 KB");
+		await expect.element(items.first()).toHaveTextContent("50% · 50 B / 100 B");
 		await expect.element(items.last().getByRole("status")).toBeInTheDocument();
 	});
 

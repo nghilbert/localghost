@@ -19,6 +19,10 @@ vi.mock("#/shared/domain/endpoint/endpoint.functions", () => ({
 	}),
 }));
 
+vi.mock("#/shared/domain/model/model.functions", () => ({
+	libraryStatusQueryOptions: () => ({ queryKey: ["library-status"] }),
+}));
+
 vi.mock("@tanstack/react-router", async (importOriginal) => ({
 	...(await importOriginal<typeof import("@tanstack/react-router")>()),
 	Link: ({
@@ -32,11 +36,26 @@ vi.mock("@tanstack/react-router", async (importOriginal) => ({
 	),
 }));
 
-const { useQueriesMock } = vi.hoisted(() => ({ useQueriesMock: vi.fn() }));
+type RuntimeStatusFixture = {
+	found: boolean;
+	endpointId: string;
+	installedModels: { id: string }[];
+};
+
+const { useQueriesMock, useQueryMock } = vi.hoisted(() => ({
+	useQueriesMock: vi.fn(),
+	// No runtime found by default: every endpoint is probed via useQueries, matching
+	// this suite's existing fixtures. The llama.cpp-runtime-status test overrides this.
+	useQueryMock: vi.fn<() => { data: RuntimeStatusFixture | undefined; isPending: boolean }>(() => ({
+		data: undefined,
+		isPending: false,
+	})),
+}));
 
 vi.mock("@tanstack/react-query", async (importOriginal) => ({
 	...(await importOriginal<typeof import("@tanstack/react-query")>()),
 	useQueries: useQueriesMock,
+	useQuery: useQueryMock,
 }));
 
 async function renderOpenedPicker() {
@@ -83,5 +102,26 @@ describe("ModelPicker dropdown", () => {
 		await expect
 			.element(screen.getByTestId("model-picker-notice"))
 			.toHaveTextContent("Browse the Library");
+	});
+
+	it("reads the local llama.cpp endpoint's models from live runtime status, not a stale probe", async () => {
+		// Regression: the picker used to probe every endpoint's /models independently,
+		// so a model just deleted or downloaded in the Library kept showing the old
+		// list until that separate query's own cache expired.
+		useQueryMock.mockReturnValue({
+			data: {
+				found: true,
+				endpointId: "e1",
+				installedModels: [{ id: "just-downloaded:Q4_K_M" }],
+			},
+			isPending: false,
+		});
+		// Only "e2" (Cloud) is still probed via useQueries; "e1" comes from runtime status.
+		useQueriesMock.mockReturnValue([{ data: ["gpt-4o"], isLoading: false, isError: false }]);
+
+		const screen = await renderOpenedPicker();
+
+		await expect.element(screen.getByTestId("model-item-e1-just-downloaded:Q4_K_M")).toBeVisible();
+		await expect.element(screen.getByTestId("model-item-e2-gpt-4o")).toBeVisible();
 	});
 });

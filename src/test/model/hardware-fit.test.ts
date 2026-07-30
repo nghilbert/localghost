@@ -3,20 +3,19 @@ import { deriveTags } from "#/shared/domain/model/catalog-curation";
 import {
 	availableMemoryGb,
 	fitsHardware,
-	formatPullCount,
+	formatParamCount,
 	requiredMemoryGb,
 } from "#/shared/domain/model/hardware-fit";
 import { makeGpu, makeHardware } from "#/test/factories";
 
-describe("formatPullCount", () => {
-	it("scales K/M/B for display", () => {
-		expect(formatPullCount(116_600_000)).toBe("116.6M");
-		expect(formatPullCount(9_400)).toBe("9.4K");
-		expect(formatPullCount(2_000_000_000)).toBe("2B");
+describe("formatParamCount", () => {
+	it("shows a plain B for anything under 1000 billion", () => {
+		expect(formatParamCount(8)).toBe("8B");
+		expect(formatParamCount(70)).toBe("70B");
 	});
 
-	it("leaves small counts as plain integers", () => {
-		expect(formatPullCount(523)).toBe("523");
+	it("scales to T past 1000 billion, e.g. a 1.8 trillion-parameter MoE", () => {
+		expect(formatParamCount(1800)).toBe("1.8T");
 	});
 });
 

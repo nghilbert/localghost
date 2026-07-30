@@ -11,8 +11,9 @@ import {
 	ItemTitle,
 } from "#/shared/components/ui/item";
 import { Skeleton } from "#/shared/components/ui/skeleton";
-import { classifyHardwareFit, formatPullCount } from "#/shared/domain/model/hardware-fit";
+import { classifyHardwareFit, formatParamCount } from "#/shared/domain/model/hardware-fit";
 import type { HardwareInfo } from "#/shared/domain/model/types";
+import { formatBytes, formatCount } from "#/shared/lib/format";
 import { cn } from "#/shared/lib/utils";
 
 const FIT_BADGE: Record<"fits" | "tight" | "unknown", { label: string; className?: string }> = {
@@ -26,11 +27,11 @@ function specLine(row: ModelRow): string {
 	const { catalog, installed } = row;
 	const parts: string[] = [];
 	const paramB = catalog?.paramB ?? installed?.paramB;
-	if (paramB != null) parts.push(`${paramB}B params`);
+	if (paramB != null) parts.push(`${formatParamCount(paramB)} params`);
 	if (catalog?.contextK) parts.push(`${catalog.contextK}K context`);
 	if (catalog?.license) parts.push(catalog.license);
 	const sizeGb = installed?.sizeBytes != null ? installed.sizeBytes / 1e9 : catalog?.sizeGb;
-	if (sizeGb != null) parts.push(`${Math.round(sizeGb * 10) / 10} GB`);
+	if (sizeGb != null) parts.push(formatBytes(sizeGb * 1e9));
 	if (catalog?.author && parts.length === 0) parts.push(catalog.author);
 	return parts.length > 0 ? parts.join(" · ") : row.name;
 }
@@ -80,7 +81,7 @@ export function ModelListItem({
 					{catalog?.pullCount != null && catalog.pullCount > 0 && (
 						<span className="flex items-center gap-1 text-xs font-normal text-muted-foreground">
 							<GaugeIcon className="size-3" />
-							{formatPullCount(catalog.pullCount)}
+							{formatCount(catalog.pullCount)}
 						</span>
 					)}
 				</ItemTitle>

@@ -11,8 +11,9 @@ import {
 	CardHeader,
 	CardTitle,
 } from "#/shared/components/ui/card";
-import { formatPullCount } from "#/shared/domain/model/hardware-fit";
+import { formatParamCount } from "#/shared/domain/model/hardware-fit";
 import type { HardwareInfo, ModelVariantInfo, PullProgress } from "#/shared/domain/model/types";
+import { formatCount } from "#/shared/lib/format";
 import { ModelVariantCard } from "./ModelVariantCard";
 
 type ModelDetailPanelProps = {
@@ -82,7 +83,7 @@ function ModelOverviewCard({ row }: { row: ModelRow }) {
 	const { catalog, installed, id } = row;
 	const localFacts =
 		installed &&
-		[installed.quant, installed.paramB ? `${installed.paramB}B` : null].filter(Boolean);
+		[installed.quant, installed.paramB ? formatParamCount(installed.paramB) : null].filter(Boolean);
 	const facts = catalog ? buildOverviewFacts(catalog) : [];
 	const caption =
 		catalog?.description || (installed ? "Installed model metadata reported by llama.cpp." : null);
@@ -133,8 +134,8 @@ function buildOverviewFacts(catalog: NonNullable<ModelRow["catalog"]>): Overview
 		catalog.author ? { label: "Author", value: catalog.author } : null,
 		catalog.license ? { label: "License", value: catalog.license } : null,
 		catalog.contextK ? { label: "Context", value: `${catalog.contextK}K tokens` } : null,
-		{ label: "Pulls", value: formatPullCount(catalog.pullCount) },
-		catalog.likes > 0 ? { label: "Likes", value: formatPullCount(catalog.likes) } : null,
+		{ label: "Pulls", value: formatCount(catalog.pullCount) },
+		catalog.likes > 0 ? { label: "Likes", value: formatCount(catalog.likes) } : null,
 		catalog.createdAt
 			? { label: "Created", value: new Date(catalog.createdAt).toLocaleDateString() }
 			: null,

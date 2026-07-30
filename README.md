@@ -26,9 +26,11 @@ values before running. `DATABASE_URL` is interpolated from the `POSTGRES_*` vars
 automatically; override it (or any `POSTGRES_*`) with a plain `KEY=` line.
 
 Optional: `SEARXNG_URL` enables the web-search tool (Docker wires this for you,
-see below), `BETTER_AUTH_URL` sets the public origin behind a reverse proxy, and
+see below), `BETTER_AUTH_URL` sets the public origin behind a reverse proxy,
 `HF_TOKEN` lifts Hugging Face's anonymous limits for the Library catalog and
-bundled llama.cpp downloads.
+bundled llama.cpp downloads, and `LLAMA_SLEEP_IDLE_SECONDS` (default 300)
+controls how long the bundled llama.cpp keeps an idle model loaded before
+freeing its memory.
 
 The **first account to sign up owns the instance**; sign-up is disabled once that
 account exists.
@@ -43,9 +45,11 @@ npm run dev               # applies pending migrations, then app on http://local
 ```
 
 For LLM features, run `llama-server` (router mode) on the host (`localhost:8080`)
-and the app picks it up automatically. Running natively, web search stays
-disabled until you set `SEARXNG_URL` to a reachable SearXNG instance (the in-app
-tool explains this when it is off).
+and the app picks it up automatically. Add `--sleep-idle-seconds 300` (or your
+own value) so an idle model frees its RAM/VRAM instead of sitting loaded after
+you've moved on to another chat — the Docker profile below sets this for you.
+Running natively, web search stays disabled until you set `SEARXNG_URL` to a
+reachable SearXNG instance (the in-app tool explains this when it is off).
 
 Or run the whole stack in Docker with the `dev` profile: Vite with HMR over a
 bind mount, plus the llama.cpp container (the `llamacpp` profile) and a bundled,

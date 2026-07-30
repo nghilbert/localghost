@@ -82,16 +82,19 @@ services:
   # Bundled llama.cpp (llama-server, router mode), reachable by the app at
   # http://llamacpp:8080. Gated by the `llamacpp` profile; omitting it falls
   # back to a host-native llama-server. GPU overlays patch this service (see
-  # compose.nvidia/amd/vulkan.yaml). --host/--port are the image's own env
-  # defaults (passing them again warns); no --api-key since this service is
-  # never published beyond the compose network. Healthcheck comes from the
-  # image itself.
+  # compose.nvidia/amd/vulkan.yaml).
+  # No --host/--port: the image's own env defaults already set them (passing
+  # them again warns). No --api-key: this service is never published beyond
+  # the compose network. Healthcheck comes from the image itself.
+  # LLAMA_ARG_SLEEP_IDLE_SECONDS frees an idle model's memory instead of
+  # holding it forever after a chat ends.
   llamacpp:
     image: ghcr.io/ggml-org/llama.cpp:server@sha256:a576442ad3649c0b5ea74e20ad29a17c121117f32607cfe59ff27cc38066f874
     profiles: [ llamacpp ]
     environment:
       LLAMA_CACHE: /models
       HF_TOKEN: ${HF_TOKEN:-}
+      LLAMA_ARG_SLEEP_IDLE_SECONDS: ${LLAMA_SLEEP_IDLE_SECONDS:-300}
     volumes:
       - llamacpp:/models
     restart: unless-stopped

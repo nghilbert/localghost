@@ -1,5 +1,6 @@
 import { availableMemoryGb, requiredMemoryGb } from "#/shared/domain/model/hardware-fit";
 import type { CatalogModel, HardwareInfo, ModelVariantInfo } from "#/shared/domain/model/types";
+import { formatBytes } from "#/shared/lib/format";
 
 export type ModelVariantFit = "likely-fits" | "may-be-too-large" | "size-unknown";
 
@@ -109,9 +110,11 @@ function groupOptions({
 /** Formats a variant's known download, context, and memory facts. */
 export function formatModelVariantDetails(option: ModelVariantOption): string {
 	const details: string[] = [];
-	if (option.sizeGb !== null) details.push(`${option.sizeGb} GB download`);
+	if (option.sizeGb !== null) details.push(`${formatBytes(option.sizeGb * 1e9)} download`);
 	if (option.contextK !== null) details.push(`${option.contextK}K context`);
-	if (option.estimatedMemoryGb !== null) details.push(`~${option.estimatedMemoryGb} GB memory`);
+	if (option.estimatedMemoryGb !== null) {
+		details.push(`~${formatBytes(option.estimatedMemoryGb * 1e9)} memory`);
+	}
 	return details.length > 0 ? details.join(" · ") : "Details unavailable";
 }
 
