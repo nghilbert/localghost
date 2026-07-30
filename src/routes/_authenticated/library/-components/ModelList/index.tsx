@@ -69,7 +69,6 @@ export function ModelList({
 		: formatResultRange({
 				page,
 				pageSize: CATALOG_PAGE_SIZE,
-				rowCount: rows.length,
 				total: counts[status],
 			});
 

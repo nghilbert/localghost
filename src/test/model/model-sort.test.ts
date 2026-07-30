@@ -32,24 +32,32 @@ describe("defaultSortDirFor", () => {
 
 describe("formatResultRange", () => {
 	it("summarizes the first page", () => {
-		expect(formatResultRange({ page: 0, pageSize: 24, rowCount: 24, total: 100 })).toBe(
+		expect(formatResultRange({ page: 0, pageSize: 24, total: 100 })).toBe(
 			"Showing 1–24 of 100 models",
 		);
 	});
 
-	it("summarizes a later, partial last page", () => {
-		expect(formatResultRange({ page: 4, pageSize: 24, rowCount: 4, total: 100 })).toBe(
+	it("clamps the last page to the total instead of a full page's width", () => {
+		expect(formatResultRange({ page: 4, pageSize: 24, total: 100 })).toBe(
 			"Showing 97–100 of 100 models",
 		);
 	});
 
 	it("summarizes a single page that isn't full", () => {
-		expect(formatResultRange({ page: 0, pageSize: 24, rowCount: 6, total: 6 })).toBe(
-			"Showing 1–6 of 6 models",
+		expect(formatResultRange({ page: 0, pageSize: 24, total: 6 })).toBe("Showing 1–6 of 6 models");
+	});
+
+	it("groups thousands so large catalogs stay readable", () => {
+		expect(formatResultRange({ page: 0, pageSize: 24, total: 1234 })).toBe(
+			"Showing 1–24 of 1,234 models",
 		);
 	});
 
 	it("is null when there are no results", () => {
-		expect(formatResultRange({ page: 0, pageSize: 24, rowCount: 0, total: 0 })).toBeNull();
+		expect(formatResultRange({ page: 0, pageSize: 24, total: 0 })).toBeNull();
+	});
+
+	it("is null when the page is past the end, rather than inventing a backwards range", () => {
+		expect(formatResultRange({ page: 5, pageSize: 24, total: 100 })).toBeNull();
 	});
 });
