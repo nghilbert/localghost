@@ -32,7 +32,12 @@ export async function listModelSettings({ ownerId }: { ownerId: string }) {
 	});
 }
 
-/** Creates or replaces a model's saved overrides. */
+/**
+ * Creates or replaces a model's saved overrides.
+ * @throws If the endpoint isn't owned by the user. The unique key this upserts
+ * on is `(endpointId, model)`, which carries no owner, so the caller's claim to
+ * the endpoint has to be checked before the write rather than inside it.
+ */
 export async function upsertModelSetting({
 	endpointId,
 	model,
@@ -44,6 +49,8 @@ export async function upsertModelSetting({
 	options: z.infer<typeof perModelOptionsSchema>;
 	ownerId: string;
 }) {
+	const owned = await prisma.endpoint.count({ where: { id: endpointId, ownerId } });
+	if (owned === 0) throw new Error("Not found");
 	await prisma.modelSetting.upsert({
 		where: { endpointId_model: { endpointId, model } },
 		create: { endpointId, model, options, ownerId },
