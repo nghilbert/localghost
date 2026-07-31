@@ -1,9 +1,7 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { RuntimeStatus } from "#/shared/domain/model/types";
 import { useModelDownloadEvents } from "#/shared/domain/model/use-model-download-events";
-import { renderHook } from "#/test/utils";
+import { renderHook, testQueryClient } from "#/test/utils";
 
 vi.mock("#/shared/domain/model/model.functions", () => ({
 	libraryStatusQueryOptions: () => ({ queryKey: ["library-status"] }),
@@ -30,7 +28,7 @@ afterEach(() => {
 describe("useModelDownloadEvents", () => {
 	it("resyncs on connection, patches progress, refreshes on completion, and closes", async () => {
 		vi.stubGlobal("EventSource", FakeEventSource);
-		const queryClient = new QueryClient();
+		const queryClient = testQueryClient();
 		const status: RuntimeStatus = {
 			found: true,
 			runtimeUrl: "http://localhost:8080",
@@ -40,11 +38,7 @@ describe("useModelDownloadEvents", () => {
 		};
 		queryClient.setQueryData(["library-status"], status);
 		const invalidate = vi.spyOn(queryClient, "invalidateQueries");
-		const wrapper = ({ children }: { children: ReactNode }) => (
-			<QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-		);
-
-		const rendered = await renderHook(() => useModelDownloadEvents("endpoint-1"), { wrapper });
+		const rendered = await renderHook(() => useModelDownloadEvents("endpoint-1"), { queryClient });
 		await expect.poll(() => FakeEventSource.current).toBeDefined();
 		const source = FakeEventSource.current;
 		if (!source) throw new Error("expected an event source");

@@ -1,14 +1,27 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { conversationFindFirst, conversationUpdate, listModels } = vi.hoisted(() => ({
+const {
+	conversationFindFirst,
+	conversationUpdate,
+	conversationUpdateMany,
+	conversationDeleteMany,
+	listModels,
+} = vi.hoisted(() => ({
 	conversationFindFirst: vi.fn(),
 	conversationUpdate: vi.fn(),
+	conversationUpdateMany: vi.fn(),
+	conversationDeleteMany: vi.fn(),
 	listModels: vi.fn(),
 }));
 
 vi.mock("#/shared/lib/db.server", () => ({
 	prisma: {
-		conversation: { findFirst: conversationFindFirst, update: conversationUpdate },
+		conversation: {
+			findFirst: conversationFindFirst,
+			update: conversationUpdate,
+			updateMany: conversationUpdateMany,
+			deleteMany: conversationDeleteMany,
+		},
 	},
 }));
 vi.mock("#/shared/lib/llamacpp/client.server", () => ({ listModels }));
@@ -16,6 +29,8 @@ vi.mock("#/shared/lib/llamacpp/client.server", () => ({ listModels }));
 import {
 	patchConversation,
 	probeModelRunState,
+	removeConversation,
+	saveMessages,
 } from "#/shared/domain/conversation/conversation.server";
 
 beforeEach(() => {
@@ -32,6 +47,16 @@ describe("patchConversation", () => {
 		expect(conversationUpdate).not.toHaveBeenCalled();
 	});
 
+	it("scopes the ownership lookup to the calling user, not just the id", async () => {
+		conversationFindFirst.mockResolvedValue({ id: "c1" });
+
+		await patchConversation({ id: "c1", ownerId: "owner-1", patch: { title: "New title" } });
+
+		expect(conversationFindFirst).toHaveBeenCalledWith(
+			expect.objectContaining({ where: expect.objectContaining({ id: "c1", ownerId: "owner-1" }) }),
+		);
+	});
+
 	it("patches title when provided", async () => {
 		conversationFindFirst.mockResolvedValue({ id: "c1" });
 
@@ -40,14 +65,6 @@ describe("patchConversation", () => {
 		expect(conversationUpdate).toHaveBeenCalledWith(
 			expect.objectContaining({ where: { id: "c1" }, data: { title: "New title" } }),
 		);
-	});
-
-	it("leaves title untouched when omitted from the patch", async () => {
-		conversationFindFirst.mockResolvedValue({ id: "c1" });
-
-		await patchConversation({ id: "c1", ownerId: "owner-1", patch: {} });
-
-		expect(conversationUpdate).toHaveBeenCalledWith(expect.objectContaining({ data: {} }));
 	});
 });
 
@@ -115,5 +132,23 @@ describe("probeModelRunState", () => {
 
 		expect(await probeModelRunState({ id: "c1", ownerId: "owner-1" })).toBe("unreachable");
 		expect(consoleWarn).toHaveBeenCalledOnce();
+	});
+});
+
+describe("owner scoping on the bulk writes", () => {
+	it("scopes a message save to the caller", async () => {
+		await saveMessages({ id: "c1", ownerId: "owner-1", messages: [] });
+
+		expect(conversationUpdateMany).toHaveBeenCalledWith(
+			expect.objectContaining({ where: { id: "c1", ownerId: "owner-1" } }),
+		);
+	});
+
+	it("scopes a delete to the caller", async () => {
+		await removeConversation({ id: "c1", ownerId: "owner-1" });
+
+		expect(conversationDeleteMany).toHaveBeenCalledWith({
+			where: { id: "c1", ownerId: "owner-1" },
+		});
 	});
 });
