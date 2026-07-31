@@ -11,7 +11,6 @@ import {
 	CardHeader,
 	CardTitle,
 } from "#/shared/components/ui/card";
-import { formatParamCount } from "#/shared/domain/model/hardware-fit";
 import type { HardwareInfo, ModelVariantInfo, PullProgress } from "#/shared/domain/model/types";
 import { formatCount } from "#/shared/lib/format";
 import { ModelVariantCard } from "./ModelVariantCard";
@@ -83,7 +82,9 @@ function ModelOverviewCard({ row }: { row: ModelRow }) {
 	const { catalog, installed, id } = row;
 	const localFacts =
 		installed &&
-		[installed.quant, installed.paramB ? formatParamCount(installed.paramB) : null].filter(Boolean);
+		[installed.quant, installed.paramB ? formatCount(installed.paramB * 1e9) : null].filter(
+			Boolean,
+		);
 	const facts = catalog ? buildOverviewFacts(catalog) : [];
 	const caption =
 		catalog?.description || (installed ? "Installed model metadata reported by llama.cpp." : null);

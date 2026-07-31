@@ -11,7 +11,7 @@ import {
 	ItemTitle,
 } from "#/shared/components/ui/item";
 import { Skeleton } from "#/shared/components/ui/skeleton";
-import { classifyHardwareFit, formatParamCount } from "#/shared/domain/model/hardware-fit";
+import { classifyHardwareFit } from "#/shared/domain/model/hardware-fit";
 import type { HardwareInfo } from "#/shared/domain/model/types";
 import { formatBytes, formatCount } from "#/shared/lib/format";
 import { cn } from "#/shared/lib/utils";
@@ -27,7 +27,7 @@ function specLine(row: ModelRow): string {
 	const { catalog, installed } = row;
 	const parts: string[] = [];
 	const paramB = catalog?.paramB ?? installed?.paramB;
-	if (paramB != null) parts.push(`${formatParamCount(paramB)} params`);
+	if (paramB != null) parts.push(`${formatCount(paramB * 1e9)} params`);
 	if (catalog?.contextK) parts.push(`${catalog.contextK}K context`);
 	if (catalog?.license) parts.push(catalog.license);
 	const sizeGb = installed?.sizeBytes != null ? installed.sizeBytes / 1e9 : catalog?.sizeGb;

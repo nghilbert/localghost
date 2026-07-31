@@ -7,11 +7,6 @@ function round1(value: number): number {
 	return Math.round(value * 10) / 10;
 }
 
-/** Formats a model's parameter count, already in billions, e.g. 1800 → "1.8T". */
-export function formatParamCount(paramB: number): string {
-	return paramB >= 1000 ? `${round1(paramB / 1000)}T` : `${paramB}B`;
-}
-
 /** Estimates model memory from exact size or a parameter-count fallback.
  * Includes KV cache and runtime overhead; returns null when size is unknown.
  */

@@ -3,21 +3,9 @@ import { deriveTags } from "#/shared/domain/model/catalog-curation";
 import {
 	availableMemoryGb,
 	fitsHardware,
-	formatParamCount,
 	requiredMemoryGb,
 } from "#/shared/domain/model/hardware-fit";
 import { makeGpu, makeHardware } from "#/test/factories";
-
-describe("formatParamCount", () => {
-	it("shows a plain B for anything under 1000 billion", () => {
-		expect(formatParamCount(8)).toBe("8B");
-		expect(formatParamCount(70)).toBe("70B");
-	});
-
-	it("scales to T past 1000 billion, e.g. a 1.8 trillion-parameter MoE", () => {
-		expect(formatParamCount(1800)).toBe("1.8T");
-	});
-});
 
 describe("requiredMemoryGb", () => {
 	it("uses the exact GGUF size when known", () => {

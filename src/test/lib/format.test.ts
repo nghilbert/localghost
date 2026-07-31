@@ -36,4 +36,13 @@ describe("formatCount", () => {
 		expect(formatCount(2_000_000_000)).toBe("2B");
 		expect(formatCount(1_800_000_000_000)).toBe("1.8T");
 	});
+
+	// Parameter counts reach the caller in billions, so call sites scale up rather
+	// than carrying a second formatter.
+	it("labels parameter counts scaled up from billions", () => {
+		expect(formatCount(8 * 1e9)).toBe("8B");
+		expect(formatCount(1800 * 1e9)).toBe("1.8T");
+		// A sub-billion model reads as "600M" rather than the old "0.6B".
+		expect(formatCount(0.6 * 1e9)).toBe("600M");
+	});
 });
