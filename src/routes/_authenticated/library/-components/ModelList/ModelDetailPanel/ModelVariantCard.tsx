@@ -5,6 +5,7 @@ import {
 	buildModelVariants,
 	formatModelVariantDetails,
 	type ModelVariantGroup,
+	type ModelVariantGroupId,
 	type ModelVariantOption,
 } from "#/routes/_authenticated/library/-lib/model-variants";
 import { Badge } from "#/shared/components/ui/badge";
@@ -37,6 +38,19 @@ import { cn } from "#/shared/lib/utils";
 
 type VariantComboboxGroup = Omit<ModelVariantGroup, "options"> & {
 	items: ModelVariantOption[];
+};
+
+/**
+ * Sticky group-header accent, echoing each bucket's semantic meaning. Backgrounds stay
+ * opaque (`bg-popover`, matching the popup) since a sticky header must fully occlude the
+ * items scrolling beneath it — a translucent tint would let their text show through.
+ */
+const GROUP_LABEL_STYLE: Record<ModelVariantGroupId, string> = {
+	"likely-fits": "border-l-2 border-success text-success",
+	"may-be-too-large": "border-l-2 border-warning text-warning",
+	"wont-fit": "border-l-2 border-destructive text-destructive",
+	"size-unknown": "text-muted-foreground",
+	variants: "text-muted-foreground",
 };
 
 type ModelVariantCardProps = {
@@ -114,10 +128,19 @@ export function ModelVariantCard({
 								/>
 								<ComboboxContent>
 									<ComboboxEmpty>No matching variants.</ComboboxEmpty>
-									<ComboboxList>
+									{/* Padding moves to each group (shadcn's Command pattern) so the sticky label has a local gutter to cover in every group, not just the first. */}
+									<ComboboxList className="p-0">
 										{(group: VariantComboboxGroup) => (
-											<ComboboxGroup key={group.id} items={group.items}>
-												<ComboboxLabel>{group.label}</ComboboxLabel>
+											<ComboboxGroup key={group.id} items={group.items} className="p-1">
+												<ComboboxLabel
+													className={cn(
+														// z-index: ComboboxItem is always `position: relative`, so this needs an explicit value to paint above it.
+														"sticky top-0 z-10 -mx-1 -mt-1 bg-popover px-3 pt-2 pb-1.5",
+														GROUP_LABEL_STYLE[group.id],
+													)}
+												>
+													{group.label}
+												</ComboboxLabel>
 												<ComboboxCollection>
 													{(option: ModelVariantOption) => (
 														<ComboboxItem
@@ -184,8 +207,8 @@ export function ModelVariantCard({
 						This quantization is installed. Pick another to add it alongside.
 					</p>
 				)}
-				{selectedOption?.fit === "may-be-too-large" && (
-					<p className="text-xs text-destructive">Likely too large for this machine's memory.</p>
+				{selectedOption?.fit === "wont-fit" && (
+					<p className="text-xs text-destructive">Won't fit on this machine's memory.</p>
 				)}
 			</CardContent>
 		</Card>

@@ -136,6 +136,8 @@ export const hardwareQueryOptions = () =>
 		queryKey: ["library-hardware"],
 		queryFn: () => getHardware(),
 		staleTime: 60_000,
+		// Keeps "GB free" current as llama.cpp loads/idles-out models between polls.
+		refetchInterval: 15_000,
 	});
 
 export const catalogQueryOptions = (query: CatalogQuery) =>

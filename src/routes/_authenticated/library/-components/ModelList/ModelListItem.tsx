@@ -16,9 +16,13 @@ import type { HardwareInfo } from "#/shared/domain/model/types";
 import { formatBytes, formatCount } from "#/shared/lib/format";
 import { cn } from "#/shared/lib/utils";
 
-const FIT_BADGE: Record<"fits" | "tight" | "unknown", { label: string; className?: string }> = {
+const FIT_BADGE: Record<
+	"fits" | "tight" | "wont-fit" | "unknown",
+	{ label: string; className?: string }
+> = {
 	fits: { label: "Runs on this machine", className: "text-success" },
 	tight: { label: "May be too large" },
+	"wont-fit": { label: "Won't fit on this machine", className: "text-destructive" },
 	unknown: { label: "Size unknown" },
 };
 

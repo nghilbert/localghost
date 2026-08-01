@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import { deriveTags } from "#/shared/domain/model/catalog-curation";
 import {
 	availableMemoryGb,
+	classifyHardwareFit,
 	fitsHardware,
 	requiredMemoryGb,
+	totalMemoryGb,
 } from "#/shared/domain/model/hardware-fit";
 import { makeGpu, makeHardware } from "#/test/factories";
 
@@ -34,6 +36,51 @@ describe("availableMemoryGb", () => {
 			gpus: [makeGpu({ freeVramMb: 4096 }), makeGpu({ freeVramMb: 12_288 })],
 		});
 		expect(availableMemoryGb(hardware)).toBe(12);
+	});
+});
+
+describe("totalMemoryGb", () => {
+	it("uses total RAM when no GPU is detected", () => {
+		expect(totalMemoryGb(makeHardware({ totalRamGb: 32, gpus: null }))).toBe(32);
+	});
+
+	it("uses the best GPU's total VRAM over RAM when a GPU is present", () => {
+		const hardware = makeHardware({
+			totalRamGb: 32,
+			gpus: [makeGpu({ totalVramMb: 8192 }), makeGpu({ totalVramMb: 24_576 })],
+		});
+		expect(totalMemoryGb(hardware)).toBe(24);
+	});
+});
+
+describe("classifyHardwareFit", () => {
+	it("is null without hardware info", () => {
+		expect(
+			classifyHardwareFit({ model: { sizeGb: null, paramB: 8 }, hardware: undefined }),
+		).toBeNull();
+	});
+
+	it("is unknown when the memory requirement can't be estimated", () => {
+		const hardware = makeHardware({ freeRamGb: 999, totalRamGb: 999, gpus: null });
+		expect(classifyHardwareFit({ model: { sizeGb: null, paramB: null }, hardware })).toBe(
+			"unknown",
+		);
+	});
+
+	it("fits when required memory is within what's free right now", () => {
+		const hardware = makeHardware({ freeRamGb: 16, totalRamGb: 32, gpus: null });
+		expect(classifyHardwareFit({ model: { sizeGb: null, paramB: 8 }, hardware })).toBe("fits");
+	});
+
+	it("is tight when it exceeds free memory but fits the machine's total capacity", () => {
+		// required ≈ 6.5GB: over 4GB free, but under 32GB total
+		const hardware = makeHardware({ freeRamGb: 4, totalRamGb: 32, gpus: null });
+		expect(classifyHardwareFit({ model: { sizeGb: null, paramB: 8 }, hardware })).toBe("tight");
+	});
+
+	it("won't fit when required memory exceeds the machine's total capacity", () => {
+		const hardware = makeHardware({ freeRamGb: 4, totalRamGb: 8, gpus: null });
+		expect(classifyHardwareFit({ model: { sizeGb: null, paramB: 70 }, hardware })).toBe("wont-fit");
 	});
 });
 

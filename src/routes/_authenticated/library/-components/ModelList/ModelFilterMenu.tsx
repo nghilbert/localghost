@@ -72,7 +72,7 @@ export function ModelFilterMenu({
 					</Badge>
 				)}
 			</PopoverTrigger>
-			<PopoverContent align="end" className="w-72 p-2">
+			<PopoverContent align="end" className="max-h-(--available-height) w-72 overflow-hidden p-2">
 				<div className="flex items-center justify-between gap-2 px-2 py-1">
 					<span className="font-medium">Filters</span>
 					{activeCount > 0 && (
@@ -93,31 +93,31 @@ export function ModelFilterMenu({
 
 				<Separator />
 
-				<p className="px-2 pt-1 text-xs font-medium text-muted-foreground">Capabilities</p>
-				<div className="space-y-1">
-					{CAPABILITY_OPTIONS.map((option) => (
-						<FilterOption
-							key={option.value}
-							label={option.label}
-							checked={selectedCapabilities.includes(option.value)}
-							testId={`model-filter-capability-${option.value}`}
-							onCheckedChange={(checked) =>
-								onCapabilitiesChange(
-									checked
-										? [...selectedCapabilities, option.value]
-										: selectedCapabilities.filter((value) => value !== option.value),
-								)
-							}
-						/>
-					))}
-				</div>
+				<ScrollArea className="max-h-[calc(var(--available-height)-4.5rem)] pr-3">
+					<p className="px-2 pt-1 text-xs font-medium text-muted-foreground">Capabilities</p>
+					<div className="space-y-1">
+						{CAPABILITY_OPTIONS.map((option) => (
+							<FilterOption
+								key={option.value}
+								label={option.label}
+								checked={selectedCapabilities.includes(option.value)}
+								testId={`model-filter-capability-${option.value}`}
+								onCheckedChange={(checked) =>
+									onCapabilitiesChange(
+										checked
+											? [...selectedCapabilities, option.value]
+											: selectedCapabilities.filter((value) => value !== option.value),
+									)
+								}
+							/>
+						))}
+					</div>
 
-				{licenses.length > 0 && (
-					<>
-						<Separator />
-						<p className="px-2 pt-1 text-xs font-medium text-muted-foreground">License</p>
-						<ScrollArea className="max-h-52">
-							<div className="space-y-1 pr-3">
+					{licenses.length > 0 && (
+						<>
+							<Separator className="my-1" />
+							<p className="px-2 pt-1 text-xs font-medium text-muted-foreground">License</p>
+							<div className="space-y-1">
 								{licenses.map((license) => (
 									<FilterOption
 										key={license}
@@ -134,9 +134,9 @@ export function ModelFilterMenu({
 									/>
 								))}
 							</div>
-						</ScrollArea>
-					</>
-				)}
+						</>
+					)}
+				</ScrollArea>
 			</PopoverContent>
 		</Popover>
 	);

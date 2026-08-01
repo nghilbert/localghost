@@ -1,8 +1,12 @@
-import { availableMemoryGb, requiredMemoryGb } from "#/shared/domain/model/hardware-fit";
+import {
+	availableMemoryGb,
+	requiredMemoryGb,
+	totalMemoryGb,
+} from "#/shared/domain/model/hardware-fit";
 import type { CatalogModel, HardwareInfo, ModelVariantInfo } from "#/shared/domain/model/types";
 import { formatBytes } from "#/shared/lib/format";
 
-export type ModelVariantFit = "likely-fits" | "may-be-too-large" | "size-unknown";
+export type ModelVariantFit = "likely-fits" | "may-be-too-large" | "wont-fit" | "size-unknown";
 
 export type ModelVariantOption = {
 	quant: string;
@@ -36,6 +40,7 @@ export type ModelVariants = {
 const HARDWARE_GROUPS: { id: ModelVariantFit; label: string }[] = [
 	{ id: "likely-fits", label: "Likely fits" },
 	{ id: "may-be-too-large", label: "May be too large" },
+	{ id: "wont-fit", label: "Won't fit" },
 	{ id: "size-unknown", label: "Size unknown" },
 ];
 
@@ -89,7 +94,8 @@ function variantFit({
 }): ModelVariantFit | null {
 	if (!hardware) return null;
 	if (estimatedMemoryGb === null) return "size-unknown";
-	return estimatedMemoryGb <= availableMemoryGb(hardware) ? "likely-fits" : "may-be-too-large";
+	if (estimatedMemoryGb <= availableMemoryGb(hardware)) return "likely-fits";
+	return estimatedMemoryGb <= totalMemoryGb(hardware) ? "may-be-too-large" : "wont-fit";
 }
 
 function groupOptions({
