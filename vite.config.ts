@@ -14,4 +14,5 @@ export default defineConfig({
 		tanstackStart(),
 		viteReact(),
 	],
+	build: { chunkSizeWarningLimit: 1000 },
 });

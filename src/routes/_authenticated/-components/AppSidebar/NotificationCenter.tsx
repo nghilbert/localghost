@@ -9,19 +9,24 @@ import {
 	SidebarMenuButton,
 	SidebarMenuItem,
 } from "#/shared/components/ui/sidebar";
-import { activePullsQueryOptions } from "#/shared/domain/model/model.functions";
+import { Spinner } from "#/shared/components/ui/spinner";
+import { libraryStatusQueryOptions } from "#/shared/domain/model/model.functions";
 import { formatPullDetail } from "#/shared/domain/model/pull-format";
-import { useModelPull } from "#/shared/domain/model/use-model-pull";
+import { pullProgressPercent } from "#/shared/domain/model/pull-progress";
+import { useModelDownload } from "#/shared/domain/model/use-model-download";
+import { useModelDownloadEvents } from "#/shared/domain/model/use-model-download-events";
 
 /**
  * Sidebar-footer notification center: today's only source is model downloads,
- * sourced from the same server-persisted pull registry the Library page reads,
- * so progress survives navigation and reloads. Built to take more sources later.
+ * read from the same runtime-status query the Library page uses.
  */
 export function NotificationCenter() {
-	const { data: activePulls = [] } = useQuery(activePullsQueryOptions());
-	const { stop } = useModelPull();
-	const inFlight = activePulls.filter((pull) => !pull.done);
+	const { data: runtimeStatus } = useQuery(libraryStatusQueryOptions());
+	const { stop } = useModelDownload(runtimeStatus?.endpointId ?? null);
+	useModelDownloadEvents(runtimeStatus?.endpointId ?? null);
+	const inFlight = Object.entries(runtimeStatus?.found ? runtimeStatus.downloads : {}).map(
+		([model, progress]) => ({ model, ...progress }),
+	);
 
 	if (inFlight.length === 0) return null;
 
@@ -37,10 +42,7 @@ export function NotificationCenter() {
 					<PopoverContent side="top" align="start" className="w-80">
 						<div className="flex flex-col gap-3 p-1">
 							{inFlight.map((pull) => {
-								const pct =
-									pull.total && pull.completed
-										? Math.round((pull.completed / pull.total) * 100)
-										: null;
+								const pct = pullProgressPercent(pull);
 								const detail = formatPullDetail(pull);
 								return (
 									<div
@@ -60,7 +62,11 @@ export function NotificationCenter() {
 												<SquareIcon size={12} />
 											</Button>
 										</div>
-										{pct !== null && <Progress value={pct} className="h-1" />}
+										{pct === null ? (
+											<Spinner className="size-3 text-muted-foreground" />
+										) : (
+											<Progress value={pct} className="h-1" />
+										)}
 										{detail && (
 											<span className="text-xs text-muted-foreground tabular-nums">{detail}</span>
 										)}

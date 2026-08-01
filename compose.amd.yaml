@@ -1,10 +1,11 @@
-# Overlay (merged via COMPOSE_FILE) for AMD hosts. Swaps the bundled Ollama to the
-# ROCm image and mounts the AMD devices for inference, and grants the app container
-# the same device access for the cookbook hardware panel (rocm-smi). Untested (dev
-# box is NVIDIA); confirm rocm-smi is reachable in-container. Omit on CPU-only hosts.
+# Overlay (merged via COMPOSE_FILE) for AMD hosts. Swaps the bundled llama.cpp
+# to the ROCm image and mounts the AMD devices for inference, and grants the
+# app container the same device access for the cookbook hardware panel
+# (rocm-smi). Untested (dev box is NVIDIA); confirm rocm-smi is reachable
+# in-container. Omit on CPU-only hosts.
 services:
-  ollama:
-    image: ollama/ollama:rocm
+  llamacpp:
+    image: ghcr.io/ggml-org/llama.cpp:server-rocm@sha256:36bd528235ab24e0e9d88a11da55a6b142e2f13c1ede97d8f038dc46a5014765
     devices: &amd-devices
       - /dev/kfd
       - /dev/dri

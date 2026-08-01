@@ -1,119 +1,134 @@
-import { queryOptions } from "@tanstack/react-query";
-import { trimPathRight } from "@tanstack/react-router";
+import { keepPreviousData, queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod/v4";
-import { ollamaOptionsSchema } from "#/shared/domain/endpoint/schemas";
-import { ollamaConnectionSchema, ollamaUrlSchema } from "#/shared/lib/ollama/url";
-import { getCurrentUserId } from "#/shared/lib/session.server";
-import { getCatalog } from "./catalog.server";
-import { getOllamaUrl, probeOllama, scanForOllama, upsertOllamaEndpoint } from "./discovery.server";
+import { downloadModel, unloadModel } from "#/shared/lib/llamacpp/client.server";
+import { llamacppConnectionSchema, llamacppUrlSchema } from "#/shared/lib/llamacpp/url";
+import { authedFn } from "#/shared/lib/middleware";
+import { getCatalogModelsByIds, getCatalogPage, listGroupVariants } from "./catalog.server";
+import {
+	getRuntimeEndpointById,
+	probeRuntime,
+	scanForRuntime,
+	upsertRuntimeEndpoint,
+} from "./discovery.server";
 import { getHardwareInfo } from "./hardware.server";
 import { removeInstalledModel } from "./models.server";
 import {
-	cancelPull,
-	listActivePulls as readActivePulls,
-	resumeOrphanedPulls,
-	startPull,
-} from "./pull-registry.server";
-import type { OllamaStatus } from "./types";
+	type CatalogQuery,
+	catalogModelsByIdsInput,
+	catalogQuerySchema,
+	modelVariantsInput,
+} from "./schemas";
+import type { RuntimeStatus } from "./types";
 
-export const getHardware = createServerFn({ method: "GET" }).handler(async () => {
-	await getCurrentUserId();
-	return getHardwareInfo();
-});
+export const getHardware = createServerFn({ method: "GET" })
+	.middleware([authedFn])
+	.handler(async () => getHardwareInfo());
 
-export const getModelCatalog = createServerFn({ method: "GET" }).handler(async () => {
-	await getCurrentUserId();
-	return getCatalog();
-});
+export const getModelCatalog = createServerFn({ method: "GET" })
+	.middleware([authedFn])
+	.validator(catalogQuerySchema)
+	.handler(async ({ data }) => getCatalogPage(data));
 
-export const scanOllamaStatus = createServerFn({ method: "GET" }).handler(
-	async (): Promise<OllamaStatus> => {
-		const userId = await getCurrentUserId();
-		const found = await scanForOllama(userId);
+export const getModelCatalogByIds = createServerFn({ method: "GET" })
+	.middleware([authedFn])
+	.validator(catalogModelsByIdsInput)
+	.handler(async ({ data }) => getCatalogModelsByIds(data.ids));
+
+export const getModelVariants = createServerFn({ method: "GET" })
+	.middleware([authedFn])
+	.validator(modelVariantsInput)
+	.handler(async ({ data }) => listGroupVariants(data));
+
+export const scanRuntimeStatus = createServerFn({ method: "GET" })
+	.middleware([authedFn])
+	.handler(async ({ context }): Promise<RuntimeStatus> => {
+		const found = await scanForRuntime(context.userId);
 		if (!found) {
-			return { found: false, ollamaUrl: null, installedModels: [], numCtx: null, endpointId: null };
+			return {
+				found: false,
+				runtimeUrl: null,
+				installedModels: [],
+				downloads: {},
+				endpointId: null,
+			};
 		}
 
-		const endpointId = await upsertOllamaEndpoint({
-			userId,
+		const endpointId = await upsertRuntimeEndpoint({
+			userId: context.userId,
 			url: found.url,
 			existing: found.savedEndpoint,
 		});
-		const options = ollamaOptionsSchema.safeParse(found.savedEndpoint?.options);
 		return {
 			found: true,
-			ollamaUrl: found.url,
+			runtimeUrl: found.url,
 			installedModels: found.installedModels,
-			numCtx: options.success ? (options.data.num_ctx ?? null) : null,
+			downloads: found.downloads,
 			endpointId,
 		};
-	},
-);
-
-export const deleteModel = createServerFn({ method: "POST" })
-	.validator(z.object({ model: z.string().min(1) }))
-	.handler(async ({ data }) => {
-		const userId = await getCurrentUserId();
-		await removeInstalledModel({ userId, model: data.model });
 	});
 
-export const testRemoteOllama = createServerFn({ method: "POST" })
-	.validator(ollamaUrlSchema)
+export const deleteModel = createServerFn({ method: "POST" })
+	.middleware([authedFn])
+	.validator(z.object({ endpointId: z.uuid(), model: z.string().min(1) }))
+	.handler(async ({ data, context }) => {
+		await removeInstalledModel({
+			userId: context.userId,
+			endpointId: data.endpointId,
+			model: data.model,
+		});
+	});
+
+export const testRemoteRuntime = createServerFn({ method: "POST" })
+	.middleware([authedFn])
+	.validator(llamacppUrlSchema)
 	.handler(async ({ data }) => {
-		await getCurrentUserId();
-		const probe = await probeOllama({ url: data.url });
+		const probe = await probeRuntime({ url: data.url });
 		return { reachable: probe.reachable, modelCount: probe.installedModels.length };
 	});
 
-export const registerRemoteOllama = createServerFn({ method: "POST" })
-	.validator(ollamaConnectionSchema)
-	.handler(async ({ data }) => {
-		const userId = await getCurrentUserId();
-		const probe = await probeOllama({ url: data.url });
+export const registerRemoteRuntime = createServerFn({ method: "POST" })
+	.middleware([authedFn])
+	.validator(llamacppConnectionSchema)
+	.handler(async ({ data, context }) => {
+		const probe = await probeRuntime({ url: data.url });
 		if (!probe.reachable) {
-			throw new Error(`No Ollama instance is responding at ${data.url}`);
+			throw new Error(`No llama.cpp instance is responding at ${data.url}`);
 		}
-		await upsertOllamaEndpoint({ userId, url: data.url, numCtx: data.numCtx });
+		await upsertRuntimeEndpoint({ userId: context.userId, url: data.url });
 	});
 
-export const startModelPull = createServerFn({ method: "POST" })
-	.validator(z.object({ model: z.string().min(1), ollamaUrl: z.string().optional() }))
-	.handler(async ({ data }) => {
-		const userId = await getCurrentUserId();
-		const ollamaUrl = data.ollamaUrl ? trimPathRight(data.ollamaUrl) : await getOllamaUrl(userId);
-		await startPull({ userId, model: data.model, ollamaUrl });
+export const startModelDownload = createServerFn({ method: "POST" })
+	.middleware([authedFn])
+	.validator(z.object({ endpointId: z.uuid(), model: z.string().min(1) }))
+	.handler(async ({ data, context }) => {
+		const resolved = await getRuntimeEndpointById({
+			userId: context.userId,
+			endpointId: data.endpointId,
+		});
+		await downloadModel({ url: resolved.url, model: data.model, apiKey: resolved.apiKey });
 	});
 
-export const cancelModelPull = createServerFn({ method: "POST" })
-	.validator(z.object({ model: z.string().min(1) }))
-	.handler(async ({ data }) => {
-		const userId = await getCurrentUserId();
-		cancelPull({ userId, model: data.model });
+export const cancelModelDownload = createServerFn({ method: "POST" })
+	.middleware([authedFn])
+	.validator(z.object({ endpointId: z.uuid(), model: z.string().min(1) }))
+	.handler(async ({ data, context }) => {
+		const resolved = await getRuntimeEndpointById({
+			userId: context.userId,
+			endpointId: data.endpointId,
+		});
+		await unloadModel({ url: resolved.url, model: data.model, apiKey: resolved.apiKey });
 	});
-
-export const listActivePulls = createServerFn({ method: "GET" }).handler(async () => {
-	const userId = await getCurrentUserId();
-	// Re-attach pulls a server restart orphaned before reporting, so the Library
-	// regains its progress view instead of staying blind until the daemon finishes.
-	await resumeOrphanedPulls(userId);
-	return readActivePulls(userId);
-});
 
 export const libraryStatusQueryOptions = () =>
 	queryOptions({
 		queryKey: ["library-status"],
-		queryFn: () => scanOllamaStatus(),
-		// Re-probe slowly once reachable, quickly while it's down so recovery shows fast.
-		refetchInterval: (query) => (query.state.data?.found ? 30_000 : 5_000),
-	});
-
-export const activePullsQueryOptions = () =>
-	queryOptions({
-		queryKey: ["library", "active-pulls"],
-		queryFn: () => listActivePulls(),
-		// Poll while a pull is in flight; idle otherwise so there's no wasted traffic.
-		refetchInterval: (query) => (query.state.data && query.state.data.length > 0 ? 600 : false),
+		queryFn: () => scanRuntimeStatus(),
+		refetchInterval: (query) => {
+			const status = query.state.data;
+			if (!status?.found) return 5_000;
+			return 30_000;
+		},
 	});
 
 export const hardwareQueryOptions = () =>
@@ -121,12 +136,30 @@ export const hardwareQueryOptions = () =>
 		queryKey: ["library-hardware"],
 		queryFn: () => getHardware(),
 		staleTime: 60_000,
+		// Keeps "GB free" current as llama.cpp loads/idles-out models between polls.
+		refetchInterval: 15_000,
 	});
 
-export const catalogQueryOptions = () =>
+export const catalogQueryOptions = (query: CatalogQuery) =>
 	queryOptions({
-		queryKey: ["library-catalog"],
-		queryFn: () => getModelCatalog(),
-		// Matches the server-side scrape TTL; the catalog changes slowly.
+		queryKey: ["library-catalog", query],
+		queryFn: () => getModelCatalog({ data: query }),
+		// Matches the server-side fetch TTL; the catalog changes slowly.
+		staleTime: 6 * 60 * 60_000,
+		// Keep showing the previous page's rows while the next page loads, instead of flashing empty.
+		placeholderData: keepPreviousData,
+	});
+
+export const catalogByIdsQueryOptions = (ids: string[]) =>
+	queryOptions({
+		queryKey: ["library-catalog-by-ids", ids],
+		queryFn: () => getModelCatalogByIds({ data: { ids } }),
+		staleTime: 6 * 60 * 60_000,
+	});
+
+export const modelVariantsQueryOptions = (query: { repoId: string; siblingRepoIds: string[] }) =>
+	queryOptions({
+		queryKey: ["library-model-variants", query],
+		queryFn: () => getModelVariants({ data: query }),
 		staleTime: 6 * 60 * 60_000,
 	});

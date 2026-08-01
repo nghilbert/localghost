@@ -4,7 +4,7 @@ import type {
 	CatalogModel,
 	GpuInfo,
 	HardwareInfo,
-	OllamaInstalledModel,
+	InstalledModel,
 } from "#/shared/domain/model/types";
 
 /**
@@ -14,17 +14,23 @@ import type {
  */
 
 export function makeCatalogModel(overrides: Partial<CatalogModel> = {}): CatalogModel {
+	const name = faker.commerce.productName();
 	return {
 		id: faker.string.uuid(),
-		name: faker.commerce.productName(),
+		name,
+		displayName: name,
 		paramB: 7,
 		sizeGb: null,
 		contextK: null,
 		tags: ["chat"],
 		capabilities: ["tools"],
 		description: faker.lorem.sentence(),
-		pullCount: "1M",
-		updated: "1 year ago",
+		author: faker.internet.username(),
+		license: "apache-2.0",
+		likes: 100,
+		pullCount: 1_000_000,
+		createdAt: null,
+		siblingRepoIds: [],
 		...overrides,
 	};
 }
@@ -50,15 +56,14 @@ export function makeGpu(overrides: Partial<GpuInfo> = {}): GpuInfo {
 	};
 }
 
-export function makeInstalledModel(
-	overrides: Partial<OllamaInstalledModel> = {},
-): OllamaInstalledModel {
+export function makeInstalledModel(overrides: Partial<InstalledModel> = {}): InstalledModel {
 	return {
-		name: faker.system.fileName(),
+		id: `${faker.system.fileName()}:Q4_K_M`,
 		sizeBytes: faker.number.int({ min: 1_000_000, max: 9_000_000_000 }),
-		family: faker.word.noun(),
-		parameterSize: `${faker.number.int({ min: 1, max: 70 })}B`,
-		quantizationLevel: "Q4_0",
+		quant: "Q4_K_M",
+		paramB: faker.number.int({ min: 1, max: 70 }),
+		status: "loaded",
+		vision: false,
 		...overrides,
 	};
 }

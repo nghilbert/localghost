@@ -15,71 +15,83 @@ export type HardwareInfo = {
 	gpus: GpuInfo[] | null;
 };
 
-export type OllamaInstalledModel = {
-	name: string;
-	sizeBytes: number;
-	family: string;
-	parameterSize: string;
-	quantizationLevel: string;
+export type InstalledModel = {
+	/** The router model id, `"{repo}:{QUANT}"`, as accepted by `POST /models`. */
+	id: string;
+	/** From the matching catalog entry when found; the router doesn't report file size. */
+	sizeBytes: number | null;
+	/** Parsed from the id's `:QUANT` suffix, e.g. "Q4_K_M". */
+	quant: string | null;
+	/** Billions of parameters parsed from the id, when derivable. */
+	paramB: number | null;
+	status: "loaded" | "loading" | "unloaded" | "sleeping";
+	vision: boolean;
 };
 
-export type OllamaStatus =
+export type RuntimeStatus =
 	| {
 			found: true;
-			ollamaUrl: string;
-			installedModels: OllamaInstalledModel[];
-			/** The endpoint's saved num_ctx override, null when using the default. */
-			numCtx: number | null;
-			/** The discovered Ollama endpoint's id, for per-model settings scoping. */
+			runtimeUrl: string;
+			installedModels: InstalledModel[];
+			downloads: Record<string, PullProgress>;
+			/** The discovered llama.cpp endpoint's id, for per-model settings scoping. */
 			endpointId: string;
 	  }
 	| {
 			found: false;
-			ollamaUrl: null;
-			installedModels: OllamaInstalledModel[];
-			numCtx: null;
+			runtimeUrl: null;
+			installedModels: InstalledModel[];
+			downloads: Record<string, PullProgress>;
 			endpointId: null;
 	  };
 
 export type CatalogModel = {
-	/** The exact `ollama pull` id, e.g. "llama3.1:8b". */
+	/** `"{repo}:{QUANT}"`: the row's default variant exactly as `POST /models` takes it. */
 	id: string;
-	/** Base model name without the size tag, e.g. "llama3.1". */
+	/** The Hugging Face repo id, e.g. "ggml-org/gemma-3-4b-it-GGUF". */
 	name: string;
-	/** Billions of parameters parsed from the size tag; null when unparseable. */
+	/** A human-readable name derived from the repo id, e.g. "Gemma 3 4B". */
+	displayName: string;
+	/** Billions of parameters, from the repo's `gguf.total` metadata when available, else parsed from the repo id. */
 	paramB: number | null;
-	/** Actual download size from the model's tags page; null until enriched. */
+	/** Exact GGUF file size in GB (the default quant's), from the repo's file listing. */
 	sizeGb: number | null;
-	/** Context window in K tokens from the tags page, e.g. 128 for "128K". */
+	/** Context window in K tokens, from the repo's `gguf.context_length` metadata. */
 	contextK: number | null;
 	/** Display tags: capability badges plus derived "fast"/"code". */
 	tags: string[];
-	/** Raw capability badges from the library (tools, vision, embedding, thinking). */
+	/** Raw capability hints derived from the repo's HF tags (vision). */
 	capabilities: string[];
 	description: string;
-	/** Pull count as shown on the library, e.g. "116.6M". */
-	pullCount: string;
-	/** Relative update time as shown on the library, e.g. "1 year ago". */
-	updated: string;
-	/** Exact update timestamp (ISO) parsed from the row title, when present. */
+	/** The Hugging Face org/user that owns the repo. */
+	author: string | null;
+	/** SPDX-ish license id, from the repo's card data or a `license:` tag. */
+	license: string | null;
+	/** Hugging Face like count for the repo. */
+	likes: number;
+	/** Hugging Face download count for the repo. */
+	pullCount: number;
+	/** Exact update timestamp (ISO), from the repo's `lastModified`. */
 	updatedAt?: string;
-	/** Every quant/size tag on the model's tags page, for the variant picker. */
-	variants?: ModelTagInfo[];
+	/** Exact ISO creation timestamp from the repo's `createdAt`, distinct from `updatedAt`. */
+	createdAt: string | null;
+	/** Every GGUF quant found across the dedupe group's repos, for the variant picker, ascending by size. */
+	variants?: ModelVariantInfo[];
+	/** Other repos this dedupe group collapsed, ordered by publisher rank, for lazily fetching their quants. */
+	siblingRepoIds: string[];
 };
 
-/** One tag row parsed from a model's ollama.com tags page. */
-export type ModelTagInfo = {
-	tag: string;
-	/** Short blob digest; identical digests mean identical weights (e.g. `latest` = `8b`). */
-	digest: string | null;
+/** One GGUF file found in a Hugging Face repo, for the variant picker. */
+export type ModelVariantInfo = {
+	quant: string;
 	sizeGb: number | null;
-	contextK: number | null;
+	fileName: string;
+	/** The repo this file actually lives in; may differ from the parent `CatalogModel.name` when merged in from a losing dedupe candidate. */
+	repoId: string;
 };
 
 export type PullProgress = {
 	status: string;
 	completed?: number;
 	total?: number;
-	error?: string;
-	bytesPerSec?: number;
 };

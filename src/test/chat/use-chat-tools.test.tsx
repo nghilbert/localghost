@@ -1,9 +1,7 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { useChatTools } from "#/routes/_authenticated/-hooks/use-chat-tools";
 import { defaultEnabledTools } from "#/routes/_authenticated/-lib/tool-catalog";
-import { renderHook } from "#/test/utils";
+import { renderHook, testQueryClient } from "#/test/utils";
 
 vi.mock("#/shared/domain/endpoint/endpoint.functions", () => ({
 	modelCapabilitiesQueryOptions: () => ({
@@ -21,12 +19,9 @@ vi.mock("#/shared/domain/chat/tools.functions", () => ({
 }));
 
 function renderChatTools({ webSearch }: { webSearch: boolean }) {
-	const queryClient = new QueryClient();
+	const queryClient = testQueryClient();
 	queryClient.setQueryData(["tool-availability"], { webSearch });
-	const wrapper = ({ children }: { children: ReactNode }) => (
-		<QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-	);
-	return renderHook(() => useChatTools({ selection: null }), { wrapper });
+	return renderHook(() => useChatTools({ selection: null }), { queryClient });
 }
 
 describe("defaultEnabledTools", () => {

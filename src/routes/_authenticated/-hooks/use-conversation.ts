@@ -1,15 +1,8 @@
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { conversationQueryOptions } from "#/shared/domain/conversation/conversation.functions";
-import { historyBudgetTokens } from "#/shared/domain/conversation/messages";
 import { endpointsQueryOptions } from "#/shared/domain/endpoint/endpoint.functions";
 import type { ModelSelection } from "#/shared/domain/endpoint/types";
-import { modelSettingQueryOptions } from "#/shared/domain/model-setting/model-setting.functions";
 import { useChatTools } from "./use-chat-tools";
-
-/** A stored JSON options blob narrowed to a plain record for merging, `{}` when absent. */
-function asOptionsRecord(value: unknown): Record<string, unknown> {
-	return typeof value === "object" && value !== null && !Array.isArray(value) ? { ...value } : {};
-}
 
 /**
  * State driving one active chat: the model it's locked to (fixed at creation)
@@ -28,24 +21,10 @@ export function useConversation({ conversationId }: { conversationId: string }) 
 			? { endpointId: conversation.endpointId, model: conversation.model }
 			: null;
 
-	// Per-model options carry a num_ctx override; needed so the divider lands on
-	// the same message the server's token trim will cut at.
-	const { data: modelSetting } = useQuery({
-		...modelSettingQueryOptions(selection ?? { endpointId: "", model: "" }),
-		enabled: Boolean(selection),
-	});
-
-	const endpoint = endpoints?.find((e) => e.id === conversation.endpointId);
-	const historyBudget =
-		selection && endpoint
-			? historyBudgetTokens({
-					provider: endpoint.provider,
-					options: {
-						...asOptionsRecord(endpoint.options),
-						...asOptionsRecord(modelSetting),
-					},
-				})
-			: undefined;
+	// The real token budget requires a live `/props` round trip (the server
+	// resolves it per-request in stream.tsx); client-side the divider falls
+	// back to the same count-based bounding cloud providers use.
+	const historyBudget: number | undefined = undefined;
 
 	const tools = useChatTools({ selection });
 	return { selection, isReady: Boolean(selection), historyBudget, ...tools };

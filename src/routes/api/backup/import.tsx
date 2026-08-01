@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { auth } from "#/shared/lib/auth.server";
 import { BodyTooLargeError, readJsonWithLimit } from "#/shared/lib/http.server";
+import { authedRequest } from "#/shared/lib/middleware";
 import { BACKUP_VERSION, importBackup, importPayloadSchema } from "./-backup.server";
 
 // Generous because backups legitimately embed image attachments as data URLs.
@@ -8,11 +8,9 @@ const MAX_IMPORT_BYTES = 256 * 1024 * 1024;
 
 export const Route = createFileRoute("/api/backup/import")({
 	server: {
+		middleware: [authedRequest],
 		handlers: {
-			POST: async ({ request }) => {
-				const session = await auth.api.getSession({ headers: request.headers });
-				if (!session) return new Response("Unauthorized", { status: 401 });
-
+			POST: async ({ request, context }) => {
 				let raw: unknown;
 				try {
 					raw = await readJsonWithLimit({ request, maxBytes: MAX_IMPORT_BYTES });
@@ -32,7 +30,7 @@ export const Route = createFileRoute("/api/backup/import")({
 					);
 				}
 
-				const imported = await importBackup({ userId: session.user.id, payload: parsed.data });
+				const imported = await importBackup({ userId: context.userId, payload: parsed.data });
 				return Response.json({ ok: true, imported });
 			},
 		},

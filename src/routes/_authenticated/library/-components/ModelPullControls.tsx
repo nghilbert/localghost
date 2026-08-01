@@ -1,5 +1,4 @@
-import { CircleAlertIcon, DownloadIcon, SquareIcon } from "lucide-react";
-import { Alert, AlertAction, AlertDescription, AlertTitle } from "#/shared/components/ui/alert";
+import { DownloadIcon, SquareIcon } from "lucide-react";
 import { Button } from "#/shared/components/ui/button";
 import {
 	Item,
@@ -13,6 +12,7 @@ import { Progress } from "#/shared/components/ui/progress";
 import { Spinner } from "#/shared/components/ui/spinner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "#/shared/components/ui/tooltip";
 import { formatPullDetail } from "#/shared/domain/model/pull-format";
+import { pullProgressPercent } from "#/shared/domain/model/pull-progress";
 import type { PullProgress } from "#/shared/domain/model/types";
 
 type ModelPullControlsProps = {
@@ -20,59 +20,21 @@ type ModelPullControlsProps = {
 	pullState: PullProgress | undefined;
 	onPull: (model: string) => void;
 	onStop: (model: string) => void;
-	onDismiss: (model: string) => void;
 };
 
 /** Renders the available actions and status for one exact model pull target. */
-export function ModelPullControls({
-	modelId,
-	pullState,
-	onPull,
-	onStop,
-	onDismiss,
-}: ModelPullControlsProps) {
-	if (pullState?.error) {
-		return (
-			<Alert variant="destructive" data-testid="model-pull-error">
-				<CircleAlertIcon />
-				<AlertTitle>Pull failed</AlertTitle>
-				<AlertDescription title={pullState.error}>{pullState.error}</AlertDescription>
-				<AlertAction className="flex gap-1">
-					<Button
-						type="button"
-						variant="outline"
-						size="sm"
-						data-testid="model-pull-retry"
-						onClick={() => onPull(modelId)}
-					>
-						Retry
-					</Button>
-					<Button
-						type="button"
-						variant="ghost"
-						size="sm"
-						data-testid="model-pull-dismiss"
-						onClick={() => onDismiss(modelId)}
-					>
-						Dismiss
-					</Button>
-				</AlertAction>
-			</Alert>
-		);
-	}
-
+export function ModelPullControls({ modelId, pullState, onPull, onStop }: ModelPullControlsProps) {
 	if (pullState) {
-		const progress =
-			pullState.total && pullState.completed !== undefined
-				? Math.round((pullState.completed / pullState.total) * 100)
-				: null;
+		const progress = pullProgressPercent(pullState);
 		const detail = formatPullDetail(pullState);
 
 		return (
 			<Item variant="muted" size="sm" data-testid="model-pull-progress">
-				<ItemMedia variant="icon">
-					<Spinner />
-				</ItemMedia>
+				{progress === null && (
+					<ItemMedia variant="icon">
+						<Spinner />
+					</ItemMedia>
+				)}
 				<ItemContent>
 					<ItemTitle>{pullState.status || "Downloading model"}</ItemTitle>
 					{detail && <ItemDescription className="tabular-nums">{detail}</ItemDescription>}

@@ -19,6 +19,7 @@ x-app: &app
     BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
     ENCRYPTION_KEY: ${ENCRYPTION_KEY:?set ENCRYPTION_KEY (64-char hex) in .env}
     SEARXNG_URL: ${SEARXNG_URL:-http://searxng:8080}
+    HF_TOKEN: ${HF_TOKEN:-}
   extra_hosts:
     - "host.docker.internal:host-gateway"
   depends_on:
@@ -78,23 +79,26 @@ services:
       SEARXNG_SECRET: ${SEARXNG_SECRET:?set SEARXNG_SECRET in .env}
     restart: unless-stopped
 
-  # Bundled Ollama, reachable by the app at http://ollama:11434. CPU-only here; a
-  # GPU hardware overlay (compose.nvidia.yaml / compose.amd.yaml, merged via
-  # COMPOSE_FILE) patches this service for the GPU. Gated by the `ollama` profile
-  # so omitting it falls back to a host-native Ollama (hence no app depends_on).
-  ollama:
-    image: ollama/ollama:latest
-    profiles: [ ollama ]
+  # Bundled llama.cpp (llama-server, router mode), reachable by the app at
+  # http://llamacpp:8080. Gated by the `llamacpp` profile; omitting it falls
+  # back to a host-native llama-server. GPU overlays patch this service (see
+  # compose.nvidia/amd/vulkan.yaml).
+  # No --host/--port: the image's own env defaults already set them (passing
+  # them again warns). No --api-key: this service is never published beyond
+  # the compose network. Healthcheck comes from the image itself.
+  # LLAMA_ARG_SLEEP_IDLE_SECONDS frees an idle model's memory instead of
+  # holding it forever after a chat ends.
+  llamacpp:
+    image: ghcr.io/ggml-org/llama.cpp:server@sha256:a576442ad3649c0b5ea74e20ad29a17c121117f32607cfe59ff27cc38066f874
+    profiles: [ llamacpp ]
+    environment:
+      LLAMA_CACHE: /models
+      HF_TOKEN: ${HF_TOKEN:-}
+      LLAMA_ARG_SLEEP_IDLE_SECONDS: ${LLAMA_SLEEP_IDLE_SECONDS:-300}
     volumes:
-      - ollama:/root/.ollama
+      - llamacpp:/models
     restart: unless-stopped
-    healthcheck:
-      test: [ "CMD", "ollama", "list" ]
-      interval: 15s
-      timeout: 5s
-      retries: 5
-      start_period: 20s
 
 volumes:
   pg:
-  ollama:
+  llamacpp:

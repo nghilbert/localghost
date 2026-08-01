@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { updateUserSettings } from "#/shared/domain/user-settings/user-settings.functions";
 import { authClient } from "#/shared/lib/auth-client";
@@ -14,6 +15,7 @@ type UpdateAccount = {
 /** Saves the account form: profile name (better-auth) plus the chat system prompt. */
 export function useUpdateAccount() {
 	const queryClient = useQueryClient();
+	const router = useRouter();
 	return useMutation({
 		mutationFn: async ({ name, systemPrompt, temperature }: UpdateAccount) => {
 			const { error } = await authClient.updateUser({ name });
@@ -22,8 +24,9 @@ export function useUpdateAccount() {
 				data: { systemPrompt: systemPrompt.trim() || null, temperature },
 			});
 		},
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["session"] });
+		onSuccess: async () => {
+			// The session lives in router context (root `beforeLoad`), not react-query.
+			await router.invalidate();
 			queryClient.invalidateQueries({ queryKey: ["user-settings"] });
 			toast.success("Account saved");
 		},

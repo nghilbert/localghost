@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { exportBackup, importBackup } from "#/routes/api/backup/-backup.server";
+import {
+	exportBackup,
+	importBackup,
+	importPayloadSchema,
+} from "#/routes/api/backup/-backup.server";
 
 const {
 	memoryFindMany,
@@ -80,7 +84,7 @@ describe("exportBackup", () => {
 		modelSettingFindMany.mockResolvedValue([
 			{
 				model: "gpt-4o",
-				options: { num_ctx: 8192 },
+				options: { max_tokens: 8192 },
 				endpoint: { url: "https://api.openai.com", name: "OpenAI", provider: "openai" },
 			},
 		]);
@@ -103,7 +107,7 @@ describe("exportBackup", () => {
 					endpointName: "OpenAI",
 					provider: "openai",
 					model: "gpt-4o",
-					options: { num_ctx: 8192 },
+					options: { max_tokens: 8192 },
 				},
 			],
 		});
@@ -126,6 +130,43 @@ describe("exportBackup", () => {
 			{ name: "Custom", url: "https://api.test", provider: "openai", options: null },
 		]);
 		expect(JSON.stringify(backup)).not.toContain("secret-ciphertext");
+	});
+
+	it("exports legacy Ollama endpoints as OpenAI-compatible endpoints", async () => {
+		endpointFindMany.mockResolvedValue([
+			{ name: "Ollama", url: "http://localhost:11434/", provider: "ollama", options: null },
+		]);
+		modelSettingFindMany.mockResolvedValue([
+			{
+				model: "llama3",
+				options: {},
+				endpoint: {
+					url: "http://localhost:11434/",
+					name: "Ollama",
+					provider: "ollama",
+				},
+			},
+		]);
+
+		const backup = await exportBackup({ userId: "user-1", email: "a@b.com" });
+
+		expect(backup.endpoints).toEqual([
+			{
+				name: "Ollama",
+				url: "http://localhost:11434/v1",
+				provider: "openai",
+				options: null,
+			},
+		]);
+		expect(backup.modelSettings).toEqual([
+			{
+				endpointUrl: "http://localhost:11434/v1",
+				endpointName: "Ollama",
+				provider: "openai",
+				model: "llama3",
+				options: {},
+			},
+		]);
 	});
 
 	it("reports null userSettings when the user row is gone", async () => {
@@ -355,6 +396,57 @@ describe("importBackup: endpoints", () => {
 		expect(endpointCreate).not.toHaveBeenCalled();
 		expect(result).toMatchObject({ endpoints: 0, skippedEndpoints: 1 });
 	});
+
+	it("normalizes legacy Ollama endpoints and model settings before import", async () => {
+		const payload = importPayloadSchema.parse({
+			endpoints: [{ name: "Ollama", url: "http://localhost:11434/", provider: "ollama" }],
+			modelSettings: [
+				{
+					endpointUrl: "http://localhost:11434/v1",
+					provider: "ollama",
+					model: "llama3",
+					options: {},
+				},
+			],
+		});
+
+		const result = await importBackup({ userId: "owner-1", payload });
+
+		expect(endpointCreate).toHaveBeenCalledWith({
+			data: {
+				name: "Ollama",
+				url: "http://localhost:11434/v1",
+				provider: "openai",
+				ownerId: "owner-1",
+			},
+			select: { id: true },
+		});
+		expect(modelSettingCreate).toHaveBeenCalledWith({
+			data: {
+				endpointId: "ep-new",
+				model: "llama3",
+				options: {},
+				ownerId: "owner-1",
+			},
+		});
+		expect(result).toMatchObject({ endpoints: 1, modelSettings: 1 });
+	});
+
+	it("matches a legacy Ollama endpoint through its normalized identity", async () => {
+		endpointFindMany.mockResolvedValue([
+			{ id: "ep-old", url: "http://localhost:11434", provider: "ollama" },
+		]);
+
+		const result = await importBackup({
+			userId: "owner-1",
+			payload: {
+				endpoints: [{ name: "Ollama", url: "http://localhost:11434/", provider: "ollama" }],
+			},
+		});
+
+		expect(endpointCreate).not.toHaveBeenCalled();
+		expect(result).toMatchObject({ endpoints: 0, skippedEndpoints: 1 });
+	});
 });
 
 describe("importBackup: model settings", () => {
@@ -371,7 +463,7 @@ describe("importBackup: model settings", () => {
 						endpointUrl: "https://api.openai.com",
 						provider: "openai",
 						model: "gpt-4o",
-						options: { num_ctx: 8192 },
+						options: { max_tokens: 8192 },
 					},
 				],
 			},
@@ -381,7 +473,7 @@ describe("importBackup: model settings", () => {
 			data: {
 				endpointId: "ep-1",
 				model: "gpt-4o",
-				options: { num_ctx: 8192 },
+				options: { max_tokens: 8192 },
 				ownerId: "owner-1",
 			},
 		});
@@ -394,13 +486,13 @@ describe("importBackup: model settings", () => {
 		const result = await importBackup({
 			userId: "owner-1",
 			payload: {
-				endpoints: [{ name: "Local", url: "http://localhost:11434", provider: "ollama" }],
+				endpoints: [{ name: "Local", url: "http://localhost:8080", provider: "llamacpp" }],
 				modelSettings: [
 					{
-						endpointUrl: "http://localhost:11434",
-						provider: "ollama",
+						endpointUrl: "http://localhost:8080",
+						provider: "llamacpp",
 						model: "llama3",
-						options: { num_ctx: 4096 },
+						options: { max_tokens: 4096 },
 					},
 				],
 			},
@@ -410,7 +502,7 @@ describe("importBackup: model settings", () => {
 			data: {
 				endpointId: "ep-fresh",
 				model: "llama3",
-				options: { num_ctx: 4096 },
+				options: { max_tokens: 4096 },
 				ownerId: "owner-1",
 			},
 		});
@@ -450,7 +542,7 @@ describe("importBackup: model settings", () => {
 						endpointUrl: "https://api.openai.com",
 						provider: "openai",
 						model: "gpt-4o",
-						options: { num_ctx: 8192 },
+						options: { max_tokens: 8192 },
 					},
 				],
 			},

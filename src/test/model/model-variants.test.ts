@@ -3,91 +3,76 @@ import {
 	buildModelVariants,
 	formatModelVariantDetails,
 } from "#/routes/_authenticated/library/-lib/model-variants";
-import type { ModelTagInfo } from "#/shared/domain/model/types";
+import type { ModelVariantInfo } from "#/shared/domain/model/types";
 import { makeCatalogModel, makeHardware } from "#/test/factories";
 
-function tag({
-	tag,
+function variant({
+	quant,
 	sizeGb = null,
-	contextK = null,
+	repoId = "org/model-GGUF",
 }: {
-	tag: string;
+	quant: string;
 	sizeGb?: number | null;
-	contextK?: number | null;
-}): ModelTagInfo {
-	return { tag, digest: null, sizeGb, contextK };
+	repoId?: string;
+}): ModelVariantInfo {
+	return { quant, sizeGb, fileName: `model-${quant}.gguf`, repoId };
 }
 
 describe("buildModelVariants", () => {
-	it("selects the catalog id's exact tag and scopes the picker to that size", () => {
+	it("selects the catalog id's exact quant as current", () => {
 		const catalog = makeCatalogModel({
-			id: "llama3.1:8b",
-			name: "llama3.1",
+			id: "org/llama3.1-GGUF:Q4_K_M",
+			name: "org/llama3.1-GGUF",
 			variants: [
-				tag({ tag: "70b", sizeGb: 40 }),
-				tag({ tag: "8b-q8_0", sizeGb: 8.5 }),
-				tag({ tag: "latest", sizeGb: 4.9 }),
-				tag({ tag: "8b", sizeGb: 4.9 }),
+				variant({ quant: "Q8_0", sizeGb: 8.5, repoId: "org/llama3.1-GGUF" }),
+				variant({ quant: "Q4_K_M", sizeGb: 4.9, repoId: "org/llama3.1-GGUF" }),
 			],
 		});
 
 		const variants = buildModelVariants({ catalog, hardware: undefined });
 
-		expect(variants.initialTag).toBe("8b");
-		expect(variants.options.map((option) => option.tag)).toEqual(["8b", "8b-q8_0"]);
+		expect(variants.initialModelId).toBe("org/llama3.1-GGUF:Q4_K_M");
+		expect(variants.options.map((option) => option.quant)).toEqual(["Q4_K_M", "Q8_0"]);
 	});
 
-	it("matches a composite size tag and only its hyphenated variants", () => {
+	it("does not mark a merged-in publisher's same-named quant as current", () => {
 		const catalog = makeCatalogModel({
-			id: "qwen3:30b-a3b",
-			name: "qwen3",
+			id: "ggml-org/llama3.1-GGUF:Q4_K_M",
+			name: "ggml-org/llama3.1-GGUF",
 			variants: [
-				tag({ tag: "30b-a3b-q4_K_M", sizeGb: 18.6 }),
-				tag({ tag: "30b-q4_K_M", sizeGb: 18 }),
-				tag({ tag: "235b-a22b", sizeGb: 142 }),
-				tag({ tag: "30b-a3b", sizeGb: 18.6 }),
+				variant({ quant: "Q4_K_M", sizeGb: 4.9, repoId: "ggml-org/llama3.1-GGUF" }),
+				variant({ quant: "Q4_K_M", sizeGb: 4.8, repoId: "unsloth/llama3.1-GGUF" }),
 			],
 		});
 
 		const variants = buildModelVariants({ catalog, hardware: undefined });
 
-		expect(variants.options.map((option) => option.tag)).toEqual(["30b-a3b", "30b-a3b-q4_K_M"]);
+		const current = variants.options.filter((option) => option.isCurrent);
+		expect(current).toHaveLength(1);
+		expect(current[0]?.repoId).toBe("ggml-org/llama3.1-GGUF");
+		expect(variants.initialModelId).toBe("ggml-org/llama3.1-GGUF:Q4_K_M");
 	});
 
-	it("keeps every tag for a bare catalog id", () => {
+	it("lists every quant found in the repo, ordered current-first then by size", () => {
 		const catalog = makeCatalogModel({
-			id: "nomic-embed-text",
-			name: "nomic-embed-text",
+			id: "org/model-GGUF:Q4_K_M",
+			name: "org/model-GGUF",
 			variants: [
-				tag({ tag: "v1.5", sizeGb: 0.3 }),
-				tag({ tag: "latest", sizeGb: 0.4 }),
-				tag({ tag: "137m", sizeGb: 0.2 }),
+				variant({ quant: "F16", sizeGb: 16 }),
+				variant({ quant: "Q8_0", sizeGb: 8 }),
+				variant({ quant: "Q4_K_M", sizeGb: 4 }),
 			],
 		});
 
 		const variants = buildModelVariants({ catalog, hardware: undefined });
 
-		expect(variants.initialTag).toBe("latest");
-		expect(variants.options.map((option) => option.tag)).toEqual(["latest", "137m", "v1.5"]);
+		expect(variants.options.map((option) => option.quant)).toEqual(["Q4_K_M", "Q8_0", "F16"]);
 	});
 
-	it("keeps every tag when the catalog's own tag is missing from the scrape", () => {
+	it("synthesizes a single option from the catalog row when no variants were fetched", () => {
 		const catalog = makeCatalogModel({
-			id: "gemma3:7b",
-			name: "gemma3",
-			variants: [tag({ tag: "27b", sizeGb: 17 }), tag({ tag: "12b", sizeGb: 8 })],
-		});
-
-		const variants = buildModelVariants({ catalog, hardware: undefined });
-
-		expect(variants.initialTag).toBe("12b");
-		expect(variants.options.map((option) => option.tag)).toEqual(["12b", "27b"]);
-	});
-
-	it("synthesizes the catalog variant and its metadata when enrichment has no tags", () => {
-		const catalog = makeCatalogModel({
-			id: "llama3.1:8b",
-			name: "llama3.1",
+			id: "org/llama3.1-GGUF:Q4_K_M",
+			name: "org/llama3.1-GGUF",
 			paramB: 8,
 			sizeGb: 4.9,
 			contextK: 128,
@@ -98,38 +83,40 @@ describe("buildModelVariants", () => {
 
 		expect(variants.options).toEqual([
 			{
-				tag: "8b",
-				modelId: "llama3.1:8b",
+				quant: "Q4_K_M",
+				modelId: "org/llama3.1-GGUF:Q4_K_M",
 				sizeGb: 4.9,
 				contextK: 128,
 				estimatedMemoryGb: 6.6,
 				fit: null,
 				isCurrent: true,
+				repoId: "org/llama3.1-GGUF",
+				isSameRepoAsPrimary: true,
 			},
 		]);
 	});
 
-	it("orders the current tag first, then by size, then by tag", () => {
+	it("orders the current quant first, then by size, then alphabetically", () => {
 		const catalog = makeCatalogModel({
-			id: "model:7b",
-			name: "model",
+			id: "org/model-GGUF:Q4_K_M",
+			name: "org/model-GGUF",
 			variants: [
-				tag({ tag: "7b-z", sizeGb: null }),
-				tag({ tag: "7b-b", sizeGb: 8 }),
-				tag({ tag: "7b-small", sizeGb: 3 }),
-				tag({ tag: "7b", sizeGb: 4 }),
-				tag({ tag: "7b-a", sizeGb: 8 }),
+				variant({ quant: "IQ4_XS", sizeGb: null }),
+				variant({ quant: "Q8_0", sizeGb: 8 }),
+				variant({ quant: "Q3_K_S", sizeGb: 3 }),
+				variant({ quant: "Q4_K_M", sizeGb: 4 }),
+				variant({ quant: "Q4_0", sizeGb: 8 }),
 			],
 		});
 
 		const variants = buildModelVariants({ catalog, hardware: undefined });
 
-		expect(variants.options.map((option) => option.tag)).toEqual([
-			"7b",
-			"7b-small",
-			"7b-a",
-			"7b-b",
-			"7b-z",
+		expect(variants.options.map((option) => option.quant)).toEqual([
+			"Q4_K_M",
+			"Q3_K_S",
+			"Q4_0",
+			"Q8_0",
+			"IQ4_XS",
 		]);
 		expect(variants.groups).toEqual([
 			{ id: "variants", label: "Variants", options: variants.options },
@@ -138,14 +125,15 @@ describe("buildModelVariants", () => {
 
 	it("groups known fits, oversized variants, and unknown estimates in a stable order", () => {
 		const catalog = makeCatalogModel({
-			id: "model",
-			name: "model",
+			id: "org/model-GGUF:Q4_K_M",
+			name: "org/model-GGUF",
 			paramB: null,
+			contextK: 128,
 			variants: [
-				tag({ tag: "unknown" }),
-				tag({ tag: "large", sizeGb: 10, contextK: 32 }),
-				tag({ tag: "latest", sizeGb: 2, contextK: 128 }),
-				tag({ tag: "small", sizeGb: 4 }),
+				variant({ quant: "unknown" }),
+				variant({ quant: "large", sizeGb: 10 }),
+				variant({ quant: "Q4_K_M", sizeGb: 2 }),
+				variant({ quant: "small", sizeGb: 4 }),
 			],
 		});
 		const hardware = makeHardware({ freeRamGb: 8, gpus: null });
@@ -157,13 +145,13 @@ describe("buildModelVariants", () => {
 			"may-be-too-large",
 			"size-unknown",
 		]);
-		expect(variants.groups.map((group) => group.options.map((option) => option.tag))).toEqual([
-			["latest", "small"],
+		expect(variants.groups.map((group) => group.options.map((option) => option.quant))).toEqual([
+			["Q4_K_M", "small"],
 			["large"],
 			["unknown"],
 		]);
-		expect(variants.options.find((option) => option.tag === "latest")).toMatchObject({
-			modelId: "model:latest",
+		expect(variants.options.find((option) => option.quant === "Q4_K_M")).toMatchObject({
+			modelId: "org/model-GGUF:Q4_K_M",
 			sizeGb: 2,
 			contextK: 128,
 			estimatedMemoryGb: 3.3,
@@ -174,8 +162,8 @@ describe("buildModelVariants", () => {
 	it("formats known option facts and falls back when none are available", () => {
 		const detailed = buildModelVariants({
 			catalog: makeCatalogModel({
-				id: "model:8b",
-				name: "model",
+				id: "org/model-GGUF:Q4_K_M",
+				name: "org/model-GGUF",
 				paramB: 8,
 				sizeGb: 4.9,
 				contextK: 128,
@@ -185,8 +173,8 @@ describe("buildModelVariants", () => {
 		}).options[0];
 		const unavailable = buildModelVariants({
 			catalog: makeCatalogModel({
-				id: "model:unknown",
-				name: "model",
+				id: "org/model-GGUF:unknown",
+				name: "org/model-GGUF",
 				paramB: null,
 				sizeGb: null,
 				contextK: null,
@@ -200,5 +188,52 @@ describe("buildModelVariants", () => {
 			"4.9 GB download · 128K context · ~6.6 GB memory",
 		);
 		expect(formatModelVariantDetails(unavailable)).toBe("Details unavailable");
+	});
+
+	it("prefers a lazily-fetched variants override over the catalog's own list", () => {
+		const catalog = makeCatalogModel({
+			id: "ggml-org/model-GGUF:Q4_K_M",
+			name: "ggml-org/model-GGUF",
+			variants: [variant({ quant: "Q4_K_M", sizeGb: 4, repoId: "ggml-org/model-GGUF" })],
+		});
+
+		const variants = buildModelVariants({
+			catalog,
+			hardware: undefined,
+			variants: [
+				variant({ quant: "Q4_K_M", sizeGb: 4, repoId: "ggml-org/model-GGUF" }),
+				variant({ quant: "Q8_0", sizeGb: 8, repoId: "unsloth/model-GGUF" }),
+			],
+		});
+
+		expect(variants.options.map((option) => option.quant)).toEqual(["Q4_K_M", "Q8_0"]);
+		const fromSibling = variants.options.find((option) => option.quant === "Q8_0");
+		expect(fromSibling).toMatchObject({ repoId: "unsloth/model-GGUF", isSameRepoAsPrimary: false });
+	});
+
+	it("keeps a merged-in variant's own repo, so its pull target isn't the winning repo's", () => {
+		const catalog = makeCatalogModel({
+			id: "ggml-org/model-GGUF:Q4_K_M",
+			name: "ggml-org/model-GGUF",
+			variants: [
+				variant({ quant: "Q4_K_M", sizeGb: 4, repoId: "ggml-org/model-GGUF" }),
+				// Merged from a losing dedupe candidate; only that repo has this quant.
+				variant({ quant: "Q8_0", sizeGb: 8, repoId: "unsloth/model-GGUF" }),
+			],
+		});
+
+		const variants = buildModelVariants({ catalog, hardware: undefined });
+
+		const winning = variants.options.find((option) => option.quant === "Q4_K_M");
+		const mergedIn = variants.options.find((option) => option.quant === "Q8_0");
+		expect(winning).toMatchObject({
+			modelId: "ggml-org/model-GGUF:Q4_K_M",
+			isSameRepoAsPrimary: true,
+		});
+		expect(mergedIn).toMatchObject({
+			modelId: "unsloth/model-GGUF:Q8_0",
+			repoId: "unsloth/model-GGUF",
+			isSameRepoAsPrimary: false,
+		});
 	});
 });

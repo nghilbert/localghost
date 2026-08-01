@@ -29,6 +29,19 @@ describe("isPrivateAddress", () => {
 	it("allows a public IPv6 address", () => {
 		expect(isPrivateAddress("2606:4700:4700::1111")).toBe(false);
 	});
+
+	it("flags an IPv4-mapped IPv6 address by its embedded IPv4 range", () => {
+		expect(isPrivateAddress("::ffff:127.0.0.1")).toBe(true);
+		expect(isPrivateAddress("::ffff:10.0.0.5")).toBe(true);
+	});
+
+	it("allows an IPv4-mapped IPv6 address with a public embedded address", () => {
+		expect(isPrivateAddress("::ffff:93.184.216.34")).toBe(false);
+	});
+
+	it("treats a malformed ::ffff: mapping as private rather than letting it through", () => {
+		expect(isPrivateAddress("::ffff:not-an-ip")).toBe(true);
+	});
 });
 
 describe("assertPublicAddresses", () => {

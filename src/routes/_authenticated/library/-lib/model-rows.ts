@@ -1,40 +1,43 @@
-import type { CatalogModel, OllamaInstalledModel, PullProgress } from "#/shared/domain/model/types";
-import { normalizeModelId } from "#/shared/lib/utils";
+import type { CatalogCapability } from "#/shared/domain/model/schemas";
+import type { CatalogModel, InstalledModel, PullProgress } from "#/shared/domain/model/types";
 
 export type ModelRow = {
 	id: string;
 	name: string;
 	catalog: CatalogModel | null;
-	installed: OllamaInstalledModel | null;
+	installed: InstalledModel | null;
 	pullState: PullProgress | undefined;
 };
 
-/**
- * Unions the catalog with installed models and in-flight pulls into one row per
- * model id; the single source of rows for the Library table. Off-catalog
- * installs still surface, carrying Ollama's own metadata.
+/** Builds Library rows from the catalog page, installed models, and downloads.
+ * `catalogById` enriches off-page rows; `includeOffPageInstalled` controls whether
+ * installed and downloading models outside the current catalog page are included.
  */
 export function buildModelRows({
-	catalog,
+	catalogPage,
+	catalogById,
 	installedModels,
 	pulling,
+	includeOffPageInstalled,
 }: {
-	catalog: CatalogModel[];
-	installedModels: OllamaInstalledModel[];
+	catalogPage: CatalogModel[];
+	catalogById: Map<string, CatalogModel>;
+	installedModels: InstalledModel[];
 	pulling: Record<string, PullProgress>;
+	includeOffPageInstalled: boolean;
 }): ModelRow[] {
-	const catalogById = new Map(catalog.map((model) => [normalizeModelId(model.id), model]));
-	const installedById = new Map(installedModels.map((m) => [normalizeModelId(m.name), m]));
-	// Pulls are keyed by the exact string the pull started with (`llama3.1:latest`),
-	// so normalize here too or a `:latest` pull never reaches its row.
-	const pullingById = new Map(
-		Object.entries(pulling).map(([model, state]) => [normalizeModelId(model), state]),
-	);
+	const catalogPageById = new Map(catalogPage.map((model) => [model.id, model]));
+	const installedById = new Map(installedModels.map((m) => [m.id, m]));
+	const pullingById = new Map(Object.entries(pulling));
 
-	const ids = new Set([...catalogById.keys(), ...installedById.keys(), ...pullingById.keys()]);
+	const ids = new Set(catalogPageById.keys());
+	if (includeOffPageInstalled) {
+		for (const id of installedById.keys()) ids.add(id);
+		for (const id of pullingById.keys()) ids.add(id);
+	}
 
 	return [...ids].map((id) => {
-		const model = catalogById.get(id) ?? null;
+		const model = catalogPageById.get(id) ?? catalogById.get(id) ?? null;
 		return {
 			id,
 			name: model?.name ?? id,
@@ -43,4 +46,26 @@ export function buildModelRows({
 			pullState: pullingById.get(id),
 		};
 	});
+}
+
+/** Whether a row matches the selected catalog facets. */
+export function matchesModelFacets({
+	row,
+	licenses,
+	capabilities,
+}: {
+	row: ModelRow;
+	licenses: string[];
+	capabilities: CatalogCapability[];
+}): boolean {
+	if (licenses.length === 0 && capabilities.length === 0) return true;
+	const catalog = row.catalog;
+	if (!catalog) return false;
+	if (licenses.length > 0 && (catalog.license === null || !licenses.includes(catalog.license))) {
+		return false;
+	}
+	return (
+		capabilities.length === 0 ||
+		capabilities.some((capability) => catalog.tags.includes(capability))
+	);
 }

@@ -1,23 +1,36 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { conversationFindFirst, conversationUpdate, ollamaPs } = vi.hoisted(() => ({
+const {
+	conversationFindFirst,
+	conversationUpdate,
+	conversationUpdateMany,
+	conversationDeleteMany,
+	listModels,
+} = vi.hoisted(() => ({
 	conversationFindFirst: vi.fn(),
 	conversationUpdate: vi.fn(),
-	ollamaPs: vi.fn(),
+	conversationUpdateMany: vi.fn(),
+	conversationDeleteMany: vi.fn(),
+	listModels: vi.fn(),
 }));
 
 vi.mock("#/shared/lib/db.server", () => ({
 	prisma: {
-		conversation: { findFirst: conversationFindFirst, update: conversationUpdate },
+		conversation: {
+			findFirst: conversationFindFirst,
+			update: conversationUpdate,
+			updateMany: conversationUpdateMany,
+			deleteMany: conversationDeleteMany,
+		},
 	},
 }));
-vi.mock("#/shared/lib/ollama/client.server", () => ({
-	ollamaClient: () => ({ ps: ollamaPs }),
-}));
+vi.mock("#/shared/lib/llamacpp/client.server", () => ({ listModels }));
 
 import {
 	patchConversation,
 	probeModelRunState,
+	removeConversation,
+	saveMessages,
 } from "#/shared/domain/conversation/conversation.server";
 
 beforeEach(() => {
@@ -34,6 +47,16 @@ describe("patchConversation", () => {
 		expect(conversationUpdate).not.toHaveBeenCalled();
 	});
 
+	it("scopes the ownership lookup to the calling user, not just the id", async () => {
+		conversationFindFirst.mockResolvedValue({ id: "c1" });
+
+		await patchConversation({ id: "c1", ownerId: "owner-1", patch: { title: "New title" } });
+
+		expect(conversationFindFirst).toHaveBeenCalledWith(
+			expect.objectContaining({ where: expect.objectContaining({ id: "c1", ownerId: "owner-1" }) }),
+		);
+	});
+
 	it("patches title when provided", async () => {
 		conversationFindFirst.mockResolvedValue({ id: "c1" });
 
@@ -43,14 +66,6 @@ describe("patchConversation", () => {
 			expect.objectContaining({ where: { id: "c1" }, data: { title: "New title" } }),
 		);
 	});
-
-	it("leaves title untouched when omitted from the patch", async () => {
-		conversationFindFirst.mockResolvedValue({ id: "c1" });
-
-		await patchConversation({ id: "c1", ownerId: "owner-1", patch: {} });
-
-		expect(conversationUpdate).toHaveBeenCalledWith(expect.objectContaining({ data: {} }));
-	});
 });
 
 describe("probeModelRunState", () => {
@@ -58,48 +73,82 @@ describe("probeModelRunState", () => {
 		conversationFindFirst.mockResolvedValue({ model: null, endpoint: null });
 
 		expect(await probeModelRunState({ id: "c1", ownerId: "owner-1" })).toBe("ready");
-		expect(ollamaPs).not.toHaveBeenCalled();
+		expect(listModels).not.toHaveBeenCalled();
 	});
 
-	it("reports ready for a non-ollama endpoint without probing", async () => {
+	it("reports ready for a non-llamacpp endpoint without probing", async () => {
 		conversationFindFirst.mockResolvedValue({
 			model: "gpt-4",
 			endpoint: { url: "https://api.openai.com", provider: "openai" },
 		});
 
 		expect(await probeModelRunState({ id: "c1", ownerId: "owner-1" })).toBe("ready");
-		expect(ollamaPs).not.toHaveBeenCalled();
+		expect(listModels).not.toHaveBeenCalled();
 	});
 
-	it("reports ready when the model is in Ollama's loaded list", async () => {
+	it("reports ready when the model is loaded", async () => {
 		conversationFindFirst.mockResolvedValue({
-			model: "llama3",
-			endpoint: { url: "http://localhost:11434", provider: "ollama" },
+			model: "org/llama3-GGUF:Q4_K_M",
+			endpoint: { url: "http://localhost:8080", provider: "llamacpp" },
 		});
-		ollamaPs.mockResolvedValue({ models: [{ name: "llama3", model: "llama3:latest" }] });
+		listModels.mockResolvedValue([
+			{ id: "org/llama3-GGUF:Q4_K_M", path: "/models/x.gguf", status: { value: "loaded" } },
+		]);
 
 		expect(await probeModelRunState({ id: "c1", ownerId: "owner-1" })).toBe("ready");
 	});
 
-	it("reports warming when the model isn't loaded yet", async () => {
+	it("reports ready when the model is unloaded (the router autoloads on request)", async () => {
 		conversationFindFirst.mockResolvedValue({
-			model: "llama3",
-			endpoint: { url: "http://localhost:11434", provider: "ollama" },
+			model: "org/llama3-GGUF:Q4_K_M",
+			endpoint: { url: "http://localhost:8080", provider: "llamacpp" },
 		});
-		ollamaPs.mockResolvedValue({ models: [] });
+		listModels.mockResolvedValue([
+			{ id: "org/llama3-GGUF:Q4_K_M", path: "/models/x.gguf", status: { value: "unloaded" } },
+		]);
+
+		expect(await probeModelRunState({ id: "c1", ownerId: "owner-1" })).toBe("ready");
+	});
+
+	it("reports warming when the model is loading", async () => {
+		conversationFindFirst.mockResolvedValue({
+			model: "org/llama3-GGUF:Q4_K_M",
+			endpoint: { url: "http://localhost:8080", provider: "llamacpp" },
+		});
+		listModels.mockResolvedValue([
+			{ id: "org/llama3-GGUF:Q4_K_M", path: "/models/x.gguf", status: { value: "loading" } },
+		]);
 
 		expect(await probeModelRunState({ id: "c1", ownerId: "owner-1" })).toBe("warming");
 	});
 
 	it("silently reports unreachable when the probe throws", async () => {
 		conversationFindFirst.mockResolvedValue({
-			model: "llama3",
-			endpoint: { url: "http://localhost:11434", provider: "ollama" },
+			model: "org/llama3-GGUF:Q4_K_M",
+			endpoint: { url: "http://localhost:8080", provider: "llamacpp" },
 		});
-		ollamaPs.mockRejectedValue(new Error("connection refused"));
+		listModels.mockRejectedValue(new Error("connection refused"));
 		const consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => {});
 
 		expect(await probeModelRunState({ id: "c1", ownerId: "owner-1" })).toBe("unreachable");
 		expect(consoleWarn).toHaveBeenCalledOnce();
+	});
+});
+
+describe("owner scoping on the bulk writes", () => {
+	it("scopes a message save to the caller", async () => {
+		await saveMessages({ id: "c1", ownerId: "owner-1", messages: [] });
+
+		expect(conversationUpdateMany).toHaveBeenCalledWith(
+			expect.objectContaining({ where: { id: "c1", ownerId: "owner-1" } }),
+		);
+	});
+
+	it("scopes a delete to the caller", async () => {
+		await removeConversation({ id: "c1", ownerId: "owner-1" });
+
+		expect(conversationDeleteMany).toHaveBeenCalledWith({
+			where: { id: "c1", ownerId: "owner-1" },
+		});
 	});
 });

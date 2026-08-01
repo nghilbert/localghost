@@ -1,16 +1,25 @@
-import type { CatalogModel, HardwareInfo, ModelTagInfo } from "#/shared/domain/model/types";
-import { availableMemoryGb, requiredMemoryGb } from "./catalog";
+import {
+	availableMemoryGb,
+	requiredMemoryGb,
+	totalMemoryGb,
+} from "#/shared/domain/model/hardware-fit";
+import type { CatalogModel, HardwareInfo, ModelVariantInfo } from "#/shared/domain/model/types";
+import { formatBytes } from "#/shared/lib/format";
 
-export type ModelVariantFit = "likely-fits" | "may-be-too-large" | "size-unknown";
+export type ModelVariantFit = "likely-fits" | "may-be-too-large" | "wont-fit" | "size-unknown";
 
 export type ModelVariantOption = {
-	tag: string;
+	quant: string;
 	modelId: string;
 	sizeGb: number | null;
 	contextK: number | null;
 	estimatedMemoryGb: number | null;
 	fit: ModelVariantFit | null;
 	isCurrent: boolean;
+	/** The Hugging Face repo this quant actually lives in. */
+	repoId: string;
+	/** False when this quant was merged in from a different (losing dedupe) repo. */
+	isSameRepoAsPrimary: boolean;
 };
 
 export type ModelVariantGroupId = ModelVariantFit | "variants";
@@ -22,7 +31,8 @@ export type ModelVariantGroup = {
 };
 
 export type ModelVariants = {
-	initialTag: string;
+	/** The default selection: a specific repo+quant pair, since the same quant can come from more than one publisher. */
+	initialModelId: string;
 	options: ModelVariantOption[];
 	groups: ModelVariantGroup[];
 };
@@ -30,51 +40,33 @@ export type ModelVariants = {
 const HARDWARE_GROUPS: { id: ModelVariantFit; label: string }[] = [
 	{ id: "likely-fits", label: "Likely fits" },
 	{ id: "may-be-too-large", label: "May be too large" },
+	{ id: "wont-fit", label: "Won't fit" },
 	{ id: "size-unknown", label: "Size unknown" },
 ];
 
-/** The tag a catalog row pins, e.g. "8b" for `llama3.1:8b`; a bare id means `latest`. */
-function catalogTag(catalog: CatalogModel): { isBare: boolean; tag: string } {
-	const colon = catalog.id.indexOf(":");
-	if (colon === -1) return { isBare: true, tag: "latest" };
-	return { isBare: false, tag: catalog.id.slice(colon + 1) || "latest" };
+/**
+ * The exact repo+quant a catalog row pins, e.g. `{ repoId: "ggml-org/gemma-3-4b-it-GGUF", quant: "Q4_K_M" }`.
+ * Two publishers can share a quant name, so matching quant alone would mark both "current".
+ */
+function catalogVariantKey(catalog: CatalogModel): { repoId: string; quant: string } {
+	const colon = catalog.id.lastIndexOf(":");
+	return colon === -1
+		? { repoId: catalog.id, quant: "latest" }
+		: { repoId: catalog.id.slice(0, colon), quant: catalog.id.slice(colon + 1) };
 }
 
 function sourceVariants({
 	catalog,
-	currentTag,
+	currentQuant,
+	variants,
 }: {
 	catalog: CatalogModel;
-	currentTag: string;
-}): ModelTagInfo[] {
-	if (!catalog.variants || catalog.variants.length === 0) {
-		return [{ tag: currentTag, digest: null, sizeGb: catalog.sizeGb, contextK: catalog.contextK }];
-	}
-	const byTag = new Map<string, ModelTagInfo>();
-	for (const variant of catalog.variants) {
-		if (!byTag.has(variant.tag)) byTag.set(variant.tag, variant);
-	}
-	return [...byTag.values()];
-}
-
-/**
- * A catalog row is one model size, so its picker offers that size only: the row's own tag plus
- * its quantization variants (`8b`, `8b-q4_K_M`, …). A bare id pins no size, so it offers all tags,
- * as does a row whose tag the scrape never saw (scoping to it would leave nothing to pick).
- */
-function scopedVariants({
-	variants,
-	currentTag,
-	isBare,
-}: {
-	variants: ModelTagInfo[];
-	currentTag: string;
-	isBare: boolean;
-}): ModelTagInfo[] {
-	if (isBare || !variants.some((variant) => variant.tag === currentTag)) return variants;
-	return variants.filter(
-		(variant) => variant.tag === currentTag || variant.tag.startsWith(`${currentTag}-`),
-	);
+	currentQuant: string;
+	variants: ModelVariantInfo[] | undefined;
+}): ModelVariantInfo[] {
+	if (variants && variants.length > 0) return variants;
+	if (catalog.variants && catalog.variants.length > 0) return catalog.variants;
+	return [{ quant: currentQuant, sizeGb: catalog.sizeGb, fileName: "", repoId: catalog.name }];
 }
 
 function compareOptions({
@@ -90,7 +82,7 @@ function compareOptions({
 		if (right.sizeGb === null) return -1;
 		return left.sizeGb - right.sizeGb;
 	}
-	return left.tag.localeCompare(right.tag, undefined, { numeric: true });
+	return left.quant.localeCompare(right.quant, undefined, { numeric: true });
 }
 
 function variantFit({
@@ -102,7 +94,8 @@ function variantFit({
 }): ModelVariantFit | null {
 	if (!hardware) return null;
 	if (estimatedMemoryGb === null) return "size-unknown";
-	return estimatedMemoryGb <= availableMemoryGb(hardware) ? "likely-fits" : "may-be-too-large";
+	if (estimatedMemoryGb <= availableMemoryGb(hardware)) return "likely-fits";
+	return estimatedMemoryGb <= totalMemoryGb(hardware) ? "may-be-too-large" : "wont-fit";
 }
 
 function groupOptions({
@@ -123,9 +116,11 @@ function groupOptions({
 /** Formats a variant's known download, context, and memory facts. */
 export function formatModelVariantDetails(option: ModelVariantOption): string {
 	const details: string[] = [];
-	if (option.sizeGb !== null) details.push(`${option.sizeGb} GB download`);
+	if (option.sizeGb !== null) details.push(`${formatBytes(option.sizeGb * 1e9)} download`);
 	if (option.contextK !== null) details.push(`${option.contextK}K context`);
-	if (option.estimatedMemoryGb !== null) details.push(`~${option.estimatedMemoryGb} GB memory`);
+	if (option.estimatedMemoryGb !== null) {
+		details.push(`~${formatBytes(option.estimatedMemoryGb * 1e9)} memory`);
+	}
 	return details.length > 0 ? details.join(" · ") : "Details unavailable";
 }
 
@@ -133,34 +128,38 @@ export function formatModelVariantDetails(option: ModelVariantOption): string {
 export function buildModelVariants({
 	catalog,
 	hardware,
+	variants,
 }: {
 	catalog: CatalogModel;
 	hardware: HardwareInfo | undefined;
+	/** A lazily-fetched cross-publisher variant list, preferred over `catalog.variants` when present. */
+	variants?: ModelVariantInfo[];
 }): ModelVariants {
-	const { tag: currentTag, isBare } = catalogTag(catalog);
-	const options = scopedVariants({
-		variants: sourceVariants({ catalog, currentTag }),
-		currentTag,
-		isBare,
-	})
+	const current = catalogVariantKey(catalog);
+	const options = sourceVariants({ catalog, currentQuant: current.quant, variants })
 		.map<ModelVariantOption>((variant) => {
-			const isCurrent = variant.tag === currentTag;
+			const isCurrent = variant.repoId === current.repoId && variant.quant === current.quant;
 			const sizeGb = variant.sizeGb ?? (isCurrent ? catalog.sizeGb : null);
 			const estimatedMemoryGb = requiredMemoryGb({ sizeGb, paramB: catalog.paramB });
 			return {
-				tag: variant.tag,
-				modelId: `${catalog.name}:${variant.tag}`,
+				quant: variant.quant,
+				modelId: `${variant.repoId}:${variant.quant}`,
 				sizeGb,
-				contextK: variant.contextK ?? (isCurrent ? catalog.contextK : null),
+				contextK: isCurrent ? catalog.contextK : null,
 				estimatedMemoryGb,
 				fit: variantFit({ estimatedMemoryGb, hardware }),
 				isCurrent,
+				repoId: variant.repoId,
+				isSameRepoAsPrimary: variant.repoId === catalog.name,
 			};
 		})
 		.sort((left, right) => compareOptions({ left, right }));
 
 	return {
-		initialTag: options.find((option) => option.isCurrent)?.tag ?? options[0]?.tag ?? currentTag,
+		initialModelId:
+			options.find((option) => option.isCurrent)?.modelId ??
+			options[0]?.modelId ??
+			`${current.repoId}:${current.quant}`,
 		options,
 		groups: groupOptions({ options, hardware }),
 	};

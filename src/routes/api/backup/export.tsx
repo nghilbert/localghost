@@ -1,17 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { auth } from "#/shared/lib/auth.server";
+import { authedRequest } from "#/shared/lib/middleware";
 import { exportBackup } from "./-backup.server";
 
 export const Route = createFileRoute("/api/backup/export")({
 	server: {
+		middleware: [authedRequest],
 		handlers: {
-			GET: async ({ request }) => {
-				const session = await auth.api.getSession({ headers: request.headers });
-				if (!session) return new Response("Unauthorized", { status: 401 });
-
+			GET: async ({ context }) => {
 				const payload = await exportBackup({
-					userId: session.user.id,
-					email: session.user.email,
+					userId: context.userId,
+					email: context.userEmail,
 				});
 
 				const filename = `localghost-backup-${new Date().toISOString().slice(0, 10)}.json`;

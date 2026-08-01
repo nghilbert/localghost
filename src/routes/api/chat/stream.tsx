@@ -12,12 +12,13 @@ import { buildChatSystemPrompt } from "#/shared/domain/chat/system-prompt";
 import { findConversationWithEndpoint } from "#/shared/domain/conversation/conversation.server";
 import { historyBudgetTokens, trimHistory } from "#/shared/domain/conversation/messages";
 import { endpointApiKey } from "#/shared/domain/endpoint/endpoint.server";
-import { ollamaOptionsSchema } from "#/shared/domain/endpoint/schemas";
+import { samplingOptionsSchema } from "#/shared/domain/endpoint/schemas";
+import { getContextWindow } from "#/shared/domain/model/runtime-metadata.server";
 import { getModelSetting } from "#/shared/domain/model-setting/model-setting.server";
 import { findUserSettings } from "#/shared/domain/user-settings/user-settings.server";
-import { auth } from "#/shared/lib/auth.server";
 import { BodyTooLargeError, readJsonWithLimit } from "#/shared/lib/http.server";
 import { asLLMProvider, streamLLMEvents } from "#/shared/lib/llm.server";
+import { authedRequest } from "#/shared/lib/middleware";
 
 // Roomy enough for a trimmed history carrying image attachments as data URLs.
 const MAX_BODY_BYTES = 64 * 1024 * 1024;
@@ -29,12 +30,9 @@ const MAX_BODY_BYTES = 64 * 1024 * 1024;
  */
 export const Route = createFileRoute("/api/chat/stream")({
 	server: {
+		middleware: [authedRequest],
 		handlers: {
-			POST: async ({ request }) => {
-				const session = await auth.api.getSession({ headers: request.headers });
-				if (!session) return new Response("Unauthorized", { status: 401 });
-				const userId = session.user.id;
-
+			POST: async ({ request, context: { userId } }) => {
 				let body: unknown;
 				try {
 					body = await readJsonWithLimit({ request, maxBytes: MAX_BODY_BYTES });
@@ -61,7 +59,7 @@ export const Route = createFileRoute("/api/chat/stream")({
 				// (systemPrompt, temperature) < per-endpoint options < per-model options.
 				const userSettings = await findUserSettings({ ownerId: userId });
 				const tools = buildChatTools({ ownerId: userId, enabledTools });
-				const endpointOptions = ollamaOptionsSchema.safeParse(endpoint.options);
+				const endpointOptions = samplingOptionsSchema.safeParse(endpoint.options);
 				const modelOptions = await getModelSetting({
 					endpointId: endpoint.id,
 					model: conversation.model,
@@ -72,6 +70,12 @@ export const Route = createFileRoute("/api/chat/stream")({
 					endpointOptions: endpointOptions.success ? endpointOptions.data : undefined,
 					modelOptions,
 				});
+				// llama.cpp reports its real context window live; cloud providers fall
+				// back to message-count bounding (their windows are large/unknown here).
+				const nCtx =
+					endpoint.provider === "llamacpp"
+						? await getContextWindow({ url: endpoint.url, model: conversation.model })
+						: undefined;
 
 				// One controller cancels the whole run: `toServerSentEventsResponse`
 				// fires it when the client drops the SSE connection, and `chat()`
@@ -88,12 +92,9 @@ export const Route = createFileRoute("/api/chat/stream")({
 					model: conversation.model,
 					// `chat()` accepts the wire messages as-is and converts internally.
 					// Trim to the resolved context budget so a long transcript can't push
-					// the system prompt out of the window (Ollama truncates from the top).
+					// the system prompt out of the window.
 					messages: trimHistory(params.messages, {
-						historyBudgetTokens: historyBudgetTokens({
-							provider: endpoint.provider,
-							options: generationOptions.options,
-						}),
+						historyBudgetTokens: historyBudgetTokens({ nCtx, options: generationOptions.options }),
 					}),
 					systemPrompt: buildChatSystemPrompt({
 						userPrompt: userSettings.systemPrompt,

@@ -1,6 +1,5 @@
 import type { z } from "zod/v4";
 import { prisma } from "#/shared/lib/db.server";
-import { normalizeModelId } from "#/shared/lib/utils";
 import type { perModelOptionsSchema } from "./schemas";
 
 /** The saved per-model overrides, or null when the model has none. */
@@ -13,9 +12,7 @@ export async function getModelSetting({
 	model: string;
 	ownerId: string;
 }) {
-	const setting = await prisma.modelSetting.findFirst({
-		where: { endpointId, model: normalizeModelId(model), ownerId },
-	});
+	const setting = await prisma.modelSetting.findFirst({ where: { endpointId, model, ownerId } });
 	return setting?.options as z.infer<typeof perModelOptionsSchema> | null | undefined;
 }
 
@@ -35,7 +32,12 @@ export async function listModelSettings({ ownerId }: { ownerId: string }) {
 	});
 }
 
-/** Creates or replaces a model's saved overrides. */
+/**
+ * Creates or replaces a model's saved overrides.
+ * @throws If the endpoint isn't owned by the user. The unique key this upserts
+ * on is `(endpointId, model)`, which carries no owner, so the caller's claim to
+ * the endpoint has to be checked before the write rather than inside it.
+ */
 export async function upsertModelSetting({
 	endpointId,
 	model,
@@ -47,10 +49,11 @@ export async function upsertModelSetting({
 	options: z.infer<typeof perModelOptionsSchema>;
 	ownerId: string;
 }) {
-	const normalized = normalizeModelId(model);
+	const owned = await prisma.endpoint.count({ where: { id: endpointId, ownerId } });
+	if (owned === 0) throw new Error("Not found");
 	await prisma.modelSetting.upsert({
-		where: { endpointId_model: { endpointId, model: normalized } },
-		create: { endpointId, model: normalized, options, ownerId },
+		where: { endpointId_model: { endpointId, model } },
+		create: { endpointId, model, options, ownerId },
 		update: { options },
 	});
 }
@@ -65,7 +68,5 @@ export async function deleteModelSetting({
 	model: string;
 	ownerId: string;
 }) {
-	await prisma.modelSetting.deleteMany({
-		where: { endpointId, model: normalizeModelId(model), ownerId },
-	});
+	await prisma.modelSetting.deleteMany({ where: { endpointId, model, ownerId } });
 }

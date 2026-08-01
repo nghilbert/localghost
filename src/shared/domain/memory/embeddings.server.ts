@@ -27,11 +27,8 @@ function parseOpenAIEmbedding(json: unknown): number[] | undefined {
 	return embedding && embedding.length > 0 ? embedding : undefined;
 }
 
-/**
- * Builds an OpenAI-compatible embedding config: Bearer auth and the `{ input,
- * model }` body shape shared by openai/openrouter/groq/ollama and Gemini's
- * OpenAI-compat surface. `stripSuffix` removes the path suffix the endpoint URL
- * may already carry so it isn't doubled onto `path`.
+/** Builds an OpenAI-compatible embedding config.
+ * `stripSuffix` avoids duplicating a path suffix already present in the endpoint URL.
  */
 function openAICompatibleEmbedding({
 	model,
@@ -66,10 +63,11 @@ function openAICompatibleEmbedding({
  */
 export function embeddingConfigFor(provider: LLMProvider | undefined): EmbeddingConfig | null {
 	switch (provider) {
-		case "ollama":
-			// A small, widely-pulled local embedding model; not the chat model.
+		case "llamacpp":
+			// A small embedding GGUF; the router auto-downloads it on first use,
+			// same as any other model. Not the chat model.
 			return openAICompatibleEmbedding({
-				model: "nomic-embed-text",
+				model: "ggml-org/embeddinggemma-300M-GGUF:Q8_0",
 				path: "/v1/embeddings",
 				stripSuffix: /\/v1$/,
 			});

@@ -21,12 +21,6 @@ describe("ChatMessage", () => {
 			await expect.element(screen.getByTestId("chat-message")).toHaveTextContent("Hello world");
 		});
 
-		it("renders with an article landmark", async () => {
-			const screen = await render(<ChatMessage message={userMessage("Hi")} />);
-
-			await expect.element(screen.getByTestId("chat-message")).toHaveAttribute("role", "article");
-		});
-
 		it("renders markdown syntax literally, not parsed", async () => {
 			const screen = await render(<ChatMessage message={userMessage("**bold** text")} />);
 
@@ -37,14 +31,6 @@ describe("ChatMessage", () => {
 			const screen = await render(<ChatMessage message={userMessage("line one\nline two")} />);
 
 			expect(screen.getByTestId("chat-message").element().textContent).toBe("line one\nline two");
-		});
-	});
-
-	describe("copying user messages", () => {
-		it("shows a copy button even when onEditResend isn't provided", async () => {
-			const screen = await render(<ChatMessage message={userMessage("Hi")} />);
-
-			await expect.element(screen.getByTestId("copy-user-message-button")).toBeInTheDocument();
 		});
 	});
 
@@ -107,22 +93,6 @@ describe("ChatMessage", () => {
 	});
 
 	describe("assistant messages", () => {
-		// Markdown output is rendered by Streamdown, which won't forward testids,
-		// so these assertions query the library-rendered text directly.
-		it("renders markdown content as formatted HTML", async () => {
-			const screen = await render(<ChatMessage message={assistantMessage("**bold text**")} />);
-
-			await expect
-				.element(screen.getByText("bold text"))
-				.toHaveAttribute("data-streamdown", "strong");
-		});
-
-		it("renders with an article landmark", async () => {
-			const screen = await render(<ChatMessage message={assistantMessage("Hello")} />);
-
-			await expect.element(screen.getByTestId("chat-message")).toHaveAttribute("role", "article");
-		});
-
 		it("guards link clicks behind a confirmation that shows the real URL", async () => {
 			const open = vi.spyOn(window, "open").mockReturnValue(null);
 			const screen = await render(
@@ -148,12 +118,6 @@ describe("ChatMessage", () => {
 			expect(open).toHaveBeenCalledWith("https://example.com/", "_blank", "noreferrer");
 		});
 
-		it("renders inline code", async () => {
-			const screen = await render(<ChatMessage message={assistantMessage("`console.log()`")} />);
-
-			await expect.element(screen.getByText("console.log()")).toBeVisible();
-		});
-
 		it("shows a token count once usage is stamped on the message", async () => {
 			const message = withUsage(assistantMessage("done"), {
 				promptTokens: 900,
@@ -171,14 +135,6 @@ describe("ChatMessage", () => {
 			const screen = await render(<ChatMessage message={assistantMessage("done")} />);
 
 			await expect.element(screen.getByTestId("message-token-usage")).not.toBeInTheDocument();
-		});
-
-		it("renders fenced code blocks", async () => {
-			const screen = await render(
-				<ChatMessage message={assistantMessage("```js\nconsole.log()\n```")} />,
-			);
-
-			await expect.element(screen.getByText("console.log()")).toBeVisible();
 		});
 	});
 

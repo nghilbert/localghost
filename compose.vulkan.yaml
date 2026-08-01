@@ -1,10 +1,9 @@
-# Vulkan overlay (Intel, or AMD without ROCm). Vulkan ships in the default
-# ollama/ollama image and turns on once /dev/dri is reachable — no image swap.
-# Tune with OLLAMA_VULKAN=0 or GGML_VK_VISIBLE_DEVICES=<ids>.
+# Vulkan overlay (Intel, or AMD without ROCm). Swaps the bundled llama.cpp to
+# the Vulkan image; turns on once /dev/dri is reachable. Unlike Ollama, llama.cpp's
+# Vulkan backend doesn't skip integrated GPUs by default, so no extra opt-in env
+# var is needed. Tune device selection with GGML_VK_VISIBLE_DEVICES=<ids>.
 services:
-  ollama:
+  llamacpp:
+    image: ghcr.io/ggml-org/llama.cpp:server-vulkan@sha256:eddb40b8a348a652c8829ef036df9bbbae537755ae7026bf6d4b403840cd468e
     devices:
       - /dev/dri
-    # Ollama skips integrated GPUs by default; opt the iGPU (e.g. AMD Renoir) in.
-    environment:
-      OLLAMA_IGPU_ENABLE: "1"

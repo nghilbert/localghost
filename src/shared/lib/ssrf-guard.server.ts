@@ -25,8 +25,7 @@ function isPrivateIPv6(address: string): boolean {
 	if (lower === "::1" || lower === "::") return true;
 	if (lower.startsWith("fe80:")) return true;
 	if (lower.startsWith("fc") || lower.startsWith("fd")) return true;
-	const mapped = lower.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);
-	if (mapped?.[1]) return isPrivateIPv4(mapped[1]);
+	if (lower.startsWith("::ffff:")) return isPrivateIPv4(lower.slice("::ffff:".length));
 	return false;
 }
 
@@ -38,11 +37,7 @@ export function isPrivateAddress(address: string): boolean {
 	return true;
 }
 
-/**
- * Validates every address a DNS answer returned, so a host publishing a mix of
- * public and private records can't be approved on the public one and connected
- * on the private one.
- * @returns The addresses unchanged, for use as the connection targets.
+/** Rejects DNS results containing no addresses or any private address.
  * @throws {UnsafeUrlError} If the answer is empty or any address is private.
  */
 export function assertPublicAddresses(addresses: LookupAddress[]): LookupAddress[] {
@@ -53,12 +48,7 @@ export function assertPublicAddresses(addresses: LookupAddress[]): LookupAddress
 	return addresses;
 }
 
-/**
- * DNS lookup for the connector that validates the answer it is about to
- * connect to. Because the same lookup result both passes the check and feeds
- * the socket, a rebinding host can't show the guard a public address and the
- * connection a private one.
- */
+/** DNS lookup that validates the exact addresses passed to the connector. */
 function publicOnlyLookup(
 	hostname: string,
 	options: LookupOptions,
@@ -96,11 +86,8 @@ function publicOnlyLookup(
  */
 export const publicOnlyDispatcher = new Agent({ connect: { lookup: publicOnlyLookup } });
 
-/**
- * Rejects a model-supplied URL whose scheme is not http(s) or whose literal-IP
- * host is private. Hostname targets are enforced at connect time by
- * {@link publicOnlyDispatcher}; an IP literal skips DNS entirely, so it must
- * be checked here.
+/** Rejects non-HTTP(S) URLs and private literal-IP hosts.
+ * Hostnames are checked by {@link publicOnlyDispatcher} at connection time.
  * @throws {UnsafeUrlError} If the scheme is not http(s) or a literal IP host is private.
  */
 export function assertPublicUrl(input: string): URL {
@@ -109,7 +96,10 @@ export function assertPublicUrl(input: string): URL {
 		throw new UnsafeUrlError("Only http and https URLs are allowed.");
 	}
 	// WHATWG URL keeps IPv6 hosts bracketed; strip for isIP/isPrivateAddress.
-	const host = url.hostname.replace(/^\[|\]$/g, "");
+	const host =
+		url.hostname.startsWith("[") && url.hostname.endsWith("]")
+			? url.hostname.slice(1, -1)
+			: url.hostname;
 	if (isIP(host) !== 0 && isPrivateAddress(host)) {
 		throw new UnsafeUrlError("Refusing to fetch a local or private network address.");
 	}

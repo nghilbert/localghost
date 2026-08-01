@@ -1,0 +1,120 @@
+import { describe, expect, it } from "vitest";
+import { deriveTags } from "#/shared/domain/model/catalog-curation";
+import {
+	availableMemoryGb,
+	classifyHardwareFit,
+	fitsHardware,
+	requiredMemoryGb,
+	totalMemoryGb,
+} from "#/shared/domain/model/hardware-fit";
+import { makeGpu, makeHardware } from "#/test/factories";
+
+describe("requiredMemoryGb", () => {
+	it("uses the exact GGUF size when known", () => {
+		// 4.9 * 1.15 + 1 = 6.635 → 6.6, regardless of paramB
+		expect(requiredMemoryGb({ sizeGb: 4.9, paramB: 70 })).toBeCloseTo(6.6);
+	});
+
+	it("falls back to a Q4 estimate from the parameter count", () => {
+		// 8 * 0.6 = 4.8 weights → 4.8 * 1.15 + 1 = 6.52 → 6.5
+		expect(requiredMemoryGb({ sizeGb: null, paramB: 8 })).toBeCloseTo(6.5);
+	});
+
+	it("is null when neither size nor parameter count is known", () => {
+		expect(requiredMemoryGb({ sizeGb: null, paramB: null })).toBeNull();
+	});
+});
+
+describe("availableMemoryGb", () => {
+	it("uses free RAM when no GPU is detected", () => {
+		expect(availableMemoryGb(makeHardware({ freeRamGb: 16, gpus: null }))).toBe(16);
+	});
+
+	it("uses the best GPU's free VRAM over RAM when a GPU is present", () => {
+		const hardware = makeHardware({
+			freeRamGb: 16,
+			gpus: [makeGpu({ freeVramMb: 4096 }), makeGpu({ freeVramMb: 12_288 })],
+		});
+		expect(availableMemoryGb(hardware)).toBe(12);
+	});
+});
+
+describe("totalMemoryGb", () => {
+	it("uses total RAM when no GPU is detected", () => {
+		expect(totalMemoryGb(makeHardware({ totalRamGb: 32, gpus: null }))).toBe(32);
+	});
+
+	it("uses the best GPU's total VRAM over RAM when a GPU is present", () => {
+		const hardware = makeHardware({
+			totalRamGb: 32,
+			gpus: [makeGpu({ totalVramMb: 8192 }), makeGpu({ totalVramMb: 24_576 })],
+		});
+		expect(totalMemoryGb(hardware)).toBe(24);
+	});
+});
+
+describe("classifyHardwareFit", () => {
+	it("is null without hardware info", () => {
+		expect(
+			classifyHardwareFit({ model: { sizeGb: null, paramB: 8 }, hardware: undefined }),
+		).toBeNull();
+	});
+
+	it("is unknown when the memory requirement can't be estimated", () => {
+		const hardware = makeHardware({ freeRamGb: 999, totalRamGb: 999, gpus: null });
+		expect(classifyHardwareFit({ model: { sizeGb: null, paramB: null }, hardware })).toBe(
+			"unknown",
+		);
+	});
+
+	it("fits when required memory is within what's free right now", () => {
+		const hardware = makeHardware({ freeRamGb: 16, totalRamGb: 32, gpus: null });
+		expect(classifyHardwareFit({ model: { sizeGb: null, paramB: 8 }, hardware })).toBe("fits");
+	});
+
+	it("is tight when it exceeds free memory but fits the machine's total capacity", () => {
+		// required ≈ 6.5GB: over 4GB free, but under 32GB total
+		const hardware = makeHardware({ freeRamGb: 4, totalRamGb: 32, gpus: null });
+		expect(classifyHardwareFit({ model: { sizeGb: null, paramB: 8 }, hardware })).toBe("tight");
+	});
+
+	it("won't fit when required memory exceeds the machine's total capacity", () => {
+		const hardware = makeHardware({ freeRamGb: 4, totalRamGb: 8, gpus: null });
+		expect(classifyHardwareFit({ model: { sizeGb: null, paramB: 70 }, hardware })).toBe("wont-fit");
+	});
+});
+
+describe("fitsHardware", () => {
+	it("fits when the required memory is within what's available", () => {
+		const hardware = makeHardware({ freeRamGb: 16, gpus: null });
+		// 8b * 0.6 = 4.8 weights → 4.8 * 1.15 + 1 = 6.52 ≈ 6.5, well under 16
+		expect(fitsHardware({ model: { sizeGb: null, paramB: 8 }, hardware })).toBe(true);
+	});
+
+	it("does not fit when the required memory exceeds what's available", () => {
+		const hardware = makeHardware({ freeRamGb: 4, gpus: null });
+		expect(fitsHardware({ model: { sizeGb: null, paramB: 70 }, hardware })).toBe(false);
+	});
+
+	it("does not fit when the memory requirement is unknown", () => {
+		const hardware = makeHardware({ freeRamGb: 999, gpus: null });
+		expect(fitsHardware({ model: { sizeGb: null, paramB: null }, hardware })).toBe(false);
+	});
+});
+
+describe("deriveTags", () => {
+	it("keeps capability badges and flags small models fast", () => {
+		const tags = deriveTags({ name: "gemma3", paramB: 1, capabilities: ["vision"] });
+		expect(tags).toContain("vision");
+		expect(tags).toContain("fast");
+		expect(tags).not.toContain("code");
+	});
+
+	it("flags coding models via name", () => {
+		expect(deriveTags({ name: "qwen2.5-coder", paramB: 7, capabilities: [] })).toContain("code");
+	});
+
+	it("does not flag large models fast", () => {
+		expect(deriveTags({ name: "x", paramB: 14, capabilities: [] })).not.toContain("fast");
+	});
+});

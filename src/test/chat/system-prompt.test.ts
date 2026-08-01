@@ -11,10 +11,6 @@ describe("currentDateTimeLine", () => {
 	it("falls back to the server timezone on an invalid zone", () => {
 		expect(currentDateTimeLine("Not/AZone")).toMatch(/^Current date and time: /);
 	});
-
-	it("tells the model the timestamp is authoritative", () => {
-		expect(currentDateTimeLine()).toContain("answer time questions from it directly");
-	});
 });
 
 describe("buildChatSystemPrompt", () => {

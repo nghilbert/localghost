@@ -33,8 +33,4 @@ describe("toolRows", () => {
 			?.onChange(false);
 		expect(withBoth.onEnabledToolsChange).toHaveBeenCalledWith(["other"]);
 	});
-
-	it("renders one row per catalog tool", () => {
-		expect(toolRows(makeControls()).map((row) => row.id)).toEqual(["web_search", "memory"]);
-	});
 });

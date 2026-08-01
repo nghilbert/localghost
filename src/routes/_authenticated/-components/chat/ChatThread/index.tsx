@@ -86,6 +86,7 @@ export function ChatThread({ conversation }: ChatThreadProps) {
 		sendMessage,
 		stop,
 		status,
+		isLoading,
 		error,
 		reload,
 		setMessages,
@@ -109,7 +110,7 @@ export function ChatThread({ conversation }: ChatThreadProps) {
 			setMessages(messages.map((m) => (m.id === message.id ? withUsage(message, usage) : m)));
 		},
 	});
-	const isStreaming = status === "submitted" || status === "streaming";
+	const isStreaming = isLoading || status === "submitted" || status === "streaming";
 
 	// While a response is in flight, poll whether the local model is still loading
 	// so the trail's pending head can read "Warming up" on a cold start. Once it

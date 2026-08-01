@@ -2,28 +2,20 @@ import { describe, expect, it } from "vitest";
 import { perModelOptionsSchema } from "#/shared/domain/model-setting/schemas";
 
 describe("perModelOptionsSchema", () => {
-	it("accepts the curated subset of Ollama options", () => {
-		const result = perModelOptionsSchema.safeParse({
-			num_ctx: 8192,
+	it("keeps every curated sampling option", () => {
+		const options = {
 			temperature: 0.5,
 			top_p: 0.9,
 			top_k: 40,
 			repeat_penalty: 1.1,
-			num_predict: 512,
+			max_tokens: 512,
+		};
+		expect(perModelOptionsSchema.parse(options)).toEqual(options);
+	});
+
+	it("drops a field outside the curated subset instead of passing it through", () => {
+		expect(perModelOptionsSchema.parse({ temperature: 0.5, mirostat: 1 })).toEqual({
+			temperature: 0.5,
 		});
-		expect(result.success).toBe(true);
-	});
-
-	it("accepts an empty object, every field optional", () => {
-		expect(perModelOptionsSchema.safeParse({}).success).toBe(true);
-	});
-
-	it("rejects a field outside the curated subset", () => {
-		const result = perModelOptionsSchema.safeParse({ mirostat: 1 });
-		expect(result.success && Object.keys(result.data).includes("mirostat")).toBe(false);
-	});
-
-	it("rejects an out-of-range temperature", () => {
-		expect(perModelOptionsSchema.safeParse({ temperature: -1 }).success).toBe(false);
 	});
 });

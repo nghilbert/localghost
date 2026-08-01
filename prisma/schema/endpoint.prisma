@@ -10,7 +10,7 @@ model Endpoint {
   conversations   Conversation[]
   modelSettings   ModelSetting[]
   updatedAt       DateTime       @updatedAt @map("updated_at")
-  /// True only on the machine-managed "Ollama (local)" row; null on user-added
+  /// True only on the machine-managed "llama.cpp (local)" row; null on user-added
   /// endpoints, which the unique below therefore never constrains.
   discovered      Boolean?
 

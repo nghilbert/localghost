@@ -9,7 +9,15 @@ const { queryRaw, executeRaw, findFirst, embed } = vi.hoisted(() => ({
 }));
 
 vi.mock("#/shared/lib/db.server", () => ({
-	prisma: { $queryRaw: queryRaw, $executeRaw: executeRaw, memory: { findFirst } },
+	prisma: {
+		$queryRaw: queryRaw,
+		$executeRaw: executeRaw,
+		memory: { findFirst },
+		// The tests exercise saveMemory's dedup logic, not real transactional
+		// isolation, so this runs the callback against the same mocked client.
+		$transaction: (fn: (tx: unknown) => unknown) =>
+			fn({ $queryRaw: queryRaw, $executeRaw: executeRaw, memory: { findFirst } }),
+	},
 }));
 vi.mock("#/shared/domain/memory/embeddings.server", () => ({
 	embed,

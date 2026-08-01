@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { DownloadIcon, MoreHorizontalIcon, PencilIcon, Trash2Icon } from "lucide-react";
 import { useState } from "react";
@@ -48,6 +48,7 @@ import {
 	snippetSegments,
 } from "#/shared/domain/conversation/search";
 import { useConversations } from "#/shared/domain/conversation/use-conversations";
+import { useDebouncedValue } from "#/shared/hooks/use-debounced-value";
 import { downloadTextFile } from "#/shared/lib/download";
 import { ChatRenameForm } from "./ChatRenameForm";
 
@@ -63,11 +64,17 @@ export function RecentChatList() {
 	const pendingDelete = conversations.find((c) => c.id === pendingDeleteId);
 
 	const query = search.trim();
+	// Debounced so typing doesn't fire a server request per keystroke; the title
+	// filter below still updates instantly since it's local.
+	const debouncedQuery = useDebouncedValue(query, 300);
 	// Instant title filter, plus a server-side full-text search over message bodies
 	// (only fired once there's a query); results merge with titles ranked first.
+	// `keepPreviousData` keeps the last match list on screen between keystrokes
+	// instead of blanking the list while the new query is in flight.
 	const { data: contentMatches } = useQuery({
-		...conversationSearchQueryOptions({ query }),
-		enabled: query.length > 0,
+		...conversationSearchQueryOptions({ query: debouncedQuery }),
+		enabled: debouncedQuery.length > 0,
+		placeholderData: keepPreviousData,
 	});
 	const lowerQuery = query.toLowerCase();
 	const titleMatches = conversations.filter((c) =>

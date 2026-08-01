@@ -1,12 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { CircleAlertIcon } from "lucide-react";
 import { useState } from "react";
 import { HardwareCard } from "#/routes/_authenticated/library/-components/HardwareCard";
-import { ModelTable } from "#/routes/_authenticated/library/-components/ModelTable";
-import { OllamaSetupCard } from "#/routes/_authenticated/library/-components/OllamaSetupCard";
-import { RemoteOllamaForm } from "#/routes/_authenticated/library/-components/RemoteOllamaForm";
-import { Alert, AlertAction, AlertDescription, AlertTitle } from "#/shared/components/ui/alert";
+import { ModelList } from "#/routes/_authenticated/library/-components/ModelList";
+import { ModelListItem } from "#/routes/_authenticated/library/-components/ModelList/ModelListItem";
+import { RemoteRuntimeForm } from "#/routes/_authenticated/library/-components/RemoteRuntimeForm";
+import { RuntimeSetupCard } from "#/routes/_authenticated/library/-components/RuntimeSetupCard";
+import { CATALOG_PAGE_SIZE } from "#/routes/_authenticated/library/-hooks/use-model-list";
+import { DEFAULT_SORT } from "#/routes/_authenticated/library/-lib/model-sort";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -23,6 +24,7 @@ import {
 	ItemActions,
 	ItemContent,
 	ItemDescription,
+	ItemGroup,
 	ItemTitle,
 } from "#/shared/components/ui/item";
 import { Separator } from "#/shared/components/ui/separator";
@@ -32,15 +34,24 @@ import {
 	hardwareQueryOptions,
 	libraryStatusQueryOptions,
 } from "#/shared/domain/model/model.functions";
-import { useModelPull } from "#/shared/domain/model/use-model-pull";
-import { useOllama } from "#/shared/domain/model/use-ollama";
+import { useModelDownload } from "#/shared/domain/model/use-model-download";
+import { useRuntime } from "#/shared/domain/model/use-runtime";
+
+const DEFAULT_CATALOG_QUERY = {
+	page: 0,
+	pageSize: CATALOG_PAGE_SIZE,
+	sortBy: DEFAULT_SORT.sortBy,
+	sortDir: DEFAULT_SORT.sortDir,
+};
+
+const SKELETON_ROW_KEYS = ["a", "b", "c", "d", "e", "f"];
 
 export const Route = createFileRoute("/_authenticated/library")({
 	head: () => ({ meta: [{ title: "Library · localghost" }] }),
 	loader: ({ context }) => {
 		context.queryClient.prefetchQuery(hardwareQueryOptions());
 		context.queryClient.prefetchQuery(libraryStatusQueryOptions());
-		context.queryClient.prefetchQuery(catalogQueryOptions());
+		context.queryClient.prefetchQuery(catalogQueryOptions(DEFAULT_CATALOG_QUERY));
 	},
 	component: LibraryPage,
 });
@@ -48,24 +59,17 @@ export const Route = createFileRoute("/_authenticated/library")({
 function LibraryPage() {
 	const { data: hardware, isLoading: isLoadingHardware } = useQuery(hardwareQueryOptions());
 
-	const { data: ollamaStatus, isPending: isStatusPending } = useQuery(libraryStatusQueryOptions());
+	const { data: runtimeStatus, isPending: isStatusPending } = useQuery(libraryStatusQueryOptions());
 
-	const {
-		data: catalog = [],
-		isPending: isCatalogPending,
-		isError: isCatalogError,
-		refetch: refetchCatalog,
-	} = useQuery(catalogQueryOptions());
-
-	const { pulling, pull, stop, dismiss } = useModelPull();
-	const { deleteModel } = useOllama();
+	const { pulling, pull, stop } = useModelDownload(runtimeStatus?.endpointId ?? null);
+	const { deleteModel } = useRuntime();
 
 	const [isReconnecting, setIsReconnecting] = useState(false);
 	const [pendingDelete, setPendingDelete] = useState<string | null>(null);
 
 	function handlePull(model: string) {
-		if (!ollamaStatus?.found) return;
-		pull({ model, ollamaUrl: ollamaStatus.ollamaUrl });
+		if (!runtimeStatus?.found) return;
+		pull(model);
 	}
 
 	return (
@@ -76,60 +80,52 @@ function LibraryPage() {
 				<Separator />
 
 				{isStatusPending ? (
-					<div className="space-y-6">
-						<Skeleton className="h-16 w-full" />
-						<Skeleton className="h-72 w-full" />
-					</div>
-				) : ollamaStatus?.found ? (
+					<>
+						<Item variant="muted">
+							<ItemContent>
+								<ItemTitle>
+									<Skeleton className="h-4 w-40" />
+								</ItemTitle>
+								<ItemDescription>
+									<Skeleton inline className="h-3.5 w-56" />
+								</ItemDescription>
+							</ItemContent>
+						</Item>
+						<ItemGroup className="grid grid-flow-row-dense grid-cols-[repeat(auto-fit,minmax(min(22rem,100%),1fr))]">
+							{SKELETON_ROW_KEYS.map((key) => (
+								<ModelListItem key={key} isLoading />
+							))}
+						</ItemGroup>
+					</>
+				) : runtimeStatus?.found ? (
 					isReconnecting ? (
-						<RemoteOllamaForm onBack={() => setIsReconnecting(false)} />
+						<RemoteRuntimeForm onBack={() => setIsReconnecting(false)} />
 					) : (
 						<>
 							<Item variant="muted">
 								<ItemContent>
-									<ItemTitle>Connected to Ollama</ItemTitle>
-									<ItemDescription>{ollamaStatus.ollamaUrl}</ItemDescription>
+									<ItemTitle>Connected to llama.cpp</ItemTitle>
+									<ItemDescription>{runtimeStatus.runtimeUrl}</ItemDescription>
 								</ItemContent>
 								<ItemActions>
 									<Button variant="outline" size="sm" onClick={() => setIsReconnecting(true)}>
-										Use a different Ollama
+										Use a different llama.cpp
 									</Button>
 								</ItemActions>
 							</Item>
-							{isCatalogError && (
-								<Alert variant="destructive">
-									<CircleAlertIcon />
-									<AlertTitle>Couldn't load the model catalog</AlertTitle>
-									<AlertDescription>
-										ollama.com couldn't be reached or didn't return a readable catalog, so only
-										installed models are listed.
-									</AlertDescription>
-									<AlertAction>
-										<Button size="sm" variant="outline" onClick={() => refetchCatalog()}>
-											Try again
-										</Button>
-									</AlertAction>
-								</Alert>
-							)}
-							{isCatalogPending ? (
-								<Skeleton className="h-72 w-full" />
-							) : (
-								<ModelTable
-									catalog={catalog}
-									installedModels={ollamaStatus.installedModels}
-									pulling={pulling}
-									hardware={hardware}
-									endpointId={ollamaStatus.endpointId}
-									onPull={handlePull}
-									onStop={stop}
-									onDismiss={dismiss}
-									onDelete={(model) => setPendingDelete(model)}
-								/>
-							)}
+							<ModelList
+								installedModels={runtimeStatus.installedModels}
+								pulling={pulling}
+								hardware={hardware}
+								endpointId={runtimeStatus.endpointId}
+								onPull={handlePull}
+								onStop={stop}
+								onDelete={(model) => setPendingDelete(model)}
+							/>
 						</>
 					)
 				) : (
-					<OllamaSetupCard />
+					<RuntimeSetupCard />
 				)}
 			</div>
 			<AlertDialog
@@ -151,7 +147,12 @@ function LibraryPage() {
 						<AlertDialogAction
 							variant="destructive"
 							onClick={() => {
-								if (pendingDelete) deleteModel.mutate(pendingDelete);
+								if (pendingDelete && runtimeStatus?.found) {
+									deleteModel.mutate({
+										endpointId: runtimeStatus.endpointId,
+										model: pendingDelete,
+									});
+								}
 								setPendingDelete(null);
 							}}
 						>

@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { buildModelRows } from "#/routes/_authenticated/library/-lib/model-rows";
-import type { PullProgress } from "#/shared/domain/model/types";
+import {
+	buildModelRows,
+	matchesModelFacets,
+} from "#/routes/_authenticated/library/-lib/model-rows";
+import type { CatalogModel, PullProgress } from "#/shared/domain/model/types";
 import { makeCatalogModel, makeInstalledModel } from "#/test/factories";
 
 function rowById(rows: ReturnType<typeof buildModelRows>, id: string) {
@@ -9,47 +12,91 @@ function rowById(rows: ReturnType<typeof buildModelRows>, id: string) {
 	return row;
 }
 
+function catalogById(models: CatalogModel[]) {
+	return new Map(models.map((model) => [model.id, model]));
+}
+
 describe("buildModelRows", () => {
-	it("unions catalog, installed models, and active pulls without duplicates", () => {
-		const catalog = [
-			makeCatalogModel({ id: "llama3.2:3b" }),
-			makeCatalogModel({ id: "qwen2.5:7b" }),
+	it("unions the catalog page, installed models, and active downloads without duplicates", () => {
+		const catalogPage = [
+			makeCatalogModel({ id: "org/llama3.2-GGUF:Q4_K_M" }),
+			makeCatalogModel({ id: "org/qwen2.5-GGUF:Q4_K_M" }),
 		];
-		const installed = [makeInstalledModel({ name: "llama3.2:3b" })];
-		const pulling: Record<string, PullProgress> = { "mistral:7b": { status: "pulling" } };
+		const installed = [makeInstalledModel({ id: "org/llama3.2-GGUF:Q4_K_M" })];
+		const pulling: Record<string, PullProgress> = {
+			"org/mistral-GGUF:Q4_K_M": { status: "Downloading…" },
+		};
 
 		const rows = buildModelRows({
-			catalog,
+			catalogPage,
+			catalogById: catalogById(catalogPage),
 			installedModels: installed,
 			pulling,
+			includeOffPageInstalled: true,
 		});
 
-		expect(rows.map((r) => r.id).sort()).toEqual(["llama3.2:3b", "mistral:7b", "qwen2.5:7b"]);
+		expect(rows.map((r) => r.id).sort()).toEqual([
+			"org/llama3.2-GGUF:Q4_K_M",
+			"org/mistral-GGUF:Q4_K_M",
+			"org/qwen2.5-GGUF:Q4_K_M",
+		]);
 	});
 
-	it("marks a model both installed and pulling on a single row", () => {
-		const installed = [makeInstalledModel({ name: "llama3.2:3b" })];
-		const pulling: Record<string, PullProgress> = { "llama3.2:3b": { status: "verifying" } };
+	it("marks a model both installed and downloading on a single row", () => {
+		const installed = [makeInstalledModel({ id: "org/llama3.2-GGUF:Q4_K_M" })];
+		const pulling: Record<string, PullProgress> = {
+			"org/llama3.2-GGUF:Q4_K_M": { status: "Downloading…" },
+		};
 
 		const rows = buildModelRows({
-			catalog: [],
+			catalogPage: [],
+			catalogById: new Map(),
 			installedModels: installed,
 			pulling,
+			includeOffPageInstalled: true,
 		});
 
 		expect(rows).toHaveLength(1);
-		const row = rowById(rows, "llama3.2:3b");
+		const row = rowById(rows, "org/llama3.2-GGUF:Q4_K_M");
 		expect(row.installed).not.toBeNull();
-		expect(row.pullState).toEqual({ status: "verifying" });
+		expect(row.pullState).toEqual({ status: "Downloading…" });
+		expect(matchesModelFacets({ row, licenses: ["mit"], capabilities: [] })).toBe(false);
 	});
 
-	it("attaches a :latest-keyed pull to the bare catalog row", () => {
-		const catalog = [makeCatalogModel({ id: "llama3.1" })];
-		const pulling: Record<string, PullProgress> = { "llama3.1:latest": { status: "pulling" } };
+	it("enriches an off-page installed model from the by-id lookup", () => {
+		const offPageModel = makeCatalogModel({
+			id: "org/llama3.2-GGUF:Q4_K_M",
+			name: "org/llama3.2-GGUF",
+			license: "mit",
+			tags: ["code"],
+		});
+		const installed = [makeInstalledModel({ id: "org/llama3.2-GGUF:Q4_K_M" })];
 
-		const rows = buildModelRows({ catalog, installedModels: [], pulling });
+		const rows = buildModelRows({
+			catalogPage: [],
+			catalogById: catalogById([offPageModel]),
+			installedModels: installed,
+			pulling: {},
+			includeOffPageInstalled: true,
+		});
 
-		expect(rows).toHaveLength(1);
-		expect(rowById(rows, "llama3.1").pullState).toEqual({ status: "pulling" });
+		const row = rowById(rows, "org/llama3.2-GGUF:Q4_K_M");
+		expect(row.catalog).toBe(offPageModel);
+		expect(matchesModelFacets({ row, licenses: ["mit"], capabilities: ["code"] })).toBe(true);
+	});
+
+	it("excludes installed/pulling ids not already on the page when includeOffPageInstalled is false", () => {
+		const catalogPage = [makeCatalogModel({ id: "org/qwen2.5-GGUF:Q4_K_M" })];
+		const installed = [makeInstalledModel({ id: "org/llama3.2-GGUF:Q4_K_M" })];
+
+		const rows = buildModelRows({
+			catalogPage,
+			catalogById: catalogById(catalogPage),
+			installedModels: installed,
+			pulling: {},
+			includeOffPageInstalled: false,
+		});
+
+		expect(rows.map((r) => r.id)).toEqual(["org/qwen2.5-GGUF:Q4_K_M"]);
 	});
 });
