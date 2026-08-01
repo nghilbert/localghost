@@ -29,6 +29,8 @@ describe("ModelFilterMenu", () => {
 
 		await screen.getByTestId("model-filter-clear").click();
 		await expect.element(screen.getByTestId("model-filter-count")).not.toBeInTheDocument();
-		await expect.element(screen.getByTestId("model-filter-capability-code")).not.toBeChecked();
+		await expect
+			.element(screen.getByTestId("model-filter-capability-code"))
+			.toHaveAttribute("aria-checked", "false");
 	});
 });

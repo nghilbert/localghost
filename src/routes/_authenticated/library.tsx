@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { HardwareCard } from "#/routes/_authenticated/library/-components/HardwareCard";
 import { ModelList } from "#/routes/_authenticated/library/-components/ModelList";
+import { ModelListItem } from "#/routes/_authenticated/library/-components/ModelList/ModelListItem";
 import { RemoteRuntimeForm } from "#/routes/_authenticated/library/-components/RemoteRuntimeForm";
 import { RuntimeSetupCard } from "#/routes/_authenticated/library/-components/RuntimeSetupCard";
 import { CATALOG_PAGE_SIZE } from "#/routes/_authenticated/library/-hooks/use-model-list";
@@ -23,6 +24,7 @@ import {
 	ItemActions,
 	ItemContent,
 	ItemDescription,
+	ItemGroup,
 	ItemTitle,
 } from "#/shared/components/ui/item";
 import { Separator } from "#/shared/components/ui/separator";
@@ -41,6 +43,8 @@ const DEFAULT_CATALOG_QUERY = {
 	sortBy: DEFAULT_SORT.sortBy,
 	sortDir: DEFAULT_SORT.sortDir,
 };
+
+const SKELETON_ROW_KEYS = ["a", "b", "c", "d", "e", "f"];
 
 export const Route = createFileRoute("/_authenticated/library")({
 	head: () => ({ meta: [{ title: "Library · localghost" }] }),
@@ -76,10 +80,23 @@ function LibraryPage() {
 				<Separator />
 
 				{isStatusPending ? (
-					<div className="space-y-6">
-						<Skeleton className="h-16 w-full" />
-						<Skeleton className="h-72 w-full" />
-					</div>
+					<>
+						<Item variant="muted">
+							<ItemContent>
+								<ItemTitle>
+									<Skeleton className="h-4 w-40" />
+								</ItemTitle>
+								<ItemDescription>
+									<Skeleton inline className="h-3.5 w-56" />
+								</ItemDescription>
+							</ItemContent>
+						</Item>
+						<ItemGroup className="grid grid-flow-row-dense grid-cols-[repeat(auto-fit,minmax(min(22rem,100%),1fr))]">
+							{SKELETON_ROW_KEYS.map((key) => (
+								<ModelListItem key={key} isLoading />
+							))}
+						</ItemGroup>
+					</>
 				) : runtimeStatus?.found ? (
 					isReconnecting ? (
 						<RemoteRuntimeForm onBack={() => setIsReconnecting(false)} />

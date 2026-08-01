@@ -9,7 +9,7 @@ import { ItemGroup } from "#/shared/components/ui/item";
 import type { HardwareInfo, InstalledModel, PullProgress } from "#/shared/domain/model/types";
 import { ModelDetailPanel } from "./ModelDetailPanel";
 import { ModelFilterMenu } from "./ModelFilterMenu";
-import { ModelListItem, ModelListItemSkeleton } from "./ModelListItem";
+import { ModelListItem } from "./ModelListItem";
 import { ModelPagination } from "./ModelPagination";
 import { ModelSortControls } from "./ModelSortControls";
 import { ModelStatusFilter } from "./ModelStatusFilter";
@@ -105,7 +105,7 @@ export function ModelList({
 			{isLoading ? (
 				<ItemGroup className="grid grid-flow-row-dense grid-cols-[repeat(auto-fit,minmax(min(22rem,100%),1fr))]">
 					{SKELETON_KEYS.map((key) => (
-						<ModelListItemSkeleton key={key} />
+						<ModelListItem key={key} isLoading />
 					))}
 				</ItemGroup>
 			) : rows.length === 0 ? (

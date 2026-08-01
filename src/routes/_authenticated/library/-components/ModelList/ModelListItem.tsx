@@ -40,7 +40,8 @@ function specLine(row: ModelRow): string {
 	return parts.length > 0 ? parts.join(" · ") : row.name;
 }
 
-type ModelListItemProps = {
+type ModelListItemLoadedProps = {
+	isLoading?: false;
 	row: ModelRow;
 	hardware: HardwareInfo | undefined;
 	expanded: boolean;
@@ -49,95 +50,97 @@ type ModelListItemProps = {
 	onStop: (model: string) => void;
 };
 
-/** One catalog model: identity, a real spec line, hardware fit, and the primary install action. */
-export function ModelListItem({
-	row,
-	hardware,
-	expanded,
-	onToggleExpanded,
-	onPull,
-	onStop,
-}: ModelListItemProps) {
-	const { catalog, installed, pullState } = row;
-	const fit = catalog ? classifyHardwareFit({ model: catalog, hardware }) : null;
+type ModelListItemProps = { isLoading: true } | ModelListItemLoadedProps;
+
+/**
+ * One catalog model row, or its loading placeholder when `isLoading` is true.
+ *
+ * Both states share this single render tree — only leaf values (media icon, title,
+ * description, footer controls) branch on `loaded`, never the surrounding
+ * `Item`/`ItemMedia`/`ItemContent`/`ItemFooter` structure — so the loading and loaded
+ * shapes can never drift apart.
+ */
+export function ModelListItem(props: ModelListItemProps) {
+	const loaded = props.isLoading ? null : props;
+
+	const catalog = loaded?.row.catalog;
+	const installed = loaded?.row.installed;
+	const fit =
+		loaded && catalog ? classifyHardwareFit({ model: catalog, hardware: loaded.hardware }) : null;
 	const isVision = catalog?.capabilities.includes("vision") ?? installed?.vision;
 
 	return (
 		<Item
 			variant="outline"
-			className={cn("cursor-pointer items-start", installed && "bg-success/5")}
-			onClick={onToggleExpanded}
-			role="button"
-			tabIndex={0}
-			aria-expanded={expanded}
-			data-testid="model-list-item"
+			className={cn("items-start", loaded && "cursor-pointer", installed && "bg-success/5")}
+			onClick={loaded?.onToggleExpanded}
+			role={loaded ? "button" : undefined}
+			tabIndex={loaded ? 0 : undefined}
+			aria-expanded={loaded?.expanded}
+			data-testid={loaded ? "model-list-item" : "model-list-item-skeleton"}
 		>
 			<ItemMedia variant="icon" className="mt-0.5">
-				<ChevronRightIcon
-					className={cn("transition-transform", expanded && "rotate-90")}
-					data-testid="model-list-expand-toggle"
-				/>
+				{loaded ? (
+					<ChevronRightIcon
+						className={cn("transition-transform", loaded.expanded && "rotate-90")}
+						data-testid="model-list-expand-toggle"
+					/>
+				) : (
+					<Skeleton className="size-4 rounded-sm" />
+				)}
 			</ItemMedia>
 			<ItemContent>
 				<ItemTitle>
-					{catalog?.displayName || row.name}
-					{isVision && <ImageIcon className="size-3.5 text-muted-foreground" />}
-					{catalog?.pullCount != null && catalog.pullCount > 0 && (
-						<span className="flex items-center gap-1 text-xs font-normal text-muted-foreground">
-							<GaugeIcon className="size-3" />
-							{formatCount(catalog.pullCount)}
-						</span>
+					{loaded ? (
+						<>
+							{catalog?.displayName || loaded.row.name}
+							{isVision && <ImageIcon className="size-3.5 text-muted-foreground" />}
+							{catalog?.pullCount != null && catalog.pullCount > 0 && (
+								<span className="flex items-center gap-1 text-xs font-normal text-muted-foreground">
+									<GaugeIcon className="size-3" />
+									{formatCount(catalog.pullCount)}
+								</span>
+							)}
+						</>
+					) : (
+						<Skeleton className="h-4 w-40" />
 					)}
 				</ItemTitle>
-				<ItemDescription>{specLine(row)}</ItemDescription>
-			</ItemContent>
-			<ItemFooter className="justify-end" onClick={(event) => event.stopPropagation()}>
-				{fit && !installed && (
-					<Badge variant="outline" className={FIT_BADGE[fit].className}>
-						{FIT_BADGE[fit].label}
-					</Badge>
-				)}
-				{installed ? (
-					<Badge variant="secondary">
-						<CheckCircle2Icon data-icon="inline-start" />
-						Installed
-					</Badge>
-				) : (
-					<ModelPullControls
-						modelId={row.id}
-						pullState={pullState}
-						onPull={onPull}
-						onStop={onStop}
-					/>
-				)}
-			</ItemFooter>
-		</Item>
-	);
-}
-
-/**
- * The loading placeholder for one {@link ModelListItem}.
- *
- * Mirrors that component's slot structure exactly so the loading grid matches the loaded grid
- * in column count, card height, and footer line — it lives here to stay in lockstep with it.
- */
-export function ModelListItemSkeleton() {
-	return (
-		<Item variant="outline" className="items-start" data-testid="model-list-item-skeleton">
-			<ItemMedia variant="icon" className="mt-0.5">
-				<Skeleton className="size-4 rounded-sm" />
-			</ItemMedia>
-			<ItemContent>
-				<ItemTitle>
-					<Skeleton className="h-4 w-40" />
-				</ItemTitle>
 				<ItemDescription>
-					<Skeleton className="h-3.5 w-56" />
+					{loaded ? specLine(loaded.row) : <Skeleton inline className="h-3.5 w-56" />}
 				</ItemDescription>
 			</ItemContent>
-			<ItemFooter className="justify-end">
-				<Skeleton className="h-5 w-32 rounded-full" />
-				<Skeleton className="h-8 w-24" />
+			<ItemFooter
+				className="justify-end"
+				onClick={loaded ? (event) => event.stopPropagation() : undefined}
+			>
+				{loaded ? (
+					<>
+						{fit && !installed && (
+							<Badge variant="outline" className={FIT_BADGE[fit].className}>
+								{FIT_BADGE[fit].label}
+							</Badge>
+						)}
+						{installed ? (
+							<Badge variant="secondary">
+								<CheckCircle2Icon data-icon="inline-start" />
+								Installed
+							</Badge>
+						) : (
+							<ModelPullControls
+								modelId={loaded.row.id}
+								pullState={loaded.row.pullState}
+								onPull={loaded.onPull}
+								onStop={loaded.onStop}
+							/>
+						)}
+					</>
+				) : (
+					<>
+						<Skeleton className="h-5 w-32 rounded-full" />
+						<Skeleton className="h-8 w-24" />
+					</>
+				)}
 			</ItemFooter>
 		</Item>
 	);

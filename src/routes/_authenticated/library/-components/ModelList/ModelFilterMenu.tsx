@@ -1,11 +1,16 @@
 import { SlidersHorizontalIcon } from "lucide-react";
-import { useId } from "react";
 import { Badge } from "#/shared/components/ui/badge";
 import { Button } from "#/shared/components/ui/button";
-import { Checkbox } from "#/shared/components/ui/checkbox";
-import { Popover, PopoverContent, PopoverTrigger } from "#/shared/components/ui/popover";
-import { ScrollArea } from "#/shared/components/ui/scroll-area";
-import { Separator } from "#/shared/components/ui/separator";
+import {
+	DropdownMenu,
+	DropdownMenuCheckboxItem,
+	DropdownMenuContent,
+	DropdownMenuGroup,
+	DropdownMenuItem,
+	DropdownMenuLabel,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger,
+} from "#/shared/components/ui/dropdown-menu";
 import type { CatalogCapability } from "#/shared/domain/model/schemas";
 
 const CAPABILITY_OPTIONS: { value: CatalogCapability; label: string }[] = [
@@ -22,30 +27,7 @@ type ModelFilterMenuProps = {
 	onCapabilitiesChange: (capabilities: CatalogCapability[]) => void;
 };
 
-function FilterOption({
-	label,
-	checked,
-	testId,
-	onCheckedChange,
-}: {
-	label: string;
-	checked: boolean;
-	testId: string;
-	onCheckedChange: (checked: boolean) => void;
-}) {
-	const id = useId();
-	return (
-		<label
-			htmlFor={id}
-			className="flex cursor-pointer items-center gap-3 rounded-sm p-2 hover:bg-muted"
-		>
-			<Checkbox id={id} checked={checked} data-testid={testId} onCheckedChange={onCheckedChange} />
-			<span className="truncate">{label}</span>
-		</label>
-	);
-}
-
-/** Multi-select catalog facets behind one toolbar button. */
+/** Facet filters for the model catalog: a fixed set of capabilities plus the catalog's dynamic licenses. */
 export function ModelFilterMenu({
 	licenses,
 	selectedLicenses,
@@ -56,8 +38,8 @@ export function ModelFilterMenu({
 	const activeCount = selectedLicenses.length + selectedCapabilities.length;
 
 	return (
-		<Popover>
-			<PopoverTrigger
+		<DropdownMenu>
+			<DropdownMenuTrigger
 				render={<Button type="button" variant="outline" data-testid="model-filter-trigger" />}
 			>
 				<SlidersHorizontalIcon data-icon="inline-start" />
@@ -71,73 +53,68 @@ export function ModelFilterMenu({
 						{activeCount}
 					</Badge>
 				)}
-			</PopoverTrigger>
-			<PopoverContent align="end" className="max-h-(--available-height) w-72 overflow-hidden p-2">
-				<div className="flex items-center justify-between gap-2 px-2 py-1">
-					<span className="font-medium">Filters</span>
-					{activeCount > 0 && (
-						<Button
-							type="button"
-							variant="ghost"
-							size="xs"
+			</DropdownMenuTrigger>
+			<DropdownMenuContent align="end" className="w-72">
+				{activeCount > 0 && (
+					<>
+						<DropdownMenuItem
+							closeOnClick={false}
 							data-testid="model-filter-clear"
+							className="justify-center text-muted-foreground"
 							onClick={() => {
 								onLicensesChange([]);
 								onCapabilitiesChange([]);
 							}}
 						>
 							Clear filters
-						</Button>
-					)}
-				</div>
-
-				<Separator />
-
-				<ScrollArea className="max-h-[calc(var(--available-height)-4.5rem)] pr-3">
-					<p className="px-2 pt-1 text-xs font-medium text-muted-foreground">Capabilities</p>
-					<div className="space-y-1">
-						{CAPABILITY_OPTIONS.map((option) => (
-							<FilterOption
-								key={option.value}
-								label={option.label}
-								checked={selectedCapabilities.includes(option.value)}
-								testId={`model-filter-capability-${option.value}`}
-								onCheckedChange={(checked) =>
-									onCapabilitiesChange(
-										checked
-											? [...selectedCapabilities, option.value]
-											: selectedCapabilities.filter((value) => value !== option.value),
-									)
-								}
-							/>
-						))}
-					</div>
-
-					{licenses.length > 0 && (
-						<>
-							<Separator className="my-1" />
-							<p className="px-2 pt-1 text-xs font-medium text-muted-foreground">License</p>
-							<div className="space-y-1">
-								{licenses.map((license) => (
-									<FilterOption
-										key={license}
-										label={license}
-										checked={selectedLicenses.includes(license)}
-										testId={`model-filter-license-${license}`}
-										onCheckedChange={(checked) =>
-											onLicensesChange(
-												checked
-													? [...selectedLicenses, license]
-													: selectedLicenses.filter((value) => value !== license),
-											)
-										}
-									/>
-								))}
-							</div>
-						</>
-					)}
-				</ScrollArea>
-			</PopoverContent>
-		</Popover>
+						</DropdownMenuItem>
+						<DropdownMenuSeparator />
+					</>
+				)}
+				<DropdownMenuGroup>
+					<DropdownMenuLabel>Capabilities</DropdownMenuLabel>
+					{CAPABILITY_OPTIONS.map((option) => (
+						<DropdownMenuCheckboxItem
+							key={option.value}
+							checked={selectedCapabilities.includes(option.value)}
+							data-testid={`model-filter-capability-${option.value}`}
+							onCheckedChange={(checked) =>
+								onCapabilitiesChange(
+									checked
+										? [...selectedCapabilities, option.value]
+										: selectedCapabilities.filter((v) => v !== option.value),
+								)
+							}
+						>
+							{option.label}
+						</DropdownMenuCheckboxItem>
+					))}
+				</DropdownMenuGroup>
+				{licenses.length > 0 && (
+					<>
+						<DropdownMenuSeparator />
+						<DropdownMenuGroup>
+							<DropdownMenuLabel>License</DropdownMenuLabel>
+							{licenses.map((license) => (
+								<DropdownMenuCheckboxItem
+									key={license}
+									checked={selectedLicenses.includes(license)}
+									data-testid={`model-filter-license-${license}`}
+									onCheckedChange={(checked) =>
+										onLicensesChange(
+											checked
+												? [...selectedLicenses, license]
+												: selectedLicenses.filter((v) => v !== license),
+										)
+									}
+								>
+									{license}
+								</DropdownMenuCheckboxItem>
+							))}
+						</DropdownMenuGroup>
+					</>
+				)}
+			</DropdownMenuContent>
+		</DropdownMenu>
 	);
 }

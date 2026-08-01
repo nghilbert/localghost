@@ -7,7 +7,13 @@ import {
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from "#/shared/components/ui/collapsible";
-import { Field } from "#/shared/components/ui/field";
+import {
+	Field,
+	FieldContent,
+	FieldDescription,
+	FieldGroup,
+	FieldLabel,
+} from "#/shared/components/ui/field";
 import { Skeleton } from "#/shared/components/ui/skeleton";
 import { perModelOptionsSchema } from "#/shared/domain/model-setting/schemas";
 import { useModelSetting } from "#/shared/domain/model-setting/use-model-setting";
@@ -24,7 +30,22 @@ type ModelSettingsFormProps = {
 export function ModelSettingsForm({ endpointId, model }: ModelSettingsFormProps) {
 	const { setting, isPending, save, reset } = useModelSetting({ endpointId, model });
 
-	if (isPending) return <Skeleton className="h-24 w-full" />;
+	if (isPending) {
+		return (
+			<FieldGroup className="gap-3">
+				<Field orientation="responsive">
+					<FieldContent>
+						<FieldLabel>Temperature</FieldLabel>
+						<FieldDescription>Overrides the global default for this model.</FieldDescription>
+					</FieldContent>
+					<Skeleton className="h-8 w-full" />
+				</Field>
+				<Field orientation="horizontal">
+					<Skeleton className="h-7 w-16" />
+				</Field>
+			</FieldGroup>
+		);
+	}
 
 	return (
 		<ModelSettingsFields

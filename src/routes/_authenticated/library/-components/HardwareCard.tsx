@@ -10,20 +10,15 @@ type HardwareCardProps = {
 	isLoading: boolean;
 };
 
+/**
+ * CPU / RAM / GPU summary. Card headers are static copy and always render for real;
+ * only the data-dependent value lines fall back to `Skeleton` while there's no
+ * `hardware` yet, so the loading and loaded grids share one shape.
+ */
 export function HardwareCard({ hardware, isLoading }: HardwareCardProps) {
-	if (isLoading) {
-		return (
-			<div className="grid gap-3 sm:grid-cols-3">
-				{[1, 2, 3].map((i) => (
-					<Skeleton key={i} className="h-24 rounded-xl" />
-				))}
-			</div>
-		);
-	}
+	if (!isLoading && !hardware) return null;
 
-	if (!hardware) return null;
-
-	const bestGpu = hardware.gpus?.reduce<NonNullable<typeof hardware.gpus>[number] | null>(
+	const bestGpu = hardware?.gpus?.reduce<NonNullable<typeof hardware.gpus>[number] | null>(
 		(best, g) => (g.totalVramMb > (best?.totalVramMb ?? 0) ? g : best),
 		null,
 	);
@@ -38,8 +33,17 @@ export function HardwareCard({ hardware, isLoading }: HardwareCardProps) {
 					</CardTitle>
 				</CardHeader>
 				<CardContent className="pb-3">
-					<p className="truncate text-sm font-medium">{hardware.cpuModel}</p>
-					<p className="text-xs text-muted-foreground">{hardware.cpuCount} threads</p>
+					{hardware ? (
+						<>
+							<p className="truncate text-sm font-medium">{hardware.cpuModel}</p>
+							<p className="text-xs text-muted-foreground">{hardware.cpuCount} threads</p>
+						</>
+					) : (
+						<>
+							<Skeleton className="h-4 w-32" />
+							<Skeleton className="mt-1 h-3 w-20" />
+						</>
+					)}
 				</CardContent>
 			</Card>
 
@@ -51,10 +55,19 @@ export function HardwareCard({ hardware, isLoading }: HardwareCardProps) {
 					</CardTitle>
 				</CardHeader>
 				<CardContent className="pb-3">
-					<p className="text-sm font-medium">{formatBytes(hardware.totalRamGb * 1e9)} total</p>
-					<p className="text-xs text-muted-foreground">
-						{formatBytes(hardware.freeRamGb * 1e9)} free
-					</p>
+					{hardware ? (
+						<>
+							<p className="text-sm font-medium">{formatBytes(hardware.totalRamGb * 1e9)} total</p>
+							<p className="text-xs text-muted-foreground">
+								{formatBytes(hardware.freeRamGb * 1e9)} free
+							</p>
+						</>
+					) : (
+						<>
+							<Skeleton className="h-4 w-32" />
+							<Skeleton className="mt-1 h-3 w-20" />
+						</>
+					)}
 				</CardContent>
 			</Card>
 
@@ -66,7 +79,12 @@ export function HardwareCard({ hardware, isLoading }: HardwareCardProps) {
 					</CardTitle>
 				</CardHeader>
 				<CardContent className="pb-3">
-					{bestGpu ? (
+					{!hardware ? (
+						<>
+							<Skeleton className="h-4 w-32" />
+							<Skeleton className="mt-1 h-3 w-20" />
+						</>
+					) : bestGpu ? (
 						<>
 							<p className="truncate text-sm font-medium">{bestGpu.name}</p>
 							<p className="text-xs text-muted-foreground">
