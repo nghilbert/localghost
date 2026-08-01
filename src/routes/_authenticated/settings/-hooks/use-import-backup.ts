@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
 import { importBackupResultSchema } from "#/routes/_authenticated/settings/-lib/schemas";
+import { toast } from "#/shared/components/ui/toast";
 
 /**
  * Uploads a backup file to `/api/backup/import` (a raw API route, so no server
@@ -42,8 +42,9 @@ export function useImportBackup() {
 			if (imported.invalidConversations > 0) {
 				summary.push(`${imported.invalidConversations} unreadable conversations were ignored.`);
 			}
-			toast.success("Backup imported", { description: summary.join(" ") });
+			toast.add({ title: "Backup imported", type: "success", description: summary.join(" ") });
 		},
-		onError: (error) => toast.error("Failed to import backup", { description: error.message }),
+		onError: (error) =>
+			toast.add({ title: "Failed to import backup", type: "error", description: error.message }),
 	});
 }

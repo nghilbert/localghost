@@ -1,5 +1,4 @@
 import { revalidateLogic } from "@tanstack/react-form";
-import { toast } from "sonner";
 import { Button } from "#/shared/components/ui/button";
 import {
 	Card,
@@ -9,6 +8,7 @@ import {
 	CardTitle,
 } from "#/shared/components/ui/card";
 import { Field } from "#/shared/components/ui/field";
+import { toast } from "#/shared/components/ui/toast";
 import { useRuntime } from "#/shared/domain/model/use-runtime";
 import { useAppForm } from "#/shared/hooks/use-app-form";
 import { llamacppUrlSchema } from "#/shared/lib/llamacpp/url";
@@ -28,14 +28,17 @@ export function RemoteRuntimeForm({ onBack }: { onBack: () => void }) {
 	function handleTest() {
 		const parsed = llamacppUrlSchema.safeParse(form.state.values);
 		if (!parsed.success) {
-			toast.error("Enter a valid URL first");
+			toast.add({ title: "Enter a valid URL first", type: "error" });
 			return;
 		}
 		testRemote.reset();
 		testRemote.mutate(parsed.data.url, {
 			onSuccess: (result) => {
 				if (result.reachable) {
-					toast.success(`Connection works: ${result.modelCount} models available`);
+					toast.add({
+						title: `Connection works: ${result.modelCount} models available`,
+						type: "success",
+					});
 				}
 			},
 		});

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
 import type { z } from "zod/v4";
+import { toast } from "#/shared/components/ui/toast";
 import {
 	createEndpoint,
 	deleteEndpoint,
@@ -19,10 +19,14 @@ export function useEndpoints() {
 		mutationFn: (data: z.input<typeof createEndpointSchema>) => createEndpoint({ data }),
 		onSuccess: () => {
 			invalidate();
-			toast.success("Provider endpoint added");
+			toast.add({ title: "Provider endpoint added", type: "success" });
 		},
 		onError: (error) =>
-			toast.error("Failed to add provider endpoint", { description: error.message }),
+			toast.add({
+				title: "Failed to add provider endpoint",
+				type: "error",
+				description: error.message,
+			}),
 	});
 
 	const updateEndpointMutation = useMutation({
@@ -32,20 +36,28 @@ export function useEndpoints() {
 			invalidate();
 			// The URL or key may have changed, so re-probe reachability.
 			queryClient.invalidateQueries({ queryKey: ["endpoint-health", vars.id] });
-			toast.success("Provider endpoint updated");
+			toast.add({ title: "Provider endpoint updated", type: "success" });
 		},
 		onError: (error) =>
-			toast.error("Failed to update provider endpoint", { description: error.message }),
+			toast.add({
+				title: "Failed to update provider endpoint",
+				type: "error",
+				description: error.message,
+			}),
 	});
 
 	const deleteEndpointMutation = useMutation({
 		mutationFn: (id: string) => deleteEndpoint({ data: { id } }),
 		onSuccess: () => {
 			invalidate();
-			toast.success("Provider endpoint removed");
+			toast.add({ title: "Provider endpoint removed", type: "success" });
 		},
 		onError: (error) =>
-			toast.error("Failed to remove provider endpoint", { description: error.message }),
+			toast.add({
+				title: "Failed to remove provider endpoint",
+				type: "error",
+				description: error.message,
+			}),
 	});
 
 	const testEndpointMutation = useMutation({

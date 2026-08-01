@@ -3,12 +3,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { worker } from "#/test/msw";
 import { renderHook } from "#/test/utils";
 
-const { toastSuccess, toastError } = vi.hoisted(() => ({
-	toastSuccess: vi.fn(),
-	toastError: vi.fn(),
+const { toastAdd } = vi.hoisted(() => ({
+	toastAdd: vi.fn(),
 }));
 
-vi.mock("sonner", () => ({ toast: { success: toastSuccess, error: toastError } }));
+vi.mock("#/shared/components/ui/toast", () => ({ toast: { add: toastAdd } }));
 
 const { useImportBackup } = await import(
 	"#/routes/_authenticated/settings/-hooks/use-import-backup"
@@ -57,13 +56,14 @@ describe("useImportBackup", () => {
 
 		result.current.mutate(backupFile({ version: 3 }));
 
-		await expect.poll(() => toastSuccess.mock.calls.length).toBe(1);
+		await expect.poll(() => toastAdd.mock.calls.length).toBe(1);
 		expect(uploaded).toBe('{"version":3}');
-		const [title, options] = toastSuccess.mock.lastCall ?? [];
-		expect(title).toBe("Backup imported");
-		expect(options?.description).toContain("3 memories and 2 conversations added; 4 duplicates");
+		const [toast] = toastAdd.mock.lastCall ?? [];
+		expect(toast?.title).toBe("Backup imported");
+		expect(toast?.type).toBe("success");
+		expect(toast?.description).toContain("3 memories and 2 conversations added; 4 duplicates");
 		// Endpoints arrive without their keys, so the summary has to say so.
-		expect(options?.description).toContain("re-enter their API keys");
+		expect(toast?.description).toContain("re-enter their API keys");
 	});
 
 	it("reports the server's message when the import is rejected", async () => {
@@ -80,8 +80,9 @@ describe("useImportBackup", () => {
 
 		result.current.mutate(backupFile({ version: 99 }));
 
-		await expect.poll(() => toastError.mock.calls.length).toBe(1);
-		expect(toastError.mock.lastCall?.[1]?.description).toBe("Unsupported backup version");
-		expect(toastSuccess).not.toHaveBeenCalled();
+		await expect.poll(() => toastAdd.mock.calls.length).toBe(1);
+		const [toast] = toastAdd.mock.lastCall ?? [];
+		expect(toast?.type).toBe("error");
+		expect(toast?.description).toBe("Unsupported backup version");
 	});
 });

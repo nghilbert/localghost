@@ -7,7 +7,6 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { toast } from "sonner";
 import {
 	type Attachment,
 	attachmentAccept,
@@ -24,6 +23,7 @@ import {
 } from "#/shared/components/ui/input-group";
 import { Separator } from "#/shared/components/ui/separator";
 import { Spinner } from "#/shared/components/ui/spinner";
+import { toast } from "#/shared/components/ui/toast";
 import { Tooltip, TooltipContent, TooltipTrigger } from "#/shared/components/ui/tooltip";
 import type { ModelSelection } from "#/shared/domain/endpoint/types";
 import { AttachmentPreviews } from "./AttachmentPreviews";
@@ -81,12 +81,15 @@ export function ChatInput({
 	async function addFiles(files: Iterable<File>) {
 		const accepted = Array.from(files).filter(isAcceptedFile);
 		if (accepted.length === 0) {
-			toast.error(canAttach ? "That file type can't be attached" : "This model can't take files");
+			toast.add({
+				title: canAttach ? "That file type can't be attached" : "This model can't take files",
+				type: "error",
+			});
 			return;
 		}
 		const withinLimit = accepted.filter((file) => {
 			if (file.size <= MAX_ATTACHMENT_BYTES) return true;
-			toast.error(`${file.name} is too large (max 20 MB)`);
+			toast.add({ title: `${file.name} is too large (max 20 MB)`, type: "error" });
 			return false;
 		});
 		if (withinLimit.length === 0) return;
@@ -94,7 +97,7 @@ export function ChatInput({
 			const read = await Promise.all(withinLimit.map(readAttachment));
 			setAttachments((prev) => [...prev, ...read]);
 		} catch {
-			toast.error("Couldn't read a file");
+			toast.add({ title: "Couldn't read a file", type: "error" });
 		}
 	}
 

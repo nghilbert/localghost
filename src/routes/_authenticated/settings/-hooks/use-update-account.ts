@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "@tanstack/react-router";
-import { toast } from "sonner";
+import { toast } from "#/shared/components/ui/toast";
 import { updateUserSettings } from "#/shared/domain/user-settings/user-settings.functions";
 import { authClient } from "#/shared/lib/auth-client";
 
@@ -28,8 +28,9 @@ export function useUpdateAccount() {
 			// The session lives in router context (root `beforeLoad`), not react-query.
 			await router.invalidate();
 			queryClient.invalidateQueries({ queryKey: ["user-settings"] });
-			toast.success("Account saved");
+			toast.add({ title: "Account saved", type: "success" });
 		},
-		onError: (error) => toast.error("Failed to save account", { description: error.message }),
+		onError: (error) =>
+			toast.add({ title: "Failed to save account", type: "error", description: error.message }),
 	});
 }

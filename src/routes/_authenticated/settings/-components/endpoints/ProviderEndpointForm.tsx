@@ -1,7 +1,6 @@
 import { revalidateLogic } from "@tanstack/react-form";
 import { ChevronDownIcon } from "lucide-react";
 import type { ReactNode } from "react";
-import { toast } from "sonner";
 import type {
 	buildEndpointFormSchema,
 	DbProvider,
@@ -13,6 +12,7 @@ import {
 	CollapsibleTrigger,
 } from "#/shared/components/ui/collapsible";
 import { Field } from "#/shared/components/ui/field";
+import { toast } from "#/shared/components/ui/toast";
 import { useEndpoints } from "#/shared/domain/endpoint/use-endpoints";
 import { useAppForm } from "#/shared/hooks/use-app-form";
 
@@ -85,11 +85,13 @@ export function ProviderEndpointForm({
 			{
 				onSuccess: (result) => {
 					if (result.ok) {
-						toast.success(
-							result.modelCount != null
-								? `Connection works: ${result.modelCount} models available`
-								: "Connection works",
-						);
+						toast.add({
+							title:
+								result.modelCount != null
+									? `Connection works: ${result.modelCount} models available`
+									: "Connection works",
+							type: "success",
+						});
 					}
 				},
 			},

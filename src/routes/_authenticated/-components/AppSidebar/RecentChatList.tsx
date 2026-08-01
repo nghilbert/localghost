@@ -2,7 +2,6 @@ import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-quer
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { DownloadIcon, MoreHorizontalIcon, PencilIcon, Trash2Icon } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -33,6 +32,7 @@ import {
 	SidebarMenuButton,
 	SidebarMenuItem,
 } from "#/shared/components/ui/sidebar";
+import { toast } from "#/shared/components/ui/toast";
 import {
 	conversationQueryOptions,
 	conversationSearchQueryOptions,
@@ -96,9 +96,11 @@ export function RecentChatList() {
 						: conversationToJson(conversation),
 				type: format === "markdown" ? "text/markdown" : "application/json",
 			});
-			toast.success("Chat exported");
+			toast.add({ title: "Chat exported", type: "success" });
 		} catch (error) {
-			toast.error("Failed to export chat", {
+			toast.add({
+				title: "Failed to export chat",
+				type: "error",
 				description: error instanceof Error ? error.message : undefined,
 			});
 		}

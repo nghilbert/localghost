@@ -1,7 +1,6 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { toast } from "sonner";
 import { ChatInput } from "#/routes/_authenticated/-components/chat/ChatInput";
 import { useChatTools } from "#/routes/_authenticated/-hooks/use-chat-tools";
 import type { Attachment } from "#/routes/_authenticated/-lib/attachments";
@@ -13,6 +12,7 @@ import {
 	EmptyHeader,
 	EmptyTitle,
 } from "#/shared/components/ui/empty";
+import { toast } from "#/shared/components/ui/toast";
 import {
 	createConversation,
 	defaultSelectionQueryOptions,
@@ -63,7 +63,8 @@ function NewChatPage() {
 			});
 			navigate({ to: "/chat/$conversationId", params: { conversationId: id } });
 		},
-		onError: (error) => toast.error("Failed to start the chat", { description: error.message }),
+		onError: (error) =>
+			toast.add({ title: "Failed to start the chat", type: "error", description: error.message }),
 	});
 
 	return (

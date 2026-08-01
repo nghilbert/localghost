@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { toast } from "#/shared/components/ui/toast";
 import { authClient } from "#/shared/lib/auth-client";
 
 type ChangePassword = {
@@ -18,7 +18,8 @@ export function useChangePassword() {
 			});
 			if (error) throw new Error(error.message ?? "Failed to change password");
 		},
-		onSuccess: () => toast.success("Password changed"),
-		onError: (error) => toast.error("Failed to change password", { description: error.message }),
+		onSuccess: () => toast.add({ title: "Password changed", type: "success" }),
+		onError: (error) =>
+			toast.add({ title: "Failed to change password", type: "error", description: error.message }),
 	});
 }
