@@ -1,6 +1,6 @@
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { endpointModelsQueryOptions } from "#/shared/domain/endpoint/endpoint.functions";
-import { useEndpoints } from "#/shared/domain/endpoint/use-endpoints";
+import { useEndpointQuery } from "#/shared/domain/endpoint/use-endpoints";
 import { libraryStatusQueryOptions } from "#/shared/domain/model/model.functions";
 
 /**
@@ -11,7 +11,7 @@ import { libraryStatusQueryOptions } from "#/shared/domain/model/model.functions
  * deleted or downloaded model is reflected immediately.
  */
 export function useEndpointModelGroups(open: boolean) {
-	const { endpoints } = useEndpoints();
+	const endpoints = useEndpointQuery();
 	const { data: runtimeStatus, isPending: isRuntimePending } = useQuery(
 		libraryStatusQueryOptions(),
 	);

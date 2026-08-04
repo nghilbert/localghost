@@ -5,7 +5,7 @@ import {
 	PROVIDERS,
 	providerDefinitionFor,
 } from "#/routes/_authenticated/settings/-lib/providers";
-import { detectProvider } from "#/shared/lib/llm.server";
+import { detectProvider } from "#/shared/lib/llm-provider";
 
 describe("provider registry", () => {
 	it("default base urls round-trip through detectProvider", () => {

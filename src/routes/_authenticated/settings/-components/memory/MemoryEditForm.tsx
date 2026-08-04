@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { useMemories } from "#/routes/_authenticated/settings/-hooks/use-memories";
+import { useUpdateMemory } from "#/routes/_authenticated/settings/-hooks/use-memories";
 import { Input } from "#/shared/components/ui/input";
 import { useAppForm } from "#/shared/hooks/use-app-form";
 
@@ -11,7 +11,7 @@ type MemoryEditFormProps = {
 
 /** Inline editor for a saved memory's text: Enter or blur saves, Escape cancels. */
 export function MemoryEditForm({ memory, onDone }: MemoryEditFormProps) {
-	const { updateMemoryMutation } = useMemories();
+	const updateMemory = useUpdateMemory();
 	const inputRef = useRef<HTMLInputElement>(null);
 
 	useEffect(() => {
@@ -20,10 +20,10 @@ export function MemoryEditForm({ memory, onDone }: MemoryEditFormProps) {
 
 	const form = useAppForm({
 		defaultValues: { text: memory.text },
-		onSubmit: async ({ value }) => {
+		onSubmit: ({ value }) => {
 			const text = value.text.trim();
 			if (text && text !== memory.text) {
-				await updateMemoryMutation.mutate({ id: memory.id, text });
+				return updateMemory.mutateAsync({ id: memory.id, text }, { onSuccess: onDone });
 			}
 			onDone();
 		},
@@ -31,10 +31,9 @@ export function MemoryEditForm({ memory, onDone }: MemoryEditFormProps) {
 
 	return (
 		<form
-			className="flex-1"
 			onSubmit={(event) => {
 				event.preventDefault();
-				form.handleSubmit();
+				form.handleSubmit().catch(() => undefined);
 			}}
 		>
 			<form.AppField name="text">

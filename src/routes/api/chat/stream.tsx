@@ -17,7 +17,8 @@ import { getContextWindow } from "#/shared/domain/model/runtime-metadata.server"
 import { getModelSetting } from "#/shared/domain/model-setting/model-setting.server";
 import { findUserSettings } from "#/shared/domain/user-settings/user-settings.server";
 import { BodyTooLargeError, readJsonWithLimit } from "#/shared/lib/http.server";
-import { asLLMProvider, streamLLMEvents } from "#/shared/lib/llm.server";
+import { streamLLMEvents } from "#/shared/lib/llm.server";
+import { asLLMProvider } from "#/shared/lib/llm-provider";
 import { authedRequest } from "#/shared/lib/middleware";
 
 // Roomy enough for a trimmed history carrying image attachments as data URLs.

@@ -1,4 +1,5 @@
 import { z } from "zod/v4";
+import type { LLMProvider } from "#/shared/lib/llm-provider";
 
 export type ProviderId =
 	| "anthropic"
@@ -8,8 +9,6 @@ export type ProviderId =
 	| "groq"
 	| "llamacpp"
 	| "custom";
-
-export type DbProvider = "openai" | "anthropic" | "llamacpp" | "openrouter" | "groq" | "gemini";
 
 export type ProviderDefinition = {
 	id: ProviderId;
@@ -96,7 +95,7 @@ export const PROVIDERS: ProviderDefinition[] = [
 ];
 
 /** Maps a picker choice onto the provider value stored on Endpoint. */
-export function dbProviderFor(id: ProviderId): DbProvider {
+export function dbProviderFor(id: ProviderId): LLMProvider {
 	return id === "custom" ? "openai" : id;
 }
 

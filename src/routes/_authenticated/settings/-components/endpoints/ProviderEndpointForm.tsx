@@ -1,10 +1,7 @@
 import { revalidateLogic } from "@tanstack/react-form";
 import { ChevronDownIcon } from "lucide-react";
 import type { ReactNode } from "react";
-import type {
-	buildEndpointFormSchema,
-	DbProvider,
-} from "#/routes/_authenticated/settings/-lib/providers";
+import type { buildEndpointFormSchema } from "#/routes/_authenticated/settings/-lib/providers";
 import { Button } from "#/shared/components/ui/button";
 import {
 	Collapsible,
@@ -13,8 +10,9 @@ import {
 } from "#/shared/components/ui/collapsible";
 import { Field } from "#/shared/components/ui/field";
 import { toast } from "#/shared/components/ui/toast";
-import { useEndpoints } from "#/shared/domain/endpoint/use-endpoints";
+import { useTestEndpoint } from "#/shared/domain/endpoint/use-endpoints";
 import { useAppForm } from "#/shared/hooks/use-app-form";
+import type { LLMProvider } from "#/shared/lib/llm-provider";
 
 /** The trimmed values a provider-endpoint submission produces. */
 export type EndpointFormValues = { name: string; url: string; apiKey: string };
@@ -22,7 +20,7 @@ export type EndpointFormValues = { name: string; url: string; apiKey: string };
 type ProviderEndpointFormProps = {
 	schema: ReturnType<typeof buildEndpointFormSchema>;
 	/** The provider family being configured, so "Test connection" probes with its auth scheme. */
-	provider: DbProvider;
+	provider: LLMProvider;
 	defaultValues: EndpointFormValues;
 	keyLabel: string;
 	keyPlaceholder?: string;
@@ -35,7 +33,7 @@ type ProviderEndpointFormProps = {
 	/** Renders a Cancel button in the action row when the form can be dismissed (edit). */
 	onCancel?: () => void;
 	/** `onSaved` resets the form and the test result; call it from the mutation's success. */
-	onSubmit: (args: { value: EndpointFormValues; onSaved: () => void }) => Promise<void>;
+	onSubmit: (args: { value: EndpointFormValues; onSaved: () => void }) => Promise<unknown>;
 };
 
 /**
@@ -56,21 +54,20 @@ export function ProviderEndpointForm({
 	onCancel,
 	onSubmit,
 }: ProviderEndpointFormProps) {
-	const { testEndpoint } = useEndpoints();
+	const testEndpoint = useTestEndpoint();
 
 	const form = useAppForm({
 		defaultValues,
 		validators: { onDynamic: schema },
 		validationLogic: revalidateLogic(),
-		onSubmit: async ({ value, formApi }) => {
-			await onSubmit({
+		onSubmit: ({ value, formApi }) =>
+			onSubmit({
 				value: { name: value.name.trim(), url: value.url.trim(), apiKey: value.apiKey },
 				onSaved: () => {
 					formApi.reset();
 					testEndpoint.reset();
 				},
-			});
-		},
+			}),
 	});
 
 	function handleTest() {

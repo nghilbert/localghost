@@ -26,8 +26,17 @@ import { EndpointHealthBadge } from "./EndpointHealthBadge";
 type Endpoint = Awaited<ReturnType<typeof listEndpoints>>[number];
 
 /** A configured provider endpoint: name, URL, key status, with inline edit and delete. */
-export function EndpointItem({ endpoint, onDelete }: { endpoint: Endpoint; onDelete: () => void }) {
+export function EndpointItem({
+	endpoint,
+	isDeleting,
+	onDelete,
+}: {
+	endpoint: Endpoint;
+	isDeleting: boolean;
+	onDelete: (onSuccess: () => void) => void;
+}) {
 	const [editing, setEditing] = useState(false);
+	const [deleteOpen, setDeleteOpen] = useState(false);
 
 	if (editing) {
 		return (
@@ -58,7 +67,7 @@ export function EndpointItem({ endpoint, onDelete }: { endpoint: Endpoint; onDel
 				>
 					<PencilIcon size={14} />
 				</Button>
-				<AlertDialog>
+				<AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
 					<AlertDialogTrigger
 						render={
 							<Button
@@ -84,7 +93,11 @@ export function EndpointItem({ endpoint, onDelete }: { endpoint: Endpoint; onDel
 							<AlertDialogAction
 								variant="destructive"
 								data-testid="endpoint-delete-confirm"
-								onClick={onDelete}
+								disabled={isDeleting}
+								onClick={(event) => {
+									event.preventDefault();
+									onDelete(() => setDeleteOpen(false));
+								}}
 							>
 								Delete
 							</AlertDialogAction>

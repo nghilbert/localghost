@@ -35,7 +35,7 @@ import {
 	libraryStatusQueryOptions,
 } from "#/shared/domain/model/model.functions";
 import { useModelDownload } from "#/shared/domain/model/use-model-download";
-import { useRuntime } from "#/shared/domain/model/use-runtime";
+import { useDeleteModel } from "#/shared/domain/model/use-runtime";
 
 const DEFAULT_CATALOG_QUERY = {
 	page: 0,
@@ -62,7 +62,7 @@ function LibraryPage() {
 	const { data: runtimeStatus, isPending: isStatusPending } = useQuery(libraryStatusQueryOptions());
 
 	const { pulling, pull, stop } = useModelDownload(runtimeStatus?.endpointId ?? null);
-	const { deleteModel } = useRuntime();
+	const deleteModel = useDeleteModel();
 
 	const [isReconnecting, setIsReconnecting] = useState(false);
 	const [pendingDelete, setPendingDelete] = useState<string | null>(null);
@@ -146,14 +146,18 @@ function LibraryPage() {
 						<AlertDialogCancel>Cancel</AlertDialogCancel>
 						<AlertDialogAction
 							variant="destructive"
-							onClick={() => {
+							disabled={deleteModel.isPending}
+							onClick={(event) => {
+								event.preventDefault();
 								if (pendingDelete && runtimeStatus?.found) {
-									deleteModel.mutate({
-										endpointId: runtimeStatus.endpointId,
-										model: pendingDelete,
-									});
+									deleteModel.mutate(
+										{
+											endpointId: runtimeStatus.endpointId,
+											model: pendingDelete,
+										},
+										{ onSuccess: () => setPendingDelete(null) },
+									);
 								}
-								setPendingDelete(null);
 							}}
 						>
 							Delete

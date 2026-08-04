@@ -10,7 +10,7 @@ export function SubmitForm({ children, ...props }: SubmitFormProps) {
 		<form
 			onSubmit={(event) => {
 				event.preventDefault();
-				handleSubmit();
+				handleSubmit().catch(() => undefined);
 			}}
 		>
 			<FieldGroup {...props}>{children}</FieldGroup>

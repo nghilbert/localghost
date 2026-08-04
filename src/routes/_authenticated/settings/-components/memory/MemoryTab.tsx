@@ -1,8 +1,7 @@
-import { revalidateLogic } from "@tanstack/react-form";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { PencilIcon, TrashIcon } from "lucide-react";
 import { useState } from "react";
-import { useMemories } from "#/routes/_authenticated/settings/-hooks/use-memories";
+import { useDeleteMemory } from "#/routes/_authenticated/settings/-hooks/use-memories";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -24,13 +23,12 @@ import {
 	ItemTitle,
 } from "#/shared/components/ui/item";
 import { memoriesQueryOptions } from "#/shared/domain/memory/memory.functions";
-import { memoryTextInput } from "#/shared/domain/memory/schemas";
-import { useAppForm } from "#/shared/hooks/use-app-form";
+import { MemoryCreateForm } from "./MemoryCreateForm";
 import { MemoryEditForm } from "./MemoryEditForm";
 
 export function MemoryTab() {
 	const { data: memories } = useSuspenseQuery(memoriesQueryOptions());
-	const { createMemoryMutation, deleteMemoryMutation } = useMemories();
+	const deleteMemory = useDeleteMemory();
 	const [search, setSearch] = useState("");
 	const [editingId, setEditingId] = useState<string | null>(null);
 	const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
@@ -45,19 +43,8 @@ export function MemoryTab() {
 			)
 		: memories;
 
-	const form = useAppForm({
-		defaultValues: { text: "" },
-		validators: { onDynamic: memoryTextInput },
-		validationLogic: revalidateLogic(),
-		onSubmit: async ({ value }) => {
-			await createMemoryMutation.mutate(value.text.trim());
-			form.reset();
-		},
-	});
-
 	function confirmDelete(id: string) {
-		deleteMemoryMutation.mutate(id);
-		setPendingDeleteId(null);
+		deleteMemory.mutate(id, { onSuccess: () => setPendingDeleteId(null) });
 	}
 
 	return (
@@ -66,22 +53,7 @@ export function MemoryTab() {
 				The assistant saves and recalls these when you enable Memory in a chat's tools.
 			</p>
 
-			<form.AppForm>
-				<form.SubmitForm className="gap-3">
-					<form.AppField name="text">
-						{(field) => (
-							<field.InputField
-								label="New memory"
-								placeholder="e.g. I prefer metric units"
-								fieldOrientation="vertical"
-							/>
-						)}
-					</form.AppField>
-					<form.SubmitButton size="sm" className="self-start">
-						Add memory
-					</form.SubmitButton>
-				</form.SubmitForm>
-			</form.AppForm>
+			<MemoryCreateForm />
 
 			<section className="space-y-3">
 				<h2 className="text-sm font-medium">Saved memories</h2>
@@ -102,16 +74,18 @@ export function MemoryTab() {
 					<ItemGroup>
 						{visibleMemories.map((memory) => (
 							<Item key={memory.id} variant="outline">
-								{editingId === memory.id ? (
-									<MemoryEditForm memory={memory} onDone={() => setEditingId(null)} />
-								) : (
-									<ItemContent>
-										<ItemTitle>{memory.text}</ItemTitle>
-										<ItemDescription>
-											{memory.category} · {memory.source}
-										</ItemDescription>
-									</ItemContent>
-								)}
+								<ItemContent>
+									{editingId === memory.id ? (
+										<MemoryEditForm memory={memory} onDone={() => setEditingId(null)} />
+									) : (
+										<>
+											<ItemTitle>{memory.text}</ItemTitle>
+											<ItemDescription>
+												{memory.category} · {memory.source}
+											</ItemDescription>
+										</>
+									)}
+								</ItemContent>
 								<ItemActions>
 									<Button
 										variant="ghost"
@@ -157,7 +131,9 @@ export function MemoryTab() {
 						<AlertDialogCancel>Cancel</AlertDialogCancel>
 						<AlertDialogAction
 							variant="destructive"
-							onClick={() => {
+							disabled={deleteMemory.isPending}
+							onClick={(event) => {
+								event.preventDefault();
 								if (pendingDeleteId) confirmDelete(pendingDeleteId);
 							}}
 						>

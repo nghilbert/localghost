@@ -4,12 +4,12 @@ import { decrypt, encrypt } from "#/shared/lib/crypto.server";
 import { prisma } from "#/shared/lib/db.server";
 import { listModels as listLlamacppModels } from "#/shared/lib/llamacpp/client.server";
 import {
-	asLLMProvider,
 	type EndpointProbeResult,
 	listModels,
 	modelSupportsTools,
 	probeEndpoint,
 } from "#/shared/lib/llm.server";
+import { asLLMProvider } from "#/shared/lib/llm-provider";
 import type { createEndpointSchema, updateEndpointSchema } from "./schemas";
 
 /** Strips the encrypted key off an endpoint row, replacing it with a `hasApiKey` flag. */

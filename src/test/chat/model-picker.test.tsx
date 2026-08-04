@@ -8,7 +8,7 @@ const endpoints = [
 ];
 
 vi.mock("#/shared/domain/endpoint/use-endpoints", () => ({
-	useEndpoints: () => ({ endpoints }),
+	useEndpointQuery: () => endpoints,
 }));
 
 type RuntimeStatus = {

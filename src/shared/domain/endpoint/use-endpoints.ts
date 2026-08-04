@@ -10,15 +10,27 @@ import {
 } from "./endpoint.functions";
 import type { createEndpointSchema, testEndpointInput, updateEndpointSchema } from "./schemas";
 
-export function useEndpoints() {
-	const queryClient = useQueryClient();
-	const invalidate = () => queryClient.invalidateQueries({ queryKey: ["endpoints"] });
+/** Returns the saved provider endpoints. */
+export function useEndpointQuery() {
 	const { data: endpoints = [] } = useQuery(endpointsQueryOptions());
 
-	const createEndpointMutation = useMutation({
+	return endpoints;
+}
+
+function useInvalidateEndpoints() {
+	const queryClient = useQueryClient();
+
+	return () => queryClient.invalidateQueries({ queryKey: ["endpoints"] });
+}
+
+/** Creates a provider endpoint. */
+export function useCreateEndpoint() {
+	const invalidateEndpoints = useInvalidateEndpoints();
+
+	return useMutation({
 		mutationFn: (data: z.input<typeof createEndpointSchema>) => createEndpoint({ data }),
-		onSuccess: () => {
-			invalidate();
+		onSuccess: async () => {
+			await invalidateEndpoints();
 			toast.add({ title: "Provider endpoint added", type: "success" });
 		},
 		onError: (error) =>
@@ -28,14 +40,21 @@ export function useEndpoints() {
 				description: error.message,
 			}),
 	});
+}
 
-	const updateEndpointMutation = useMutation({
+/** Updates a provider endpoint. */
+export function useUpdateEndpoint() {
+	const queryClient = useQueryClient();
+	const invalidateEndpoints = useInvalidateEndpoints();
+
+	return useMutation({
 		mutationFn: (vars: { id: string; data: z.input<typeof updateEndpointSchema> }) =>
 			updateEndpoint({ data: vars }),
-		onSuccess: (_result, vars) => {
-			invalidate();
-			// The URL or key may have changed, so re-probe reachability.
-			queryClient.invalidateQueries({ queryKey: ["endpoint-health", vars.id] });
+		onSuccess: async (_result, vars) => {
+			await Promise.all([
+				invalidateEndpoints(),
+				queryClient.invalidateQueries({ queryKey: ["endpoint-health", vars.id] }),
+			]);
 			toast.add({ title: "Provider endpoint updated", type: "success" });
 		},
 		onError: (error) =>
@@ -45,11 +64,16 @@ export function useEndpoints() {
 				description: error.message,
 			}),
 	});
+}
 
-	const deleteEndpointMutation = useMutation({
+/** Deletes a provider endpoint. */
+export function useDeleteEndpoint() {
+	const invalidateEndpoints = useInvalidateEndpoints();
+
+	return useMutation({
 		mutationFn: (id: string) => deleteEndpoint({ data: { id } }),
-		onSuccess: () => {
-			invalidate();
+		onSuccess: async () => {
+			await invalidateEndpoints();
 			toast.add({ title: "Provider endpoint removed", type: "success" });
 		},
 		onError: (error) =>
@@ -59,16 +83,11 @@ export function useEndpoints() {
 				description: error.message,
 			}),
 	});
+}
 
-	const testEndpointMutation = useMutation({
+/** Tests an endpoint without saving it. */
+export function useTestEndpoint() {
+	return useMutation({
 		mutationFn: (data: z.input<typeof testEndpointInput>) => testEndpoint({ data }),
 	});
-
-	return {
-		endpoints,
-		createEndpoint: createEndpointMutation,
-		updateEndpoint: updateEndpointMutation,
-		deleteEndpoint: deleteEndpointMutation,
-		testEndpoint: testEndpointMutation,
-	};
 }

@@ -1,15 +1,16 @@
 import { z } from "zod/v4";
-import { endpointProviderSchema, samplingOptionsSchema } from "#/shared/domain/endpoint/schemas";
+import { samplingOptionsSchema } from "#/shared/domain/endpoint/schemas";
 import { embed } from "#/shared/domain/memory/embeddings.server";
 import { insertMemory } from "#/shared/domain/memory/memory.server";
 import { listModelSettings } from "#/shared/domain/model-setting/model-setting.server";
 import { perModelOptionsSchema } from "#/shared/domain/model-setting/schemas";
 import { prisma } from "#/shared/lib/db.server";
+import { llmProviderSchema } from "#/shared/lib/llm-provider";
 
 /** The backup format this build writes; imports claiming a newer one are rejected. */
 export const BACKUP_VERSION = 3;
 
-const backupEndpointProviderSchema = z.union([endpointProviderSchema, z.literal("ollama")]);
+const backupEndpointProviderSchema = z.union([llmProviderSchema, z.literal("ollama")]);
 
 /** Shape accepted by {@link importBackup}; also used by the route to validate the upload. */
 export const importPayloadSchema = z.object({

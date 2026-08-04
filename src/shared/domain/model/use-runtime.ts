@@ -7,24 +7,32 @@ import {
 	testRemoteRuntime,
 } from "./model.functions";
 
-export function useRuntime() {
+/** Deletes an installed model. */
+export function useDeleteModel() {
 	const queryClient = useQueryClient();
 
-	const deleteModelMutation = useMutation({
+	return useMutation({
 		mutationFn: (input: { endpointId: string; model: string }) => deleteModel({ data: input }),
-		onSuccess: (_data, { model }) => {
-			queryClient.invalidateQueries({ queryKey: libraryStatusQueryOptions().queryKey });
+		onSuccess: async (_data, { model }) => {
+			await queryClient.invalidateQueries({ queryKey: libraryStatusQueryOptions().queryKey });
 			toast.add({ title: `${model} deleted`, type: "success" });
 		},
 		onError: (error) =>
 			toast.add({ title: "Failed to delete model", type: "error", description: error.message }),
 	});
+}
 
-	const connectRemoteMutation = useMutation({
+/** Connects a remote llama.cpp runtime. */
+export function useConnectRuntime() {
+	const queryClient = useQueryClient();
+
+	return useMutation({
 		mutationFn: (input: { url: string }) => registerRemoteRuntime({ data: input }),
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: libraryStatusQueryOptions().queryKey });
-			queryClient.invalidateQueries({ queryKey: ["endpoints"] });
+		onSuccess: async () => {
+			await Promise.all([
+				queryClient.invalidateQueries({ queryKey: libraryStatusQueryOptions().queryKey }),
+				queryClient.invalidateQueries({ queryKey: ["endpoints"] }),
+			]);
 			toast.add({ title: "Connected to llama.cpp", type: "success" });
 		},
 		onError: (error) =>
@@ -34,14 +42,11 @@ export function useRuntime() {
 				description: error.message,
 			}),
 	});
+}
 
-	const testRemoteMutation = useMutation({
+/** Tests a llama.cpp runtime URL without saving it. */
+export function useTestRuntime() {
+	return useMutation({
 		mutationFn: (url: string) => testRemoteRuntime({ data: { url } }),
 	});
-
-	return {
-		deleteModel: deleteModelMutation,
-		connectRemote: connectRemoteMutation,
-		testRemote: testRemoteMutation,
-	};
 }

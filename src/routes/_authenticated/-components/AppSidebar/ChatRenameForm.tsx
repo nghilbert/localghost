@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Input } from "#/shared/components/ui/input";
-import { useConversations } from "#/shared/domain/conversation/use-conversations";
+import { useRenameConversation } from "#/shared/domain/conversation/use-conversations";
 import { useAppForm } from "#/shared/hooks/use-app-form";
 
 type ChatRenameFormProps = {
@@ -11,7 +11,7 @@ type ChatRenameFormProps = {
 
 /** Inline sidebar editor for a chat title: Enter or blur saves, Escape cancels. */
 export function ChatRenameForm({ conversation, onDone }: ChatRenameFormProps) {
-	const { renameConversation } = useConversations();
+	const renameConversation = useRenameConversation();
 	const inputRef = useRef<HTMLInputElement>(null);
 
 	useEffect(() => {
@@ -20,10 +20,13 @@ export function ChatRenameForm({ conversation, onDone }: ChatRenameFormProps) {
 
 	const form = useAppForm({
 		defaultValues: { title: conversation.title },
-		onSubmit: async ({ value }) => {
+		onSubmit: ({ value }) => {
 			const title = value.title.trim();
 			if (title && title !== conversation.title) {
-				await renameConversation.mutate({ id: conversation.id, title });
+				return renameConversation.mutateAsync(
+					{ id: conversation.id, title },
+					{ onSuccess: onDone },
+				);
 			}
 			onDone();
 		},
@@ -33,7 +36,7 @@ export function ChatRenameForm({ conversation, onDone }: ChatRenameFormProps) {
 		<form
 			onSubmit={(event) => {
 				event.preventDefault();
-				form.handleSubmit();
+				form.handleSubmit().catch(() => undefined);
 			}}
 		>
 			<form.AppField name="title">

@@ -14,7 +14,7 @@ Guidance for Claude Code working in this repository.
 - **No positional params:** two or more params means one named object (one positional is fine); better, remove the boundary so the value is read from its owner.
 - **No dead code:** delete unused code; no re-exports, no `// removed` comments.
 - **Components own their styling:** an ad-hoc card surface in feature code is a `<Card>`, not a raw `<div className="rounded-lg border bg-card p-4">`. Reach for `className` only for layout the component cannot do itself.
-- **Layout-agnostic components:** reusable components never set their own width, max-width, or margins; the parent owns layout.
+- **Layout-agnostic components:** reusable components never set their own width, max-width, margins, outer flex/grid placement, or page-height assumptions; the parent owns the space it offers, while the child owns only its internal layout.
 - **Post-action toasts:** after user-awaited mutations, fire `toast.success` / `toast.error` from `sonner`.
 - **Test complex work:** for real moving parts (parsers, data transforms, non-trivial UI), write Vitest tests in `src/test/<area>/` asserting real behavior. Keep test data inline or tiny; craft the minimal input, never commit captured blobs.
 
@@ -66,15 +66,18 @@ Copy `.env.example` to `.env`. Required: `POSTGRES_PASSWORD`, `BETTER_AUTH_SECRE
 
 ## Forms
 
-`useAppForm` (TanStack Form) in `src/shared/hooks/use-app-form/`, field components in its `fields/`. Never hand-wire `useState`-per-field + `Input`; add a field component instead. Validate with Zod v4 via `validators: { onDynamic: Schema }`; submit via `form.handleSubmit()`.
+`useAppForm` (TanStack Form) in `src/shared/hooks/use-app-form/`, field components in its `fields/`. The hook, its form components, and its private field components stay together as one form kit. Never hand-wire `useState`-per-field + `Input`; add a field component instead. Validate with Zod v4 via `validators: { onDynamic: Schema }`; submit via `form.handleSubmit()`.
 
-**Submitting:** `onSubmit` awaits a plain `mutation.mutate(value)`, never `mutateAsync`. The mutation owns feedback: define `onSuccess` and `onError` on `useMutation` (firing `toast.success` / `toast.error` there) so submit handlers stay one line. Don't surface the same error twice; the `onError` toast is the error channel. Reserve inline `FormError` for inline affordances (a "Test connection" result), not the submit mutation's error.
+Extract a page-local form when it owns an independent validation, submission, and reset/close lifecycle; colocate it with its route. Reuse alone is not required, and a form's private pieces do not become shared components. Keep surrounding search, list, and dialog composition in the parent screen unless those pieces gain their own responsibility.
+
+**Submitting:** completion-dependent forms return `mutation.mutateAsync(value, { onSuccess })` directly from `onSubmit`; no unnecessary `async`/`await`, result variable, `void result`, or local `try/catch`. The hook-level `onSuccess` awaits invalidation and owns the shared success toast; hook-level `onError` owns the single error toast. Per-call `onSuccess` is only for component-local reset, close, navigation, or callbacks. At a DOM form-event boundary, consume `form.handleSubmit()`'s rejected promise after TanStack Form updates its state so it does not become an unhandled browser rejection. Fire-and-forget button actions use `mutate`. Reserve inline `FormError` for inline affordances (a "Test connection" result), not the submit mutation's error.
 
 ## React & Data Practices
 
 - Derive values during render. Never mirror props or query data into `useState` synced by `useEffect`; effects are only for real external systems (DOM APIs, subscriptions, timers).
 - List `key`s come from data ids, never array indexes.
 - Mutations invalidate the queries they touch in `onSuccess` via `queryClient.invalidateQueries`; no manual refetching, no local copies of server state.
+- Domain query/mutation hooks are focused exports grouped in the existing noun hook file (`use-endpoints.ts`, `use-conversations.ts`); never create one file per operation or an aggregate hook that instantiates unused observers.
 - Route-level data loads through shared `queryOptions()` used by both the route loader and `useQuery`; components never ad-hoc `fetch`. Every route with queries defines a loader: `context.queryClient.ensureQueryData(...)` (awaited) for fast first-paint data, an un-awaited `prefetchQuery(...)` for slow scans the page already renders skeletons for.
 - One Zod schema per shape, shared by the form validator and the server fn input; never declare the same shape twice.
 - Annotate exported function signatures; let locals and obvious generics infer.
