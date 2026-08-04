@@ -12,17 +12,18 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as PublicRouteImport } from './routes/_public'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as AuthenticatedChatRouteRouteImport } from './routes/_authenticated/_chat/route'
 import { Route as AuthenticatedLibraryRouteImport } from './routes/_authenticated/library'
-import { Route as AuthenticatedNewRouteImport } from './routes/_authenticated/new'
 import { Route as PublicSignInRouteImport } from './routes/_public/sign-in'
 import { Route as PublicSignUpRouteImport } from './routes/_public/sign-up'
-import { Route as AuthenticatedChatConversationIdRouteImport } from './routes/_authenticated/chat/$conversationId'
+import { Route as AuthenticatedChatNewRouteImport } from './routes/_authenticated/_chat/new'
 import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authenticated/settings/index'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiBackupExportRouteImport } from './routes/api/backup/export'
 import { Route as ApiBackupImportRouteImport } from './routes/api/backup/import'
 import { Route as ApiChatStreamRouteImport } from './routes/api/chat/stream'
 import { Route as ApiModelsEventsRouteImport } from './routes/api/models/events'
+import { Route as AuthenticatedChatChatConversationIdRouteImport } from './routes/_authenticated/_chat/chat/$conversationId'
 
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
   id: '/_authenticated',
@@ -37,14 +38,13 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedChatRouteRoute = AuthenticatedChatRouteRouteImport.update({
+  id: '/_chat',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedLibraryRoute = AuthenticatedLibraryRouteImport.update({
   id: '/library',
   path: '/library',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedNewRoute = AuthenticatedNewRouteImport.update({
-  id: '/new',
-  path: '/new',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const PublicSignInRoute = PublicSignInRouteImport.update({
@@ -57,12 +57,11 @@ const PublicSignUpRoute = PublicSignUpRouteImport.update({
   path: '/sign-up',
   getParentRoute: () => PublicRoute,
 } as any)
-const AuthenticatedChatConversationIdRoute =
-  AuthenticatedChatConversationIdRouteImport.update({
-    id: '/chat/$conversationId',
-    path: '/chat/$conversationId',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
+const AuthenticatedChatNewRoute = AuthenticatedChatNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => AuthenticatedChatRouteRoute,
+} as any)
 const AuthenticatedSettingsIndexRoute =
   AuthenticatedSettingsIndexRouteImport.update({
     id: '/settings/',
@@ -94,97 +93,105 @@ const ApiModelsEventsRoute = ApiModelsEventsRouteImport.update({
   path: '/api/models/events',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedChatChatConversationIdRoute =
+  AuthenticatedChatChatConversationIdRouteImport.update({
+    id: '/chat/$conversationId',
+    path: '/chat/$conversationId',
+    getParentRoute: () => AuthenticatedChatRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/library': typeof AuthenticatedLibraryRoute
-  '/new': typeof AuthenticatedNewRoute
   '/sign-in': typeof PublicSignInRoute
   '/sign-up': typeof PublicSignUpRoute
-  '/chat/$conversationId': typeof AuthenticatedChatConversationIdRoute
+  '/new': typeof AuthenticatedChatNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/backup/export': typeof ApiBackupExportRoute
   '/api/backup/import': typeof ApiBackupImportRoute
   '/api/chat/stream': typeof ApiChatStreamRoute
   '/api/models/events': typeof ApiModelsEventsRoute
   '/settings/': typeof AuthenticatedSettingsIndexRoute
+  '/chat/$conversationId': typeof AuthenticatedChatChatConversationIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof AuthenticatedIndexRoute
   '/library': typeof AuthenticatedLibraryRoute
-  '/new': typeof AuthenticatedNewRoute
   '/sign-in': typeof PublicSignInRoute
   '/sign-up': typeof PublicSignUpRoute
-  '/chat/$conversationId': typeof AuthenticatedChatConversationIdRoute
+  '/new': typeof AuthenticatedChatNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/backup/export': typeof ApiBackupExportRoute
   '/api/backup/import': typeof ApiBackupImportRoute
   '/api/chat/stream': typeof ApiChatStreamRoute
   '/api/models/events': typeof ApiModelsEventsRoute
   '/settings': typeof AuthenticatedSettingsIndexRoute
+  '/chat/$conversationId': typeof AuthenticatedChatChatConversationIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/_public': typeof PublicRouteWithChildren
+  '/_authenticated/_chat': typeof AuthenticatedChatRouteRouteWithChildren
   '/_authenticated/library': typeof AuthenticatedLibraryRoute
-  '/_authenticated/new': typeof AuthenticatedNewRoute
   '/_public/sign-in': typeof PublicSignInRoute
   '/_public/sign-up': typeof PublicSignUpRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
-  '/_authenticated/chat/$conversationId': typeof AuthenticatedChatConversationIdRoute
+  '/_authenticated/_chat/new': typeof AuthenticatedChatNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/backup/export': typeof ApiBackupExportRoute
   '/api/backup/import': typeof ApiBackupImportRoute
   '/api/chat/stream': typeof ApiChatStreamRoute
   '/api/models/events': typeof ApiModelsEventsRoute
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
+  '/_authenticated/_chat/chat/$conversationId': typeof AuthenticatedChatChatConversationIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/library'
-    | '/new'
     | '/sign-in'
     | '/sign-up'
-    | '/chat/$conversationId'
+    | '/new'
     | '/api/auth/$'
     | '/api/backup/export'
     | '/api/backup/import'
     | '/api/chat/stream'
     | '/api/models/events'
     | '/settings/'
+    | '/chat/$conversationId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/library'
-    | '/new'
     | '/sign-in'
     | '/sign-up'
-    | '/chat/$conversationId'
+    | '/new'
     | '/api/auth/$'
     | '/api/backup/export'
     | '/api/backup/import'
     | '/api/chat/stream'
     | '/api/models/events'
     | '/settings'
+    | '/chat/$conversationId'
   id:
     | '__root__'
     | '/_authenticated'
     | '/_public'
+    | '/_authenticated/_chat'
     | '/_authenticated/library'
-    | '/_authenticated/new'
     | '/_public/sign-in'
     | '/_public/sign-up'
     | '/_authenticated/'
-    | '/_authenticated/chat/$conversationId'
+    | '/_authenticated/_chat/new'
     | '/api/auth/$'
     | '/api/backup/export'
     | '/api/backup/import'
     | '/api/chat/stream'
     | '/api/models/events'
     | '/_authenticated/settings/'
+    | '/_authenticated/_chat/chat/$conversationId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -220,18 +227,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/_chat': {
+      id: '/_authenticated/_chat'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedChatRouteRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/library': {
       id: '/_authenticated/library'
       path: '/library'
       fullPath: '/library'
       preLoaderRoute: typeof AuthenticatedLibraryRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/new': {
-      id: '/_authenticated/new'
-      path: '/new'
-      fullPath: '/new'
-      preLoaderRoute: typeof AuthenticatedNewRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_public/sign-in': {
@@ -248,12 +255,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PublicSignUpRouteImport
       parentRoute: typeof PublicRoute
     }
-    '/_authenticated/chat/$conversationId': {
-      id: '/_authenticated/chat/$conversationId'
-      path: '/chat/$conversationId'
-      fullPath: '/chat/$conversationId'
-      preLoaderRoute: typeof AuthenticatedChatConversationIdRouteImport
-      parentRoute: typeof AuthenticatedRoute
+    '/_authenticated/_chat/new': {
+      id: '/_authenticated/_chat/new'
+      path: '/new'
+      fullPath: '/new'
+      preLoaderRoute: typeof AuthenticatedChatNewRouteImport
+      parentRoute: typeof AuthenticatedChatRouteRoute
     }
     '/_authenticated/settings/': {
       id: '/_authenticated/settings/'
@@ -297,22 +304,44 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiModelsEventsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/_chat/chat/$conversationId': {
+      id: '/_authenticated/_chat/chat/$conversationId'
+      path: '/chat/$conversationId'
+      fullPath: '/chat/$conversationId'
+      preLoaderRoute: typeof AuthenticatedChatChatConversationIdRouteImport
+      parentRoute: typeof AuthenticatedChatRouteRoute
+    }
   }
 }
 
+interface AuthenticatedChatRouteRouteChildren {
+  AuthenticatedChatNewRoute: typeof AuthenticatedChatNewRoute
+  AuthenticatedChatChatConversationIdRoute: typeof AuthenticatedChatChatConversationIdRoute
+}
+
+const AuthenticatedChatRouteRouteChildren: AuthenticatedChatRouteRouteChildren =
+  {
+    AuthenticatedChatNewRoute: AuthenticatedChatNewRoute,
+    AuthenticatedChatChatConversationIdRoute:
+      AuthenticatedChatChatConversationIdRoute,
+  }
+
+const AuthenticatedChatRouteRouteWithChildren =
+  AuthenticatedChatRouteRoute._addFileChildren(
+    AuthenticatedChatRouteRouteChildren,
+  )
+
 interface AuthenticatedRouteChildren {
+  AuthenticatedChatRouteRoute: typeof AuthenticatedChatRouteRouteWithChildren
   AuthenticatedLibraryRoute: typeof AuthenticatedLibraryRoute
-  AuthenticatedNewRoute: typeof AuthenticatedNewRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
-  AuthenticatedChatConversationIdRoute: typeof AuthenticatedChatConversationIdRoute
   AuthenticatedSettingsIndexRoute: typeof AuthenticatedSettingsIndexRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedChatRouteRoute: AuthenticatedChatRouteRouteWithChildren,
   AuthenticatedLibraryRoute: AuthenticatedLibraryRoute,
-  AuthenticatedNewRoute: AuthenticatedNewRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
-  AuthenticatedChatConversationIdRoute: AuthenticatedChatConversationIdRoute,
   AuthenticatedSettingsIndexRoute: AuthenticatedSettingsIndexRoute,
 }
 

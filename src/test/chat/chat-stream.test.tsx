@@ -17,7 +17,7 @@ vi.mock("#/shared/domain/conversation/conversation.functions", () => ({
 	conversationsQueryOptions: () => ({ queryKey: ["conversations"] }),
 }));
 
-const { createChatOptions } = await import("#/routes/_authenticated/-lib/chat-client");
+const { createChatOptions } = await import("#/routes/_authenticated/_chat/-lib/chat-client");
 
 type StreamEvent = Record<string, unknown> & { type: string };
 

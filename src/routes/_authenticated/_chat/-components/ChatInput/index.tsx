@@ -3,6 +3,7 @@ import {
 	type ChangeEvent,
 	type ClipboardEvent,
 	type DragEvent,
+	type FormEvent,
 	type KeyboardEvent,
 	useRef,
 	useState,
@@ -14,7 +15,7 @@ import {
 	isImageFile,
 	MAX_ATTACHMENT_BYTES,
 	readAttachment,
-} from "#/routes/_authenticated/-lib/attachments";
+} from "#/routes/_authenticated/_chat/-lib/attachments";
 import {
 	InputGroup,
 	InputGroupAddon,
@@ -109,10 +110,15 @@ export function ChatInput({
 		setAttachments([]);
 	}
 
+	function handleSubmit(event: FormEvent<HTMLFormElement>) {
+		event.preventDefault();
+		submit();
+	}
+
 	function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
 		if (event.key === "Enter" && !event.shiftKey) {
 			event.preventDefault();
-			submit();
+			event.currentTarget.form?.requestSubmit();
 		}
 	}
 
@@ -160,93 +166,100 @@ export function ChatInput({
 	);
 
 	return (
-		<InputGroup
-			data-dragging={isDragging || undefined}
-			className="data-dragging:border-ring data-dragging:ring-3 data-dragging:ring-ring/50"
-			onDragOver={handleDragOver}
-			onDragLeave={() => setIsDragging(false)}
-			onDrop={handleDrop}
-		>
-			{attachments.length > 0 && (
-				<InputGroupAddon align="block-start">
-					<AttachmentPreviews
-						attachments={attachments}
-						onRemove={(id) => setAttachments((prev) => prev.filter((a) => a.id !== id))}
-					/>
-				</InputGroupAddon>
-			)}
-			<InputGroupTextarea
-				value={messageDraft}
-				onChange={(event) => setMessageDraft(event.target.value)}
-				placeholder={needsModel ? "Pick a model to start…" : "Message…"}
-				className="max-h-50 field-sizing-content resize-none"
-				onKeyDown={handleKeyDown}
-				onPaste={handlePaste}
-				disabled={disabled}
-				readOnly={needsModel}
-				spellCheck={true}
-			/>
-			<Separator />
-			<InputGroupAddon align="block-end" className="p-2">
-				{locked ? (
-					<LockedModelLabel selection={selection} />
-				) : (
-					<ModelPicker selection={selection} onSelect={onSelect} />
-				)}
-				{tools && <ToolsMenu {...tools} />}
-				{canAttach && (
-					<>
-						<input
-							ref={fileInputRef}
-							type="file"
-							accept={attachmentAccept({ images: supportsImages, documents: supportsDocuments })}
-							multiple
-							hidden
-							data-testid="attach-image-input"
-							onChange={handleFileChange}
+		<form onSubmit={handleSubmit} data-testid="chat-input-form">
+			<InputGroup
+				data-dragging={isDragging || undefined}
+				className="data-dragging:border-ring data-dragging:ring-3 data-dragging:ring-ring/50"
+				onDragOver={handleDragOver}
+				onDragLeave={() => setIsDragging(false)}
+				onDrop={handleDrop}
+			>
+				{attachments.length > 0 && (
+					<InputGroupAddon align="block-start">
+						<AttachmentPreviews
+							attachments={attachments}
+							onRemove={(id) => setAttachments((prev) => prev.filter((a) => a.id !== id))}
 						/>
-						<Tooltip>
-							<TooltipTrigger
-								render={
-									<InputGroupButton
-										type="button"
-										variant="ghost"
-										size="icon-sm"
-										aria-label={attachLabel}
-										data-testid="attach-image-button"
-										disabled={disabled}
-										onClick={() => fileInputRef.current?.click()}
-									/>
-								}
-							>
-								<PaperclipIcon size={14} />
-							</TooltipTrigger>
-							<TooltipContent>{attachLabel}</TooltipContent>
-						</Tooltip>
-					</>
+					</InputGroupAddon>
 				)}
-				{/* aria-disabled keeps pointer events, so the button is its own tooltip trigger. */}
-				<Tooltip>
-					<TooltipTrigger
-						render={
-							<InputGroupButton
-								type="submit"
-								variant={stopping ? "outline" : "default"}
-								size="icon-sm"
-								className="ml-auto aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
-								aria-disabled={inactive || undefined}
-								onClick={stopping ? stop : inactive ? undefined : submit}
-							/>
-						}
-					>
-						{sendIcon}
-						<span className="sr-only">{stopping ? "Stop" : "Send"}</span>
-					</TooltipTrigger>
-					{!stopping && needsModel && (
-						<TooltipContent>Pick a model first. Use the model menu on the left.</TooltipContent>
+				<InputGroupTextarea
+					data-testid="chat-input-textarea"
+					value={messageDraft}
+					onChange={(event) => setMessageDraft(event.target.value)}
+					placeholder={needsModel ? "Pick a model to start…" : "Message…"}
+					className="max-h-50 field-sizing-content resize-none"
+					onKeyDown={handleKeyDown}
+					onPaste={handlePaste}
+					disabled={disabled}
+					readOnly={needsModel}
+					spellCheck={true}
+				/>
+				<Separator />
+				<InputGroupAddon align="block-end" className="p-2">
+					{locked ? (
+						<LockedModelLabel selection={selection} />
+					) : (
+						<ModelPicker selection={selection} onSelect={onSelect} />
 					)}
-				</Tooltip>
-			</InputGroupAddon>
-		</InputGroup>
+					{tools && <ToolsMenu {...tools} />}
+					{canAttach && (
+						<>
+							<input
+								ref={fileInputRef}
+								type="file"
+								accept={attachmentAccept({
+									images: supportsImages,
+									documents: supportsDocuments,
+								})}
+								multiple
+								hidden
+								data-testid="attach-image-input"
+								onChange={handleFileChange}
+							/>
+							<Tooltip>
+								<TooltipTrigger
+									render={
+										<InputGroupButton
+											type="button"
+											variant="ghost"
+											size="icon-sm"
+											aria-label={attachLabel}
+											data-testid="attach-image-button"
+											disabled={disabled}
+											onClick={() => fileInputRef.current?.click()}
+										/>
+									}
+								>
+									<PaperclipIcon size={14} />
+								</TooltipTrigger>
+								<TooltipContent>{attachLabel}</TooltipContent>
+							</Tooltip>
+						</>
+					)}
+					{/* aria-disabled keeps pointer events, so the button is its own tooltip trigger. */}
+					<Tooltip>
+						<TooltipTrigger
+							render={
+								<InputGroupButton
+									type={stopping ? "button" : "submit"}
+									variant={stopping ? "outline" : "default"}
+									size="icon-sm"
+									className="ml-auto aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
+									aria-disabled={inactive || undefined}
+									data-testid="chat-input-submit"
+									onClick={stopping ? stop : undefined}
+								/>
+							}
+						>
+							{sendIcon}
+							<span className="sr-only">{stopping ? "Stop" : "Send"}</span>
+						</TooltipTrigger>
+						{!stopping && needsModel && (
+							<TooltipContent>Pick a model first. Use the model menu on the left.</TooltipContent>
+						)}
+					</Tooltip>
+				</InputGroupAddon>
+			</InputGroup>
+		</form>
 	);
 }

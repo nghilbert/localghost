@@ -1,6 +1,6 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ChatThread } from "#/routes/_authenticated/-components/chat/ChatThread";
+import { ChatThread } from "#/routes/_authenticated/_chat/-components/ChatThread";
 import { Button } from "#/shared/components/ui/button";
 import {
 	Empty,
@@ -12,7 +12,7 @@ import {
 import { Spinner } from "#/shared/components/ui/spinner";
 import { conversationQueryOptions } from "#/shared/domain/conversation/conversation.functions";
 
-export const Route = createFileRoute("/_authenticated/chat/$conversationId")({
+export const Route = createFileRoute("/_authenticated/_chat/chat/$conversationId")({
 	loader: async ({ params, context }) => {
 		const conversation = await context.queryClient.ensureQueryData(
 			conversationQueryOptions(params.conversationId),
@@ -30,16 +30,12 @@ export const Route = createFileRoute("/_authenticated/chat/$conversationId")({
 function ConversationPage() {
 	const { conversationId } = Route.useParams();
 	const { data: conversation } = useSuspenseQuery(conversationQueryOptions(conversationId));
-	return (
-		<div className="w-full h-full min-h-0 mx-auto max-w-4xl">
-			<ChatThread key={conversation.id} conversation={conversation} />
-		</div>
-	);
+	return <ChatThread key={conversation.id} conversation={conversation} />;
 }
 
 function ConversationPending() {
 	return (
-		<div className="flex h-full items-center justify-center">
+		<div className="flex items-center justify-center">
 			<Spinner />
 		</div>
 	);
@@ -47,7 +43,7 @@ function ConversationPending() {
 
 function ConversationError() {
 	return (
-		<Empty className="h-full">
+		<Empty>
 			<EmptyHeader>
 				<EmptyTitle>Couldn't load this chat</EmptyTitle>
 				<EmptyDescription>It may have been deleted, or the server is unreachable.</EmptyDescription>

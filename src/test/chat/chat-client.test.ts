@@ -17,7 +17,7 @@ vi.mock("#/shared/domain/conversation/conversation.functions", () => ({
 
 vi.mock("#/shared/components/ui/toast", () => ({ toast: { add: toastAdd } }));
 
-import { createChatPersistence, flushAll } from "#/routes/_authenticated/-lib/chat-client";
+import { createChatPersistence, flushAll } from "#/routes/_authenticated/_chat/-lib/chat-client";
 
 function message(id: string, content: string): UIMessage {
 	return { id, role: "user", parts: [{ type: "text", content }] };

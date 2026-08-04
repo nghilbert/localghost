@@ -1,5 +1,5 @@
 import type { UIMessage } from "@tanstack/ai-client";
-import { ActivityMarker } from "#/routes/_authenticated/-components/chat/ActivityMarker";
+import { ActivityMarker } from "#/routes/_authenticated/_chat/-components/ActivityMarker";
 import { ReasoningStep } from "./ReasoningStep";
 import { ToolCallStep } from "./ToolCallStep";
 

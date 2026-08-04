@@ -7,7 +7,7 @@ import {
 	TriangleAlertIcon,
 } from "lucide-react";
 import { Fragment, useState } from "react";
-import { useEndpointModelGroups } from "#/routes/_authenticated/-hooks/use-endpoint-model-groups";
+import { useEndpointModelGroups } from "#/routes/_authenticated/_chat/-hooks/use-endpoint-model-groups";
 import { Button } from "#/shared/components/ui/button";
 import {
 	DropdownMenu,

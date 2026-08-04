@@ -2,12 +2,15 @@ import { EventType } from "@tanstack/ai/client";
 import { useChat } from "@tanstack/ai-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import { ChatInput } from "#/routes/_authenticated/-components/chat/ChatInput";
-import { ChatMessage } from "#/routes/_authenticated/-components/chat/ChatMessage";
-import { useConversation } from "#/routes/_authenticated/-hooks/use-conversation";
-import { type Attachment, composeMessageContent } from "#/routes/_authenticated/-lib/attachments";
-import { createChatOptions } from "#/routes/_authenticated/-lib/chat-client";
-import { takeChatHandoff } from "#/routes/_authenticated/-lib/chat-handoff";
+import { ChatInput } from "#/routes/_authenticated/_chat/-components/ChatInput";
+import { ChatMessage } from "#/routes/_authenticated/_chat/-components/ChatMessage";
+import { useConversation } from "#/routes/_authenticated/_chat/-hooks/use-conversation";
+import {
+	type Attachment,
+	composeMessageContent,
+} from "#/routes/_authenticated/_chat/-lib/attachments";
+import { createChatOptions } from "#/routes/_authenticated/_chat/-lib/chat-client";
+import { takeChatHandoff } from "#/routes/_authenticated/_chat/-lib/chat-handoff";
 import {
 	MessageScroller,
 	MessageScrollerButton,
@@ -190,7 +193,7 @@ export function ChatThread({ conversation }: ChatThreadProps) {
 	const cumulativeTokens = useMemo(() => cumulativeTokenTotals(messages), [messages]);
 
 	return (
-		<div className="flex h-full min-h-0 flex-col">
+		<div className="flex min-h-0 flex-col">
 			<MessageScrollerProvider autoScroll defaultScrollPosition="last-anchor">
 				<MessageScroller className="flex-1">
 					<MessageScrollerViewport aria-label="Conversation" className="p-4">

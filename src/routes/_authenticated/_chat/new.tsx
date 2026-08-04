@@ -1,10 +1,10 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { ChatInput } from "#/routes/_authenticated/-components/chat/ChatInput";
-import { useChatTools } from "#/routes/_authenticated/-hooks/use-chat-tools";
-import type { Attachment } from "#/routes/_authenticated/-lib/attachments";
-import { storeChatHandoff } from "#/routes/_authenticated/-lib/chat-handoff";
+import { ChatInput } from "#/routes/_authenticated/_chat/-components/ChatInput";
+import { useChatTools } from "#/routes/_authenticated/_chat/-hooks/use-chat-tools";
+import type { Attachment } from "#/routes/_authenticated/_chat/-lib/attachments";
+import { storeChatHandoff } from "#/routes/_authenticated/_chat/-lib/chat-handoff";
 import {
 	Empty,
 	EmptyContent,
@@ -19,7 +19,7 @@ import {
 } from "#/shared/domain/conversation/conversation.functions";
 import type { ModelSelection } from "#/shared/domain/endpoint/types";
 
-export const Route = createFileRoute("/_authenticated/new")({
+export const Route = createFileRoute("/_authenticated/_chat/new")({
 	head: () => ({ meta: [{ title: "New chat · localghost" }] }),
 	loader: ({ context }) => context.queryClient.ensureQueryData(defaultSelectionQueryOptions()),
 	component: NewChatPage,
@@ -68,30 +68,26 @@ function NewChatPage() {
 	});
 
 	return (
-		<div className="w-full h-full min-h-0 mx-auto max-w-4xl">
-			<Empty className="h-full">
-				<EmptyHeader>
-					<EmptyTitle className="text-2xl">What can I help with?</EmptyTitle>
-					<EmptyDescription>
-						Start typing. Your chat begins with your first message.
-					</EmptyDescription>
-				</EmptyHeader>
-				<EmptyContent className="max-w-xl">
-					<ChatInput
-						disabled={startChatMutation.isPending}
-						isStreaming={false}
-						selection={selection}
-						onSelect={setOverride}
-						tools={controls}
-						supportsImages={supportsImages}
-						supportsDocuments={supportsDocuments}
-						isSending={startChatMutation.isPending}
-						sendMessage={(content, attachments) =>
-							startChatMutation.mutate({ firstMessage: content, attachments })
-						}
-					/>
-				</EmptyContent>
-			</Empty>
-		</div>
+		<Empty>
+			<EmptyHeader>
+				<EmptyTitle className="text-2xl">What can I help with?</EmptyTitle>
+				<EmptyDescription>Start typing. Your chat begins with your first message.</EmptyDescription>
+			</EmptyHeader>
+			<EmptyContent className="max-w-xl">
+				<ChatInput
+					disabled={startChatMutation.isPending}
+					isStreaming={false}
+					selection={selection}
+					onSelect={setOverride}
+					tools={controls}
+					supportsImages={supportsImages}
+					supportsDocuments={supportsDocuments}
+					isSending={startChatMutation.isPending}
+					sendMessage={(content, attachments) =>
+						startChatMutation.mutate({ firstMessage: content, attachments })
+					}
+				/>
+			</EmptyContent>
+		</Empty>
 	);
 }

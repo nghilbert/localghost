@@ -10,8 +10,8 @@ import {
 	XIcon,
 } from "lucide-react";
 import { useState } from "react";
-import { ActivityMarker } from "#/routes/_authenticated/-components/chat/ActivityMarker";
-import { useStepDuration } from "#/routes/_authenticated/-hooks/use-step-duration";
+import { ActivityMarker } from "#/routes/_authenticated/_chat/-components/ActivityMarker";
+import { useStepDuration } from "#/routes/_authenticated/_chat/-hooks/use-step-duration";
 import { Button } from "#/shared/components/ui/button";
 import { Marker, MarkerContent, MarkerIcon } from "#/shared/components/ui/marker";
 

@@ -1,6 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
-import { useElapsedSeconds } from "#/routes/_authenticated/-hooks/use-elapsed-seconds";
+import { useElapsedSeconds } from "#/routes/_authenticated/_chat/-hooks/use-elapsed-seconds";
 import { Marker, MarkerContent, MarkerIcon } from "#/shared/components/ui/marker";
 import { Spinner } from "#/shared/components/ui/spinner";
 

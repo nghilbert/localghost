@@ -4,7 +4,7 @@ import {
 	composeMessageContent,
 	isDocumentFile,
 	isImageFile,
-} from "#/routes/_authenticated/-lib/attachments";
+} from "#/routes/_authenticated/_chat/-lib/attachments";
 
 const image: Attachment = {
 	id: "1",

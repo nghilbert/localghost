@@ -1,5 +1,5 @@
 import { FileTextIcon, XIcon } from "lucide-react";
-import type { Attachment } from "#/routes/_authenticated/-lib/attachments";
+import type { Attachment } from "#/routes/_authenticated/_chat/-lib/attachments";
 import { Button } from "#/shared/components/ui/button";
 
 type AttachmentPreviewsProps = {

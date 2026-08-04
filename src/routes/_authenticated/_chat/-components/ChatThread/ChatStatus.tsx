@@ -1,6 +1,6 @@
 import type { ChatClientState, UIMessage } from "@tanstack/ai-client";
 import { RefreshCwIcon, SparklesIcon, TriangleAlertIcon } from "lucide-react";
-import { ActivityMarker } from "#/routes/_authenticated/-components/chat/ActivityMarker";
+import { ActivityMarker } from "#/routes/_authenticated/_chat/-components/ActivityMarker";
 import { Alert, AlertAction, AlertDescription, AlertTitle } from "#/shared/components/ui/alert";
 import { Button } from "#/shared/components/ui/button";
 
