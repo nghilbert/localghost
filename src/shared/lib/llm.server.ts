@@ -10,25 +10,8 @@ import { createAnthropicChat } from "@tanstack/ai-anthropic";
 import { createGeminiChat } from "@tanstack/ai-gemini";
 import { openaiCompatibleText } from "@tanstack/ai-openai/compatible";
 import { trimPathRight } from "@tanstack/react-router";
-import { z } from "zod/v4";
 import { DEFAULT_MAX_TOKENS } from "./llm-constants";
-
-export type LLMProvider = "anthropic" | "llamacpp" | "openai" | "openrouter" | "groq" | "gemini";
-
-const llmProviderSchema = z.enum([
-	"anthropic",
-	"llamacpp",
-	"openai",
-	"openrouter",
-	"groq",
-	"gemini",
-]);
-
-/** Narrows a stored `Endpoint.provider` string to {@link LLMProvider}, or `undefined` if unrecognized. */
-export function asLLMProvider(value: string): LLMProvider | undefined {
-	const parsed = llmProviderSchema.safeParse(value);
-	return parsed.success ? parsed.data : undefined;
-}
+import { detectProvider, type LLMProvider } from "./llm-provider";
 
 export type StreamLLMOptions = {
 	url: string;
@@ -219,22 +202,6 @@ const PROVIDERS: Record<LLMProvider, ProviderConfig> = {
 	groq: OPENAI_COMPATIBLE,
 	openai: OPENAI_COMPATIBLE,
 };
-
-/**
- * Auto-detects the provider family from a bring-your-own endpoint URL so the
- * right {@link ProviderConfig} is selected.
- */
-export function detectProvider(url: string): LLMProvider {
-	const u = url.toLowerCase();
-	if (u.includes("anthropic.com")) return "anthropic";
-	if (u.includes("generativelanguage.googleapis.com")) return "gemini";
-	if (u.includes("openrouter.ai")) return "openrouter";
-	if (u.includes("groq.com")) return "groq";
-	// Deliberately no port-based sniff for llama.cpp (":8080" is too common a
-	// port to hijack): discovery writes `provider: "llamacpp"` explicitly, and
-	// a hand-added llama.cpp endpoint still works fine as plain "openai".
-	return "openai";
-}
 
 /** The provider's normalized chat base URL, extracted from {@link baseChatOptions} for testing. */
 export function chatBaseUrl({ url, provider }: { url: string; provider?: LLMProvider }): string {
