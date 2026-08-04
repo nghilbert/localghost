@@ -4,7 +4,7 @@ import { Field } from "#/shared/components/ui/field";
 import { toast } from "#/shared/components/ui/toast";
 import { useAppForm } from "#/shared/hooks/use-app-form";
 import { llamacppUrlSchema } from "#/shared/lib/llamacpp/url";
-import { useConnectRuntime, useTestRuntime } from "./use-runtime";
+import { useConnectRuntime, useTestRuntime } from "./use-model";
 
 type RuntimeConnectionFormProps = {
 	defaultUrl: string;

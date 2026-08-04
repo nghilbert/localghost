@@ -34,8 +34,7 @@ import {
 	hardwareQueryOptions,
 	libraryStatusQueryOptions,
 } from "#/shared/domain/model/model.functions";
-import { useModelDownload } from "#/shared/domain/model/use-model-download";
-import { useDeleteModel } from "#/shared/domain/model/use-runtime";
+import { useDeleteModel, useModelDownload } from "#/shared/domain/model/use-model";
 
 const DEFAULT_CATALOG_QUERY = {
 	page: 0,

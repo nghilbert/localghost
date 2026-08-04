@@ -13,8 +13,7 @@ import { Spinner } from "#/shared/components/ui/spinner";
 import { libraryStatusQueryOptions } from "#/shared/domain/model/model.functions";
 import { formatPullDetail } from "#/shared/domain/model/pull-format";
 import { pullProgressPercent } from "#/shared/domain/model/pull-progress";
-import { useModelDownload } from "#/shared/domain/model/use-model-download";
-import { useModelDownloadEvents } from "#/shared/domain/model/use-model-download-events";
+import { useModelDownload, useModelDownloadEvents } from "#/shared/domain/model/use-model";
 
 /**
  * Sidebar-footer notification center: today's only source is model downloads,

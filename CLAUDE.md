@@ -84,16 +84,17 @@ Extract a page-local form when it owns an independent validation, submission, an
 
 ## Code Organization
 
-Two top-level folders, one convention: dependencies flow **one way** `shared → routes`. Judgment, not machinery: no layer linter, no barrels.
+`src/` has four top-level folders (`generated/`, `routes/`, `shared/`, `test/`); the load-bearing convention is that dependencies flow **one way** `shared → routes`. Judgment, not machinery: no layer linter, no barrels.
 
 ```
 src/
+  generated/       # Prisma client output (src/generated/prisma/); never edit, regenerate instead
   shared/          # everything used app-wide, not tied to one page
     domain/        #   domain nouns, flat per noun: <noun>.server.ts (data access) + <noun>.functions.ts (thin RPC + queryOptions) + schemas.ts/types.ts + use-<noun>.ts hooks + any UI shared across routes
       endpoint/    #     the kernel other nouns lean on (conversation/memory/model-setting import it)
       conversation/  chat/  memory/  model/  model-setting/  user-settings/  auth/
     components/    #   reusable components: ui/ (shadcn primitives, generated, flat) + our own (RouteErrorScreen/)
-    lib/           #   domain-free infra (*.server.ts): crypto/db/llm/auth/session, llama.cpp client + url, tools/, constants, globals.css
+    lib/           #   domain-free infra, server and isomorphic: crypto/db/llm/auth/session (*.server.ts), llama.cpp client + url, tools/, constants, format/utils, globals.css + themes/
     hooks/         #   use-app-form/, use-is-mobile, use-sign-out
     theme/         #   ThemeContext provider + theme.ts
   routes/          # TanStack routing == the pages layer; each route file owns Route + its <X>Page component
@@ -108,6 +109,7 @@ src/
       settings/                         # a route directory: index.tsx + -components/ -hooks/ -lib/
     api/
       chat/stream.tsx  backup/-backup.server.ts
+  test/              # Vitest, mirrors the shared/domain and routes slices it tests (see Testing)
 ```
 
 - **Two layers, by convention.** Everything app-wide lives in `shared/`; `routes/` is URL-addressable pages plus the code colocated to them. Routes import `shared`; **`shared/` never imports `routes/`**. Within `shared/domain`, cross-noun imports stay rare (`conversation`/`memory`/`model-setting` importing `endpoint` is the sanctioned edge).

@@ -1,10 +1,15 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { RuntimeStatus } from "#/shared/domain/model/types";
-import { useModelDownloadEvents } from "#/shared/domain/model/use-model-download-events";
+import { useModelDownloadEvents } from "#/shared/domain/model/use-model";
 import { renderHook, testQueryClient } from "#/test/utils";
 
 vi.mock("#/shared/domain/model/model.functions", () => ({
 	libraryStatusQueryOptions: () => ({ queryKey: ["library-status"] }),
+	cancelModelDownload: vi.fn(),
+	deleteModel: vi.fn(),
+	registerRemoteRuntime: vi.fn(),
+	startModelDownload: vi.fn(),
+	testRemoteRuntime: vi.fn(),
 }));
 
 class FakeEventSource {
