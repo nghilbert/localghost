@@ -1,14 +1,14 @@
-import type { ServerTool } from "@tanstack/ai";
+import type { AnyServerTool } from "@tanstack/ai";
 import { toolDefinition } from "@tanstack/ai";
+import { deleteMemoryToolDef } from "#/shared/domain/chat/tool-definitions";
 import {
-	deleteMemoryArgsSchema,
 	manageMemory,
 	manageMemoryToolArgsSchema,
 } from "#/shared/domain/memory/memory-tool.server";
 import { readUrl, readUrlArgsSchema } from "#/shared/lib/tools/read-url.server";
 import { webSearch, webSearchArgsSchema } from "#/shared/lib/tools/web-search.server";
 
-function webSearchTool(): ServerTool {
+function webSearchTool(): AnyServerTool {
 	return toolDefinition({
 		name: "web_search",
 		description:
@@ -25,7 +25,7 @@ function webSearchTool(): ServerTool {
 	});
 }
 
-function readUrlTool(): ServerTool {
+function readUrlTool(): AnyServerTool {
 	return toolDefinition({
 		name: "read_url",
 		description:
@@ -35,7 +35,7 @@ function readUrlTool(): ServerTool {
 	}).server(async ({ url }) => readUrl(url));
 }
 
-function manageMemoryTool(ownerId: string): ServerTool {
+function manageMemoryTool(ownerId: string): AnyServerTool {
 	return toolDefinition({
 		name: "manage_memory",
 		description:
@@ -54,14 +54,10 @@ function manageMemoryTool(ownerId: string): ServerTool {
 }
 
 /** Split out from `manage_memory` so deletion, the one destructive action, pauses for approval. */
-function deleteMemoryTool(ownerId: string): ServerTool {
-	return toolDefinition({
-		name: "delete_memory",
-		description:
-			"Delete a saved memory by id. Find the id first with manage_memory's list or search.",
-		inputSchema: deleteMemoryArgsSchema,
-		needsApproval: true,
-	}).server(async ({ id }) => manageMemory({ args: { action: "delete", id }, ownerId }));
+function deleteMemoryTool(ownerId: string): AnyServerTool {
+	return deleteMemoryToolDef.server(async ({ id }) =>
+		manageMemory({ args: { action: "delete", id }, ownerId }),
+	);
 }
 
 /**
@@ -69,7 +65,7 @@ function deleteMemoryTool(ownerId: string): ServerTool {
  * source of truth for what can be turned on per request; `web_search` is offered
  * to capable models automatically (see `useChatTools`) while the rest are opt-in.
  */
-const TOOL_BUILDERS: Record<string, (ownerId: string) => ServerTool[]> = {
+const TOOL_BUILDERS: Record<string, (ownerId: string) => AnyServerTool[]> = {
 	web_search: () => [webSearchTool(), readUrlTool()],
 	memory: (ownerId) => [manageMemoryTool(ownerId), deleteMemoryTool(ownerId)],
 };
@@ -81,10 +77,10 @@ type BuildChatToolsOptions = {
 };
 
 /**
- * Assembles the `ServerTool[]` for one chat run from the per-send selection,
+ * Assembles the `AnyServerTool[]` for one chat run from the per-send selection,
  * skipping unknown ids. Only what the client sent is built; the client defaults
  * to web search on when available, the rest opt-in. `chat()` auto-executes them.
  */
-export function buildChatTools({ ownerId, enabledTools }: BuildChatToolsOptions): ServerTool[] {
+export function buildChatTools({ ownerId, enabledTools }: BuildChatToolsOptions): AnyServerTool[] {
 	return enabledTools.flatMap((id) => TOOL_BUILDERS[id]?.(ownerId) ?? []);
 }

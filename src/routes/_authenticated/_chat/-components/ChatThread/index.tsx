@@ -1,4 +1,5 @@
 import { EventType } from "@tanstack/ai/client";
+import type { BoundInterrupts } from "@tanstack/ai-client";
 import { useChat } from "@tanstack/ai-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
@@ -20,6 +21,7 @@ import {
 	MessageScrollerViewport,
 } from "#/shared/components/ui/message-scroller";
 import { Separator } from "#/shared/components/ui/separator";
+import { deleteMemoryToolDef } from "#/shared/domain/chat/tool-definitions";
 import {
 	type ConversationDetail,
 	modelRunStateQueryOptions,
@@ -34,6 +36,7 @@ import {
 	withUsage,
 } from "#/shared/domain/conversation/messages";
 import { ChatStatus } from "./ChatStatus";
+import { QueuedMessageItem } from "./QueuedMessageItem";
 
 /** Marks the history-trim cut: messages above it are no longer sent to the model. */
 function HistoryTrimDivider() {
@@ -48,6 +51,13 @@ function HistoryTrimDivider() {
 		</div>
 	);
 }
+
+/**
+ * Client-declared tool stubs (no `execute`): the server owns execution, this
+ * only gives `useChat` the tool types it needs to type approval interrupts.
+ */
+const CHAT_TOOLS = [deleteMemoryToolDef] as const;
+export type ChatInterrupts = BoundInterrupts<typeof CHAT_TOOLS>;
 
 type ChatThreadProps = { conversation: ConversationDetail };
 export function ChatThread({ conversation }: ChatThreadProps) {
@@ -86,6 +96,8 @@ export function ChatThread({ conversation }: ChatThreadProps) {
 	const pendingUsage = useRef<MessageUsage | undefined>(undefined);
 	const {
 		messages,
+		queue,
+		cancelQueued,
 		sendMessage,
 		stop,
 		status,
@@ -93,10 +105,11 @@ export function ChatThread({ conversation }: ChatThreadProps) {
 		error,
 		reload,
 		setMessages,
-		addToolApprovalResponse,
+		interrupts,
 	} = useChat({
 		...chatOptions,
-		id: conversation.id,
+		tools: CHAT_TOOLS,
+		threadId: conversation.id,
 		forwardedProps,
 		onChunk: (chunk) => {
 			if (chunk.type === EventType.RUN_FINISHED && chunk.usage) {
@@ -218,7 +231,7 @@ export function ChatThread({ conversation }: ChatThreadProps) {
 														? (content) => handleEditResend(msg.id, content)
 														: undefined
 												}
-												onToolApproval={addToolApprovalResponse}
+												interrupts={interrupts}
 											/>
 										</MessageScrollerItem>
 									</Fragment>
@@ -234,6 +247,11 @@ export function ChatThread({ conversation }: ChatThreadProps) {
 									onGenerate={canGenerate ? () => void reload() : undefined}
 								/>
 							</MessageScrollerItem>
+							{queue.map((item) => (
+								<MessageScrollerItem key={item.id}>
+									<QueuedMessageItem item={item} onCancel={cancelQueued} />
+								</MessageScrollerItem>
+							))}
 						</MessageScrollerContent>
 					</MessageScrollerViewport>
 					<MessageScrollerButton />

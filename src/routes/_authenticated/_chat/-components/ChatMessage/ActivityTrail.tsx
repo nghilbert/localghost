@@ -1,15 +1,16 @@
 import type { UIMessage } from "@tanstack/ai-client";
 import { ActivityMarker } from "#/routes/_authenticated/_chat/-components/ActivityMarker";
+import type { ChatInterrupts } from "#/routes/_authenticated/_chat/-components/ChatThread";
 import { ReasoningStep } from "./ReasoningStep";
-import { ToolCallStep } from "./ToolCallStep";
+import { type ToolApprovalInterrupt, ToolCallStep } from "./ToolCallStep";
 
 type ActivityTrailProps = {
 	message: UIMessage;
 	isStreaming?: boolean;
 	/** Overrides the pending head's "Thinking" label (warming up, host unreachable). */
 	pendingLabel?: string;
-	/** Resolves an approval-gated tool call (e.g. memory deletion). */
-	onToolApproval?: (response: { id: string; approved: boolean }) => Promise<void>;
+	/** Pending interrupts (e.g. tool-approval requests) live on this message's tool calls. */
+	interrupts?: ChatInterrupts;
 };
 
 /**
@@ -21,7 +22,7 @@ export function ActivityTrail({
 	message,
 	isStreaming,
 	pendingLabel,
-	onToolApproval,
+	interrupts,
 }: ActivityTrailProps) {
 	const { parts } = message;
 	const lastPart = parts.at(-1);
@@ -44,12 +45,16 @@ export function ActivityTrail({
 			];
 		}
 		if (part.type === "tool-call") {
+			const interrupt = interrupts?.find(
+				(candidate): candidate is ToolApprovalInterrupt =>
+					candidate.kind === "tool-approval" && candidate.toolCallId === part.id,
+			);
 			return [
 				<ToolCallStep
 					key={part.id}
 					toolCall={part}
 					isStreaming={isStreaming}
-					onToolApproval={onToolApproval}
+					interrupt={interrupt}
 				/>,
 			];
 		}

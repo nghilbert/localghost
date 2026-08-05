@@ -122,8 +122,8 @@ export function createChatPersistence(queryClient: QueryClient): ChatClientPersi
 				.ensureQueryData(conversationQueryOptions(id))
 				.then((conversation) => clone(conversation.messages));
 		},
-		setItem: (id, messages) => {
-			const snapshot = clone(messages);
+		setItem: (id, state) => {
+			const snapshot = clone(state.messages);
 			clearTimeout(pending.get(id)?.timer);
 			const seq = (latestSeq.get(id) ?? 0) + 1;
 			latestSeq.set(id, seq);

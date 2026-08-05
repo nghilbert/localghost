@@ -1,7 +1,7 @@
 import type {
+	AnyServerTool,
 	AnyTextAdapter,
 	ModelMessage,
-	ServerTool,
 	StreamChunk,
 	UIMessage,
 } from "@tanstack/ai";
@@ -31,7 +31,7 @@ export type StreamLLMOptions = {
 	/** AG-UI run id from the wire. */
 	runId?: string;
 	/** Server tools to auto-execute; when present the agent loop runs. */
-	tools?: ServerTool[];
+	tools?: AnyServerTool[];
 	/** Aborts the upstream provider request; fire it when the client disconnects. */
 	abortController?: AbortController;
 };

@@ -19,8 +19,6 @@ export const manageMemoryToolArgsSchema = manageMemoryArgsSchema.extend({
 	action: z.enum(["add", "search", "list"]),
 });
 
-export const deleteMemoryArgsSchema = z.object({ id: z.uuid() });
-
 type ManageMemoryArgs = z.infer<typeof manageMemoryArgsSchema>;
 
 /**

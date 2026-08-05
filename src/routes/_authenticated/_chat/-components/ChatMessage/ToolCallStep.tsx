@@ -11,9 +11,12 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { ActivityMarker } from "#/routes/_authenticated/_chat/-components/ActivityMarker";
+import type { ChatInterrupts } from "#/routes/_authenticated/_chat/-components/ChatThread";
 import { useStepDuration } from "#/routes/_authenticated/_chat/-hooks/use-step-duration";
 import { Button } from "#/shared/components/ui/button";
 import { Marker, MarkerContent, MarkerIcon } from "#/shared/components/ui/marker";
+
+export type ToolApprovalInterrupt = Extract<ChatInterrupts[number], { kind: "tool-approval" }>;
 
 export type ToolCall = Extract<UIMessage["parts"][number], { type: "tool-call" }>;
 
@@ -122,8 +125,8 @@ function outputText(output: ToolCall["output"]): string {
 type ToolCallStepProps = {
 	toolCall: ToolCall;
 	isStreaming?: boolean;
-	/** Resolves an approval-gated tool call (e.g. memory deletion). */
-	onToolApproval?: (response: { id: string; approved: boolean }) => Promise<void>;
+	/** The pending approval interrupt for this call, if any. */
+	interrupt?: ToolApprovalInterrupt;
 };
 
 /**
@@ -131,15 +134,14 @@ type ToolCallStepProps = {
  * while the call runs, then a marker whose output reveals on click once it
  * resolves. A call that needs approval pauses on an Approve/Deny marker instead.
  */
-export function ToolCallStep({ toolCall, isStreaming, onToolApproval }: ToolCallStepProps) {
+export function ToolCallStep({ toolCall, isStreaming, interrupt }: ToolCallStepProps) {
 	const { icon: Icon, running, done } = display(toolCall.name);
 	const input = callInput(toolCall);
 	const active = Boolean(isStreaming) && toolCall.output === undefined;
 	const { seconds } = useStepDuration(active);
 	const [open, setOpen] = useState(false);
 
-	if (toolCall.state === "approval-requested" && toolCall.approval) {
-		const approvalId = toolCall.approval.id;
+	if (interrupt) {
 		return (
 			<Marker data-testid="tool-approval-marker">
 				<MarkerIcon>
@@ -151,7 +153,7 @@ export function ToolCallStep({ toolCall, isStreaming, onToolApproval }: ToolCall
 						size="xs"
 						variant="outline"
 						data-testid="tool-approval-approve-button"
-						onClick={() => void onToolApproval?.({ id: approvalId, approved: true })}
+						onClick={() => interrupt.resolveInterrupt(true)}
 					>
 						<CheckIcon />
 						Approve
@@ -160,7 +162,7 @@ export function ToolCallStep({ toolCall, isStreaming, onToolApproval }: ToolCall
 						size="xs"
 						variant="outline"
 						data-testid="tool-approval-deny-button"
-						onClick={() => void onToolApproval?.({ id: approvalId, approved: false })}
+						onClick={() => interrupt.resolveInterrupt(false)}
 					>
 						<XIcon />
 						Deny

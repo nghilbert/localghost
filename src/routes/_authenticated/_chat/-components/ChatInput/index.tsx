@@ -104,7 +104,7 @@ export function ChatInput({
 
 	function submit() {
 		const content = messageDraft.trim();
-		if ((!content && attachments.length === 0) || isStreaming || disabled || needsModel) return;
+		if ((!content && attachments.length === 0) || disabled || needsModel) return;
 		sendMessage(content, attachments);
 		setMessageDraft("");
 		setAttachments([]);

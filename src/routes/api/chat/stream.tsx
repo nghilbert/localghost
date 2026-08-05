@@ -1,5 +1,7 @@
 import {
 	chatParamsFromRequestBody,
+	memoryStream,
+	resumeServerSentEventsResponse,
 	type StreamChunk,
 	toServerSentEventsResponse,
 } from "@tanstack/ai";
@@ -124,8 +126,16 @@ export const Route = createFileRoute("/api/chat/stream")({
 					}
 				}
 
-				return toServerSentEventsResponse(withErrorHandling(), { abortController });
+				return toServerSentEventsResponse(withErrorHandling(), {
+					abortController,
+					durability: { adapter: memoryStream(request) },
+				});
 			},
+			// Lets a dropped connection or a page reload re-attach to an in-flight or
+			// just-finished run and replay it from the durability log instead of losing
+			// the partial reply; `fetchServerSentEvents` calls this automatically.
+			GET: async ({ request }) =>
+				resumeServerSentEventsResponse({ adapter: memoryStream(request) }),
 		},
 	},
 });

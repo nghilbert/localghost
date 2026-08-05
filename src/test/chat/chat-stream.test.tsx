@@ -50,7 +50,7 @@ function mountChat() {
 	return renderHook(() =>
 		useChat({
 			...createChatOptions(queryClient),
-			id: "c1",
+			threadId: "c1",
 			forwardedProps: { conversationId: "c1", enabledTools: [], timeZone: "UTC" },
 		}),
 	);

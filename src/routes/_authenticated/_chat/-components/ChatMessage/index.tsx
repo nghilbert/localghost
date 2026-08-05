@@ -3,6 +3,7 @@ import type { UIMessage } from "@tanstack/ai-client";
 import { CircleAlertIcon, CopyIcon, OctagonXIcon, PencilIcon, RefreshCwIcon } from "lucide-react";
 import { type KeyboardEvent, useState } from "react";
 import { Streamdown } from "streamdown";
+import type { ChatInterrupts } from "#/routes/_authenticated/_chat/-components/ChatThread";
 import { Alert, AlertDescription, AlertTitle } from "#/shared/components/ui/alert";
 import { Bubble, BubbleContent } from "#/shared/components/ui/bubble";
 import { Button } from "#/shared/components/ui/button";
@@ -47,8 +48,8 @@ type ChatMessageProps = {
 	onRegenerate?: () => void;
 	/** Provided only when editing is allowed right now; replaces the text and resends. */
 	onEditResend?: (content: string) => void;
-	/** Resolves an approval-gated tool call (e.g. memory deletion). */
-	onToolApproval?: (response: { id: string; approved: boolean }) => Promise<void>;
+	/** Pending interrupts (e.g. tool-approval requests) live on this message's tool calls. */
+	interrupts?: ChatInterrupts;
 };
 export function ChatMessage({
 	message,
@@ -57,7 +58,7 @@ export function ChatMessage({
 	conversationTokens,
 	onRegenerate,
 	onEditResend,
-	onToolApproval,
+	interrupts,
 }: ChatMessageProps) {
 	const content = partsText(message.parts);
 	const imageSources = messageImageSources(message.parts);
@@ -168,7 +169,7 @@ export function ChatMessage({
 					message={message}
 					isStreaming={isStreaming}
 					pendingLabel={pendingLabel}
-					onToolApproval={onToolApproval}
+					interrupts={interrupts}
 				/>
 
 				{strandedTool && (

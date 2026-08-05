@@ -42,8 +42,8 @@ describe("createChatPersistence: setItem debounce", () => {
 	it("saves once per burst with the latest snapshot", () => {
 		const persistence = createChatPersistence(new QueryClient());
 
-		persistence.setItem("c1", [message("m1", "a")]);
-		persistence.setItem("c1", [message("m1", "a"), message("m2", "b")]);
+		persistence.setItem("c1", { messages: [message("m1", "a")] });
+		persistence.setItem("c1", { messages: [message("m1", "a"), message("m2", "b")] });
 		vi.advanceTimersByTime(499);
 		expect(saveConversationMessages).not.toHaveBeenCalled();
 
@@ -58,7 +58,7 @@ describe("createChatPersistence: setItem debounce", () => {
 		const persistence = createChatPersistence(new QueryClient());
 		const live = [message("m1", "a")];
 
-		persistence.setItem("c1", live);
+		persistence.setItem("c1", { messages: live });
 		live.push(message("m2", "b"));
 		vi.advanceTimersByTime(500);
 
@@ -74,7 +74,7 @@ describe("createChatPersistence: commit write-back", () => {
 		queryClient.setQueryData(queryKey("c1"), { id: "c1", title: "t", messages: [] });
 		const persistence = createChatPersistence(queryClient);
 
-		persistence.setItem("c1", [message("m1", "a")]);
+		persistence.setItem("c1", { messages: [message("m1", "a")] });
 		await vi.advanceTimersByTimeAsync(500);
 
 		expect(queryClient.getQueryData(queryKey("c1"))).toEqual({
@@ -90,7 +90,7 @@ describe("createChatPersistence: commit write-back", () => {
 		queryClient.setQueryData(queryKey("c1"), { id: "c1", messages: [] });
 		const persistence = createChatPersistence(queryClient);
 
-		persistence.setItem("c1", [message("m1", "a")]);
+		persistence.setItem("c1", { messages: [message("m1", "a")] });
 		await vi.advanceTimersByTimeAsync(500);
 
 		expect(queryClient.getQueryData(queryKey("c1"))).toEqual({ id: "c1", messages: [] });
@@ -104,7 +104,7 @@ describe("createChatPersistence: commit write-back", () => {
 describe("flushAll", () => {
 	it("commits pending saves immediately with a keepalive fetch", () => {
 		const persistence = createChatPersistence(new QueryClient());
-		persistence.setItem("c1", [message("m1", "a")]);
+		persistence.setItem("c1", { messages: [message("m1", "a")] });
 
 		flushAll();
 
@@ -116,7 +116,7 @@ describe("flushAll", () => {
 
 	it("does not double-save when the debounce timer fires after a flush", () => {
 		const persistence = createChatPersistence(new QueryClient());
-		persistence.setItem("c1", [message("m1", "a")]);
+		persistence.setItem("c1", { messages: [message("m1", "a")] });
 
 		flushAll();
 		vi.advanceTimersByTime(500);
@@ -132,7 +132,7 @@ describe("flushAll", () => {
 		queryClient.setQueryData(queryKey("c1"), { id: "c1", messages: [] });
 		const persistence = createChatPersistence(queryClient);
 
-		persistence.setItem("c1", [message("m1", "a")]);
+		persistence.setItem("c1", { messages: [message("m1", "a")] });
 		flushAll();
 		await vi.advanceTimersByTimeAsync(0);
 
@@ -153,7 +153,7 @@ describe("createChatPersistence: removeItem", () => {
 		queryClient.setQueryData(queryKey("c1"), { id: "c1", messages: [] });
 		const persistence = createChatPersistence(queryClient);
 
-		persistence.setItem("c1", [message("m1", "a")]);
+		persistence.setItem("c1", { messages: [message("m1", "a")] });
 		await persistence.removeItem("c1");
 		vi.advanceTimersByTime(500);
 
@@ -180,12 +180,12 @@ describe("createChatPersistence: concurrent saves", () => {
 		const persistence = createChatPersistence(queryClient);
 
 		// First save is dispatched and left in flight.
-		persistence.setItem("c9", [message("m1", "a")]);
+		persistence.setItem("c9", { messages: [message("m1", "a")] });
 		await vi.advanceTimersByTimeAsync(500);
 		expect(saveConversationMessages).toHaveBeenCalledTimes(1);
 
 		// A newer save is committed while the first is still pending: it must wait.
-		persistence.setItem("c9", [message("m1", "a"), message("m2", "b")]);
+		persistence.setItem("c9", { messages: [message("m1", "a"), message("m2", "b")] });
 		await vi.advanceTimersByTimeAsync(500);
 		expect(saveConversationMessages).toHaveBeenCalledTimes(1);
 
@@ -211,7 +211,7 @@ describe("createChatPersistence: sidebar reorder", () => {
 		const invalidate = vi.spyOn(queryClient, "invalidateQueries");
 		const persistence = createChatPersistence(queryClient);
 
-		persistence.setItem("c8", [message("m1", "a")]);
+		persistence.setItem("c8", { messages: [message("m1", "a")] });
 		await vi.advanceTimersByTimeAsync(500);
 
 		expect(invalidate).toHaveBeenCalledWith({ queryKey: ["conversations"] });
