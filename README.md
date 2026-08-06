@@ -59,9 +59,6 @@ keyless SearXNG so web search works out of the box:
 COMPOSE_PROFILES=llamacpp,dev docker compose up --build
 ```
 
-The bundled llama.cpp images are pinned to build `b10143` (revision `88b47a7`),
-which includes the router download endpoints used by the Library.
-
 On a GPU host, append the matching hardware overlay via `COMPOSE_FILE` to give
 both llama.cpp and the Library hardware panel GPU access (needs the matching host
 GPU runtime). CPU hosts leave it unset.

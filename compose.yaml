@@ -89,7 +89,7 @@ services:
   # LLAMA_ARG_SLEEP_IDLE_SECONDS frees an idle model's memory instead of
   # holding it forever after a chat ends.
   llamacpp:
-    image: ghcr.io/ggml-org/llama.cpp:server@sha256:a576442ad3649c0b5ea74e20ad29a17c121117f32607cfe59ff27cc38066f874
+    image: ghcr.io/ggml-org/llama.cpp:server-b10276
     profiles: [ llamacpp ]
     environment:
       LLAMA_CACHE: /models
