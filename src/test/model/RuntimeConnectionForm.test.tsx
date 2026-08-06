@@ -8,7 +8,7 @@ const { connectMutateAsync, testMutate, testReset } = vi.hoisted(() => ({
 	testReset: vi.fn(),
 }));
 
-vi.mock("#/shared/domain/model/use-runtime", () => ({
+vi.mock("#/shared/domain/model/use-model", () => ({
 	useConnectRuntime: () => ({ mutateAsync: connectMutateAsync }),
 	useTestRuntime: () => ({
 		data: undefined,
