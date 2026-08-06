@@ -1,0 +1,60 @@
+/// The transcript `withPersistence` reads/writes, keyed by `threadId` (our
+/// `Conversation.id`, but stored as a bare string here — see the note below).
+/// `saveThread` is an upsert: the store must be able to create a thread from
+/// nothing, so this cannot require an owner the way `Conversation` does.
+/// `Conversation` no longer holds `messages`; app code (search, export, the
+/// sidebar's recency order) joins the two tables on `id`/`threadId` itself.
+model ChatThread {
+  threadId  String   @id @map("thread_id")
+  messages  Json
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("chat_thread")
+}
+
+/// Run + interrupt state for `@tanstack/ai-persistence`'s `withPersistence`.
+/// `runId`/`interruptId` are minted by the library, not UUID-shaped, so no
+/// `@default`; `threadId` is our own `Conversation.id`. `status` stays a plain
+/// String rather than an enum, so a future library status value fails clearly
+/// in app code instead of the column rejecting the write outright.
+///
+/// No `@relation` to `Conversation`/`ChatThread`/each other: the package's own
+/// conformance testkit (run against this adapter) writes against synthetic
+/// thread/run ids that were never created as real rows, so a foreign key here
+/// would reject writes the library's own contract requires to succeed. This
+/// matches the package's documented Prisma recipe, which also uses bare ids.
+model ChatRun {
+  runId           String   @id @map("run_id")
+  threadId        String   @map("thread_id")
+  status          String
+  startedAt       BigInt   @map("started_at")
+  finishedAt      BigInt?  @map("finished_at")
+  error           String?
+  errorCode       String?  @map("error_code")
+  usage           Json?
+  sandboxKey      String?  @map("sandbox_key")
+  detachedSince   BigInt?  @map("detached_since")
+  cancelRequested Boolean? @map("cancel_requested")
+  driverEpoch     Int?     @map("driver_epoch")
+
+  @@index([threadId, status])
+  @@index([threadId, startedAt])
+  // Powers listReclaimable: status = 'running' AND detachedSince <= cutoff.
+  @@index([status, detachedSince])
+  @@map("chat_run")
+}
+
+model ChatInterrupt {
+  interruptId String  @id @map("interrupt_id")
+  runId       String  @map("run_id")
+  threadId    String  @map("thread_id")
+  status      String
+  requestedAt BigInt  @map("requested_at")
+  resolvedAt  BigInt? @map("resolved_at")
+  payload     Json
+  response    Json?
+
+  @@index([threadId, requestedAt])
+  @@index([runId, requestedAt])
+  @@map("chat_interrupt")
+}

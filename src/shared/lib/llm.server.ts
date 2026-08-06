@@ -1,7 +1,9 @@
 import type {
+	AnyChatMiddleware,
 	AnyServerTool,
 	AnyTextAdapter,
 	ModelMessage,
+	RunAgentResumeItem,
 	StreamChunk,
 	UIMessage,
 } from "@tanstack/ai";
@@ -34,6 +36,10 @@ export type StreamLLMOptions = {
 	tools?: AnyServerTool[];
 	/** Aborts the upstream provider request; fire it when the client disconnects. */
 	abortController?: AbortController;
+	/** Chat middleware (e.g. `withPersistence`, `memoryMiddleware`), run in array order. */
+	middleware?: AnyChatMiddleware[];
+	/** AG-UI interrupt resume entries, forwarded when the client resolves a pending approval. */
+	resume?: Array<RunAgentResumeItem>;
 };
 
 const OPENROUTER_REFERER = "https://localghost.app";
@@ -236,6 +242,8 @@ function baseChatOptions(opts: StreamLLMOptions) {
 		...(opts.tools
 			? { tools: opts.tools, agentLoopStrategy: maxIterations(MAX_AGENT_ROUNDS) }
 			: {}),
+		...(opts.middleware ? { middleware: opts.middleware } : {}),
+		...(opts.resume ? { resume: opts.resume } : {}),
 	};
 }
 

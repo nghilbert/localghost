@@ -1,9 +1,10 @@
-import { BrainIcon, GlobeIcon } from "lucide-react";
+import { GlobeIcon } from "lucide-react";
 
 /**
  * The user-toggleable built-in tools, as client-safe metadata (no server
  * imports). Web search starts enabled whenever the server offers it; every
- * other tool is opt-in per message, which keeps small models reliable.
+ * other tool is opt-in per message, which keeps small models reliable. Memory
+ * isn't here: it's always-on middleware, not a per-message toggle.
  */
 export const TOOL_CATALOG = [
 	{
@@ -11,12 +12,6 @@ export const TOOL_CATALOG = [
 		label: "Web search",
 		description: "Search the web and read pages for current information.",
 		icon: GlobeIcon,
-	},
-	{
-		id: "memory",
-		label: "Memory",
-		description: "Save and recall long-term memories about you.",
-		icon: BrainIcon,
 	},
 ] as const;
 
