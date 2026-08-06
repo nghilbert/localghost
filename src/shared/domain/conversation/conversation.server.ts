@@ -25,7 +25,7 @@ export function findConversations({
 		       c.endpoint_id AS "endpointId",
 		       GREATEST(c.updated_at, COALESCE(ct.updated_at, c.updated_at)) AS "updatedAt"
 		FROM conversation c
-		LEFT JOIN chat_thread ct ON ct.thread_id = c.id
+		LEFT JOIN chat_thread ct ON ct.thread_id = c.id::text
 		WHERE c.owner_id = ${ownerId}::uuid
 		ORDER BY "updatedAt" DESC`;
 }
@@ -61,7 +61,7 @@ export function searchConversations({
 		       ts_headline('english', flat.text, q,
 		         'StartSel=<<<,StopSel=>>>,MaxFragments=1,MaxWords=16,MinWords=6') AS snippet
 		FROM conversation c
-		JOIN chat_thread ct ON ct.thread_id = c.id
+		JOIN chat_thread ct ON ct.thread_id = c.id::text
 		CROSS JOIN LATERAL (
 			SELECT string_agg(
 				CASE jsonb_typeof(msg->'content')
