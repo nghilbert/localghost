@@ -1,4 +1,4 @@
-import type { UIMessage } from "@tanstack/ai-client";
+import type { ModelMessage } from "@tanstack/ai";
 import { describe, expect, it } from "vitest";
 import {
 	conversationExportFilename,
@@ -6,12 +6,12 @@ import {
 	conversationToMarkdown,
 } from "#/shared/domain/conversation/export";
 
-function userMessage(content: string, id = "u1"): UIMessage {
-	return { id, role: "user", parts: [{ type: "text", content }] };
+function userMessage(content: string): ModelMessage {
+	return { role: "user", content };
 }
 
-function assistantMessage(content: string, id = "a1"): UIMessage {
-	return { id, role: "assistant", parts: [{ type: "text", content }] };
+function assistantMessage(content: string): ModelMessage {
+	return { role: "assistant", content };
 }
 
 describe("conversationToMarkdown", () => {
@@ -29,10 +29,9 @@ describe("conversationToMarkdown", () => {
 	});
 
 	it("skips non-text parts and notes image attachments", () => {
-		const message: UIMessage = {
-			id: "u1",
+		const message: ModelMessage = {
 			role: "user",
-			parts: [
+			content: [
 				{ type: "image", source: { type: "url", value: "data:image/png;base64,AAAA" } },
 				{ type: "text", content: "look at this" },
 			],
@@ -43,15 +42,15 @@ describe("conversationToMarkdown", () => {
 		expect(md).not.toContain("data:image");
 	});
 
-	it("marks an interrupted assistant reply", () => {
-		const interrupted: UIMessage & { interrupted: boolean } = {
-			id: "a1",
-			role: "assistant",
-			parts: [{ type: "text", content: "partial" }],
-			interrupted: true,
-		};
-		const md = conversationToMarkdown({ title: "t", messages: [interrupted] });
-		expect(md).toContain("_(response interrupted)_");
+	it("skips tool messages entirely", () => {
+		const messages: ModelMessage[] = [
+			userMessage("search otters"),
+			{ role: "tool", content: "result body", toolCallId: "c1" },
+			assistantMessage("they swim"),
+		];
+		const md = conversationToMarkdown({ title: "t", messages });
+		expect(md).not.toContain("result body");
+		expect(md).toContain("they swim");
 	});
 });
 

@@ -33,6 +33,3 @@ export const createConversationInput = z
 		path: ["firstMessage"],
 	});
 export const updateConversationInput = z.object({ id: uuid, data: updateConversationSchema });
-// `messages` carries UIMessage[], whose interface type can't satisfy a zod record;
-// the blob is stored opaquely, so unknown entries are fine here.
-export const saveMessagesInput = z.object({ id: uuid, messages: z.array(z.unknown()) });

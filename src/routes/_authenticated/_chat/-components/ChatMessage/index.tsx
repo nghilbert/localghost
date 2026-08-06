@@ -1,6 +1,6 @@
 import { code } from "@streamdown/code";
 import type { UIMessage } from "@tanstack/ai-client";
-import { CircleAlertIcon, CopyIcon, OctagonXIcon, PencilIcon, RefreshCwIcon } from "lucide-react";
+import { CircleAlertIcon, CopyIcon, PencilIcon, RefreshCwIcon } from "lucide-react";
 import { type KeyboardEvent, useState } from "react";
 import { Streamdown } from "streamdown";
 import type { ChatInterrupts } from "#/routes/_authenticated/_chat/-components/ChatThread";
@@ -10,12 +10,9 @@ import { Button } from "#/shared/components/ui/button";
 import { InputGroup, InputGroupTextarea } from "#/shared/components/ui/input-group";
 import { Message, MessageContent, MessageFooter } from "#/shared/components/ui/message";
 import { toast } from "#/shared/components/ui/toast";
-import { Tooltip, TooltipContent, TooltipTrigger } from "#/shared/components/ui/tooltip";
 import {
-	isInterrupted,
 	messageDocumentSources,
 	messageImageSources,
-	messageUsage,
 	partsText,
 	strandedToolCall,
 } from "#/shared/domain/conversation/messages";
@@ -32,18 +29,11 @@ function copyToClipboard(text: string) {
 		.catch(() => toast.add({ title: "Couldn't copy to clipboard", type: "error" }));
 }
 
-const tokenFormatter = new Intl.NumberFormat("en-US", {
-	notation: "compact",
-	maximumFractionDigits: 1,
-});
-
 type ChatMessageProps = {
 	message: UIMessage;
 	isStreaming?: boolean;
 	/** Overrides the pending head's "Thinking" label (warming up, host unreachable). */
 	pendingLabel?: string;
-	/** Running token total through this message, shown alongside its own usage. */
-	conversationTokens?: number;
 	/** Provided only for the last assistant message; re-requests the response. */
 	onRegenerate?: () => void;
 	/** Provided only when editing is allowed right now; replaces the text and resends. */
@@ -55,7 +45,6 @@ export function ChatMessage({
 	message,
 	isStreaming,
 	pendingLabel,
-	conversationTokens,
 	onRegenerate,
 	onEditResend,
 	interrupts,
@@ -159,8 +148,6 @@ export function ChatMessage({
 	// A reply that is only a tool-call JSON blob means the model wrote the call
 	// as text instead of invoking it; explain that instead of printing the JSON.
 	const strandedTool = !isStreaming && content ? strandedToolCall(content) : null;
-	const interrupted = !isStreaming && isInterrupted(message);
-	const usage = !isStreaming ? messageUsage(message) : null;
 
 	return (
 		<Message role="article" aria-label="Assistant message" data-testid="chat-message">
@@ -200,44 +187,8 @@ export function ChatMessage({
 					</Bubble>
 				)}
 
-				{interrupted && (
-					<div
-						data-testid="generation-stopped-note"
-						className="flex items-center gap-1.5 text-xs text-muted-foreground"
-					>
-						<OctagonXIcon aria-hidden className="size-3.5" />
-						Generation stopped
-						{onRegenerate && (
-							<Button
-								variant="ghost"
-								size="xs"
-								data-testid="stopped-regenerate-button"
-								onClick={onRegenerate}
-							>
-								<RefreshCwIcon />
-								Regenerate
-							</Button>
-						)}
-					</div>
-				)}
-
 				{!isStreaming && content && (
 					<MessageFooter className="gap-1">
-						{usage && (
-							<Tooltip>
-								<TooltipTrigger
-									render={<span data-testid="message-token-usage" className="cursor-default" />}
-								>
-									{tokenFormatter.format(usage.totalTokens)} tokens
-								</TooltipTrigger>
-								<TooltipContent>
-									{tokenFormatter.format(usage.promptTokens)} prompt +{" "}
-									{tokenFormatter.format(usage.completionTokens)} completion
-									{conversationTokens !== undefined &&
-										` · ${tokenFormatter.format(conversationTokens)} total this conversation`}
-								</TooltipContent>
-							</Tooltip>
-						)}
 						<div className="ml-auto flex items-center gap-1 opacity-0 transition-opacity pointer-coarse:opacity-100 focus-within:opacity-100 group-hover/message:opacity-100">
 							<ActionButton
 								icon={<CopyIcon />}

@@ -21,11 +21,6 @@ export function useConversation({ conversationId }: { conversationId: string }) 
 			? { endpointId: conversation.endpointId, model: conversation.model }
 			: null;
 
-	// The real token budget requires a live `/props` round trip (the server
-	// resolves it per-request in stream.tsx); client-side the divider falls
-	// back to the same count-based bounding cloud providers use.
-	const historyBudget: number | undefined = undefined;
-
 	const tools = useChatTools({ selection });
-	return { selection, isReady: Boolean(selection), historyBudget, ...tools };
+	return { selection, isReady: Boolean(selection), ...tools };
 }

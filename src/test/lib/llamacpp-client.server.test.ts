@@ -4,7 +4,6 @@ import {
 	downloadModel,
 	listModels,
 	openModelEventStream,
-	serverProps,
 	unloadModel,
 } from "#/shared/lib/llamacpp/client.server";
 
@@ -58,16 +57,6 @@ describe("llama.cpp model status", () => {
 			"http://localhost:8080/models",
 			expect.objectContaining({ headers: { Authorization: "Bearer secret" } }),
 		);
-	});
-
-	it("validates the props response", async () => {
-		fetchMock.mockResolvedValue(
-			new Response(JSON.stringify({ n_ctx: 8192, chat_template_caps: { tool_calls: true } })),
-		);
-
-		await expect(
-			serverProps({ url: "http://localhost:8080", model: "org/model:Q4_K_M" }),
-		).resolves.toEqual({ n_ctx: 8192, chat_template_caps: { tool_calls: true } });
 	});
 
 	it("opens the authenticated model event stream with the caller's abort signal", async () => {

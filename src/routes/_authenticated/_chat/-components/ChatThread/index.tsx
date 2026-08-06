@@ -1,8 +1,7 @@
-import { EventType } from "@tanstack/ai/client";
 import type { BoundInterrupts } from "@tanstack/ai-client";
 import { useChat } from "@tanstack/ai-react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ChatInput } from "#/routes/_authenticated/_chat/-components/ChatInput";
 import { ChatMessage } from "#/routes/_authenticated/_chat/-components/ChatMessage";
 import { useConversation } from "#/routes/_authenticated/_chat/-hooks/use-conversation";
@@ -10,7 +9,7 @@ import {
 	type Attachment,
 	composeMessageContent,
 } from "#/routes/_authenticated/_chat/-lib/attachments";
-import { createChatOptions } from "#/routes/_authenticated/_chat/-lib/chat-client";
+import { createChatConnection } from "#/routes/_authenticated/_chat/-lib/chat-client";
 import { takeChatHandoff } from "#/routes/_authenticated/_chat/-lib/chat-handoff";
 import {
 	MessageScroller,
@@ -20,37 +19,14 @@ import {
 	MessageScrollerProvider,
 	MessageScrollerViewport,
 } from "#/shared/components/ui/message-scroller";
-import { Separator } from "#/shared/components/ui/separator";
 import { deleteMemoryToolDef } from "#/shared/domain/chat/tool-definitions";
 import {
 	type ConversationDetail,
 	modelRunStateQueryOptions,
 } from "#/shared/domain/conversation/conversation.functions";
-import {
-	awaitingAssistantResponse,
-	cumulativeTokenTotals,
-	editUserMessage,
-	historyStartIndex,
-	type MessageUsage,
-	markInterrupted,
-	withUsage,
-} from "#/shared/domain/conversation/messages";
+import { awaitingAssistantResponse, editUserMessage } from "#/shared/domain/conversation/messages";
 import { ChatStatus } from "./ChatStatus";
 import { QueuedMessageItem } from "./QueuedMessageItem";
-
-/** Marks the history-trim cut: messages above it are no longer sent to the model. */
-function HistoryTrimDivider() {
-	return (
-		<div
-			data-testid="history-trim-divider"
-			className="flex items-center gap-3 py-2 text-xs text-muted-foreground"
-		>
-			<Separator className="flex-1" />
-			Earlier messages aren't sent to the model
-			<Separator className="flex-1" />
-		</div>
-	);
-}
 
 /**
  * Client-declared tool stubs (no `execute`): the server owns execution, this
@@ -61,8 +37,6 @@ export type ChatInterrupts = BoundInterrupts<typeof CHAT_TOOLS>;
 
 type ChatThreadProps = { conversation: ConversationDetail };
 export function ChatThread({ conversation }: ChatThreadProps) {
-	const queryClient = useQueryClient();
-
 	const {
 		selection,
 		isReady,
@@ -71,7 +45,6 @@ export function ChatThread({ conversation }: ChatThreadProps) {
 		toolsToSend,
 		supportsImages,
 		supportsDocuments,
-		historyBudget,
 	} = useConversation({
 		conversationId: conversation.id,
 	});
@@ -89,11 +62,7 @@ export function ChatThread({ conversation }: ChatThreadProps) {
 		[conversation.id, toolsToSend],
 	);
 
-	const chatOptions = useMemo(() => createChatOptions(queryClient), [queryClient]);
-	// RUN_FINISHED carries the turn's token usage but arrives as a raw chunk, not
-	// on the message; stash it here and stamp it onto the message once `onFinish`
-	// reports its final id.
-	const pendingUsage = useRef<MessageUsage | undefined>(undefined);
+	const connection = useMemo(() => createChatConnection(), []);
 	const {
 		messages,
 		queue,
@@ -107,24 +76,11 @@ export function ChatThread({ conversation }: ChatThreadProps) {
 		setMessages,
 		interrupts,
 	} = useChat({
-		...chatOptions,
+		connection,
+		persistence: true,
 		tools: CHAT_TOOLS,
 		threadId: conversation.id,
 		forwardedProps,
-		onChunk: (chunk) => {
-			if (chunk.type === EventType.RUN_FINISHED && chunk.usage) {
-				pendingUsage.current = chunk.usage;
-			}
-		},
-		onFinish: (message) => {
-			const usage = pendingUsage.current;
-			pendingUsage.current = undefined;
-			if (!usage) return;
-			// Replace with `message` (onFinish's authoritative final content), not the
-			// array's own copy of it: `messages` here can lag one render behind, and
-			// stamping usage onto the stale copy would silently drop the last delta.
-			setMessages(messages.map((m) => (m.id === message.id ? withUsage(message, usage) : m)));
-		},
 	});
 	const isStreaming = isLoading || status === "submitted" || status === "streaming";
 
@@ -147,12 +103,6 @@ export function ChatThread({ conversation }: ChatThreadProps) {
 	async function handleSend(content: string, attachments: Attachment[]) {
 		await sendMessage(composeMessageContent({ text: content, attachments }));
 		resetTools();
-	}
-
-	/** Stops the stream and flags the cut-off reply; the flag persists with the message. */
-	function handleStop() {
-		stop();
-		setMessages(markInterrupted(messages));
 	}
 
 	/** Rewrites a sent user message, drops every later turn, and re-requests a reply. */
@@ -198,13 +148,6 @@ export function ChatThread({ conversation }: ChatThreadProps) {
 	const canGenerate =
 		autoRespond === false && status === "ready" && awaitingAssistantResponse(messages);
 
-	// Where the server's history trim will cut the next request; a divider above
-	// that message tells the user the model no longer sees what came before.
-	const historyStart = historyStartIndex(messages, { historyBudgetTokens: historyBudget });
-
-	// Running token total through each message, for the per-message usage tooltip.
-	const cumulativeTokens = useMemo(() => cumulativeTokenTotals(messages), [messages]);
-
 	return (
 		<div className="flex min-h-0 flex-col">
 			<MessageScrollerProvider autoScroll defaultScrollPosition="last-anchor">
@@ -215,26 +158,26 @@ export function ChatThread({ conversation }: ChatThreadProps) {
 								const isLast = idx === messages.length - 1;
 								const isLastAssistant = isLast && msg.role === "assistant";
 								return (
-									<Fragment key={msg.id}>
-										{historyStart > 0 && idx === historyStart && <HistoryTrimDivider />}
-										<MessageScrollerItem messageId={msg.id} scrollAnchor={msg.role === "user"}>
-											<ChatMessage
-												message={msg}
-												isStreaming={isStreaming && isLastAssistant}
-												pendingLabel={isLastAssistant ? pendingLabel : undefined}
-												conversationTokens={cumulativeTokens[idx]}
-												onRegenerate={
-													isLastAssistant && !isStreaming ? () => void reload() : undefined
-												}
-												onEditResend={
-													msg.role === "user" && !isStreaming
-														? (content) => handleEditResend(msg.id, content)
-														: undefined
-												}
-												interrupts={interrupts}
-											/>
-										</MessageScrollerItem>
-									</Fragment>
+									<MessageScrollerItem
+										key={msg.id}
+										messageId={msg.id}
+										scrollAnchor={msg.role === "user"}
+									>
+										<ChatMessage
+											message={msg}
+											isStreaming={isStreaming && isLastAssistant}
+											pendingLabel={isLastAssistant ? pendingLabel : undefined}
+											onRegenerate={
+												isLastAssistant && !isStreaming ? () => void reload() : undefined
+											}
+											onEditResend={
+												msg.role === "user" && !isStreaming
+													? (content) => handleEditResend(msg.id, content)
+													: undefined
+											}
+											interrupts={interrupts}
+										/>
+									</MessageScrollerItem>
 								);
 							})}
 							<MessageScrollerItem>
@@ -267,7 +210,7 @@ export function ChatThread({ conversation }: ChatThreadProps) {
 					supportsImages={supportsImages}
 					supportsDocuments={supportsDocuments}
 					sendMessage={handleSend}
-					stop={handleStop}
+					stop={stop}
 				/>
 			</div>
 		</div>

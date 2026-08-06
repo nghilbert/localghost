@@ -1,23 +1,10 @@
 import type { UIMessage } from "@tanstack/ai-client";
 import { useChat } from "@tanstack/ai-react";
-import { QueryClient } from "@tanstack/react-query";
 import { HttpResponse, http } from "msw";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
+import { createChatConnection } from "#/routes/_authenticated/_chat/-lib/chat-client";
 import { worker } from "#/test/msw";
 import { renderHook } from "#/test/utils";
-
-const { saveConversationMessages } = vi.hoisted(() => ({
-	saveConversationMessages: vi.fn(),
-}));
-
-vi.mock("#/shared/domain/conversation/conversation.functions", () => ({
-	saveConversationMessages,
-	deleteConversation: vi.fn(),
-	conversationQueryOptions: (id: string) => ({ queryKey: ["conversation", id] }),
-	conversationsQueryOptions: () => ({ queryKey: ["conversations"] }),
-}));
-
-const { createChatOptions } = await import("#/routes/_authenticated/_chat/-lib/chat-client");
 
 type StreamEvent = Record<string, unknown> & { type: string };
 
@@ -46,10 +33,10 @@ function textRun(messageId: string, deltas: string[]): StreamEvent[] {
 }
 
 function mountChat() {
-	const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 	return renderHook(() =>
 		useChat({
-			...createChatOptions(queryClient),
+			connection: createChatConnection(),
+			persistence: true,
 			threadId: "c1",
 			forwardedProps: { conversationId: "c1", enabledTools: [], timeZone: "UTC" },
 		}),
@@ -65,8 +52,11 @@ function assistantText(messages: UIMessage[]) {
 }
 
 beforeEach(() => {
-	vi.clearAllMocks();
-	saveConversationMessages.mockResolvedValue(undefined);
+	worker.use(
+		http.get("/api/chat/stream", () =>
+			HttpResponse.json({ messages: [], activeRun: null, interrupts: null }),
+		),
+	);
 });
 
 describe("chat streaming over /api/chat/stream", () => {

@@ -25,14 +25,8 @@ const llamaModelSchema = z.object({
 		.optional(),
 });
 const llamaModelListSchema = z.object({ data: z.array(llamaModelSchema) });
-const llamaPropsSchema = z.object({
-	n_ctx: z.number(),
-	modalities: z.object({ vision: z.boolean().optional() }).optional(),
-	chat_template_caps: z.object({ tool_calls: z.boolean().optional() }).optional(),
-});
 
 export type LlamaModel = z.infer<typeof llamaModelSchema>;
-export type LlamaProps = z.infer<typeof llamaPropsSchema>;
 
 async function timeoutFetch({
 	url,
@@ -105,28 +99,6 @@ export async function openModelEventStream({
 	if (!response.ok) throw await responseError({ response, operation: "GET /models/sse" });
 	if (!response.body) throw new Error("GET /models/sse returned no response body");
 	return response.body;
-}
-
-/** Server properties for the currently (or about-to-be) loaded model, notably `n_ctx`. */
-export async function serverProps({
-	url,
-	model,
-	apiKey,
-	timeoutMs = 2500,
-}: {
-	url: string;
-	model?: string;
-	apiKey?: string;
-	timeoutMs?: number;
-}): Promise<LlamaProps> {
-	const query = model ? `?model=${encodeURIComponent(model)}` : "";
-	const response = await timeoutFetch({
-		url: `${url}/props${query}`,
-		init: { headers: authHeaders(apiKey) },
-		timeoutMs,
-	});
-	if (!response.ok) throw await responseError({ response, operation: "GET /props" });
-	return llamaPropsSchema.parse(await response.json());
 }
 
 /** Triggers a non-blocking download of `model` (a `repo:QUANT` id) from Hugging Face. */

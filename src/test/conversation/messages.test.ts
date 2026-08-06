@@ -3,22 +3,13 @@ import { describe, expect, it } from "vitest";
 import {
 	awaitingAssistantResponse,
 	buildFirstUserMessage,
-	cumulativeTokenTotals,
 	deriveConversationTitle,
 	documentMessageParts,
 	editUserMessage,
-	estimateMessageTokens,
-	historyBudgetTokens,
-	historyStartIndex,
-	isInterrupted,
-	type MessageUsage,
-	markInterrupted,
 	messageDocumentSources,
-	messageUsage,
 	partsText,
+	storedMessages,
 	strandedToolCall,
-	trimHistory,
-	withUsage,
 } from "#/shared/domain/conversation/messages";
 
 function userMessage(content: string): UIMessage {
@@ -138,73 +129,6 @@ describe("awaitingAssistantResponse", () => {
 	});
 });
 
-describe("markInterrupted", () => {
-	it("flags a trailing assistant message and isInterrupted reads it back", () => {
-		const marked = markInterrupted([userMessage("hi"), assistantMessage("partial")]);
-		expect(marked.map(isInterrupted)).toEqual([false, true]);
-	});
-
-	it("survives the JSON round-trip the persisted blob goes through", () => {
-		const marked = markInterrupted([assistantMessage("partial")]);
-		const revived: UIMessage[] = JSON.parse(JSON.stringify(marked));
-		expect(revived.map(isInterrupted)).toEqual([true]);
-	});
-
-	it("leaves a transcript ending on a user turn unchanged", () => {
-		const messages = [userMessage("hi")];
-		expect(markInterrupted(messages)).toBe(messages);
-	});
-
-	it("leaves an empty transcript unchanged", () => {
-		expect(markInterrupted([])).toEqual([]);
-	});
-
-	it("does not mutate the input messages", () => {
-		const message = assistantMessage("partial");
-		markInterrupted([message]);
-		expect(isInterrupted(message)).toBe(false);
-	});
-});
-
-const usage: MessageUsage = { promptTokens: 100, completionTokens: 20, totalTokens: 120 };
-
-describe("withUsage / messageUsage", () => {
-	it("stamps usage onto a message and reads it back", () => {
-		const stamped = withUsage(assistantMessage("hi"), usage);
-		expect(messageUsage(stamped)).toEqual(usage);
-	});
-
-	it("reports null for a message with no usage stamped", () => {
-		expect(messageUsage(assistantMessage("hi"))).toBeNull();
-	});
-
-	it("survives the JSON round-trip the persisted blob goes through", () => {
-		const stamped = withUsage(assistantMessage("hi"), usage);
-		const revived: UIMessage = JSON.parse(JSON.stringify(stamped));
-		expect(messageUsage(revived)).toEqual(usage);
-	});
-});
-
-describe("cumulativeTokenTotals", () => {
-	it("runs a total across messages, treating unstamped messages as zero", () => {
-		const totals = cumulativeTokenTotals([
-			userMessage("hi"),
-			withUsage(assistantMessage("a1"), { promptTokens: 10, completionTokens: 5, totalTokens: 15 }),
-			userMessage("more"),
-			withUsage(assistantMessage("a2"), {
-				promptTokens: 30,
-				completionTokens: 10,
-				totalTokens: 40,
-			}),
-		]);
-		expect(totals).toEqual([0, 15, 15, 55]);
-	});
-
-	it("returns an empty array for an empty transcript", () => {
-		expect(cumulativeTokenTotals([])).toEqual([]);
-	});
-});
-
 describe("editUserMessage", () => {
 	it("rewrites the message's text and drops every later turn", () => {
 		const messages: UIMessage[] = [
@@ -256,113 +180,15 @@ describe("partsText", () => {
 	});
 });
 
-describe("trimHistory", () => {
-	it("returns short histories untouched", () => {
-		const messages = [userMessage("hi")];
-		expect(trimHistory(messages)).toBe(messages);
+describe("storedMessages", () => {
+	it("round-trips a ModelMessage[] blob through JSON", () => {
+		const messages = [{ role: "user", content: "hi" }];
+		expect(storedMessages(messages)).toEqual(messages);
 	});
 
-	it("keeps the most recent 40 whole messages", () => {
-		const messages = Array.from({ length: 45 }, (_, i) => userMessage(`m${i}`));
-		const trimmed = trimHistory(messages);
-		expect(trimmed).toHaveLength(40);
-		expect(trimmed[0]).toBe(messages[5]);
-		expect(trimmed[39]).toBe(messages[44]);
-	});
-
-	it("advances the cut to a user message instead of starting mid-turn", () => {
-		// 43 user/assistant pairs plus a trailing user message (87 total): a plain
-		// slice(-40) would start on the assistant at index 47, mid-turn.
-		const messages = [
-			...Array.from({ length: 43 }, (_, i) => [
-				userMessage(`q${i}`),
-				assistantMessage(`a${i}`),
-			]).flat(),
-			userMessage("latest"),
-		];
-		const trimmed = trimHistory(messages);
-		expect(trimmed[0]?.role).toBe("user");
-		expect(trimmed[0]).toBe(messages[48]);
-		expect(trimmed).toHaveLength(39);
-	});
-
-	it("keeps the whole last user turn when the cap window has no user message", () => {
-		const messages = [
-			...Array.from({ length: 5 }, (_, i) => userMessage(`q${i}`)),
-			...Array.from({ length: 45 }, (_, i) => assistantMessage(`tool-loop-${i}`)),
-		];
-		const trimmed = trimHistory(messages);
-		expect(trimmed[0]).toBe(messages[4]);
-		expect(trimmed).toHaveLength(46);
-	});
-});
-
-describe("estimateMessageTokens", () => {
-	it("estimates an unstamped message from its text length (chars/4)", () => {
-		expect(estimateMessageTokens(userMessage("a".repeat(40)))).toBe(10);
-	});
-
-	it("uses an assistant reply's own completionTokens when stamped", () => {
-		const stamped = withUsage(assistantMessage("hi"), {
-			promptTokens: 5000,
-			completionTokens: 120,
-			totalTokens: 5120,
-		});
-		// Not the 5120 total (which double-counts the prior prompt), just its 120.
-		expect(estimateMessageTokens(stamped)).toBe(120);
-	});
-
-	it("adds a flat cost per image part", () => {
-		const message: UIMessage = {
-			id: "u1",
-			role: "user",
-			parts: [{ type: "image", source: { type: "url", value: "data:image/png;base64,AA" } }],
-		};
-		expect(estimateMessageTokens(message)).toBeGreaterThanOrEqual(1000);
-	});
-});
-
-describe("historyStartIndex with a token budget", () => {
-	// Each message here is ~25 chars -> ~7 estimated tokens.
-	const turn = (i: number) => [
-		userMessage(`question number ${i}!`),
-		assistantMessage(`answer ${i}`),
-	];
-
-	it("cuts on a user turn once the accumulated estimate exceeds the budget", () => {
-		const messages = Array.from({ length: 10 }, (_, i) => turn(i)).flat();
-		const start = historyStartIndex(messages, { historyBudgetTokens: 30 });
-		expect(messages[start]?.role).toBe("user");
-		expect(start).toBeGreaterThan(0);
-	});
-
-	it("keeps everything when the whole transcript fits the budget", () => {
-		const messages = turn(0);
-		expect(historyStartIndex(messages, { historyBudgetTokens: 10_000 })).toBe(0);
-	});
-
-	it("keeps the last user turn whole even when it alone overflows the budget", () => {
-		const messages = [userMessage("q0"), assistantMessage("a0"), userMessage("q1")];
-		// A tiny budget can't fit even the newest turn; the cut still lands on the last user message.
-		const start = historyStartIndex(messages, { historyBudgetTokens: 1 });
-		expect(start).toBe(2);
-	});
-});
-
-describe("historyBudgetTokens", () => {
-	it("returns undefined when no context window is known (cloud providers)", () => {
-		expect(historyBudgetTokens({ nCtx: undefined, options: {} })).toBeUndefined();
-	});
-
-	it("uses the default max_tokens reservation when options don't override it", () => {
-		// 8192 nCtx - 4096 max_tokens default - 1500 system reserve.
-		expect(historyBudgetTokens({ nCtx: 8192, options: {} })).toBe(8192 - 4096 - 1500);
-	});
-
-	it("honors a per-model max_tokens override against the live nCtx", () => {
-		expect(historyBudgetTokens({ nCtx: 32_000, options: { max_tokens: 1000 } })).toBe(
-			32_000 - 1000 - 1500,
-		);
+	it("treats a missing value as an empty transcript", () => {
+		expect(storedMessages(undefined)).toEqual([]);
+		expect(storedMessages(null)).toEqual([]);
 	});
 });
 

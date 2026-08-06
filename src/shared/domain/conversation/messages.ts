@@ -1,81 +1,13 @@
 import type { ModelMessage } from "@tanstack/ai";
-import type { DocumentPart, ImagePart, RunFinishedEvent } from "@tanstack/ai/client";
+import type { DocumentPart, ImagePart } from "@tanstack/ai/client";
 import type { UIMessage } from "@tanstack/ai-client";
-import { DEFAULT_MAX_TOKENS } from "#/shared/lib/llm-constants";
 
-const MAX_HISTORY_MESSAGES = 40;
-
-/** Options tuning where {@link historyStartIndex} cuts the transcript. */
-type HistoryTrimOptions = {
-	/**
-	 * The token budget for prior history. When set, the cut fits the window to it
-	 * instead of the fixed message-count cap; from {@link historyBudgetTokens}.
-	 */
-	historyBudgetTokens?: number;
-};
-
-/** Finds the first message retained for model history.
- * Cuts only at user messages, using a token budget or the message-count cap.
+/**
+ * Reads the `messages` JSONB blob back as `@tanstack/ai`'s `ModelMessage[]`.
+ * The one trust boundary between the stored blob and the typed transcript.
  */
-export function historyStartIndex(
-	messages: Array<UIMessage | ModelMessage>,
-	options?: HistoryTrimOptions,
-): number {
-	const budget = options?.historyBudgetTokens;
-	return budget === undefined
-		? countBasedStartIndex(messages)
-		: tokenBasedStartIndex(messages, budget);
-}
-
-/** The message-count cut used when no token budget is known (cloud windows are large/unknown). */
-function countBasedStartIndex(messages: Array<UIMessage | ModelMessage>): number {
-	if (messages.length <= MAX_HISTORY_MESSAGES) return 0;
-	const windowStart = messages.length - MAX_HISTORY_MESSAGES;
-	for (let i = windowStart; i < messages.length; i++) {
-		if (messages[i]?.role === "user") return i;
-	}
-	// No user turn inside the window (one giant tool loop): keep the whole last
-	// user turn even though it runs over the cap; severing it is worse.
-	return lastUserIndex(messages, windowStart - 1);
-}
-
-/** Finds the earliest user turn whose remaining history fits the token budget.
- * Keeps the newest full user turn even when it alone exceeds the budget.
- */
-function tokenBasedStartIndex(messages: Array<UIMessage | ModelMessage>, budget: number): number {
-	let total = 0;
-	let cut = -1;
-	for (let i = messages.length - 1; i >= 0; i--) {
-		const message = messages[i];
-		if (!message) continue;
-		total += estimateMessageTokens(message);
-		if (message.role !== "user") continue;
-		if (total <= budget) {
-			cut = i;
-			continue;
-		}
-		// Adding this user turn overflows; any older cut only carries more tokens.
-		break;
-	}
-	// Nothing fit (the newest user turn alone is over budget): keep that turn.
-	return cut === -1 ? lastUserIndex(messages, messages.length - 1) : cut;
-}
-
-/** The index of the last user message at or before `from`, or 0 when there is none. */
-function lastUserIndex(messages: Array<UIMessage | ModelMessage>, from: number): number {
-	for (let i = from; i >= 0; i--) {
-		if (messages[i]?.role === "user") return i;
-	}
-	return 0;
-}
-
-/** Caps history to the window {@link historyStartIndex} chooses. */
-export function trimHistory(
-	messages: Array<UIMessage | ModelMessage>,
-	options?: HistoryTrimOptions,
-) {
-	const start = historyStartIndex(messages, options);
-	return start === 0 ? messages : messages.slice(start);
+export function storedMessages(value: unknown): ModelMessage[] {
+	return JSON.parse(JSON.stringify(value ?? []));
 }
 
 /**
@@ -172,14 +104,6 @@ export function messageDocumentSources(
 }
 
 /**
- * Reads the `messages` JSONB blob back as the ai-client's `UIMessage[]`.
- * The one trust boundary between the stored blob and the typed transcript.
- */
-export function storedMessages(value: unknown): UIMessage[] {
-	return JSON.parse(JSON.stringify(value ?? []));
-}
-
-/**
  * Builds the user `UIMessage` a conversation is created with, so the first
  * message lives in the database from the moment the conversation exists instead
  * of riding along in navigation state.
@@ -200,91 +124,6 @@ export function buildFirstUserMessage({
 		parts: [...imageMessageParts(images), ...documentMessageParts(documents), ...textParts],
 		createdAt: new Date(),
 	};
-}
-
-/**
- * Flags the trailing assistant message as interrupted (the user hit stop), so
- * the transcript can say so instead of presenting cut-off text as complete.
- * @returns A new flagged array; unchanged when the last turn isn't assistant.
- */
-export function markInterrupted(messages: UIMessage[]): UIMessage[] {
-	const last = messages.at(-1);
-	if (last?.role !== "assistant") return messages;
-	const flagged: UIMessage & { interrupted: boolean } = { ...last, interrupted: true };
-	return [...messages.slice(0, -1), flagged];
-}
-
-/** Whether {@link markInterrupted} flagged this message when its generation was stopped. */
-export function isInterrupted(message: UIMessage): boolean {
-	return "interrupted" in message && message.interrupted === true;
-}
-
-/** Token counts for one assistant reply, the subset of the stream's usage we display. */
-export type MessageUsage = Pick<
-	NonNullable<RunFinishedEvent["usage"]>,
-	"promptTokens" | "completionTokens" | "totalTokens"
->;
-
-/** Stamps a completed message with its reported token usage. */
-export function withUsage(message: UIMessage, usage: MessageUsage): UIMessage {
-	const stamped: UIMessage & { usage: MessageUsage } = { ...message, usage };
-	return stamped;
-}
-
-/** The token usage {@link withUsage} stamped on this message, if any. */
-export function messageUsage(message: UIMessage | ModelMessage): MessageUsage | null {
-	return "usage" in message && message.usage ? (message.usage as MessageUsage) : null;
-}
-
-/** Tokens reserved above `max_tokens` for the system prompt (date grounding + tool directives). */
-const SYSTEM_PROMPT_RESERVE_TOKENS = 1500;
-
-/** A conservative flat token cost per image part; vision token accounting varies by provider. */
-const IMAGE_TOKEN_ESTIMATE = 1000;
-
-/** Estimates message tokens from reported completion tokens or text and images.
- * Does not use `totalTokens`, which includes the preceding prompt.
- */
-export function estimateMessageTokens(message: UIMessage | ModelMessage): number {
-	const completion = messageUsage(message)?.completionTokens;
-	if (typeof completion === "number") return completion;
-
-	const parts = "parts" in message ? message.parts : null;
-	const text = parts
-		? partsText(parts)
-		: "content" in message && typeof message.content === "string"
-			? message.content
-			: "";
-	const imageCount = parts ? parts.filter((part) => part.type === "image").length : 0;
-	return Math.ceil(text.length / 4) + imageCount * IMAGE_TOKEN_ESTIMATE;
-}
-
-/** Returns the history budget for a known local context window.
- * Reserves tokens for the output and system prompt; cloud windows return undefined.
- */
-export function historyBudgetTokens({
-	nCtx,
-	options,
-}: {
-	nCtx: number | undefined;
-	options: Record<string, unknown>;
-}): number | undefined {
-	if (nCtx === undefined) return undefined;
-	const maxTokens =
-		typeof options.max_tokens === "number" ? options.max_tokens : DEFAULT_MAX_TOKENS;
-	return Math.max(0, nCtx - maxTokens - SYSTEM_PROMPT_RESERVE_TOKENS);
-}
-
-/**
- * Running total tokens spent so far, one entry per message in order (the
- * context-budget view local models care about). Messages without usage add 0.
- */
-export function cumulativeTokenTotals(messages: UIMessage[]): number[] {
-	let sum = 0;
-	return messages.map((message) => {
-		sum += messageUsage(message)?.totalTokens ?? 0;
-		return sum;
-	});
 }
 
 /**

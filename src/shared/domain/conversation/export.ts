@@ -1,42 +1,61 @@
-import type { UIMessage } from "@tanstack/ai-client";
-import { isInterrupted, messageImageSources, partsText } from "./messages";
+import type { ModelMessage } from "@tanstack/ai";
 
 /** The conversation fields an export renders; a subset of `ConversationDetail`. */
 export interface ExportableConversation {
 	title: string | null;
-	messages: UIMessage[];
+	messages: ModelMessage[];
 }
 
-const ROLE_HEADINGS: Record<UIMessage["role"], string> = {
-	system: "System",
+const ROLE_HEADINGS: Record<Exclude<ModelMessage["role"], "tool">, string> = {
 	user: "User",
 	assistant: "Assistant",
 };
 
+/** The text content of a message: the string case, or its text parts joined. */
+function messageText(content: ModelMessage["content"]): string {
+	if (typeof content === "string") return content;
+	if (!content) return "";
+	return content.flatMap((part) => (part.type === "text" ? [part.content] : [])).join("");
+}
+
+/** How many image parts a message carries. */
+function messageImageCount(content: ModelMessage["content"]): number {
+	if (!content || typeof content === "string") return 0;
+	return content.filter((part) => part.type === "image").length;
+}
+
 /** One message as a markdown section: a role heading, image notes, then its text. */
-function messageMarkdown(message: UIMessage): string {
+function messageMarkdown(
+	message: ModelMessage & { role: Exclude<ModelMessage["role"], "tool"> },
+): string {
 	const lines: string[] = [`## ${ROLE_HEADINGS[message.role]}`];
-	const imageCount = messageImageSources(message.parts).length;
+	const imageCount = messageImageCount(message.content);
 	if (imageCount > 0) {
 		lines.push(`_${imageCount} image attachment${imageCount === 1 ? "" : "s"}_`);
 	}
-	const text = partsText(message.parts).trim();
+	const text = messageText(message.content).trim();
 	if (text) lines.push(text);
-	if (isInterrupted(message)) lines.push("_(response interrupted)_");
 	return lines.join("\n\n");
 }
 
 /**
  * Renders a conversation as a readable markdown transcript: a title heading
- * followed by one section per message. Tool calls, results, and thinking are
- * dropped (they aren't in {@link partsText}); image attachments become a note.
+ * followed by one section per message. Tool calls and results are dropped
+ * (`role: "tool"` messages, and any `toolCalls` on an assistant message);
+ * image attachments become a note.
  */
 export function conversationToMarkdown(conversation: ExportableConversation): string {
 	const heading = `# ${conversation.title ?? "Conversation"}`;
-	return [heading, ...conversation.messages.map(messageMarkdown)].join("\n\n");
+	const rendered = conversation.messages
+		.filter(
+			(message): message is typeof message & { role: Exclude<ModelMessage["role"], "tool"> } =>
+				message.role !== "tool",
+		)
+		.map(messageMarkdown);
+	return [heading, ...rendered].join("\n\n");
 }
 
-/** The raw `UIMessage[]` blob as pretty-printed JSON: a lossless export. */
+/** The raw `ModelMessage[]` blob as pretty-printed JSON: a lossless export. */
 export function conversationToJson(conversation: ExportableConversation): string {
 	return JSON.stringify(conversation.messages, null, 2);
 }

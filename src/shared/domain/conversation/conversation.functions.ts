@@ -1,4 +1,4 @@
-import type { UIMessage } from "@tanstack/ai-client";
+import type { ModelMessage } from "@tanstack/ai";
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 import { authedFn } from "#/shared/lib/middleware";
@@ -10,14 +10,12 @@ import {
 	patchConversation,
 	probeModelRunState,
 	removeConversation,
-	saveMessages,
 	searchConversations,
 } from "./conversation.server";
 import { storedMessages } from "./messages";
 import {
 	conversationIdInput,
 	createConversationInput,
-	saveMessagesInput,
 	searchConversationsInput,
 	updateConversationInput,
 } from "./schemas";
@@ -51,7 +49,7 @@ export const getConversation = createServerFn({ method: "POST" })
 
 /** A conversation as the query cache holds it: the row with `messages` typed. */
 export type ConversationDetail = Omit<Awaited<ReturnType<typeof getConversation>>, "messages"> & {
-	messages: UIMessage[];
+	messages: ModelMessage[];
 };
 
 /**
@@ -80,18 +78,6 @@ export const createConversation = createServerFn({ method: "POST" })
 			attachments,
 		}),
 	);
-
-/**
- * Persist the conversation's `messages` blob. Called by the client persistence
- * adapter on every message-list change; this is the only write path for chat
- * content (the stream route writes nothing).
- */
-export const saveConversationMessages = createServerFn({ method: "POST" })
-	.middleware([authedFn])
-	.validator(saveMessagesInput)
-	.handler(async ({ data: { id, messages }, context }) => {
-		await saveMessages({ id, ownerId: context.userId, messages });
-	});
 
 /**
  * Patch a conversation's title. The model is fixed at creation and not
@@ -135,7 +121,7 @@ export const conversationSearchQueryOptions = ({ query }: { query: string }) =>
 export const conversationQueryOptions = (id: string) =>
 	queryOptions({
 		queryKey: ["conversation", id],
-		// The server fn returns `messages` as the raw JSONB value (UIMessage isn't
+		// The server fn returns `messages` as the raw JSONB value (ModelMessage isn't
 		// provably serializable to Start's validator); type it at the query seam.
 		queryFn: async (): Promise<ConversationDetail> => {
 			const conversation = await getConversation({ data: { id } });

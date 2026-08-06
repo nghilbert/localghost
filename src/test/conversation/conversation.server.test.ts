@@ -3,14 +3,22 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const {
 	conversationFindFirst,
 	conversationUpdate,
-	conversationUpdateMany,
 	conversationDeleteMany,
+	chatThreadDeleteMany,
+	chatRunDeleteMany,
+	chatInterruptDeleteMany,
+	transaction,
 	listModels,
 } = vi.hoisted(() => ({
 	conversationFindFirst: vi.fn(),
 	conversationUpdate: vi.fn(),
-	conversationUpdateMany: vi.fn(),
 	conversationDeleteMany: vi.fn(),
+	chatThreadDeleteMany: vi.fn(),
+	chatRunDeleteMany: vi.fn(),
+	chatInterruptDeleteMany: vi.fn(),
+	transaction: vi.fn((ops: unknown) =>
+		typeof ops === "function" ? ops({}) : Promise.all(ops as Array<Promise<unknown>>),
+	),
 	listModels: vi.fn(),
 }));
 
@@ -19,9 +27,12 @@ vi.mock("#/shared/lib/db.server", () => ({
 		conversation: {
 			findFirst: conversationFindFirst,
 			update: conversationUpdate,
-			updateMany: conversationUpdateMany,
 			deleteMany: conversationDeleteMany,
 		},
+		chatThread: { deleteMany: chatThreadDeleteMany },
+		chatRun: { deleteMany: chatRunDeleteMany },
+		chatInterrupt: { deleteMany: chatInterruptDeleteMany },
+		$transaction: transaction,
 	},
 }));
 vi.mock("#/shared/lib/llamacpp/client.server", () => ({ listModels }));
@@ -30,11 +41,14 @@ import {
 	patchConversation,
 	probeModelRunState,
 	removeConversation,
-	saveMessages,
 } from "#/shared/domain/conversation/conversation.server";
 
 beforeEach(() => {
 	vi.clearAllMocks();
+	conversationDeleteMany.mockResolvedValue({ count: 1 });
+	chatThreadDeleteMany.mockResolvedValue({ count: 1 });
+	chatRunDeleteMany.mockResolvedValue({ count: 0 });
+	chatInterruptDeleteMany.mockResolvedValue({ count: 0 });
 });
 
 describe("patchConversation", () => {
@@ -135,18 +149,23 @@ describe("probeModelRunState", () => {
 	});
 });
 
-describe("owner scoping on the bulk writes", () => {
-	it("scopes a message save to the caller", async () => {
-		await saveMessages({ id: "c1", ownerId: "owner-1", messages: [] });
+describe("removeConversation", () => {
+	it("is a no-op when the id isn't owned by the caller", async () => {
+		conversationFindFirst.mockResolvedValue(null);
 
-		expect(conversationUpdateMany).toHaveBeenCalledWith(
-			expect.objectContaining({ where: { id: "c1", ownerId: "owner-1" } }),
-		);
-	});
-
-	it("scopes a delete to the caller", async () => {
 		await removeConversation({ id: "c1", ownerId: "owner-1" });
 
+		expect(transaction).not.toHaveBeenCalled();
+	});
+
+	it("deletes the thread, runs, interrupts, and the conversation, all scoped to the caller", async () => {
+		conversationFindFirst.mockResolvedValue({ id: "c1" });
+
+		await removeConversation({ id: "c1", ownerId: "owner-1" });
+
+		expect(chatThreadDeleteMany).toHaveBeenCalledWith({ where: { threadId: "c1" } });
+		expect(chatRunDeleteMany).toHaveBeenCalledWith({ where: { threadId: "c1" } });
+		expect(chatInterruptDeleteMany).toHaveBeenCalledWith({ where: { threadId: "c1" } });
 		expect(conversationDeleteMany).toHaveBeenCalledWith({
 			where: { id: "c1", ownerId: "owner-1" },
 		});
