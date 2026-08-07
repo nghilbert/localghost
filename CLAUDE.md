@@ -10,7 +10,7 @@ Guidance for Claude Code working in this repository.
 - **Biome:** never `biome-ignore`; fix the real issue.
 - **Server-only:** never import `.server.ts` from client code.
 - **Comments:** only for non-obvious behavior. Exported functions get JSDoc; add `@param`/`@returns`/`@throws`/`{@link}` tags only where they add what the name and type don't. Describe the code, never PR history.
-- **No `as` casts:** type via generics, annotations, or Prisma model types.
+- **No `as` casts:** type via generics, annotations, or Prisma model types. `as const` is fine, it asserts a literal type rather than overriding one.
 - **No positional params:** two or more params means one named object (one positional is fine); better, remove the boundary so the value is read from its owner.
 - **No dead code:** delete unused code; no re-exports, no `// removed` comments.
 - **Components own their styling:** an ad-hoc card surface in feature code is a `<Card>`, not a raw `<div className="rounded-lg border bg-card p-4">`. Reach for `className` only for layout the component cannot do itself.
@@ -120,7 +120,7 @@ src/
 - **File suffixes are build boundaries:** `*.functions.ts` (the `createServerFn` RPC boundary), `*.server.ts` (server-only, stripped from the client bundle); `types.ts` for types, `schemas.ts` for Zod. The `.client.ts` suffix is banned (breaks SSR for isomorphic modules).
 ### Naming
 
-The mechanical rules (camelCase Zod schemas, the banned `.client.ts` suffix) are enforced by `.claude/hooks/text-check.ts`. The judgment calls it cannot decide:
+The mechanical rules (camelCase Zod schemas, the banned `.client.ts` suffix) are enforced by `.claude/hooks/post-edit.ts`. The judgment calls it cannot decide:
 
 - **Slice = the domain noun (`shared/domain/<noun>`) or the page/subtree (routes), not the tab.** A noun names a domain folder (`endpoint`, `conversation`, `chat`, `model`); page-local code is named by its route area. Placement follows dependency direction, not usage: infra a domain noun needs (`getCurrentUserId`, the llama.cpp client) lives in `shared/lib`, and page UI that uses a noun lives in the route — never the reverse.
 - **Files:** domain-noun in `shared/domain` (`conversation.functions.ts`); role-based for domain-free infra (`db.server.ts`, `llm.server.ts`).
@@ -130,7 +130,7 @@ The mechanical rules (camelCase Zod schemas, the banned `.client.ts` suffix) are
 
 ## Testing
 
-Vitest in `src/test/<area>/` (folders named for the slice they test: the domain noun or route area, e.g. `chat/`, `model/`, `endpoint/`, `settings/`, never by test type), run with `npm run test -- run` (see the "Test complex work" rule for _when_). Two projects split by extension: `*.test.ts` runs in node (`unit`), `*.test.tsx` in headless Chromium via browser mode (`browser`). Browser tests use `render`/`renderHook` from `#/test/utils` (wraps `vitest-browser-react`; both async), interactions via locators (`await screen.getByTestId(...).click()`) or `userEvent` from `vitest/browser`, assertions via `await expect.element(...)` / `expect.poll`. `.claude/hooks/text-check.ts` enforces the mechanical patterns (userEvent over `fireEvent`, no casts, query by `data-testid` not role/label/text). The judgment:
+Vitest in `src/test/<area>/` (folders named for the slice they test: the domain noun or route area, e.g. `chat/`, `model/`, `endpoint/`, `settings/`, never by test type), run with `npm run test -- run` (see the "Test complex work" rule for _when_). Two projects split by extension: `*.test.ts` runs in node (`unit`), `*.test.tsx` in headless Chromium via browser mode (`browser`). Browser tests use `render`/`renderHook` from `#/test/utils` (wraps `vitest-browser-react`; both async), interactions via locators (`await screen.getByTestId(...).click()`) or `userEvent` from `vitest/browser`, assertions via `await expect.element(...)` / `expect.poll`. `.claude/hooks/post-edit.ts` enforces the mechanical patterns (userEvent over `fireEvent`, no casts, query by `data-testid` not role/label/text). The judgment:
 
 - **Test our seams, not our dependencies.** Target logic we wrote (wiring, input parsing, transforms, registries, merge/normalize). Litmus: if it would still pass with our code deleted, it tests the library.
 - **Extract pure logic, test it plain** (inline inputs, no `render`, no DB): `toolRows` in `ToolsMenu.tsx`. A `.test.ts` in node beats a browser render it doesn't need.

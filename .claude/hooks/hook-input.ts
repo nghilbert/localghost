@@ -1,7 +1,63 @@
+// Shared plumbing for the two hooks: one stdin reader, the two JSON output shapes, and the text
+// helpers the checks run on. Nothing here calls process.exit: stdout is a pipe, so an early exit
+// can truncate the JSON before Claude Code reads it. Hooks return instead and let the process end.
 import { resolve, sep } from "node:path";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null;
+}
+
+/** A parsed hook payload: the tool that fired, and a reader for one string field of its input. */
+type HookInput = { toolName: string; field: (name: string) => string };
+
+function parse(raw: string): HookInput {
+	let payload: unknown;
+	try {
+		payload = JSON.parse(raw);
+	} catch {
+		payload = undefined;
+	}
+	const record = isRecord(payload) ? payload : {};
+	const toolInput = isRecord(record.tool_input) ? record.tool_input : {};
+	return {
+		toolName: typeof record.tool_name === "string" ? record.tool_name : "",
+		field: (name) => {
+			const value = toolInput[name];
+			return typeof value === "string" ? value : "";
+		},
+	};
+}
+
+/** Collects the payload from stdin and invokes the handler once the stream ends. */
+export function onHookInput(handler: (input: HookInput) => void): void {
+	let raw = "";
+	process.stdin.on("data", (chunk: Buffer) => {
+		raw += chunk.toString();
+	});
+	process.stdin.on("end", () => handler(parse(raw)));
+}
+
+/** Blocks the pending tool call, showing `reason` as the permission decision. */
+export function deny(reason: string): void {
+	process.stdout.write(
+		`${JSON.stringify({
+			hookSpecificOutput: {
+				hookEventName: "PreToolUse",
+				permissionDecision: "deny",
+				permissionDecisionReason: reason,
+			},
+		})}\n`,
+	);
+}
+
+/** Feeds `context` back to Claude after the tool ran, without interrupting the turn. */
+export function postToolContext(context: string): void {
+	process.stdout.write(
+		`${JSON.stringify({
+			hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: context },
+			suppressOutput: true,
+		})}\n`,
+	);
 }
 
 /** True when the path lives inside the project; plan/memory/scratch files do not. */
@@ -9,38 +65,6 @@ export function isProjectFile(filePath: string): boolean {
 	const projectDir = resolve(process.env.CLAUDE_PROJECT_DIR ?? process.cwd());
 	const resolved = resolve(filePath);
 	return resolved === projectDir || resolved.startsWith(projectDir + sep);
-}
-
-/** Parses the Claude Code hook payload and returns one string field of tool_input. */
-export function readToolInputField(raw: string, field: string): string {
-	try {
-		const parsed: unknown = JSON.parse(raw);
-		if (!isRecord(parsed)) return "";
-		const toolInput = parsed.tool_input;
-		if (!isRecord(toolInput)) return "";
-		const value = toolInput[field];
-		return typeof value === "string" ? value : "";
-	} catch {
-		return "";
-	}
-}
-
-/** Parses the Claude Code hook payload and returns one top-level field. */
-export function readPayloadField(raw: string, field: string): unknown {
-	try {
-		const parsed: unknown = JSON.parse(raw);
-		return isRecord(parsed) ? parsed[field] : undefined;
-	} catch {
-		return undefined;
-	}
-}
-
-/** Extracts combined stdout/stderr from an execSync error without unsafe casts. */
-export function execErrorOutput(error: unknown): string {
-	if (!isRecord(error)) return "";
-	const stdout = error.stdout != null ? String(error.stdout) : "";
-	const stderr = error.stderr != null ? String(error.stderr) : "";
-	return `${stdout}${stderr}`.trim();
 }
 
 /** 1-based line number of `index` within `text`. */
@@ -76,13 +100,4 @@ export function proseSegments(source: string): { text: string; index: number }[]
 		}
 	}
 	return segments;
-}
-
-/** Collects stdin and invokes the handler once the stream ends. */
-export function onStdin(handler: (raw: string) => void): void {
-	let raw = "";
-	process.stdin.on("data", (chunk: Buffer) => {
-		raw += chunk.toString();
-	});
-	process.stdin.on("end", () => handler(raw));
 }
