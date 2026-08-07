@@ -82,8 +82,8 @@ export async function listModels({
 	return llamaModelListSchema.parse(await response.json()).data;
 }
 
-/** Opens llama.cpp's long-lived router model-event stream. */
-export async function openModelEventStream({
+/** A single connection attempt to llama.cpp's router model-event stream. */
+async function fetchModelEventStream({
 	url,
 	apiKey,
 	signal,
@@ -99,6 +99,54 @@ export async function openModelEventStream({
 	if (!response.ok) throw await responseError({ response, operation: "GET /models/sse" });
 	if (!response.body) throw new Error("GET /models/sse returned no response body");
 	return response.body;
+}
+
+/** Delay before retrying a dropped model-event stream: router recycles resolve in ~1-2s. */
+const RECONNECT_DELAY_MS = 1000;
+
+/**
+ * Opens llama.cpp's long-lived router model-event stream. The router
+ * recycles a model instance (a download finishing, a model
+ * loading/unloading/sleeping) by dropping this connection; once connected,
+ * a drop reopens a fresh stream and keeps piping instead of ending the
+ * response, until `signal` aborts. Only the first connection attempt can
+ * fail, so the caller still gets a real error when the endpoint itself is
+ * unreachable.
+ */
+export async function openModelEventStream({
+	url,
+	apiKey,
+	signal,
+}: {
+	url: string;
+	apiKey?: string;
+	signal: AbortSignal;
+}): Promise<ReadableStream<Uint8Array>> {
+	const initial = await fetchModelEventStream({ url, apiKey, signal });
+
+	return new ReadableStream<Uint8Array>({
+		async start(controller) {
+			let source: ReadableStream<Uint8Array> | null = initial;
+			while (!signal.aborted) {
+				try {
+					const upstream = source ?? (await fetchModelEventStream({ url, apiKey, signal }));
+					source = null;
+					const reader = upstream.getReader();
+					while (true) {
+						const { done, value } = await reader.read();
+						if (done) break;
+						controller.enqueue(value);
+					}
+				} catch (error) {
+					if (signal.aborted) break;
+					console.warn("llama.cpp model-events stream dropped; reconnecting", error);
+				}
+				if (signal.aborted) break;
+				await new Promise((resolve) => setTimeout(resolve, RECONNECT_DELAY_MS));
+			}
+			controller.close();
+		},
+	});
 }
 
 /** Triggers a non-blocking download of `model` (a `repo:QUANT` id) from Hugging Face. */
