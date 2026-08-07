@@ -8,7 +8,7 @@ const endpoints = [
 ];
 
 vi.mock("#/shared/domain/endpoint/use-endpoints", () => ({
-	useEndpoints: () => ({ endpoints }),
+	useEndpointQuery: () => endpoints,
 }));
 
 type RuntimeStatus = {
@@ -50,7 +50,7 @@ vi.mock("@tanstack/react-router", async (importOriginal) => ({
 }));
 
 const { ModelPicker } = await import(
-	"#/routes/_authenticated/-components/chat/ChatInput/ModelPicker"
+	"#/routes/_authenticated/_chat/-components/ChatInput/ModelPicker"
 );
 
 /** No llama.cpp runtime found, so every endpoint falls through to its own probe. */

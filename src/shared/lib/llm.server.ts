@@ -1,7 +1,9 @@
 import type {
+	AnyChatMiddleware,
+	AnyServerTool,
 	AnyTextAdapter,
 	ModelMessage,
-	ServerTool,
+	RunAgentResumeItem,
 	StreamChunk,
 	UIMessage,
 } from "@tanstack/ai";
@@ -10,25 +12,8 @@ import { createAnthropicChat } from "@tanstack/ai-anthropic";
 import { createGeminiChat } from "@tanstack/ai-gemini";
 import { openaiCompatibleText } from "@tanstack/ai-openai/compatible";
 import { trimPathRight } from "@tanstack/react-router";
-import { z } from "zod/v4";
 import { DEFAULT_MAX_TOKENS } from "./llm-constants";
-
-export type LLMProvider = "anthropic" | "llamacpp" | "openai" | "openrouter" | "groq" | "gemini";
-
-const llmProviderSchema = z.enum([
-	"anthropic",
-	"llamacpp",
-	"openai",
-	"openrouter",
-	"groq",
-	"gemini",
-]);
-
-/** Narrows a stored `Endpoint.provider` string to {@link LLMProvider}, or `undefined` if unrecognized. */
-export function asLLMProvider(value: string): LLMProvider | undefined {
-	const parsed = llmProviderSchema.safeParse(value);
-	return parsed.success ? parsed.data : undefined;
-}
+import { detectProvider, type LLMProvider } from "./llm-provider";
 
 export type StreamLLMOptions = {
 	url: string;
@@ -48,9 +33,13 @@ export type StreamLLMOptions = {
 	/** AG-UI run id from the wire. */
 	runId?: string;
 	/** Server tools to auto-execute; when present the agent loop runs. */
-	tools?: ServerTool[];
+	tools?: AnyServerTool[];
 	/** Aborts the upstream provider request; fire it when the client disconnects. */
 	abortController?: AbortController;
+	/** Chat middleware (e.g. `withPersistence`, `memoryMiddleware`), run in array order. */
+	middleware?: AnyChatMiddleware[];
+	/** AG-UI interrupt resume entries, forwarded when the client resolves a pending approval. */
+	resume?: Array<RunAgentResumeItem>;
 };
 
 const OPENROUTER_REFERER = "https://localghost.app";
@@ -220,22 +209,6 @@ const PROVIDERS: Record<LLMProvider, ProviderConfig> = {
 	openai: OPENAI_COMPATIBLE,
 };
 
-/**
- * Auto-detects the provider family from a bring-your-own endpoint URL so the
- * right {@link ProviderConfig} is selected.
- */
-export function detectProvider(url: string): LLMProvider {
-	const u = url.toLowerCase();
-	if (u.includes("anthropic.com")) return "anthropic";
-	if (u.includes("generativelanguage.googleapis.com")) return "gemini";
-	if (u.includes("openrouter.ai")) return "openrouter";
-	if (u.includes("groq.com")) return "groq";
-	// Deliberately no port-based sniff for llama.cpp (":8080" is too common a
-	// port to hijack): discovery writes `provider: "llamacpp"` explicitly, and
-	// a hand-added llama.cpp endpoint still works fine as plain "openai".
-	return "openai";
-}
-
 /** The provider's normalized chat base URL, extracted from {@link baseChatOptions} for testing. */
 export function chatBaseUrl({ url, provider }: { url: string; provider?: LLMProvider }): string {
 	return PROVIDERS[provider ?? detectProvider(url)].chatBaseUrl(url);
@@ -269,6 +242,8 @@ function baseChatOptions(opts: StreamLLMOptions) {
 		...(opts.tools
 			? { tools: opts.tools, agentLoopStrategy: maxIterations(MAX_AGENT_ROUNDS) }
 			: {}),
+		...(opts.middleware ? { middleware: opts.middleware } : {}),
+		...(opts.resume ? { resume: opts.resume } : {}),
 	};
 }
 

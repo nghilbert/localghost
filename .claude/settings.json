@@ -3,7 +3,7 @@
 	"hooks": {
 		"PreToolUse": [
 			{
-				"matcher": "Read|Edit|Write|NotebookEdit|Bash",
+				"matcher": "Read|Edit|Write|Bash",
 				"hooks": [
 					{
 						"type": "command",
@@ -18,11 +18,7 @@
 				"hooks": [
 					{
 						"type": "command",
-						"command": "node ${CLAUDE_PROJECT_DIR}/.claude/hooks/biome-fix.ts"
-					},
-					{
-						"type": "command",
-						"command": "node ${CLAUDE_PROJECT_DIR}/.claude/hooks/text-check.ts"
+						"command": "node ${CLAUDE_PROJECT_DIR}/.claude/hooks/post-edit.ts"
 					}
 				]
 			}

@@ -1,6 +1,6 @@
-/// A chat conversation, stored as a single `@tanstack/ai` UIMessage[] blob.
-/// The client owns persistence via the framework's ChatClientPersistence
-/// adapter (getItem/setItem/removeItem), so the stream route never writes here.
+/// A chat conversation: the business record (owner, model, title). The
+/// transcript itself lives in `ChatThread`, keyed by this row's `id` as
+/// `threadId` — see that model's comment for why it's a separate table.
 model Conversation {
   id         String    @id @default(dbgenerated("uuidv7()")) @db.Uuid
   ownerId    String    @map("owner_id") @db.Uuid
@@ -9,7 +9,6 @@ model Conversation {
   endpointId String?   @map("endpoint_id") @db.Uuid
   endpoint   Endpoint? @relation(fields: [endpointId], references: [id], onDelete: SetNull)
   model      String?
-  messages   Json      @default("[]") /// @tanstack/ai UIMessage[] — the full conversation transcript.
   updatedAt  DateTime  @updatedAt @map("updated_at")
 
   @@index([ownerId])

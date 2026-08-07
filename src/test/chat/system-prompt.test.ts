@@ -27,15 +27,8 @@ describe("buildChatSystemPrompt", () => {
 	it("adds the search directive only when web_search is enabled", () => {
 		const withSearch = buildChatSystemPrompt({ enabledTools: ["web_search"] });
 		expect(withSearch).toContain("Use the web_search tool");
-		const without = buildChatSystemPrompt({ enabledTools: ["memory"] });
+		const without = buildChatSystemPrompt({ enabledTools: [] });
 		expect(without).not.toContain("web_search tool");
-	});
-
-	it("adds the memory directive only when memory is enabled", () => {
-		const withMemory = buildChatSystemPrompt({ enabledTools: ["memory"] });
-		expect(withMemory).toContain("Use the manage_memory tool");
-		const without = buildChatSystemPrompt({ enabledTools: ["web_search"] });
-		expect(without).not.toContain("manage_memory tool");
 	});
 
 	it("skips blank user prompts", () => {

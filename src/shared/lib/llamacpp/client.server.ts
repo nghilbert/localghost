@@ -25,14 +25,8 @@ const llamaModelSchema = z.object({
 		.optional(),
 });
 const llamaModelListSchema = z.object({ data: z.array(llamaModelSchema) });
-const llamaPropsSchema = z.object({
-	n_ctx: z.number(),
-	modalities: z.object({ vision: z.boolean().optional() }).optional(),
-	chat_template_caps: z.object({ tool_calls: z.boolean().optional() }).optional(),
-});
 
 export type LlamaModel = z.infer<typeof llamaModelSchema>;
-export type LlamaProps = z.infer<typeof llamaPropsSchema>;
 
 async function timeoutFetch({
 	url,
@@ -88,8 +82,8 @@ export async function listModels({
 	return llamaModelListSchema.parse(await response.json()).data;
 }
 
-/** Opens llama.cpp's long-lived router model-event stream. */
-export async function openModelEventStream({
+/** A single connection attempt to llama.cpp's router model-event stream. */
+async function fetchModelEventStream({
 	url,
 	apiKey,
 	signal,
@@ -107,26 +101,52 @@ export async function openModelEventStream({
 	return response.body;
 }
 
-/** Server properties for the currently (or about-to-be) loaded model, notably `n_ctx`. */
-export async function serverProps({
+/** Delay before retrying a dropped model-event stream: router recycles resolve in ~1-2s. */
+const RECONNECT_DELAY_MS = 1000;
+
+/**
+ * Opens llama.cpp's long-lived router model-event stream. The router
+ * recycles a model instance (a download finishing, a model
+ * loading/unloading/sleeping) by dropping this connection; once connected,
+ * a drop reopens a fresh stream and keeps piping instead of ending the
+ * response, until `signal` aborts. Only the first connection attempt can
+ * fail, so the caller still gets a real error when the endpoint itself is
+ * unreachable.
+ */
+export async function openModelEventStream({
 	url,
-	model,
 	apiKey,
-	timeoutMs = 2500,
+	signal,
 }: {
 	url: string;
-	model?: string;
 	apiKey?: string;
-	timeoutMs?: number;
-}): Promise<LlamaProps> {
-	const query = model ? `?model=${encodeURIComponent(model)}` : "";
-	const response = await timeoutFetch({
-		url: `${url}/props${query}`,
-		init: { headers: authHeaders(apiKey) },
-		timeoutMs,
+	signal: AbortSignal;
+}): Promise<ReadableStream<Uint8Array>> {
+	const initial = await fetchModelEventStream({ url, apiKey, signal });
+
+	return new ReadableStream<Uint8Array>({
+		async start(controller) {
+			let source: ReadableStream<Uint8Array> | null = initial;
+			while (!signal.aborted) {
+				try {
+					const upstream = source ?? (await fetchModelEventStream({ url, apiKey, signal }));
+					source = null;
+					const reader = upstream.getReader();
+					while (true) {
+						const { done, value } = await reader.read();
+						if (done) break;
+						controller.enqueue(value);
+					}
+				} catch (error) {
+					if (signal.aborted) break;
+					console.warn("llama.cpp model-events stream dropped; reconnecting", error);
+				}
+				if (signal.aborted) break;
+				await new Promise((resolve) => setTimeout(resolve, RECONNECT_DELAY_MS));
+			}
+			controller.close();
+		},
 	});
-	if (!response.ok) throw await responseError({ response, operation: "GET /props" });
-	return llamaPropsSchema.parse(await response.json());
 }
 
 /** Triggers a non-blocking download of `model` (a `repo:QUANT` id) from Hugging Face. */

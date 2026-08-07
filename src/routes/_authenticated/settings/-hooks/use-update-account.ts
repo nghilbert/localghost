@@ -26,8 +26,10 @@ export function useUpdateAccount() {
 		},
 		onSuccess: async () => {
 			// The session lives in router context (root `beforeLoad`), not react-query.
-			await router.invalidate();
-			queryClient.invalidateQueries({ queryKey: ["user-settings"] });
+			await Promise.all([
+				router.invalidate(),
+				queryClient.invalidateQueries({ queryKey: ["user-settings"] }),
+			]);
 			toast.add({ title: "Account saved", type: "success" });
 		},
 		onError: (error) =>

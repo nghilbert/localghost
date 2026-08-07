@@ -5,7 +5,7 @@ import {
 	providerDefinitionFor,
 } from "#/routes/_authenticated/settings/-lib/providers";
 import type { listEndpoints } from "#/shared/domain/endpoint/endpoint.functions";
-import { useEndpoints } from "#/shared/domain/endpoint/use-endpoints";
+import { useUpdateEndpoint } from "#/shared/domain/endpoint/use-endpoints";
 import { ProviderEndpointForm } from "./ProviderEndpointForm";
 
 type Endpoint = Awaited<ReturnType<typeof listEndpoints>>[number];
@@ -16,7 +16,7 @@ type Endpoint = Awaited<ReturnType<typeof listEndpoints>>[number];
  * on save or cancel so the parent can collapse back to the read-only row.
  */
 export function EditEndpointForm({ endpoint, onDone }: { endpoint: Endpoint; onDone: () => void }) {
-	const { updateEndpoint } = useEndpoints();
+	const updateEndpoint = useUpdateEndpoint();
 	const definition = providerDefinitionFor(endpoint.provider);
 
 	return (
@@ -32,8 +32,8 @@ export function EditEndpointForm({ endpoint, onDone }: { endpoint: Endpoint; onD
 			submitIcon={<SaveIcon />}
 			submitLabel="Save changes"
 			onCancel={onDone}
-			onSubmit={async ({ value, onSaved }) => {
-				await updateEndpoint.mutate(
+			onSubmit={({ value, onSaved }) =>
+				updateEndpoint.mutateAsync(
 					{
 						id: endpoint.id,
 						data: {
@@ -48,8 +48,8 @@ export function EditEndpointForm({ endpoint, onDone }: { endpoint: Endpoint; onD
 							onDone();
 						},
 					},
-				);
-			}}
+				)
+			}
 		/>
 	);
 }

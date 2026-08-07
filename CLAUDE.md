@@ -10,11 +10,11 @@ Guidance for Claude Code working in this repository.
 - **Biome:** never `biome-ignore`; fix the real issue.
 - **Server-only:** never import `.server.ts` from client code.
 - **Comments:** only for non-obvious behavior. Exported functions get JSDoc; add `@param`/`@returns`/`@throws`/`{@link}` tags only where they add what the name and type don't. Describe the code, never PR history.
-- **No `as` casts:** type via generics, annotations, or Prisma model types.
+- **No `as` casts:** type via generics, annotations, or Prisma model types. `as const` is fine, it asserts a literal type rather than overriding one.
 - **No positional params:** two or more params means one named object (one positional is fine); better, remove the boundary so the value is read from its owner.
 - **No dead code:** delete unused code; no re-exports, no `// removed` comments.
 - **Components own their styling:** an ad-hoc card surface in feature code is a `<Card>`, not a raw `<div className="rounded-lg border bg-card p-4">`. Reach for `className` only for layout the component cannot do itself.
-- **Layout-agnostic components:** reusable components never set their own width, max-width, or margins; the parent owns layout.
+- **Layout-agnostic components:** reusable components never set their own width, max-width, margins, outer flex/grid placement, or page-height assumptions; the parent owns the space it offers, while the child owns only its internal layout.
 - **Post-action toasts:** after user-awaited mutations, fire `toast.success` / `toast.error` from `sonner`.
 - **Test complex work:** for real moving parts (parsers, data transforms, non-trivial UI), write Vitest tests in `src/test/<area>/` asserting real behavior. Keep test data inline or tiny; craft the minimal input, never commit captured blobs.
 
@@ -55,42 +55,46 @@ Copy `.env.example` to `.env`. Required: `POSTGRES_PASSWORD`, `BETTER_AUTH_SECRE
 ## Architecture
 
 - **Framework:** TanStack Start (SSR React, Vite + Hono); file-based routing. Alias `#/` maps to `src/`.
-- **Routes = the pages layer.** `_authenticated.tsx` guards auth and renders the colocated `AppSidebar` shell. A route file owns the `Route` export (loader/head/search) and its page component `<RouteSubject>Page` (`library.tsx` defines `LibraryPage`). Code local to a route lives in kind-based `-`-prefixed segments hidden from route gen (`-components/`, `-hooks/`, `-lib/`): beside a single route file (`library.tsx` + `library/-components/`), inside a route directory (`settings/index.tsx` + `settings/-components/`), or at the **common ancestor** of the routes that share it (`_authenticated/-components/chat/` serves both `/new` and `/chat/$id`; `_authenticated/-components/AppSidebar/` serves every authenticated page). A `-components/` folder is fine with a single member. Server-only logic shared by sibling API route handlers is one `-<name>.server.ts` file (`api/backup/-backup.server.ts`).
+- **Routes = the pages layer.** `_authenticated.tsx` guards auth and renders the colocated `AppSidebar` shell. A route file owns the `Route` export (loader/head/search) and its page component `<RouteSubject>Page` (`library.tsx` defines `LibraryPage`). Pathless layout routes own shared geometry or behavior without changing public URLs (`_authenticated/_chat/route.tsx` wraps `/new` and `/chat/$id`). Code local to a route lives in kind-based `-`-prefixed segments hidden from route gen (`-components/`, `-hooks/`, `-lib/`): beside a single route file (`library.tsx` + `library/-components/`), inside a route directory (`settings/index.tsx` + `settings/-components/`), or under the **common route ancestor** that shares it (`_authenticated/_chat/-components/` serves the chat subtree; `_authenticated/-components/AppSidebar/` serves every authenticated page). A `-components/` folder is fine with a single member. Server-only logic shared by sibling API route handlers is one `-<name>.server.ts` file (`api/backup/-backup.server.ts`).
 - **Auth:** better-auth (email/password); session resolved at root `beforeLoad`.
 - **Data:** TanStack Query + `createServerFn` in co-located `*.functions.ts`, called as `fn({ data })`. A `*.functions.ts` is a thin RPC boundary: validate input, resolve the user, delegate to the sibling `<noun>.server.ts` (owns prisma/crypto/external calls); `queryOptions` colocate at the file bottom. `shared/domain/memory` is the reference split.
 - **Database:** Prisma 7 + `@prisma/adapter-pg`. Multi-file schema in `prisma/schema/`, client in `src/generated/prisma/`. Import `prisma`, never alias.
 - **Styling:** Tailwind v4; `src/shared/lib/globals.css` is the single CSS entry. Light/dark via `.dark` on `<html>`. `cn()` in `src/shared/lib/utils.ts`. Gotcha: `InputGroup` greys the whole group if any descendant is `disabled` (`has-disabled:`); for a control blocked by fixable state use `aria-disabled` (skips greying, keeps pointer events for its own tooltip). A genuinely disabled control that needs a tooltip needs a span-`render` trigger, since disabled elements swallow pointer events (see `LockedModel`, `ToolsMenu`).
 - **LLM:** `src/shared/lib/llm.server.ts`: `streamLLMEvents(opts)` returns `AsyncIterable<StreamChunk>`; pass `tools: ServerTool[]` to run the agent loop. A data-driven `PROVIDERS` registry handles per-provider URL/header/model-list/options quirks, provider auto-detected from URL. Wraps `@tanstack/ai`'s `chat()`.
-- **Tools:** `agent.server.ts` `buildChatTools()` assembles the built-in `ServerTool[]` (`web_search`, `read_url`, `manage_memory`); `chat()` auto-executes them. One chat, no separate "agent mode". Client sends the per-request selection via `forwardedProps` (not persisted). Web search starts enabled whenever the server offers it (`SEARXNG_URL` set, via `getToolAvailability`); every other tool starts off, keeping small models reliable.
-- **Chat persistence:** one `Conversation` row = one `UIMessage[]` blob (`messages` JSONB); the client owns persistence via `ChatClientPersistence` (`chat-client.ts`), so `/api/chat/stream` does zero DB writes.
+- **Tools:** `agent.server.ts` `buildChatTools()` assembles the per-message-toggle `ServerTool[]` (currently `web_search`, `read_url`); `chat()` auto-executes them. Memory's tools (`manage_memory`, `delete_memory`) are not here — they ride in via `memoryMiddleware`'s adapter, since memory is always-on. One chat, no separate "agent mode". Client sends the per-request selection via `forwardedProps` (not persisted). Web search starts enabled whenever the server offers it (`SEARXNG_URL` set, via `getToolAvailability`); every other tool starts off, keeping small models reliable.
+- **Chat persistence:** `@tanstack/ai-persistence`'s `withPersistence` is server-authoritative: the transcript lives in `ChatThread` (keyed by `Conversation.id` as `threadId`), run/interrupt lifecycle in `ChatRun`/`ChatInterrupt` (`chat-persistence.server.ts`). The client runs `useChat({ persistence: true })` with no local cache; `/api/chat/stream`'s GET branches on `?threadId=` (hydrate via `reconstructChat`) vs. a resumable-stream rejoin.
 
 ## Forms
 
-`useAppForm` (TanStack Form) in `src/shared/hooks/use-app-form/`, field components in its `fields/`. Never hand-wire `useState`-per-field + `Input`; add a field component instead. Validate with Zod v4 via `validators: { onDynamic: Schema }`; submit via `form.handleSubmit()`.
+`useAppForm` (TanStack Form) in `src/shared/hooks/use-app-form/`, field components in its `fields/`. The hook, its form components, and its private field components stay together as one form kit. Never hand-wire `useState`-per-field + `Input`; add a field component instead. Validate with Zod v4 via `validators: { onDynamic: Schema }`; submit via `form.handleSubmit()`.
 
-**Submitting:** `onSubmit` awaits a plain `mutation.mutate(value)`, never `mutateAsync`. The mutation owns feedback: define `onSuccess` and `onError` on `useMutation` (firing `toast.success` / `toast.error` there) so submit handlers stay one line. Don't surface the same error twice; the `onError` toast is the error channel. Reserve inline `FormError` for inline affordances (a "Test connection" result), not the submit mutation's error.
+Extract a page-local form when it owns an independent validation, submission, and reset/close lifecycle; colocate it with its route. Reuse alone is not required, and a form's private pieces do not become shared components. Keep surrounding search, list, and dialog composition in the parent screen unless those pieces gain their own responsibility.
+
+**Submitting:** completion-dependent forms return `mutation.mutateAsync(value, { onSuccess })` directly from `onSubmit`; no unnecessary `async`/`await`, result variable, `void result`, or local `try/catch`. The hook-level `onSuccess` awaits invalidation and owns the shared success toast; hook-level `onError` owns the single error toast. Per-call `onSuccess` is only for component-local reset, close, navigation, or callbacks. At a DOM form-event boundary, consume `form.handleSubmit()`'s rejected promise after TanStack Form updates its state so it does not become an unhandled browser rejection. Fire-and-forget button actions use `mutate`. Reserve inline `FormError` for inline affordances (a "Test connection" result), not the submit mutation's error.
 
 ## React & Data Practices
 
 - Derive values during render. Never mirror props or query data into `useState` synced by `useEffect`; effects are only for real external systems (DOM APIs, subscriptions, timers).
 - List `key`s come from data ids, never array indexes.
 - Mutations invalidate the queries they touch in `onSuccess` via `queryClient.invalidateQueries`; no manual refetching, no local copies of server state.
+- Domain query/mutation hooks are focused exports grouped in the existing noun hook file (`use-endpoints.ts`, `use-conversations.ts`); never create one file per operation or an aggregate hook that instantiates unused observers.
 - Route-level data loads through shared `queryOptions()` used by both the route loader and `useQuery`; components never ad-hoc `fetch`. Every route with queries defines a loader: `context.queryClient.ensureQueryData(...)` (awaited) for fast first-paint data, an un-awaited `prefetchQuery(...)` for slow scans the page already renders skeletons for.
 - One Zod schema per shape, shared by the form validator and the server fn input; never declare the same shape twice.
 - Annotate exported function signatures; let locals and obvious generics infer.
 
 ## Code Organization
 
-Two top-level folders, one convention: dependencies flow **one way** `shared → routes`. Judgment, not machinery: no layer linter, no barrels.
+`src/` has four top-level folders (`generated/`, `routes/`, `shared/`, `test/`); the load-bearing convention is that dependencies flow **one way** `shared → routes`. Judgment, not machinery: no layer linter, no barrels.
 
 ```
 src/
+  generated/       # Prisma client output (src/generated/prisma/); never edit, regenerate instead
   shared/          # everything used app-wide, not tied to one page
     domain/        #   domain nouns, flat per noun: <noun>.server.ts (data access) + <noun>.functions.ts (thin RPC + queryOptions) + schemas.ts/types.ts + use-<noun>.ts hooks + any UI shared across routes
       endpoint/    #     the kernel other nouns lean on (conversation/memory/model-setting import it)
       conversation/  chat/  memory/  model/  model-setting/  user-settings/  auth/
     components/    #   reusable components: ui/ (shadcn primitives, generated, flat) + our own (RouteErrorScreen/)
-    lib/           #   domain-free infra (*.server.ts): crypto/db/llm/auth/session, llama.cpp client + url, tools/, constants, globals.css
+    lib/           #   domain-free infra, server and isomorphic: crypto/db/llm/auth/session (*.server.ts), llama.cpp client + url, tools/, constants, format/utils, globals.css + themes/
     hooks/         #   use-app-form/, use-is-mobile, use-sign-out
     theme/         #   ThemeContext provider + theme.ts
   routes/          # TanStack routing == the pages layer; each route file owns Route + its <X>Page component
@@ -98,22 +102,25 @@ src/
       -components/                      # SignInForm, SignUpForm (local to the public pages)
     _authenticated/
       -components/AppSidebar/           # the shell, shared by every authenticated page
-      -components/chat/  -hooks/  -lib/ # the chat surface, shared by /new and /chat/$id (their common ancestor)
+      _chat/                             # pathless layout shared by /new and /chat/$id
+        route.tsx  new.tsx  chat/$conversationId.tsx
+        -components/  -hooks/  -lib/     # code owned only by the chat route subtree
       library.tsx  library/-components/ library/-lib/   # the Library page UI
       settings/                         # a route directory: index.tsx + -components/ -hooks/ -lib/
     api/
       chat/stream.tsx  backup/-backup.server.ts
+  test/              # Vitest, mirrors the shared/domain and routes slices it tests (see Testing)
 ```
 
 - **Two layers, by convention.** Everything app-wide lives in `shared/`; `routes/` is URL-addressable pages plus the code colocated to them. Routes import `shared`; **`shared/` never imports `routes/`**. Within `shared/domain`, cross-noun imports stay rare (`conversation`/`memory`/`model-setting` importing `endpoint` is the sanctioned edge).
-- **Where a new file goes — three tiers** (first match wins): (1) used by **one page** → that route's `-components`/`-hooks`/`-lib`; (2) shared by a **subtree of routes** → the common-ancestor `-` folder (chat UI at `_authenticated/-components/chat/`, `AppSidebar` at `_authenticated/-components/`); (3) used **app-wide** — by unrelated routes, an API route, or another domain noun → `shared/`: domain data and its shared UI in `shared/domain/<noun>`, domain-free infra in `shared/lib`, reusable domain-free UI in `shared/components`. A `.server.ts` an API route imports always goes to `shared` (an API route must not reach into another route's `-lib`).
-- **`-` folders are non-route colocation, not a shared layer.** TanStack's `routeFileIgnorePrefix` (`-`) hides them from route generation; import by alias (`#/routes/_authenticated/-components/chat/ChatView`) or relative (`./-components/X`). App-wide code belongs in `shared/`, never buried under `routes/-shared`.
-- **No barrels.** Import the specific module (`#/routes/_authenticated/-lib/chat-client`), not a slice root; barrels hurt Vite HMR and tree-shaking. `ComponentName/index.tsx` is a single component, not a re-export.
+- **Where a new file goes — three tiers** (first match wins): (1) used by **one page** → that route's `-components`/`-hooks`/`-lib`; (2) shared by a **subtree of routes** → create or use their common layout route and keep its code beneath that route (`_authenticated/_chat/-components/`); shell UI shared by every authenticated route stays at `_authenticated/-components/`; (3) used **app-wide** — by unrelated routes, an API route, or another domain noun → `shared/`: domain data and its shared UI in `shared/domain/<noun>`, domain-free infra in `shared/lib`, reusable domain-free UI in `shared/components`. A `.server.ts` an API route imports always goes to `shared` (an API route must not reach into another route's `-lib`).
+- **`-` folders are non-route colocation, not a shared layer.** TanStack's `routeFileIgnorePrefix` (`-`) hides them from route generation; import by alias (`#/routes/_authenticated/_chat/-components/ChatInput`) or relative (`./-components/X`). App-wide code belongs in `shared/`, never buried under `routes/-shared`.
+- **No barrels.** Import the specific module (`#/routes/_authenticated/_chat/-lib/chat-client`), not a slice root; barrels hurt Vite HMR and tree-shaking. `ComponentName/index.tsx` is a single component, not a re-export.
 - **`shared/domain` is flat per noun; route colocation uses `-components`/`-hooks`/`-lib`.** Components at 250+ lines or with sub-components become `ComponentName/index.tsx` folders.
 - **File suffixes are build boundaries:** `*.functions.ts` (the `createServerFn` RPC boundary), `*.server.ts` (server-only, stripped from the client bundle); `types.ts` for types, `schemas.ts` for Zod. The `.client.ts` suffix is banned (breaks SSR for isomorphic modules).
 ### Naming
 
-The mechanical rules (camelCase Zod schemas, the banned `.client.ts` suffix) are enforced by `.claude/hooks/text-check.ts`. The judgment calls it cannot decide:
+The mechanical rules (camelCase Zod schemas, the banned `.client.ts` suffix) are enforced by `.claude/hooks/post-edit.ts`. The judgment calls it cannot decide:
 
 - **Slice = the domain noun (`shared/domain/<noun>`) or the page/subtree (routes), not the tab.** A noun names a domain folder (`endpoint`, `conversation`, `chat`, `model`); page-local code is named by its route area. Placement follows dependency direction, not usage: infra a domain noun needs (`getCurrentUserId`, the llama.cpp client) lives in `shared/lib`, and page UI that uses a noun lives in the route — never the reverse.
 - **Files:** domain-noun in `shared/domain` (`conversation.functions.ts`); role-based for domain-free infra (`db.server.ts`, `llm.server.ts`).
@@ -123,7 +130,7 @@ The mechanical rules (camelCase Zod schemas, the banned `.client.ts` suffix) are
 
 ## Testing
 
-Vitest in `src/test/<area>/` (folders named for the slice they test: the domain noun or route area, e.g. `chat/`, `model/`, `endpoint/`, `settings/`, never by test type), run with `npm run test -- run` (see the "Test complex work" rule for _when_). Two projects split by extension: `*.test.ts` runs in node (`unit`), `*.test.tsx` in headless Chromium via browser mode (`browser`). Browser tests use `render`/`renderHook` from `#/test/utils` (wraps `vitest-browser-react`; both async), interactions via locators (`await screen.getByTestId(...).click()`) or `userEvent` from `vitest/browser`, assertions via `await expect.element(...)` / `expect.poll`. `.claude/hooks/text-check.ts` enforces the mechanical patterns (userEvent over `fireEvent`, no casts, query by `data-testid` not role/label/text). The judgment:
+Vitest in `src/test/<area>/` (folders named for the slice they test: the domain noun or route area, e.g. `chat/`, `model/`, `endpoint/`, `settings/`, never by test type), run with `npm run test -- run` (see the "Test complex work" rule for _when_). Two projects split by extension: `*.test.ts` runs in node (`unit`), `*.test.tsx` in headless Chromium via browser mode (`browser`). Browser tests use `render`/`renderHook` from `#/test/utils` (wraps `vitest-browser-react`; both async), interactions via locators (`await screen.getByTestId(...).click()`) or `userEvent` from `vitest/browser`, assertions via `await expect.element(...)` / `expect.poll`. `.claude/hooks/post-edit.ts` enforces the mechanical patterns (userEvent over `fireEvent`, no casts, query by `data-testid` not role/label/text). The judgment:
 
 - **Test our seams, not our dependencies.** Target logic we wrote (wiring, input parsing, transforms, registries, merge/normalize). Litmus: if it would still pass with our code deleted, it tests the library.
 - **Extract pure logic, test it plain** (inline inputs, no `render`, no DB): `toolRows` in `ToolsMenu.tsx`. A `.test.ts` in node beats a browser render it doesn't need.
@@ -135,11 +142,11 @@ Vitest in `src/test/<area>/` (folders named for the slice they test: the domain 
 
 | Area | Key files |
 |------|-----------|
-| Chat + streaming | chat UI `src/routes/_authenticated/-components/chat/` + `-hooks/` + `-lib/chat-client.ts`, server orchestration `src/shared/domain/chat/` (`agent.server.ts`, `system-prompt.ts`, `tools.functions.ts`), persisted `src/shared/domain/conversation/`, pages `src/routes/_authenticated/{new.tsx,chat/$conversationId.tsx}`, `src/routes/api/chat/stream.tsx` |
+| Chat + streaming | pathless layout and client surface `src/routes/_authenticated/_chat/` (`route.tsx`, `/new` and `/chat/$id` pages, `-components/`, `-hooks/`, `-lib/`), server orchestration `src/shared/domain/chat/` (`agent.server.ts`, `system-prompt.ts`, `tools.functions.ts`), persisted `src/shared/domain/conversation/`, `src/routes/api/chat/stream.tsx` |
 | Library (core) | data `src/shared/domain/model/` (`catalog.server.ts` reads the Hugging Face GGUF index via `huggingface.server.ts`, `hardware.server.ts` probes the host, `hardware-fit.ts` scores fit, `model.functions.ts`), page UI `src/routes/_authenticated/library.tsx` + `library/-components/ModelList/`: browse and install local models |
 | Endpoints / providers | domain `src/shared/domain/endpoint/` (the kernel: endpoint api, schemas, query hooks), config UI `src/routes/_authenticated/settings/-components/` (`EndpointItem`, `ProviderSetupForm/`) + `-lib/providers.ts` registry |
-| Memory (pgvector) | `src/shared/domain/memory/` (`memory.functions.ts` RPC, `memory.server.ts` data access, `memory-tool.server.ts` agent tool, `embeddings.server.ts`); opt-in per-message tool, browse/delete in Settings |
-| Built-in agent tools | wired in `src/shared/domain/chat/agent.server.ts`; handlers in `src/shared/lib/tools/{web-search,read-url}.server.ts` + `src/shared/domain/memory/memory-tool.server.ts`; client toggle list in `src/routes/_authenticated/-lib/tool-catalog.ts`, availability in `src/shared/domain/chat/tools.functions.ts` |
+| Memory (pgvector) | `src/shared/domain/memory/` (`memory.functions.ts` RPC, `memory.server.ts` pgvector semantic recall via `embeddings.server.ts`, `memory-tool.server.ts` the `manage_memory`/`delete_memory` tool bodies, `memory-adapter.server.ts` the `MemoryAdapter` `memoryMiddleware` runs); always-on middleware (not a per-message toggle), browse/delete in Settings |
+| Built-in agent tools | wired in `src/shared/domain/chat/agent.server.ts` (`web_search`, `read_url`) plus `memory-adapter.server.ts`'s always-on memory tools; handlers in `src/shared/lib/tools/{web-search,read-url}.server.ts`; client toggle list in `src/routes/_authenticated/_chat/-lib/tool-catalog.ts`, availability in `src/shared/domain/chat/tools.functions.ts` |
 | Settings | page `src/routes/_authenticated/settings/` (`index.tsx` + `-components/` tabs + `-hooks/` + `-lib/`: account, memory, endpoints, theme, backup) |
 | Backup/import | `src/routes/api/backup/` (handlers + colocated `-backup.server.ts`): non-destructive merge |
 | Auth | forms `src/routes/_public/-components/`, RPC `src/shared/domain/auth/` (`auth.functions.ts`, `schemas.ts`), `use-sign-out` in `shared/hooks`, session infra `src/shared/lib/{auth,session}.server.ts` |

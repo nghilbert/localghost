@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { defaultEnabledTools } from "#/routes/_authenticated/-lib/tool-catalog";
+import { defaultEnabledTools } from "#/routes/_authenticated/_chat/-lib/tool-catalog";
 
 describe("defaultEnabledTools", () => {
 	it("enables web search when the server offers it and there's no handoff", () => {

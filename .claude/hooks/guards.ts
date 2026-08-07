@@ -1,15 +1,11 @@
-// PreToolUse hook: policy guards that block (exit 2) actions reserved for the user or that would
+// PreToolUse hook: the one blocking layer. Denies actions reserved for the user or that would
 // corrupt generated or secret files. Dispatches by tool:
-//   Bash                       -> prisma mutations and git commit/push are the user's job
-//   Read|Edit|Write|Notebook   -> .env holds real secrets, stays out of the transcript
-//   Edit|Write|Notebook        -> generated files (shadcn ui, routeTree, prisma client) are read-only
+//   Bash            -> prisma mutations and git commit/push are the user's job
+//   Read|Edit|Write -> .env holds real secrets, stays out of the transcript
+//   Edit|Write      -> generated files (routeTree, prisma client) are read-only
 import { basename } from "node:path";
-import { onStdin, readPayloadField, readToolInputField } from "./hook-input";
-
-function block(message: string): never {
-	console.error(`BLOCKED: ${message}`);
-	process.exit(2);
-}
+// @ts-expect-error node ESM needs the real .ts specifier; tsc resolves it fine
+import { deny, onHookInput } from "./hook-input.ts";
 
 const GENERATED = [
 	{
@@ -32,34 +28,31 @@ function isEnvFile(name: string): boolean {
 	return name === ".env" || /^\.env\.(?!example$).+/.test(name);
 }
 
-onStdin((raw) => {
-	const tool = readPayloadField(raw, "tool_name");
-
-	if (tool === "Bash") {
-		const command = readToolInputField(raw, "command");
+onHookInput(({ toolName, field }) => {
+	if (toolName === "Bash") {
+		const command = field("command");
 		if (PRISMA_COMMAND.test(command)) {
-			block(
+			return deny(
 				"prisma commands (generate/migrate/push/reset) are the user's job. Edit files under prisma/schema/ only, then tell him what to run.",
 			);
 		}
 		if (GIT_WRITE.test(command)) {
-			block(
-				"committing and pushing are the user's job. Run the checks yourself (npm run check, npm test run, npm run build), then end your summary with one section per logical change: a fenced `git add <paths>` command followed by the commit message in its own fenced code block (imperative subject under 70 chars, blank line, one to three sentences of what and why, and a final `Closes #<issue>` line when the change resolves a tracked issue (if one exists), so both are copy-pasteable. No co-author or generated-with lines.",
+			return deny(
+				"committing and pushing are the user's job. Run the checks, then end your summary with the `git add` and commit-message blocks described in CLAUDE.md's Workflow section.",
 			);
 		}
-		process.exit(0);
+		return;
 	}
 
-	const filePath = readToolInputField(raw, "file_path");
+	const filePath = field("file_path");
 	if (isEnvFile(basename(filePath))) {
-		block(
+		return deny(
 			".env holds real secrets and stays out of the conversation. Read .env.example for the variable names; ask the user to change values.",
 		);
 	}
-	if (tool !== "Read") {
+	if (toolName !== "Read") {
 		for (const { pattern, message } of GENERATED) {
-			if (pattern.test(filePath)) block(message);
+			if (pattern.test(filePath)) return deny(message);
 		}
 	}
-	process.exit(0);
 });

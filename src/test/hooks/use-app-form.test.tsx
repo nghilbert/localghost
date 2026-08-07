@@ -66,7 +66,7 @@ function SubmitHarness({ onSubmit }: { onSubmit: (name: string) => void }) {
 		<form
 			onSubmit={(event) => {
 				event.preventDefault();
-				form.handleSubmit();
+				form.handleSubmit().catch(() => undefined);
 			}}
 		>
 			<form.AppForm>
@@ -96,6 +96,47 @@ describe("useAppForm zod validation", () => {
 		await screen.getByTestId("submit-button").click();
 
 		await expect.poll(() => handleSubmit.mock.calls).toEqual([["Odysseus"]]);
+	});
+});
+
+function AsyncSubmitHarness({ submission }: { submission: Promise<void> }) {
+	const form = useAppForm({
+		defaultValues: { value: "" },
+		onSubmit: () => submission,
+	});
+
+	return (
+		<form.AppForm>
+			<form.SubmitForm>
+				<form.SubmitButton data-testid="async-submit">Save</form.SubmitButton>
+			</form.SubmitForm>
+		</form.AppForm>
+	);
+}
+
+describe("useAppForm async submission", () => {
+	it("stays submitting until the returned promise resolves", async () => {
+		const submission = Promise.withResolvers<void>();
+		const screen = await render(<AsyncSubmitHarness submission={submission.promise} />);
+		const button = screen.getByTestId("async-submit");
+
+		await button.click();
+		await expect.element(button).toBeDisabled();
+
+		submission.resolve();
+		await expect.element(button).toBeEnabled();
+	});
+
+	it("leaves submitting state when the returned promise rejects", async () => {
+		const submission = Promise.withResolvers<void>();
+		const screen = await render(<AsyncSubmitHarness submission={submission.promise} />);
+		const button = screen.getByTestId("async-submit");
+
+		await button.click();
+		await expect.element(button).toBeDisabled();
+
+		submission.reject(new Error("Save failed"));
+		await expect.element(button).toBeEnabled();
 	});
 });
 

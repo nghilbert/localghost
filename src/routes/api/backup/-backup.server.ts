@@ -1,15 +1,18 @@
 import { z } from "zod/v4";
-import { endpointProviderSchema, samplingOptionsSchema } from "#/shared/domain/endpoint/schemas";
+import { samplingOptionsSchema } from "#/shared/domain/endpoint/schemas";
 import { embed } from "#/shared/domain/memory/embeddings.server";
 import { insertMemory } from "#/shared/domain/memory/memory.server";
 import { listModelSettings } from "#/shared/domain/model-setting/model-setting.server";
 import { perModelOptionsSchema } from "#/shared/domain/model-setting/schemas";
 import { prisma } from "#/shared/lib/db.server";
+import { llmProviderSchema } from "#/shared/lib/llm-provider";
 
-/** The backup format this build writes; imports claiming a newer one are rejected. */
-export const BACKUP_VERSION = 3;
+/** The backup format this build writes; imports claiming a newer one are rejected.
+ * Bumped to 4: `conversations[].messages` is now `ModelMessage[]`, not `UIMessage[]`.
+ */
+export const BACKUP_VERSION = 4;
 
-const backupEndpointProviderSchema = z.union([endpointProviderSchema, z.literal("ollama")]);
+const backupEndpointProviderSchema = z.union([llmProviderSchema, z.literal("ollama")]);
 
 /** Shape accepted by {@link importBackup}; also used by the route to validate the upload. */
 export const importPayloadSchema = z.object({
@@ -59,15 +62,17 @@ export const importPayloadSchema = z.object({
 export type ImportPayload = z.infer<typeof importPayloadSchema>;
 
 /**
- * The minimum shape a stored transcript needs to render as `UIMessage[]`; loose
- * so unknown part fields round-trip. A conversation failing this is counted
- * invalid and skipped instead of stored as a blob the chat UI chokes on.
+ * The minimum shape a stored transcript needs to round-trip as `ModelMessage[]`;
+ * loose so unknown fields survive. A conversation failing this (including one
+ * exported in the pre-`ModelMessage` `{ id, role, parts }` format) is counted
+ * invalid and skipped instead of stored as a blob the persistence layer chokes on.
  */
 const transcriptSchema = z.array(
 	z.looseObject({
-		id: z.string(),
 		role: z.string(),
-		parts: z.array(z.looseObject({ type: z.string() })),
+		content: z
+			.union([z.string(), z.array(z.looseObject({ type: z.string() })), z.null()])
+			.optional(),
 	}),
 );
 
@@ -96,7 +101,7 @@ export async function exportBackup({ userId, email }: { userId: string; email: s
 		prisma.conversation.findMany({
 			where: { ownerId: userId },
 			orderBy: { updatedAt: "desc" },
-			select: { title: true, model: true, messages: true },
+			select: { id: true, title: true, model: true },
 		}),
 		prisma.user.findUnique({
 			where: { id: userId },
@@ -110,6 +115,11 @@ export async function exportBackup({ userId, email }: { userId: string; email: s
 		}),
 		listModelSettings({ ownerId: userId }),
 	]);
+	const threads = await prisma.chatThread.findMany({
+		where: { threadId: { in: conversations.map((c) => c.id) } },
+		select: { threadId: true, messages: true },
+	});
+	const messagesByThreadId = new Map(threads.map((t) => [t.threadId, t.messages]));
 
 	return {
 		version: BACKUP_VERSION,
@@ -122,8 +132,8 @@ export async function exportBackup({ userId, email }: { userId: string; email: s
 		conversations: conversations.map((c) => ({
 			title: c.title,
 			model: c.model,
-			// The framework's `UIMessage[]` blob, round-tripped verbatim.
-			messages: c.messages,
+			// The framework's `ModelMessage[]` blob, round-tripped verbatim.
+			messages: messagesByThreadId.get(c.id) ?? [],
 		})),
 		// Endpoints without their keys; the Settings UI flags each as needing a key on import.
 		endpoints: endpoints.map((endpoint) => {
@@ -167,32 +177,6 @@ function endpointKey({ url, provider }: { url: string; provider: string }): stri
 /** `endpointId` + `model` identify a per-model setting row (its unique constraint). */
 function modelSettingKey({ endpointId, model }: { endpointId: string; model: string }): string {
 	return `${endpointId} ${model}`;
-}
-
-/** How many embedding requests importBackup keeps in flight at once. */
-const EMBED_CONCURRENCY = 4;
-
-/** Maps with at most `limit` calls in flight; result order matches `items`. */
-async function mapWithConcurrency<T, R>({
-	items,
-	limit,
-	fn,
-}: {
-	items: T[];
-	limit: number;
-	fn: (item: T) => Promise<R>;
-}): Promise<R[]> {
-	const results: R[] = [];
-	// Workers pull from one shared iterator, so each item is taken exactly once.
-	const entries = items.entries();
-	await Promise.all(
-		Array.from({ length: Math.max(1, Math.min(limit, items.length)) }, async () => {
-			for (const [index, item] of entries) {
-				results[index] = await fn(item);
-			}
-		}),
-	);
-	return results;
 }
 
 /**
@@ -278,7 +262,7 @@ export async function importBackup({
 			incomingConversations.length
 				? prisma.conversation.findMany({
 						where: { ownerId: userId },
-						select: { title: true, messages: true },
+						select: { id: true, title: true },
 					})
 				: [],
 			needEndpoints
@@ -298,8 +282,19 @@ export async function importBackup({
 		...endpoint,
 		...normalizeLegacyEndpoint(endpoint),
 	}));
+	const existingThreads = existingConversations.length
+		? await prisma.chatThread.findMany({
+				where: { threadId: { in: existingConversations.map((c) => c.id) } },
+				select: { threadId: true, messages: true },
+			})
+		: [];
+	const existingMessagesByThreadId = new Map(existingThreads.map((t) => [t.threadId, t.messages]));
 	const existingMemoryKeys = new Set(existingMemories.map(memoryKey));
-	const existingConversationKeys = new Set(existingConversations.map(conversationKey));
+	const existingConversationKeys = new Set(
+		existingConversations.map((c) =>
+			conversationKey({ title: c.title, messages: existingMessagesByThreadId.get(c.id) ?? [] }),
+		),
+	);
 	const existingEndpointKeys = new Set(normalizedExistingEndpoints.map(endpointKey));
 
 	const memories = incomingMemories.filter((m) => !existingMemoryKeys.has(memoryKey(m)));
@@ -310,14 +305,11 @@ export async function importBackup({
 		(e) => !existingEndpointKeys.has(endpointKey(e)),
 	);
 
-	// Embed before the transaction (external calls don't belong inside one), a
-	// few at a time so a large backup doesn't flood the embedding endpoint.
-	// Embedded rows are recallable by vector search like agent-saved ones.
-	const embeddings = await mapWithConcurrency({
-		items: memories,
-		limit: EMBED_CONCURRENCY,
-		fn: (memory) => embed({ text: memory.text, ownerId: userId }),
-	});
+	// Embedded ahead of the transaction: these are external calls and don't belong
+	// inside one. A failed embedding stores a NULL vector, same as a fresh save.
+	const memoryEmbeddings = await Promise.all(
+		memories.map((memory) => embed({ text: memory.text, ownerId: userId })),
+	);
 
 	// One transaction: a mid-import failure rolls everything back instead of
 	// leaving a half-imported account.
@@ -341,8 +333,8 @@ export async function importBackup({
 				ownerId: userId,
 				text: memory.text,
 				category: memory.category,
+				embedding: memoryEmbeddings[index] ?? null,
 				source: memory.source,
-				embedding: embeddings[index] ?? null,
 			});
 		}
 
@@ -389,11 +381,23 @@ export async function importBackup({
 			modelSettings += 1;
 		}
 
-		const insertedConversations = conversations.length
-			? await tx.conversation.createMany({ data: conversations })
-			: { count: 0 };
+		// No `createMany`: each conversation needs its generated id paired with a
+		// `ChatThread` row, which a bulk insert can't return ids for.
+		for (const conversation of conversations) {
+			const created = await tx.conversation.create({
+				data: {
+					title: conversation.title,
+					model: conversation.model,
+					ownerId: conversation.ownerId,
+				},
+				select: { id: true },
+			});
+			await tx.chatThread.create({
+				data: { threadId: created.id, messages: conversation.messages },
+			});
+		}
 		return {
-			conversations: insertedConversations.count,
+			conversations: conversations.length,
 			endpoints: endpointsToCreate.length,
 			modelSettings,
 		};

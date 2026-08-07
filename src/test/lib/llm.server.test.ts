@@ -1,12 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
-	asLLMProvider,
 	buildModelsRequest,
 	chatBaseUrl,
-	detectProvider,
 	modelSupportsTools,
 	streamLLMEvents,
 } from "#/shared/lib/llm.server";
+import { asLLMProvider, detectProvider } from "#/shared/lib/llm-provider";
 
 describe("llm.server", () => {
 	describe("asLLMProvider", () => {

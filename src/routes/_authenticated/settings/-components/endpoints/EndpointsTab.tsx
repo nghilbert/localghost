@@ -2,13 +2,14 @@ import { CheckCircle2Icon } from "lucide-react";
 import { Badge } from "#/shared/components/ui/badge";
 import { FieldDescription, FieldLegend, FieldSet } from "#/shared/components/ui/field";
 import { ItemGroup } from "#/shared/components/ui/item";
-import { useEndpoints } from "#/shared/domain/endpoint/use-endpoints";
-import { LocalRuntimeForm } from "#/shared/domain/model/LocalRuntimeForm";
+import { useDeleteEndpoint, useEndpointQuery } from "#/shared/domain/endpoint/use-endpoints";
 import { EndpointItem } from "./EndpointItem";
+import { LocalRuntimeForm } from "./LocalRuntimeForm";
 import { ProviderSetupForm } from "./ProviderSetupForm";
 
 export function EndpointsTab() {
-	const { endpoints, deleteEndpoint } = useEndpoints();
+	const endpoints = useEndpointQuery();
+	const deleteEndpoint = useDeleteEndpoint();
 	// llama.cpp is the built-in endpoint, shown on its own panel, so keep it out of this list.
 	const added = endpoints.filter((ep) => ep.provider !== "llamacpp");
 
@@ -35,7 +36,8 @@ export function EndpointsTab() {
 							<EndpointItem
 								key={ep.id}
 								endpoint={ep}
-								onDelete={() => deleteEndpoint.mutate(ep.id)}
+								isDeleting={deleteEndpoint.isPending}
+								onDelete={(onSuccess) => deleteEndpoint.mutate(ep.id, { onSuccess })}
 							/>
 						))}
 					</ItemGroup>

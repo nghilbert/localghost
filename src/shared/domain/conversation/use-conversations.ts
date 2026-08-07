@@ -6,33 +6,43 @@ import {
 	updateConversation,
 } from "./conversation.functions";
 
-/** Conversation list plus the rename / delete mutations. */
-export function useConversations() {
-	const queryClient = useQueryClient();
-	const invalidate = () => queryClient.invalidateQueries({ queryKey: ["conversations"] });
+/** Returns the current user's conversations. */
+export function useConversationQuery() {
 	const { data: conversations = [] } = useQuery(conversationsQueryOptions());
 
-	const renameConversationMutation = useMutation({
+	return conversations;
+}
+
+function useInvalidateConversations() {
+	const queryClient = useQueryClient();
+
+	return () => queryClient.invalidateQueries({ queryKey: ["conversations"] });
+}
+
+/** Renames a conversation. */
+export function useRenameConversation() {
+	const invalidateConversations = useInvalidateConversations();
+
+	return useMutation({
 		mutationFn: ({ id, title }: { id: string; title: string }) =>
 			updateConversation({ data: { id, data: { title } } }),
-		onSuccess: invalidate,
+		onSuccess: () => invalidateConversations(),
 		onError: (error) =>
 			toast.add({ title: "Failed to rename chat", type: "error", description: error.message }),
 	});
+}
 
-	const deleteConversationMutation = useMutation({
+/** Deletes a conversation. */
+export function useDeleteConversation() {
+	const invalidateConversations = useInvalidateConversations();
+
+	return useMutation({
 		mutationFn: (id: string) => deleteConversation({ data: { id } }),
-		onSuccess: () => {
-			invalidate();
+		onSuccess: async () => {
+			await invalidateConversations();
 			toast.add({ title: "Chat deleted", type: "success" });
 		},
 		onError: (error) =>
 			toast.add({ title: "Failed to delete chat", type: "error", description: error.message }),
 	});
-
-	return {
-		conversations,
-		renameConversation: renameConversationMutation,
-		deleteConversation: deleteConversationMutation,
-	};
 }

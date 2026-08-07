@@ -72,7 +72,12 @@ export function ModelListItem(props: ModelListItemProps) {
 	return (
 		<Item
 			variant="outline"
-			className={cn("items-start", loaded && "cursor-pointer", installed && "bg-success/5")}
+			className={cn(
+				"items-start",
+				loaded && "cursor-pointer",
+				installed && "bg-success/5",
+				loaded?.expanded && "border-primary/40 bg-muted",
+			)}
 			onClick={loaded?.onToggleExpanded}
 			role={loaded ? "button" : undefined}
 			tabIndex={loaded ? 0 : undefined}

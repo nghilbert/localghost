@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { useChatTools } from "#/routes/_authenticated/-hooks/use-chat-tools";
-import { defaultEnabledTools } from "#/routes/_authenticated/-lib/tool-catalog";
+import { useChatTools } from "#/routes/_authenticated/_chat/-hooks/use-chat-tools";
+import { defaultEnabledTools } from "#/routes/_authenticated/_chat/-lib/tool-catalog";
 import { renderHook, testQueryClient } from "#/test/utils";
 
 vi.mock("#/shared/domain/endpoint/endpoint.functions", () => ({

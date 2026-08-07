@@ -47,13 +47,17 @@ import {
 	type SearchableConversation,
 	snippetSegments,
 } from "#/shared/domain/conversation/search";
-import { useConversations } from "#/shared/domain/conversation/use-conversations";
+import {
+	useConversationQuery,
+	useDeleteConversation,
+} from "#/shared/domain/conversation/use-conversations";
 import { useDebouncedValue } from "#/shared/hooks/use-debounced-value";
 import { downloadTextFile } from "#/shared/lib/download";
 import { ChatRenameForm } from "./ChatRenameForm";
 
 export function RecentChatList() {
-	const { conversations, deleteConversation } = useConversations();
+	const conversations = useConversationQuery();
+	const deleteConversation = useDeleteConversation();
 	const queryClient = useQueryClient();
 	const [renamingId, setRenamingId] = useState<string | null>(null);
 	const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
@@ -109,10 +113,10 @@ export function RecentChatList() {
 	function confirmDelete(id: string) {
 		deleteConversation.mutate(id, {
 			onSuccess: () => {
+				setPendingDeleteId(null);
 				if (id === currentConversationId) navigate({ to: "/new" });
 			},
 		});
-		setPendingDeleteId(null);
 	}
 
 	return (
@@ -234,7 +238,9 @@ export function RecentChatList() {
 						<AlertDialogCancel>Cancel</AlertDialogCancel>
 						<AlertDialogAction
 							variant="destructive"
-							onClick={() => {
+							disabled={deleteConversation.isPending}
+							onClick={(event) => {
+								event.preventDefault();
 								if (pendingDeleteId) confirmDelete(pendingDeleteId);
 							}}
 						>

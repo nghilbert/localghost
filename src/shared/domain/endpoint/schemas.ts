@@ -1,4 +1,5 @@
 import { z } from "zod/v4";
+import { llmProviderSchema } from "#/shared/lib/llm-provider";
 
 const uuid = z.uuid();
 
@@ -26,21 +27,11 @@ export const samplingOptionsSchema = z
 	})
 	.partial();
 
-/** The provider families an endpoint can store; mirrors `LLMProvider` in llm.server.ts. */
-export const endpointProviderSchema = z.enum([
-	"openai",
-	"anthropic",
-	"llamacpp",
-	"openrouter",
-	"groq",
-	"gemini",
-]);
-
 export const createEndpointSchema = z.object({
 	name: z.string().min(1, "Name is required"),
 	url: z.url("Must be a valid URL"),
 	apiKey: z.string().optional(),
-	provider: endpointProviderSchema.default("openai"),
+	provider: llmProviderSchema.default("openai"),
 	options: samplingOptionsSchema.optional(),
 });
 
@@ -53,6 +44,6 @@ export const testEndpointInput = z.object({
 	url: z.url().max(2048),
 	apiKey: z.string().max(4096).optional(),
 	/** The provider the user picked; absent falls back to URL sniffing. */
-	provider: endpointProviderSchema.optional(),
+	provider: llmProviderSchema.optional(),
 });
 export const updateEndpointInput = z.object({ id: uuid, data: updateEndpointSchema });

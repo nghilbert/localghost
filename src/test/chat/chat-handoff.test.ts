@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { storeChatHandoff, takeChatHandoff } from "#/routes/_authenticated/-lib/chat-handoff";
+import { storeChatHandoff, takeChatHandoff } from "#/routes/_authenticated/_chat/-lib/chat-handoff";
 
 function fakeSessionStorage(): Storage {
 	const store = new Map<string, string>();

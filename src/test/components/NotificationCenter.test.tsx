@@ -8,11 +8,8 @@ const { fetchLibraryStatus, stopMock } = vi.hoisted(() => ({
 	stopMock: vi.fn(),
 }));
 
-vi.mock("#/shared/domain/model/use-model-download", () => ({
+vi.mock("#/shared/domain/model/use-model", () => ({
 	useModelDownload: () => ({ pulling: {}, pull: vi.fn(), stop: stopMock }),
-}));
-
-vi.mock("#/shared/domain/model/use-model-download-events", () => ({
 	useModelDownloadEvents: vi.fn(),
 }));
 

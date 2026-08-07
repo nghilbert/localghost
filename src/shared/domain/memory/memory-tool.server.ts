@@ -15,11 +15,9 @@ export const manageMemoryArgsSchema = z.object({
  * excluded, so removal only happens through the separate `needsApproval`
  * `delete_memory` tool (see `agent.server.ts`).
  */
-export const manageMemoryToolArgsSchema = manageMemoryArgsSchema.extend({
+export const manageMemoryToolArgsSchema = manageMemoryArgsSchema.omit({ id: true }).extend({
 	action: z.enum(["add", "search", "list"]),
 });
-
-export const deleteMemoryArgsSchema = z.object({ id: z.uuid() });
 
 type ManageMemoryArgs = z.infer<typeof manageMemoryArgsSchema>;
 

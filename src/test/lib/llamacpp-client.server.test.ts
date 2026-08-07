@@ -4,9 +4,27 @@ import {
 	downloadModel,
 	listModels,
 	openModelEventStream,
-	serverProps,
 	unloadModel,
 } from "#/shared/lib/llamacpp/client.server";
+
+/**
+ * A `ReadableStream<Uint8Array>` that emits `chunk` then errors instead of closing cleanly.
+ * Errors on the *next* pull (not alongside the enqueue) since erroring a stream clears its
+ * queue, which would otherwise discard `chunk` before a reader ever sees it.
+ */
+function droppedStream(chunk: string): ReadableStream<Uint8Array> {
+	let delivered = false;
+	return new ReadableStream({
+		pull(controller) {
+			if (!delivered) {
+				delivered = true;
+				controller.enqueue(new TextEncoder().encode(chunk));
+				return;
+			}
+			controller.error(new Error("socket hang up"));
+		},
+	});
+}
 
 const fetchMock = vi.fn();
 
@@ -60,16 +78,6 @@ describe("llama.cpp model status", () => {
 		);
 	});
 
-	it("validates the props response", async () => {
-		fetchMock.mockResolvedValue(
-			new Response(JSON.stringify({ n_ctx: 8192, chat_template_caps: { tool_calls: true } })),
-		);
-
-		await expect(
-			serverProps({ url: "http://localhost:8080", model: "org/model:Q4_K_M" }),
-		).resolves.toEqual({ n_ctx: 8192, chat_template_caps: { tool_calls: true } });
-	});
-
 	it("opens the authenticated model event stream with the caller's abort signal", async () => {
 		fetchMock.mockResolvedValue(
 			new Response("data: {}\n\n", { headers: { "Content-Type": "text/event-stream" } }),
@@ -87,6 +95,64 @@ describe("llama.cpp model status", () => {
 			headers: { Accept: "text/event-stream", Authorization: "Bearer secret" },
 			signal: controller.signal,
 		});
+
+		// Nothing reads `body`, but its internal reconnect loop runs regardless: abort so it
+		// doesn't keep retrying against the shared `fetchMock` in the background after this test ends.
+		controller.abort();
+	});
+
+	it("reconnects when the upstream event stream drops mid-flight", async () => {
+		const secondBody = new ReadableStream<Uint8Array>({
+			start(streamController) {
+				streamController.enqueue(new TextEncoder().encode("second"));
+			},
+		});
+		fetchMock
+			.mockResolvedValueOnce(
+				new Response(droppedStream("first"), { headers: { "Content-Type": "text/event-stream" } }),
+			)
+			.mockResolvedValueOnce(
+				new Response(secondBody, { headers: { "Content-Type": "text/event-stream" } }),
+			);
+		const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+		const controller = new AbortController();
+
+		const body = await openModelEventStream({
+			url: "http://localhost:8080",
+			signal: controller.signal,
+		});
+		const reader = body.getReader();
+		const decoder = new TextDecoder();
+
+		expect(decoder.decode((await reader.read()).value)).toBe("first");
+		expect(decoder.decode((await reader.read()).value)).toBe("second");
+		expect(fetchMock).toHaveBeenCalledTimes(2);
+		expect(warn).toHaveBeenCalledOnce();
+
+		controller.abort();
+		warn.mockRestore();
+	});
+
+	it("stops reconnecting once the caller aborts", async () => {
+		fetchMock.mockResolvedValueOnce(
+			new Response(droppedStream("first"), { headers: { "Content-Type": "text/event-stream" } }),
+		);
+		const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+		const controller = new AbortController();
+
+		const body = await openModelEventStream({
+			url: "http://localhost:8080",
+			signal: controller.signal,
+		});
+		const reader = body.getReader();
+
+		await reader.read();
+		controller.abort();
+		const { done } = await reader.read();
+
+		expect(done).toBe(true);
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+		warn.mockRestore();
 	});
 });
 

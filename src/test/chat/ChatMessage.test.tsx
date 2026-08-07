@@ -1,8 +1,7 @@
 import type { UIMessage } from "@tanstack/ai-client";
 import { describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
-import { ChatMessage } from "#/routes/_authenticated/-components/chat/ChatMessage";
-import { markInterrupted, withUsage } from "#/shared/domain/conversation/messages";
+import { ChatMessage } from "#/routes/_authenticated/_chat/-components/ChatMessage";
 import { render } from "#/test/utils";
 
 function userMessage(content: string): UIMessage {
@@ -116,25 +115,6 @@ describe("ChatMessage", () => {
 			await expect.element(screen.getByTestId("link-safety-open-button")).toHaveFocus();
 			await userEvent.keyboard("{Enter}");
 			expect(open).toHaveBeenCalledWith("https://example.com/", "_blank", "noreferrer");
-		});
-
-		it("shows a token count once usage is stamped on the message", async () => {
-			const message = withUsage(assistantMessage("done"), {
-				promptTokens: 900,
-				completionTokens: 100,
-				totalTokens: 1000,
-			});
-			const screen = await render(<ChatMessage message={message} />);
-
-			await expect
-				.element(screen.getByTestId("message-token-usage"))
-				.toHaveTextContent("1K tokens");
-		});
-
-		it("shows no token count when usage wasn't stamped", async () => {
-			const screen = await render(<ChatMessage message={assistantMessage("done")} />);
-
-			await expect.element(screen.getByTestId("message-token-usage")).not.toBeInTheDocument();
 		});
 	});
 
@@ -270,41 +250,6 @@ describe("ChatMessage", () => {
 				expect.stringContaining("Searched the web"),
 				expect.stringContaining("Reasoning"),
 			]);
-		});
-	});
-
-	describe("interrupted messages", () => {
-		const [interrupted] = markInterrupted([assistantMessage("cut-off ans")]);
-
-		it("shows a stopped note with a regenerate button on the last message", async () => {
-			let regenerated = false;
-			const screen = await render(
-				<ChatMessage
-					message={interrupted ?? assistantMessage("")}
-					onRegenerate={() => {
-						regenerated = true;
-					}}
-				/>,
-			);
-
-			const note = screen.getByTestId("generation-stopped-note");
-			await expect.element(note).toHaveTextContent("Generation stopped");
-			await screen.getByTestId("stopped-regenerate-button").click();
-			expect(regenerated).toBe(true);
-		});
-
-		it("shows the note without regenerate on earlier messages", async () => {
-			const screen = await render(<ChatMessage message={interrupted ?? assistantMessage("")} />);
-
-			const note = screen.getByTestId("generation-stopped-note");
-			await expect.element(note).toHaveTextContent("Generation stopped");
-			await expect.element(screen.getByTestId("stopped-regenerate-button")).not.toBeInTheDocument();
-		});
-
-		it("shows no note on an ordinary complete message", async () => {
-			const screen = await render(<ChatMessage message={assistantMessage("done")} />);
-
-			await expect.element(screen.getByTestId("generation-stopped-note")).not.toBeInTheDocument();
 		});
 	});
 

@@ -5,7 +5,7 @@ import {
 	dbProviderFor,
 	type ProviderDefinition,
 } from "#/routes/_authenticated/settings/-lib/providers";
-import { useEndpoints } from "#/shared/domain/endpoint/use-endpoints";
+import { useCreateEndpoint } from "#/shared/domain/endpoint/use-endpoints";
 
 type AddProviderFormProps = {
 	definition: ProviderDefinition;
@@ -13,7 +13,7 @@ type AddProviderFormProps = {
 };
 
 export function AddProviderForm({ definition, onCreated }: AddProviderFormProps) {
-	const { createEndpoint } = useEndpoints();
+	const createEndpoint = useCreateEndpoint();
 
 	const keyDescription = definition.keyConsoleUrl
 		? `Get a key at ${definition.keyConsoleUrl.replace("https://", "")}. Stored encrypted.`
@@ -35,8 +35,8 @@ export function AddProviderForm({ definition, onCreated }: AddProviderFormProps)
 			collapseUrl={definition.defaultBaseUrl !== null}
 			submitIcon={<PlusIcon />}
 			submitLabel="Add provider endpoint"
-			onSubmit={async ({ value, onSaved }) => {
-				await createEndpoint.mutate(
+			onSubmit={({ value, onSaved }) =>
+				createEndpoint.mutateAsync(
 					{
 						name: value.name,
 						url: value.url,
@@ -49,8 +49,8 @@ export function AddProviderForm({ definition, onCreated }: AddProviderFormProps)
 							onCreated?.();
 						},
 					},
-				);
-			}}
+				)
+			}
 		/>
 	);
 }

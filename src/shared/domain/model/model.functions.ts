@@ -12,7 +12,6 @@ import {
 	upsertRuntimeEndpoint,
 } from "./discovery.server";
 import { getHardwareInfo } from "./hardware.server";
-import { removeInstalledModel } from "./models.server";
 import {
 	type CatalogQuery,
 	catalogModelsByIdsInput,
@@ -20,6 +19,7 @@ import {
 	modelVariantsInput,
 } from "./schemas";
 import type { RuntimeStatus } from "./types";
+import { removeInstalledModel } from "./uninstall.server";
 
 export const getHardware = createServerFn({ method: "GET" })
 	.middleware([authedFn])
