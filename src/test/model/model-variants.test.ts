@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+	buildModelAuthors,
 	buildModelVariants,
+	defaultOptionForAuthor,
 	formatModelVariantDetails,
+	optionsForAuthor,
 } from "#/routes/_authenticated/library/-lib/model-variants";
 import type { ModelVariantInfo } from "#/shared/domain/model/types";
 import { makeCatalogModel, makeHardware } from "#/test/factories";
@@ -235,5 +238,39 @@ describe("buildModelVariants", () => {
 			repoId: "unsloth/model-GGUF",
 			isSameRepoAsPrimary: false,
 		});
+	});
+});
+
+describe("buildModelAuthors", () => {
+	const catalog = makeCatalogModel({
+		id: "ggml-org/model-GGUF:Q4_K_M",
+		name: "ggml-org/model-GGUF",
+		// Dedupe already trust-orders the collapsed repos into siblingRepoIds.
+		siblingRepoIds: ["unsloth/model-GGUF", "mradermacher/model-GGUF"],
+		variants: [
+			variant({ quant: "Q4_K_M", sizeGb: 4, repoId: "ggml-org/model-GGUF" }),
+			variant({ quant: "Q8_0", sizeGb: 8, repoId: "mradermacher/model-GGUF" }),
+			variant({ quant: "Q4_K_M", sizeGb: 4.1, repoId: "unsloth/model-GGUF" }),
+		],
+	});
+	const options = buildModelVariants({ catalog, hardware: undefined }).options;
+
+	it("orders publishers by the dedupe group's trust order, defaulting to the primary repo's author", () => {
+		const { authors, defaultAuthor } = buildModelAuthors({
+			options,
+			primaryRepoId: "ggml-org/model-GGUF",
+			siblingRepoIds: ["unsloth/model-GGUF", "mradermacher/model-GGUF"],
+		});
+		expect(authors.map((author) => author.name)).toEqual(["ggml-org", "unsloth", "mradermacher"]);
+		expect(defaultAuthor).toBe("ggml-org");
+	});
+
+	it("filters options and picks a default variant for a chosen author", () => {
+		expect(optionsForAuthor({ options, author: "unsloth" }).map((o) => o.modelId)).toEqual([
+			"unsloth/model-GGUF:Q4_K_M",
+		]);
+		expect(defaultOptionForAuthor({ options, author: "mradermacher" })?.modelId).toBe(
+			"mradermacher/model-GGUF:Q8_0",
+		);
 	});
 });

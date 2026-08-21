@@ -7,6 +7,7 @@ import { Empty, EmptyDescription, EmptyTitle } from "#/shared/components/ui/empt
 import { Input } from "#/shared/components/ui/input";
 import { ItemGroup } from "#/shared/components/ui/item";
 import type { HardwareInfo, InstalledModel, PullProgress } from "#/shared/domain/model/types";
+import { ModelActiveFilters } from "./ModelActiveFilters";
 import { ModelDetailPanel } from "./ModelDetailPanel";
 import { ModelFilterMenu } from "./ModelFilterMenu";
 import { ModelListItem } from "./ModelListItem";
@@ -38,20 +39,16 @@ export function ModelList({
 	onDelete,
 }: ModelListProps) {
 	const {
-		availableLicenses,
-		capabilities,
 		catalogPageQuery,
 		counts,
 		expandedId,
+		facets,
 		fetchedVariants,
-		handleCapabilitiesChange,
-		handleLicensesChange,
 		handleSearchChange,
 		handleSortChange,
 		handleStatusChange,
 		handleToggleExpanded,
 		isLoading,
-		licenses,
 		page,
 		pageCount,
 		rows,
@@ -59,7 +56,7 @@ export function ModelList({
 		setPage,
 		sort,
 		status,
-	} = useModelList({ installedModels, pulling });
+	} = useModelList({ installedModels, pulling, hardware });
 
 	return (
 		<div className="space-y-3">
@@ -91,16 +88,12 @@ export function ModelList({
 					/>
 				</div>
 				<ModelStatusFilter value={status} counts={counts} onValueChange={handleStatusChange} />
-				<ModelFilterMenu
-					licenses={availableLicenses}
-					selectedLicenses={licenses}
-					selectedCapabilities={capabilities}
-					onLicensesChange={handleLicensesChange}
-					onCapabilitiesChange={handleCapabilitiesChange}
-				/>
+				<ModelFilterMenu facets={facets} />
 				<ModelSortControls value={sort} onValueChange={handleSortChange} />
 				<ModelPagination page={page} pageCount={pageCount} onPageChange={setPage} />
 			</div>
+
+			<ModelActiveFilters facets={facets} />
 
 			{isLoading ? (
 				<ItemGroup className="grid grid-flow-row-dense grid-cols-[repeat(auto-fit,minmax(min(22rem,100%),1fr))]">

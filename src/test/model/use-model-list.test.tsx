@@ -1,7 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CATALOG_PAGE_SIZE } from "#/routes/_authenticated/library/-hooks/use-model-list";
-import type { CatalogModel, InstalledModel, PullProgress } from "#/shared/domain/model/types";
-import { makeCatalogModel, makeInstalledModel } from "#/test/factories";
+import type {
+	CatalogModel,
+	HardwareInfo,
+	InstalledModel,
+	PullProgress,
+} from "#/shared/domain/model/types";
+import { makeCatalogModel, makeHardware, makeInstalledModel } from "#/test/factories";
 import { renderHook } from "#/test/utils";
 
 type CatalogInput = { page: number; search?: string; licenses?: string[] };
@@ -40,11 +45,29 @@ function catalogPage(overrides: Partial<CatalogPage> = {}): CatalogPage {
 function mountList({
 	installedModels = [],
 	pulling = {},
+	hardware,
 }: {
 	installedModels?: InstalledModel[];
 	pulling?: Record<string, PullProgress>;
+	hardware?: HardwareInfo;
 } = {}) {
-	return renderHook(() => useModelList({ installedModels, pulling }));
+	return renderHook(() => useModelList({ installedModels, pulling, hardware }));
+}
+
+type ListResult = { current: ReturnType<typeof useModelList> };
+
+async function selectLicense(result: ListResult, license: string) {
+	const control = (list: ListResult) =>
+		list.current.facets
+			.find((facet) => facet.id === "license")
+			?.controls.find((option) => option.value === license);
+	// The option only exists once the catalog page's licenses have loaded.
+	await expect.poll(() => control(result)).toBeDefined();
+	control(result)?.onToggle(true);
+}
+
+function clearFacet(result: ListResult, facetId: string) {
+	result.current.facets.find((facet) => facet.id === facetId)?.clear();
 }
 
 beforeEach(() => {
@@ -71,7 +94,7 @@ describe("useModelList counts", () => {
 		// No facets yet: both installed models count against the total.
 		expect(result.current.counts.available).toBe(8);
 
-		result.current.handleLicensesChange(["mit"]);
+		await selectLicense(result, "mit");
 
 		// Only the MIT model still matches, so exactly one comes off the total.
 		await expect.poll(() => result.current.counts.available).toBe(9);
@@ -127,6 +150,25 @@ describe("useModelList rows", () => {
 		await expect.poll(() => result.current.rows.map((row) => row.id)).toEqual([available.id]);
 	});
 
+	it("hides installed models that can't fit the host on the Installed tab", async () => {
+		const fits = makeCatalogModel({ id: "org/fits:Q4_K_M", sizeGb: 2 });
+		const tooBig = makeCatalogModel({ id: "org/too-big:Q4_K_M", sizeGb: 40 });
+		fetchCatalogByIds.mockResolvedValue([fits, tooBig]);
+
+		const { result } = await mountList({
+			installedModels: [makeInstalledModel({ id: fits.id }), makeInstalledModel({ id: tooBig.id })],
+			hardware: makeHardware({ totalRamGb: 8, freeRamGb: 8, gpus: null }),
+		});
+
+		result.current.handleStatusChange("installed");
+		await expect.poll(() => result.current.rows.map((row) => row.id)).toEqual([fits.id]);
+
+		clearFacet(result, "hardware");
+		await expect
+			.poll(() => result.current.rows.map((row) => row.id).sort())
+			.toEqual([fits.id, tooBig.id]);
+	});
+
 	it("serves the Installed tab without asking the server for a catalog page", async () => {
 		const model = makeCatalogModel({ id: "org/installed:Q4_K_M" });
 		fetchCatalogByIds.mockResolvedValue([model]);
@@ -159,7 +201,7 @@ describe("useModelList query input", () => {
 		const { result } = await mountList();
 		await expect.poll(() => fetchCatalogPage.mock.calls.length).toBe(1);
 
-		result.current.handleLicensesChange(["mit"]);
+		await selectLicense(result, "mit");
 
 		await expect
 			.poll(() => fetchCatalogPage.mock.lastCall?.[0])

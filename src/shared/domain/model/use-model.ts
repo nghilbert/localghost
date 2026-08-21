@@ -128,15 +128,22 @@ export function useModelDownloadEvents(endpointId: string | null): void {
 		source.onopen = () => {
 			void queryClient.invalidateQueries({ queryKey });
 		};
+		source.onerror = () => {
+			console.warn("llama.cpp model-event stream errored", { readyState: source.readyState });
+		};
 		source.onmessage = (message) => {
 			let value: unknown;
 			try {
 				value = JSON.parse(message.data);
 			} catch {
+				console.warn("Unparseable llama.cpp model event", { data: message.data });
 				return;
 			}
 			const parsed = llamaModelDownloadEventSchema.safeParse(value);
-			if (!parsed.success) return;
+			if (!parsed.success) {
+				console.warn("Unrecognized llama.cpp model event", { value, error: parsed.error });
+				return;
+			}
 			const event = parsed.data;
 			if (event.event === "download_progress") {
 				queryClient.setQueryData<RuntimeStatus>(queryKey, (status) => {

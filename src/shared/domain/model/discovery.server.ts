@@ -1,9 +1,14 @@
 import { trimPathRight } from "@tanstack/react-router";
+import type { Endpoint } from "#/generated/prisma/client";
 import { endpointApiKey } from "#/shared/domain/endpoint/endpoint.server";
 import { parseParamB } from "#/shared/domain/model/model-id";
 import { aggregatePullProgress } from "#/shared/domain/model/pull-progress";
 import { prisma } from "#/shared/lib/db.server";
-import { type LlamaModel, listModels } from "#/shared/lib/llamacpp/client.server";
+import {
+	type LlamaModel,
+	LOCAL_LLAMACPP_API_KEY,
+	listModels,
+} from "#/shared/lib/llamacpp/client.server";
 import type { InstalledModel, PullProgress } from "./types";
 
 const DEFAULT_RUNTIME_URL = "http://localhost:8080";
@@ -15,6 +20,15 @@ const WELL_KNOWN_URLS = [
 	"http://llamacpp:8080",
 	"http://host.docker.internal:8080",
 ];
+
+/**
+ * The key to send a llama.cpp runtime: the endpoint's own, else the bundled service's.
+ * Auto-discovered endpoints store no key, and {@link LOCAL_LLAMACPP_API_KEY} documents
+ * which routes reject an unauthenticated request.
+ */
+function runtimeApiKey(endpoint: Pick<Endpoint, "apiKeyEncrypted"> | null): string {
+	return (endpoint ? endpointApiKey(endpoint) : undefined) || LOCAL_LLAMACPP_API_KEY;
+}
 
 /** Parses the `:QUANT` suffix off a router model id (`repo:Q4_K_M` → `Q4_K_M`). */
 function parseQuant(id: string): string | null {
@@ -28,7 +42,7 @@ function parseQuant(id: string): string | null {
  */
 export async function getRuntimeEndpoint(userId: string): Promise<{
 	url: string;
-	apiKey: string | undefined;
+	apiKey: string;
 }> {
 	const endpoint = await prisma.endpoint.findFirst({
 		where: { ownerId: userId, provider: "llamacpp" },
@@ -36,7 +50,7 @@ export async function getRuntimeEndpoint(userId: string): Promise<{
 	});
 	return {
 		url: trimPathRight(endpoint?.url ?? DEFAULT_RUNTIME_URL),
-		apiKey: endpoint ? endpointApiKey(endpoint) : undefined,
+		apiKey: runtimeApiKey(endpoint),
 	};
 }
 
@@ -47,12 +61,12 @@ export async function getRuntimeEndpointById({
 }: {
 	userId: string;
 	endpointId: string;
-}): Promise<{ url: string; apiKey: string | undefined }> {
+}): Promise<{ url: string; apiKey: string }> {
 	const endpoint = await prisma.endpoint.findFirst({
 		where: { id: endpointId, ownerId: userId, provider: "llamacpp" },
 	});
 	if (!endpoint) throw new Error("llama.cpp endpoint not found");
-	return { url: trimPathRight(endpoint.url), apiKey: endpointApiKey(endpoint) };
+	return { url: trimPathRight(endpoint.url), apiKey: runtimeApiKey(endpoint) };
 }
 
 /**
@@ -124,8 +138,8 @@ export type RuntimeScanResult = {
 	url: string;
 	installedModels: InstalledModel[];
 	downloads: Record<string, PullProgress>;
-	/** The API key that reached this URL, if any, so callers can reuse it without re-querying. */
-	apiKey: string | undefined;
+	/** The API key that reached this URL, so callers can reuse it without re-querying. */
+	apiKey: string;
 	/** The user's oldest saved llamacpp endpoint, so callers can sync it without re-querying. */
 	savedEndpoint: SavedRuntimeEndpoint | null;
 };
@@ -140,7 +154,7 @@ export async function scanForRuntime(userId: string): Promise<RuntimeScanResult 
 		orderBy: { id: "asc" },
 	});
 	const keyByUrl = new Map(
-		saved.map((endpoint) => [trimPathRight(endpoint.url), endpointApiKey(endpoint)]),
+		saved.map((endpoint) => [trimPathRight(endpoint.url), runtimeApiKey(endpoint)]),
 	);
 	const candidates = buildRuntimeCandidateUrls({
 		savedUrls: saved.map((endpoint) => endpoint.url),
@@ -149,7 +163,7 @@ export async function scanForRuntime(userId: string): Promise<RuntimeScanResult 
 	const probes = await Promise.all(
 		candidates.map(async (url) => ({
 			url,
-			...(await probeRuntime({ url, apiKey: keyByUrl.get(url) })),
+			...(await probeRuntime({ url, apiKey: keyByUrl.get(url) ?? LOCAL_LLAMACPP_API_KEY })),
 		})),
 	);
 	const found = probes.find((probe) => probe.reachable);
@@ -161,7 +175,7 @@ export async function scanForRuntime(userId: string): Promise<RuntimeScanResult 
 		url: found.url,
 		installedModels: found.installedModels,
 		downloads: found.downloads,
-		apiKey: keyByUrl.get(found.url),
+		apiKey: keyByUrl.get(found.url) ?? LOCAL_LLAMACPP_API_KEY,
 		savedEndpoint: savedEndpoint ? { id: savedEndpoint.id, url: savedEndpoint.url } : null,
 	};
 }

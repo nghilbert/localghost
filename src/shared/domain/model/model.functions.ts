@@ -120,15 +120,21 @@ export const cancelModelDownload = createServerFn({ method: "POST" })
 		await unloadModel({ url: resolved.url, model: data.model, apiKey: resolved.apiKey });
 	});
 
+/**
+ * How often to re-scan: fast until a runtime answers, fast again while a download runs.
+ * llama.cpp's `GET /models` omits byte counts, so a percentage only arrives over
+ * `/models/sse`; polling keeps a download current even when that stream is down.
+ */
+export function libraryStatusPollInterval(status: RuntimeStatus | undefined): number {
+	if (!status?.found) return 5_000;
+	return Object.keys(status.downloads).length > 0 ? 2_000 : 30_000;
+}
+
 export const libraryStatusQueryOptions = () =>
 	queryOptions({
 		queryKey: ["library-status"],
 		queryFn: () => scanRuntimeStatus(),
-		refetchInterval: (query) => {
-			const status = query.state.data;
-			if (!status?.found) return 5_000;
-			return 30_000;
-		},
+		refetchInterval: (query) => libraryStatusPollInterval(query.state.data),
 	});
 
 export const hardwareQueryOptions = () =>

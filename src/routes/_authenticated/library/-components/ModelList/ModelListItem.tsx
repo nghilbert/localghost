@@ -1,5 +1,6 @@
 import { CheckCircle2Icon, ChevronRightIcon, GaugeIcon, ImageIcon } from "lucide-react";
 import { ModelPullControls } from "#/routes/_authenticated/library/-components/ModelPullControls";
+import { FIT_LABELS } from "#/routes/_authenticated/library/-lib/fit-filter";
 import type { ModelRow } from "#/routes/_authenticated/library/-lib/model-rows";
 import { Badge } from "#/shared/components/ui/badge";
 import {
@@ -11,19 +12,14 @@ import {
 	ItemTitle,
 } from "#/shared/components/ui/item";
 import { Skeleton } from "#/shared/components/ui/skeleton";
-import { classifyHardwareFit } from "#/shared/domain/model/hardware-fit";
+import { classifyHardwareFit, type HardwareFit } from "#/shared/domain/model/hardware-fit";
 import type { HardwareInfo } from "#/shared/domain/model/types";
 import { formatBytes, formatCount } from "#/shared/lib/format";
 import { cn } from "#/shared/lib/utils";
 
-const FIT_BADGE: Record<
-	"fits" | "tight" | "wont-fit" | "unknown",
-	{ label: string; className?: string }
-> = {
-	fits: { label: "Runs on this machine", className: "text-success" },
-	tight: { label: "May be too large" },
-	"wont-fit": { label: "Won't fit on this machine", className: "text-destructive" },
-	unknown: { label: "Size unknown" },
+const FIT_BADGE_CLASS: Partial<Record<HardwareFit, string>> = {
+	fits: "text-success",
+	"wont-fit": "text-destructive",
 };
 
 /** The row's descriptive line, from whatever the catalog actually knows — never a raw repo id. */
@@ -122,8 +118,8 @@ export function ModelListItem(props: ModelListItemProps) {
 				{loaded ? (
 					<>
 						{fit && !installed && (
-							<Badge variant="outline" className={FIT_BADGE[fit].className}>
-								{FIT_BADGE[fit].label}
+							<Badge variant="outline" className={FIT_BADGE_CLASS[fit]}>
+								{FIT_LABELS[fit]}
 							</Badge>
 						)}
 						{installed ? (

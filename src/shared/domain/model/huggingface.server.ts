@@ -3,11 +3,17 @@ import { HubApiError, listFiles, listModels, modelInfo, type PipelineType } from
 import { z } from "zod/v4";
 import type { ModelVariantInfo } from "./types";
 
-/** True for a multimodal projector file, never a chat model's own weights. */
-function isMmprojFile(fileName: string): boolean {
+/**
+ * Filename substrings llama.cpp's `gguf_filename_is_model` (`common/download.cpp`) excludes
+ * when resolving `repo:quant` to a file. Mirrored so our size estimate never counts one.
+ */
+const AUXILIARY_GGUF_SUBSTRINGS = ["mmproj", "imatrix", "mtp-", "eagle3-", "dflash-", "dspark-"];
+
+/** True for a projector/imatrix/draft file, never a chat model's own weights. */
+function isAuxiliaryGgufFile(fileName: string): boolean {
 	const segments = fileName.split("/");
 	const basename = segments[segments.length - 1] ?? fileName;
-	return basename.toLowerCase().startsWith("mmproj-");
+	return AUXILIARY_GGUF_SUBSTRINGS.some((substring) => basename.includes(substring));
 }
 
 /** The pipeline tags worth chatting with. The Hub filters on one value per query. */
@@ -230,7 +236,8 @@ export async function listGgufVariants({
 		recursive: true,
 		...(accessToken ? { accessToken } : {}),
 	})) {
-		if (file.type !== "file" || !RE_GGUF_FILE.test(file.path) || isMmprojFile(file.path)) continue;
+		if (file.type !== "file" || !RE_GGUF_FILE.test(file.path) || isAuxiliaryGgufFile(file.path))
+			continue;
 		files.push({ path: file.path, bytes: file.lfs?.size ?? file.size });
 	}
 

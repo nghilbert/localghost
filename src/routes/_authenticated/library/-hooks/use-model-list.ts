@@ -1,20 +1,31 @@
+import { rankItem } from "@tanstack/match-sorter-utils";
 import { useQuery } from "@tanstack/react-query";
-import { useCallback, useMemo, useState } from "react";
+import { useState } from "react";
 import type { ModelStatus } from "#/routes/_authenticated/library/-components/ModelList/ModelStatusFilter";
+import { buildModelFacets } from "#/routes/_authenticated/library/-lib/facets";
 import {
 	buildModelRows,
 	type ModelRow,
 	matchesModelFacets,
 } from "#/routes/_authenticated/library/-lib/model-rows";
 import { DEFAULT_SORT, type ModelSort } from "#/routes/_authenticated/library/-lib/model-sort";
-import { requiredMemoryGb } from "#/shared/domain/model/hardware-fit";
+import {
+	classifyHardwareFit,
+	type HardwareFit,
+	requiredMemoryGb,
+} from "#/shared/domain/model/hardware-fit";
 import {
 	catalogByIdsQueryOptions,
 	catalogQueryOptions,
 	modelVariantsQueryOptions,
 } from "#/shared/domain/model/model.functions";
-import type { CatalogCapability, CatalogSortBy } from "#/shared/domain/model/schemas";
-import type { CatalogModel, InstalledModel, PullProgress } from "#/shared/domain/model/types";
+import type { CatalogCapability, CatalogSortBy, HideableFit } from "#/shared/domain/model/schemas";
+import type {
+	CatalogModel,
+	HardwareInfo,
+	InstalledModel,
+	PullProgress,
+} from "#/shared/domain/model/types";
 import { useDebouncedValue } from "#/shared/hooks/use-debounced-value";
 
 export const CATALOG_PAGE_SIZE = 24;
@@ -52,19 +63,20 @@ function sortValueForRow(row: ModelRow, sortBy: CatalogSortBy): number | string 
 }
 
 function matchesSearch(row: ModelRow, search: string): boolean {
-	const haystack = `${row.name} ${row.id} ${row.catalog?.tags.join(" ") ?? ""} ${
-		row.installed?.quant ?? ""
-	}`.toLowerCase();
-	return haystack.includes(search.toLowerCase());
+	const haystack = `${row.catalog?.displayName ?? row.name} ${row.name} ${row.id} ${
+		row.catalog?.tags.join(" ") ?? ""
+	} ${row.installed?.quant ?? ""}`;
+	return rankItem(haystack, search).passed;
 }
 
 type UseModelListProps = {
 	installedModels: InstalledModel[];
 	pulling: Record<string, PullProgress>;
+	hardware: HardwareInfo | undefined;
 };
 
 /** Owns the Library model list's catalog queries, local merge, and view state. */
-export function useModelList({ installedModels, pulling }: UseModelListProps) {
+export function useModelList({ installedModels, pulling, hardware }: UseModelListProps) {
 	const [page, setPage] = useState(0);
 	const [sort, setSort] = useState<ModelSort>(DEFAULT_SORT);
 	const [search, setSearch] = useState("");
@@ -72,10 +84,19 @@ export function useModelList({ installedModels, pulling }: UseModelListProps) {
 	const [status, setStatus] = useState<ModelStatus>("all");
 	const [licenses, setLicenses] = useState<string[]>([]);
 	const [capabilities, setCapabilities] = useState<CatalogCapability[]>([]);
+	const [hiddenFits, setHiddenFits] = useState<HideableFit[]>(["wont-fit"]);
 	const [expandedId, setExpandedId] = useState<string | null>(null);
 
 	const isInstalledOnly = status === "installed";
 	const hasActiveFacets = licenses.length > 0 || capabilities.length > 0;
+	// The server can't know the client's hardware for the "installed only" tab (its rows
+	// bypass the catalog query), so filter those locally with the same predicate as the server.
+	const fitFilter = (row: ModelRow) => {
+		if (hiddenFits.length === 0 || row.catalog === null) return true;
+		const fit = classifyHardwareFit({ model: row.catalog, hardware });
+		const hidden = new Set<HardwareFit>(hiddenFits);
+		return fit === null || !hidden.has(fit);
+	};
 	const catalogPageQuery = useQuery({
 		...catalogQueryOptions({
 			page,
@@ -85,18 +106,15 @@ export function useModelList({ installedModels, pulling }: UseModelListProps) {
 			search: debouncedSearch || undefined,
 			licenses: licenses.length > 0 ? licenses : undefined,
 			capabilities: capabilities.length > 0 ? capabilities : undefined,
+			hiddenFits,
 		}),
 		enabled: !isInstalledOnly,
 	});
 
-	const installedIds = useMemo(() => installedModels.map((model) => model.id), [installedModels]);
+	const installedIds = installedModels.map((model) => model.id);
 	const byIdsQuery = useQuery(catalogByIdsQueryOptions(installedIds));
-	const catalogById = useMemo(
-		() =>
-			new Map<string, CatalogModel>(
-				(byIdsQuery.data ?? []).map((model): [string, CatalogModel] => [model.id, model]),
-			),
-		[byIdsQuery.data],
+	const catalogById = new Map<string, CatalogModel>(
+		byIdsQuery.data?.map((model): [string, CatalogModel] => [model.id, model]),
 	);
 	const catalogPage = catalogPageQuery.data?.rows ?? [];
 	const total = catalogPageQuery.data?.total ?? 0;
@@ -104,73 +122,51 @@ export function useModelList({ installedModels, pulling }: UseModelListProps) {
 
 	// Every installed row, independent of the current status tab: the "Available"
 	// count below needs it regardless of which tab is showing.
-	const installedRows = useMemo(
-		() =>
-			buildModelRows({
-				catalogPage: [],
-				catalogById,
-				installedModels,
-				pulling,
-				includeOffPageInstalled: true,
-			}),
-		[catalogById, installedModels, pulling],
-	);
-
-	const rows = useMemo(() => {
-		let base: ModelRow[];
-		if (isInstalledOnly) {
-			base = installedRows;
-			if (debouncedSearch) base = base.filter((row) => matchesSearch(row, debouncedSearch));
-		} else {
-			const merged = buildModelRows({
-				catalogPage,
-				catalogById,
-				installedModels,
-				pulling,
-				includeOffPageInstalled: status === "all",
-			});
-			base = status === "available" ? merged.filter((row) => !row.installed) : merged;
-		}
-		if (hasActiveFacets) {
-			base = base.filter((row) => matchesModelFacets({ row, licenses, capabilities }));
-		}
-
-		const dir = sort.sortDir === "asc" ? 1 : -1;
-		return [...base].sort((leftRow, rightRow) => {
-			const left = sortValueForRow(leftRow, sort.sortBy);
-			const right = sortValueForRow(rightRow, sort.sortBy);
-			if (left < right) return -1 * dir;
-			if (left > right) return dir;
-			return 0;
-		});
-	}, [
+	const installedRows = buildModelRows({
+		catalogPage: [],
 		catalogById,
-		catalogPage,
-		capabilities,
-		debouncedSearch,
-		hasActiveFacets,
 		installedModels,
-		installedRows,
-		isInstalledOnly,
-		licenses,
 		pulling,
-		sort,
-		status,
-	]);
+		includeOffPageInstalled: true,
+	});
+
+	let base: ModelRow[];
+	if (isInstalledOnly) {
+		base = installedRows.filter(fitFilter);
+		if (debouncedSearch) base = base.filter((row) => matchesSearch(row, debouncedSearch));
+	} else {
+		const merged = buildModelRows({
+			catalogPage,
+			catalogById,
+			installedModels,
+			pulling,
+			includeOffPageInstalled: status === "all",
+		});
+		base = status === "available" ? merged.filter((row) => !row.installed) : merged;
+	}
+	if (hasActiveFacets) {
+		base = base.filter((row) => matchesModelFacets({ row, licenses, capabilities }));
+	}
+	const dir = sort.sortDir === "asc" ? 1 : -1;
+	const rows = [...base].sort((leftRow, rightRow) => {
+		const left = sortValueForRow(leftRow, sort.sortBy);
+		const right = sortValueForRow(rightRow, sort.sortBy);
+		if (left < right) return -1 * dir;
+		if (left > right) return dir;
+		return 0;
+	});
 
 	// `total` is the server's facet/search-filtered catalog count, which knows
 	// nothing about install status; subtracting the raw installed count would
 	// double-subtract whenever an active facet excludes some installed models.
 	// Only the installed rows that still match the current facets and search
 	// count against it.
-	const matchingInstalledCount = useMemo(() => {
-		let matched = installedRows;
-		if (debouncedSearch) matched = matched.filter((row) => matchesSearch(row, debouncedSearch));
-		if (hasActiveFacets) {
-			matched = matched.filter((row) => matchesModelFacets({ row, licenses, capabilities }));
-		}
-		return matched.length;
-	}, [installedRows, debouncedSearch, hasActiveFacets, licenses, capabilities]);
+	let matched = installedRows.filter(fitFilter);
+	if (debouncedSearch) matched = matched.filter((row) => matchesSearch(row, debouncedSearch));
+	if (hasActiveFacets) {
+		matched = matched.filter((row) => matchesModelFacets({ row, licenses, capabilities }));
+	}
+	const matchingInstalledCount = matched.length;
 
 	const counts: Record<ModelStatus, number> = {
 		all: total,
@@ -189,39 +185,50 @@ export function useModelList({ installedModels, pulling }: UseModelListProps) {
 		enabled: expandedCatalog !== null,
 	});
 
-	const handleSortChange = useCallback((value: ModelSort) => {
+	const handleSortChange = (value: ModelSort) => {
 		setSort(value);
 		setPage(0);
-	}, []);
-	const handleSearchChange = useCallback((value: string) => {
+	};
+	const handleSearchChange = (value: string) => {
 		setSearch(value);
 		setPage(0);
-	}, []);
-	const handleStatusChange = useCallback((value: ModelStatus) => {
+	};
+	const handleStatusChange = (value: ModelStatus) => {
 		setStatus(value);
 		setPage(0);
-	}, []);
-	const handleLicensesChange = useCallback((value: string[]) => {
+	};
+	const handleLicensesChange = (value: string[]) => {
 		setLicenses(value);
 		setPage(0);
-	}, []);
-	const handleCapabilitiesChange = useCallback((value: CatalogCapability[]) => {
+	};
+	const handleCapabilitiesChange = (value: CatalogCapability[]) => {
 		setCapabilities(value);
 		setPage(0);
-	}, []);
-	const handleToggleExpanded = useCallback((id: string) => {
+	};
+	const handleHiddenFitsChange = (value: HideableFit[]) => {
+		setHiddenFits(value);
+		setPage(0);
+	};
+	const handleToggleExpanded = (id: string) => {
 		setExpandedId((current) => (current === id ? null : id));
-	}, []);
+	};
+
+	const facets = buildModelFacets({
+		availableLicenses,
+		hiddenFits,
+		capabilities,
+		licenses,
+		onHiddenFitsChange: handleHiddenFitsChange,
+		onCapabilitiesChange: handleCapabilitiesChange,
+		onLicensesChange: handleLicensesChange,
+	});
 
 	return {
-		availableLicenses,
-		capabilities,
 		catalogPageQuery,
 		counts,
 		expandedId,
+		facets,
 		fetchedVariants: expandedCatalog !== null ? variantsQuery.data : undefined,
-		handleCapabilitiesChange,
-		handleLicensesChange,
 		handleSearchChange,
 		handleSortChange,
 		handleStatusChange,
@@ -229,7 +236,6 @@ export function useModelList({ installedModels, pulling }: UseModelListProps) {
 		isLoading:
 			(!isInstalledOnly && catalogPageQuery.isPending) ||
 			(isInstalledOnly && hasActiveFacets && byIdsQuery.isPending),
-		licenses,
 		page,
 		pageCount,
 		rows,
