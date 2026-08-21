@@ -28,8 +28,16 @@ function droppedStream(chunk: string): ReadableStream<Uint8Array> {
 
 const fetchMock = vi.fn();
 
+// The event stream goes through undici (for its `bodyTimeout: 0` agent), not global fetch.
+const { undiciFetchMock } = vi.hoisted(() => ({ undiciFetchMock: vi.fn() }));
+vi.mock("undici", async (importOriginal) => ({
+	...(await importOriginal<typeof import("undici")>()),
+	fetch: undiciFetchMock,
+}));
+
 beforeEach(() => {
 	fetchMock.mockReset();
+	undiciFetchMock.mockReset();
 	vi.stubGlobal("fetch", fetchMock);
 });
 
@@ -79,7 +87,7 @@ describe("llama.cpp model status", () => {
 	});
 
 	it("opens the authenticated model event stream with the caller's abort signal", async () => {
-		fetchMock.mockResolvedValue(
+		undiciFetchMock.mockResolvedValue(
 			new Response("data: {}\n\n", { headers: { "Content-Type": "text/event-stream" } }),
 		);
 		const controller = new AbortController();
@@ -91,13 +99,16 @@ describe("llama.cpp model status", () => {
 		});
 
 		expect(body).toBeInstanceOf(ReadableStream);
-		expect(fetchMock).toHaveBeenCalledWith("http://localhost:8080/models/sse", {
-			headers: { Accept: "text/event-stream", Authorization: "Bearer secret" },
-			signal: controller.signal,
-		});
+		expect(undiciFetchMock).toHaveBeenCalledWith(
+			"http://localhost:8080/models/sse",
+			expect.objectContaining({
+				headers: { Accept: "text/event-stream", Authorization: "Bearer secret" },
+				signal: controller.signal,
+			}),
+		);
 
 		// Nothing reads `body`, but its internal reconnect loop runs regardless: abort so it
-		// doesn't keep retrying against the shared `fetchMock` in the background after this test ends.
+		// doesn't keep retrying against the shared `undiciFetchMock` in the background after this test ends.
 		controller.abort();
 	});
 
@@ -107,7 +118,7 @@ describe("llama.cpp model status", () => {
 				streamController.enqueue(new TextEncoder().encode("second"));
 			},
 		});
-		fetchMock
+		undiciFetchMock
 			.mockResolvedValueOnce(
 				new Response(droppedStream("first"), { headers: { "Content-Type": "text/event-stream" } }),
 			)
@@ -126,7 +137,7 @@ describe("llama.cpp model status", () => {
 
 		expect(decoder.decode((await reader.read()).value)).toBe("first");
 		expect(decoder.decode((await reader.read()).value)).toBe("second");
-		expect(fetchMock).toHaveBeenCalledTimes(2);
+		expect(undiciFetchMock).toHaveBeenCalledTimes(2);
 		expect(warn).toHaveBeenCalledOnce();
 
 		controller.abort();
@@ -134,7 +145,7 @@ describe("llama.cpp model status", () => {
 	});
 
 	it("stops reconnecting once the caller aborts", async () => {
-		fetchMock.mockResolvedValueOnce(
+		undiciFetchMock.mockResolvedValueOnce(
 			new Response(droppedStream("first"), { headers: { "Content-Type": "text/event-stream" } }),
 		);
 		const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -151,7 +162,7 @@ describe("llama.cpp model status", () => {
 		const { done } = await reader.read();
 
 		expect(done).toBe(true);
-		expect(fetchMock).toHaveBeenCalledTimes(1);
+		expect(undiciFetchMock).toHaveBeenCalledTimes(1);
 		warn.mockRestore();
 	});
 });

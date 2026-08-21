@@ -37,7 +37,8 @@ export const Route = createFileRoute("/api/models/events")({
 							"X-Accel-Buffering": "no",
 						},
 					});
-				} catch {
+				} catch (error) {
+					console.error("Failed to open the llama.cpp model-event stream", { error });
 					return new Response("Unable to connect to llama.cpp model events", { status: 502 });
 				}
 			},
