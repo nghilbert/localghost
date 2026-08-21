@@ -138,7 +138,7 @@ export async function insertCodeAgentSession({
 }
 
 /** Records a command the user approved, so the sandbox policy stops asking about it. */
-export async function approveCodeAgentCommand({
+export async function recordApprovedCommand({
 	id,
 	ownerId,
 	command,

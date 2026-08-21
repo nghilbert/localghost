@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { z } from "zod/v4";
 import { toast } from "#/shared/components/ui/toast";
 import {
+	approveCodeAgentCommand,
 	codeAgentSessionsQueryOptions,
 	createCodeAgentSession,
 	deleteCodeAgentSession,
@@ -25,6 +26,19 @@ export function useCreateCodeAgentSession() {
 		onError: (error) =>
 			toast.add({
 				title: "Failed to start the session",
+				type: "error",
+				description: error.message,
+			}),
+	});
+}
+
+/** Allows a command the agent asked about, for the rest of the session. */
+export function useApproveCodeAgentCommand() {
+	return useMutation({
+		mutationFn: (data: { id: string; approvalId: string }) => approveCodeAgentCommand({ data }),
+		onError: (error) =>
+			toast.add({
+				title: "Failed to allow the command",
 				type: "error",
 				description: error.message,
 			}),

@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as PublicRouteImport } from './routes/_public'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as AuthenticatedAgentRouteRouteImport } from './routes/_authenticated/_agent/route'
 import { Route as AuthenticatedChatRouteRouteImport } from './routes/_authenticated/_chat/route'
 import { Route as AuthenticatedLibraryRouteImport } from './routes/_authenticated/library'
 import { Route as PublicSignInRouteImport } from './routes/_public/sign-in'
@@ -24,6 +25,8 @@ import { Route as ApiBackupExportRouteImport } from './routes/api/backup/export'
 import { Route as ApiBackupImportRouteImport } from './routes/api/backup/import'
 import { Route as ApiChatStreamRouteImport } from './routes/api/chat/stream'
 import { Route as ApiModelsEventsRouteImport } from './routes/api/models/events'
+import { Route as AuthenticatedAgentAgentIndexRouteImport } from './routes/_authenticated/_agent/agent/index'
+import { Route as AuthenticatedAgentAgentSessionIdRouteImport } from './routes/_authenticated/_agent/agent/$sessionId'
 import { Route as AuthenticatedChatChatConversationIdRouteImport } from './routes/_authenticated/_chat/chat/$conversationId'
 
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
@@ -37,6 +40,10 @@ const PublicRoute = PublicRouteImport.update({
 const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedAgentRouteRoute = AuthenticatedAgentRouteRouteImport.update({
+  id: '/_agent',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedChatRouteRoute = AuthenticatedChatRouteRouteImport.update({
@@ -99,6 +106,18 @@ const ApiModelsEventsRoute = ApiModelsEventsRouteImport.update({
   path: '/api/models/events',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedAgentAgentIndexRoute =
+  AuthenticatedAgentAgentIndexRouteImport.update({
+    id: '/agent/',
+    path: '/agent/',
+    getParentRoute: () => AuthenticatedAgentRouteRoute,
+  } as any)
+const AuthenticatedAgentAgentSessionIdRoute =
+  AuthenticatedAgentAgentSessionIdRouteImport.update({
+    id: '/agent/$sessionId',
+    path: '/agent/$sessionId',
+    getParentRoute: () => AuthenticatedAgentRouteRoute,
+  } as any)
 const AuthenticatedChatChatConversationIdRoute =
   AuthenticatedChatChatConversationIdRouteImport.update({
     id: '/chat/$conversationId',
@@ -119,7 +138,9 @@ export interface FileRoutesByFullPath {
   '/api/chat/stream': typeof ApiChatStreamRoute
   '/api/models/events': typeof ApiModelsEventsRoute
   '/settings/': typeof AuthenticatedSettingsIndexRoute
+  '/agent/$sessionId': typeof AuthenticatedAgentAgentSessionIdRoute
   '/chat/$conversationId': typeof AuthenticatedChatChatConversationIdRoute
+  '/agent/': typeof AuthenticatedAgentAgentIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof AuthenticatedIndexRoute
@@ -134,12 +155,15 @@ export interface FileRoutesByTo {
   '/api/chat/stream': typeof ApiChatStreamRoute
   '/api/models/events': typeof ApiModelsEventsRoute
   '/settings': typeof AuthenticatedSettingsIndexRoute
+  '/agent/$sessionId': typeof AuthenticatedAgentAgentSessionIdRoute
   '/chat/$conversationId': typeof AuthenticatedChatChatConversationIdRoute
+  '/agent': typeof AuthenticatedAgentAgentIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/_public': typeof PublicRouteWithChildren
+  '/_authenticated/_agent': typeof AuthenticatedAgentRouteRouteWithChildren
   '/_authenticated/_chat': typeof AuthenticatedChatRouteRouteWithChildren
   '/_authenticated/library': typeof AuthenticatedLibraryRoute
   '/_public/sign-in': typeof PublicSignInRoute
@@ -153,7 +177,9 @@ export interface FileRoutesById {
   '/api/chat/stream': typeof ApiChatStreamRoute
   '/api/models/events': typeof ApiModelsEventsRoute
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
+  '/_authenticated/_agent/agent/$sessionId': typeof AuthenticatedAgentAgentSessionIdRoute
   '/_authenticated/_chat/chat/$conversationId': typeof AuthenticatedChatChatConversationIdRoute
+  '/_authenticated/_agent/agent/': typeof AuthenticatedAgentAgentIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -170,7 +196,9 @@ export interface FileRouteTypes {
     | '/api/chat/stream'
     | '/api/models/events'
     | '/settings/'
+    | '/agent/$sessionId'
     | '/chat/$conversationId'
+    | '/agent/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -185,11 +213,14 @@ export interface FileRouteTypes {
     | '/api/chat/stream'
     | '/api/models/events'
     | '/settings'
+    | '/agent/$sessionId'
     | '/chat/$conversationId'
+    | '/agent'
   id:
     | '__root__'
     | '/_authenticated'
     | '/_public'
+    | '/_authenticated/_agent'
     | '/_authenticated/_chat'
     | '/_authenticated/library'
     | '/_public/sign-in'
@@ -203,7 +234,9 @@ export interface FileRouteTypes {
     | '/api/chat/stream'
     | '/api/models/events'
     | '/_authenticated/settings/'
+    | '/_authenticated/_agent/agent/$sessionId'
     | '/_authenticated/_chat/chat/$conversationId'
+    | '/_authenticated/_agent/agent/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -238,6 +271,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/_agent': {
+      id: '/_authenticated/_agent'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedAgentRouteRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/_chat': {
@@ -324,6 +364,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiModelsEventsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/_agent/agent/': {
+      id: '/_authenticated/_agent/agent/'
+      path: '/agent'
+      fullPath: '/agent/'
+      preLoaderRoute: typeof AuthenticatedAgentAgentIndexRouteImport
+      parentRoute: typeof AuthenticatedAgentRouteRoute
+    }
+    '/_authenticated/_agent/agent/$sessionId': {
+      id: '/_authenticated/_agent/agent/$sessionId'
+      path: '/agent/$sessionId'
+      fullPath: '/agent/$sessionId'
+      preLoaderRoute: typeof AuthenticatedAgentAgentSessionIdRouteImport
+      parentRoute: typeof AuthenticatedAgentRouteRoute
+    }
     '/_authenticated/_chat/chat/$conversationId': {
       id: '/_authenticated/_chat/chat/$conversationId'
       path: '/chat/$conversationId'
@@ -333,6 +387,23 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface AuthenticatedAgentRouteRouteChildren {
+  AuthenticatedAgentAgentSessionIdRoute: typeof AuthenticatedAgentAgentSessionIdRoute
+  AuthenticatedAgentAgentIndexRoute: typeof AuthenticatedAgentAgentIndexRoute
+}
+
+const AuthenticatedAgentRouteRouteChildren: AuthenticatedAgentRouteRouteChildren =
+  {
+    AuthenticatedAgentAgentSessionIdRoute:
+      AuthenticatedAgentAgentSessionIdRoute,
+    AuthenticatedAgentAgentIndexRoute: AuthenticatedAgentAgentIndexRoute,
+  }
+
+const AuthenticatedAgentRouteRouteWithChildren =
+  AuthenticatedAgentRouteRoute._addFileChildren(
+    AuthenticatedAgentRouteRouteChildren,
+  )
 
 interface AuthenticatedChatRouteRouteChildren {
   AuthenticatedChatNewRoute: typeof AuthenticatedChatNewRoute
@@ -352,6 +423,7 @@ const AuthenticatedChatRouteRouteWithChildren =
   )
 
 interface AuthenticatedRouteChildren {
+  AuthenticatedAgentRouteRoute: typeof AuthenticatedAgentRouteRouteWithChildren
   AuthenticatedChatRouteRoute: typeof AuthenticatedChatRouteRouteWithChildren
   AuthenticatedLibraryRoute: typeof AuthenticatedLibraryRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
@@ -359,6 +431,7 @@ interface AuthenticatedRouteChildren {
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedAgentRouteRoute: AuthenticatedAgentRouteRouteWithChildren,
   AuthenticatedChatRouteRoute: AuthenticatedChatRouteRouteWithChildren,
   AuthenticatedLibraryRoute: AuthenticatedLibraryRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,

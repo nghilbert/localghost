@@ -1,5 +1,5 @@
 import { Link, type LinkProps, useRouterState } from "@tanstack/react-router";
-import { LibraryIcon, type LucideIcon, MessageCirclePlusIcon } from "lucide-react";
+import { BotIcon, LibraryIcon, type LucideIcon, MessageCirclePlusIcon } from "lucide-react";
 import {
 	SidebarGroup,
 	SidebarGroupContent,
@@ -17,6 +17,7 @@ type NavItem = {
 };
 const NAV_ITEMS = [
 	{ label: "Chat", to: "/new", NavIcon: MessageCirclePlusIcon, matches: ["/new", "/chat"] },
+	{ label: "Code agent", to: "/agent", NavIcon: BotIcon, matches: ["/agent"] },
 	{ label: "Library", to: "/library", NavIcon: LibraryIcon, matches: ["/library"] },
 ] as const satisfies NavItem[];
 

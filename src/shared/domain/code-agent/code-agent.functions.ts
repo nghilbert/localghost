@@ -7,10 +7,16 @@ import {
 	findCodeAgentSession,
 	findCodeAgentSessions,
 	insertCodeAgentSession,
+	recordApprovedCommand,
 	removeCodeAgentSession,
 } from "./code-agent.server";
+import { approvalCommandTarget } from "./code-agent-policy";
 import { availableCodeAgentHarnessIds } from "./harness-availability.server";
-import { codeAgentSessionIdInput, createCodeAgentSessionSchema } from "./schemas";
+import {
+	approveCodeAgentCommandInput,
+	codeAgentSessionIdInput,
+	createCodeAgentSessionSchema,
+} from "./schemas";
 
 /** Which harnesses this server can run, by whether their CLI is on PATH. */
 export const getCodeAgentAvailability = createServerFn({ method: "GET" })
@@ -49,6 +55,19 @@ export const createCodeAgentSession = createServerFn({ method: "POST" })
 	.middleware([authedFn])
 	.validator(createCodeAgentSessionSchema)
 	.handler(({ data, context }) => insertCodeAgentSession({ ownerId: context.userId, ...data }));
+
+/**
+ * Allows a command the sandbox asked about, for the rest of this session.
+ * @throws If the approval names something other than a command.
+ */
+export const approveCodeAgentCommand = createServerFn({ method: "POST" })
+	.middleware([authedFn])
+	.validator(approveCodeAgentCommandInput)
+	.handler(async ({ data: { id, approvalId }, context }) => {
+		const command = approvalCommandTarget(approvalId);
+		if (!command) throw new Error("That approval does not name a command.");
+		await recordApprovedCommand({ id, ownerId: context.userId, command });
+	});
 
 /** Delete a code-agent session by id. No-op when the id isn't owned by the current user. */
 export const deleteCodeAgentSession = createServerFn({ method: "POST" })
