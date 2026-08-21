@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { SignUpForm } from "#/routes/_public/-components/SignUpForm";
 import {
 	Card,
@@ -8,8 +8,17 @@ import {
 	CardHeader,
 	CardTitle,
 } from "#/shared/components/ui/card";
+import { signUpAvailabilityQueryOptions } from "#/shared/domain/auth/auth.functions";
 
-export const Route = createFileRoute("/_public/sign-up")({ component: SignUpPage });
+export const Route = createFileRoute("/_public/sign-up")({
+	// The account already exists, so this page has nothing to offer; better-auth
+	// would refuse the submit anyway, only after the form had been filled in.
+	beforeLoad: async ({ context }) => {
+		const { open } = await context.queryClient.ensureQueryData(signUpAvailabilityQueryOptions());
+		if (!open) throw redirect({ to: "/sign-in" });
+	},
+	component: SignUpPage,
+});
 
 function SignUpPage() {
 	return (
