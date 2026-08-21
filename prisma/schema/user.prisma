@@ -1,20 +1,21 @@
 model User {
-  id            String         @id @default(dbgenerated("uuidv7()")) @db.Uuid
-  name          String
-  email         String
-  emailVerified Boolean        @default(false) @map("email_verified")
-  image         String?
+  id                String             @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  name              String
+  email             String
+  emailVerified     Boolean            @default(false) @map("email_verified")
+  image             String?
   /// Chat defaults, declared as better-auth `user.additionalFields`.
-  systemPrompt  String?        @map("system_prompt")
-  temperature   Float?
-  createdAt     DateTime       @default(now()) @map("created_at")
-  updatedAt     DateTime       @updatedAt @map("updated_at")
-  sessions      Session[]
-  accounts      Account[]
-  endpoints     Endpoint[]
-  conversations Conversation[]
-  memories      Memory[]
-  modelSettings ModelSetting[]
+  systemPrompt      String?            @map("system_prompt")
+  temperature       Float?
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
+  sessions          Session[]
+  accounts          Account[]
+  endpoints         Endpoint[]
+  conversations     Conversation[]
+  memories          Memory[]
+  modelSettings     ModelSetting[]
+  codeAgentSessions CodeAgentSession[]
 
   @@unique([email])
   @@map("user")

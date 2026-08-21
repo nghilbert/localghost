@@ -1,18 +1,19 @@
 model Endpoint {
-  id              String         @id @default(dbgenerated("uuidv7()")) @db.Uuid
-  name            String
-  url             String
-  apiKeyEncrypted String?        @map("api_key_encrypted")
-  provider        String         @default("openai")
-  options         Json?          @map("options")
-  ownerId         String         @map("owner_id") @db.Uuid
-  owner           User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  conversations   Conversation[]
-  modelSettings   ModelSetting[]
-  updatedAt       DateTime       @updatedAt @map("updated_at")
+  id                String             @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  name              String
+  url               String
+  apiKeyEncrypted   String?            @map("api_key_encrypted")
+  provider          String             @default("openai")
+  options           Json?              @map("options")
+  ownerId           String             @map("owner_id") @db.Uuid
+  owner             User               @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  conversations     Conversation[]
+  modelSettings     ModelSetting[]
+  codeAgentSessions CodeAgentSession[]
+  updatedAt         DateTime           @updatedAt @map("updated_at")
   /// True only on the machine-managed "llama.cpp (local)" row; null on user-added
   /// endpoints, which the unique below therefore never constrains.
-  discovered      Boolean?
+  discovered        Boolean?
 
   @@unique([ownerId, discovered])
   @@index([ownerId])

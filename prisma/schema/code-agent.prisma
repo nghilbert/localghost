@@ -1,0 +1,23 @@
+/// A code-agent session: the business record (owner, workspace directory, endpoint,
+/// model). The transcript lives in `ChatThread`, keyed by this row's `id` as
+/// `threadId` — the same reuse `Conversation` makes of the chat-persistence tables.
+/// Both nouns therefore share the `chat_thread` key space; every lookup is scoped by
+/// owner and by table, so a stray id can only ever produce a 404.
+model CodeAgentSession {
+  id               String   @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  ownerId          String   @map("owner_id") @db.Uuid
+  owner            User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  title            String
+  workspacePath    String   @map("workspace_path")
+  endpointId       String   @map("endpoint_id") @db.Uuid
+  endpoint         Endpoint @relation(fields: [endpointId], references: [id], onDelete: Cascade)
+  harness          String
+  model            String
+  /// Commands the user has approved in this session, fed to the sandbox policy's
+  /// `commands.allow` so an approved command does not ask again on the next turn.
+  approvedCommands String[] @map("approved_commands")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  @@index([ownerId])
+  @@map("code_agent_session")
+}
