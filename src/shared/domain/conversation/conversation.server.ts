@@ -1,7 +1,6 @@
-import { uiMessageToModelMessages } from "@tanstack/ai";
 import { prisma } from "#/shared/lib/db.server";
 import { listModels } from "#/shared/lib/llamacpp/client.server";
-import { buildFirstUserMessage, deriveConversationTitle } from "./messages";
+import { deriveConversationTitle, threadMessagesFrom } from "./messages";
 
 /** One sidebar list entry: the fields needed to render and order conversation links. */
 export type ConversationListItem = {
@@ -155,12 +154,11 @@ export async function insertConversation({
 		kind: "image" | "document";
 	}>;
 }): Promise<{ id: string }> {
-	const message = buildFirstUserMessage({
+	const messages = threadMessagesFrom({
 		content: firstMessage,
 		images: attachments.filter((attachment) => attachment.kind === "image"),
 		documents: attachments.filter((attachment) => attachment.kind === "document"),
 	});
-	const messages = JSON.parse(JSON.stringify(uiMessageToModelMessages(message)));
 
 	return prisma.$transaction(async (tx) => {
 		const conversation = await tx.conversation.create({

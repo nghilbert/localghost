@@ -1,6 +1,7 @@
-import type { ModelMessage } from "@tanstack/ai";
+import { type ModelMessage, uiMessageToModelMessages } from "@tanstack/ai";
 import type { DocumentPart, ImagePart } from "@tanstack/ai/client";
 import type { UIMessage } from "@tanstack/ai-client";
+import type { Prisma } from "#/generated/prisma/client";
 
 /**
  * Revives `createdAt` back into a real `Date` after a JSONB or RPC round-trip
@@ -126,6 +127,17 @@ export function buildFirstUserMessage({
 		parts: [...imageMessageParts(images), ...documentMessageParts(documents), ...textParts],
 		createdAt: new Date(),
 	};
+}
+
+/**
+ * The seeded first turn as `ChatThread.messages` stores it. The round-trip is what
+ * flattens the model messages into the plain JSON values the column accepts; the
+ * return type is Prisma's rather than `ModelMessage[]` for the same reason.
+ */
+export function threadMessagesFrom(
+	message: Parameters<typeof buildFirstUserMessage>[0],
+): Prisma.InputJsonValue {
+	return JSON.parse(JSON.stringify(uiMessageToModelMessages(buildFirstUserMessage(message))));
 }
 
 /**
