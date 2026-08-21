@@ -1,6 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { FieldError } from "#/shared/components/ui/field";
 import { signInDefaults, signInSchema } from "#/shared/domain/auth/schemas";
 import { useAppForm } from "#/shared/hooks/use-app-form";
 import { authClient } from "#/shared/lib/auth-client";
@@ -41,7 +40,7 @@ export function SignInForm() {
 				</form.AppField>
 
 				<form.SubmitButton>Sign in</form.SubmitButton>
-				<FieldError>{errorMsg}</FieldError>
+				<form.FormError>{errorMsg}</form.FormError>
 			</form.SubmitForm>
 		</form.AppForm>
 	);
