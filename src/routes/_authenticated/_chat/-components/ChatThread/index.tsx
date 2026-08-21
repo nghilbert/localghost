@@ -11,6 +11,7 @@ import { takeChatHandoff } from "#/routes/_authenticated/_chat/-lib/chat-handoff
 import { CHAT_TOOLS } from "#/routes/_authenticated/_chat/-lib/chat-tools";
 import { ChatInput } from "#/routes/_authenticated/-components/ChatInput";
 import { ChatMessage } from "#/routes/_authenticated/-components/ChatMessage";
+import { ChatStatus } from "#/routes/_authenticated/-components/ChatStatus";
 import {
 	MessageScroller,
 	MessageScrollerButton,
@@ -24,7 +25,6 @@ import {
 	modelRunStateQueryOptions,
 } from "#/shared/domain/conversation/conversation.functions";
 import { awaitingAssistantResponse, editUserMessage } from "#/shared/domain/conversation/messages";
-import { ChatStatus } from "./ChatStatus";
 import { QueuedMessageItem } from "./QueuedMessageItem";
 
 type ChatThreadProps = { conversation: ConversationDetail };
