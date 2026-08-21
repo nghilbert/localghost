@@ -11,17 +11,17 @@ import type { ReactNode } from "react";
 import { Button } from "#/shared/components/ui/button";
 import { cn } from "#/shared/lib/utils";
 
-const toast = ToastPrimitive.createToastManager();
+export const toast = ToastPrimitive.createToastManager();
 
-function ToastProvider({ ...props }: ToastPrimitive.Provider.Props) {
+export function ToastProvider({ ...props }: ToastPrimitive.Provider.Props) {
 	return <ToastPrimitive.Provider {...props} />;
 }
 
-function ToastPortal({ ...props }: ToastPrimitive.Portal.Props) {
+export function ToastPortal({ ...props }: ToastPrimitive.Portal.Props) {
 	return <ToastPrimitive.Portal data-slot="toast-portal" {...props} />;
 }
 
-function ToastViewport({ className, ...props }: ToastPrimitive.Viewport.Props) {
+export function ToastViewport({ className, ...props }: ToastPrimitive.Viewport.Props) {
 	return (
 		<ToastPrimitive.Viewport
 			data-slot="toast-viewport"
@@ -34,26 +34,26 @@ function ToastViewport({ className, ...props }: ToastPrimitive.Viewport.Props) {
 	);
 }
 
-function Toast({ className, ...props }: ToastPrimitive.Root.Props) {
+export function Toast({ className, ...props }: ToastPrimitive.Root.Props) {
 	return (
 		<ToastPrimitive.Root
 			data-slot="toast"
 			className={cn(
 				"group/toast pointer-events-auto absolute right-0 bottom-0 z-[calc(1000-var(--toast-index))] w-full origin-bottom rounded-2xl border bg-popover text-popover-foreground shadow-lg will-change-transform outline-none select-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50",
 				"[--gap:0.75rem] [--height:var(--toast-frontmost-height,var(--toast-height))] [--offset-y:calc(var(--toast-offset-y)*-1+calc(var(--toast-index)*var(--gap)*-1)+var(--toast-swipe-movement-y))] [--peek:0.75rem] [--scale:calc(max(0,1-(var(--toast-index)*0.1)))] [--shrink:calc(1-var(--scale))]",
-				"h-(--height) [transform:translateX(var(--toast-swipe-movement-x))_translateY(calc(var(--toast-swipe-movement-y)-(var(--toast-index)*var(--peek))-(var(--shrink)*var(--height))))_scale(var(--scale))] [transition:transform_500ms_cubic-bezier(0.22,1,0.36,1),opacity_500ms,height_150ms]",
+				"h-(--height) transform-[translateX(var(--toast-swipe-movement-x))_translateY(calc(var(--toast-swipe-movement-y)-(var(--toast-index)*var(--peek))-(var(--shrink)*var(--height))))_scale(var(--scale))] [transition:transform_500ms_cubic-bezier(0.22,1,0.36,1),opacity_500ms,height_150ms]",
 				"after:absolute after:top-full after:left-0 after:h-[calc(var(--gap)+1px)] after:w-full after:content-['']",
-				"data-expanded:h-(--toast-height) data-expanded:[transform:translateX(var(--toast-swipe-movement-x))_translateY(var(--offset-y))]",
-				"data-limited:opacity-0 data-starting-style:[transform:translateY(150%)]",
-				"[&[data-ending-style]:not([data-limited]):not([data-swipe-direction])]:[transform:translateY(150%)]",
-				"data-ending-style:data-[swipe-direction=down]:[transform:translateY(calc(var(--toast-swipe-movement-y)+150%))]",
-				"data-ending-style:data-[swipe-direction=left]:[transform:translateX(calc(var(--toast-swipe-movement-x)-150%))_translateY(var(--offset-y))]",
-				"data-ending-style:data-[swipe-direction=right]:[transform:translateX(calc(var(--toast-swipe-movement-x)+150%))_translateY(var(--offset-y))]",
-				"data-ending-style:data-[swipe-direction=up]:[transform:translateY(calc(var(--toast-swipe-movement-y)-150%))]",
-				"data-expanded:data-ending-style:data-[swipe-direction=down]:[transform:translateY(calc(var(--toast-swipe-movement-y)+150%))]",
-				"data-expanded:data-ending-style:data-[swipe-direction=left]:[transform:translateX(calc(var(--toast-swipe-movement-x)-150%))_translateY(var(--offset-y))]",
-				"data-expanded:data-ending-style:data-[swipe-direction=right]:[transform:translateX(calc(var(--toast-swipe-movement-x)+150%))_translateY(var(--offset-y))]",
-				"data-expanded:data-ending-style:data-[swipe-direction=up]:[transform:translateY(calc(var(--toast-swipe-movement-y)-150%))]",
+				"data-expanded:h-(--toast-height) data-expanded:transform-[translateX(var(--toast-swipe-movement-x))_translateY(var(--offset-y))]",
+				"data-limited:opacity-0 data-starting-style:transform-[translateY(150%)]",
+				"[&[data-ending-style]:not([data-limited]):not([data-swipe-direction])]:transform-[translateY(150%)]",
+				"data-ending-style:data-[swipe-direction=down]:transform-[translateY(calc(var(--toast-swipe-movement-y)+150%))]",
+				"data-ending-style:data-[swipe-direction=left]:transform-[translateX(calc(var(--toast-swipe-movement-x)-150%))_translateY(var(--offset-y))]",
+				"data-ending-style:data-[swipe-direction=right]:transform-[translateX(calc(var(--toast-swipe-movement-x)+150%))_translateY(var(--offset-y))]",
+				"data-ending-style:data-[swipe-direction=up]:transform-[translateY(calc(var(--toast-swipe-movement-y)-150%))]",
+				"data-expanded:data-ending-style:data-[swipe-direction=down]:transform-[translateY(calc(var(--toast-swipe-movement-y)+150%))]",
+				"data-expanded:data-ending-style:data-[swipe-direction=left]:transform-[translateX(calc(var(--toast-swipe-movement-x)-150%))_translateY(var(--offset-y))]",
+				"data-expanded:data-ending-style:data-[swipe-direction=right]:transform-[translateX(calc(var(--toast-swipe-movement-x)+150%))_translateY(var(--offset-y))]",
+				"data-expanded:data-ending-style:data-[swipe-direction=up]:transform-[translateY(calc(var(--toast-swipe-movement-y)-150%))]",
 				className,
 			)}
 			{...props}
@@ -61,7 +61,7 @@ function Toast({ className, ...props }: ToastPrimitive.Root.Props) {
 	);
 }
 
-function ToastContent({ className, ...props }: ToastPrimitive.Content.Props) {
+export function ToastContent({ className, ...props }: ToastPrimitive.Content.Props) {
 	return (
 		<ToastPrimitive.Content
 			data-slot="toast-content"
@@ -74,7 +74,7 @@ function ToastContent({ className, ...props }: ToastPrimitive.Content.Props) {
 	);
 }
 
-function ToastTitle({ className, ...props }: ToastPrimitive.Title.Props) {
+export function ToastTitle({ className, ...props }: ToastPrimitive.Title.Props) {
 	return (
 		<ToastPrimitive.Title
 			data-slot="toast-title"
@@ -84,7 +84,7 @@ function ToastTitle({ className, ...props }: ToastPrimitive.Title.Props) {
 	);
 }
 
-function ToastDescription({ className, ...props }: ToastPrimitive.Description.Props) {
+export function ToastDescription({ className, ...props }: ToastPrimitive.Description.Props) {
 	return (
 		<ToastPrimitive.Description
 			data-slot="toast-description"
@@ -94,7 +94,7 @@ function ToastDescription({ className, ...props }: ToastPrimitive.Description.Pr
 	);
 }
 
-function ToastAction({
+export function ToastAction({
 	className,
 	render = <Button variant="outline" size="sm" />,
 	...props
@@ -109,7 +109,7 @@ function ToastAction({
 	);
 }
 
-function ToastClose({
+export function ToastClose({
 	className,
 	children,
 	render = <Button variant="ghost" size="icon-sm" />,
@@ -186,7 +186,11 @@ function ToastList() {
 	));
 }
 
-function Toaster({ children, toastManager = toast, ...props }: ToastPrimitive.Provider.Props) {
+export function Toaster({
+	children,
+	toastManager = toast,
+	...props
+}: ToastPrimitive.Provider.Props) {
 	return (
 		<ToastProvider toastManager={toastManager} {...props}>
 			{children}
@@ -199,21 +203,5 @@ function Toaster({ children, toastManager = toast, ...props }: ToastPrimitive.Pr
 	);
 }
 
-const createToastManager = ToastPrimitive.createToastManager;
-const useToastManager = ToastPrimitive.useToastManager;
-
-export {
-	createToastManager,
-	Toast,
-	ToastAction,
-	ToastClose,
-	ToastContent,
-	ToastDescription,
-	Toaster,
-	ToastPortal,
-	ToastProvider,
-	ToastTitle,
-	ToastViewport,
-	toast,
-	useToastManager,
-};
+export const createToastManager = ToastPrimitive.createToastManager;
+export const useToastManager = ToastPrimitive.useToastManager;

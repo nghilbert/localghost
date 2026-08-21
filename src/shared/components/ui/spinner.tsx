@@ -2,7 +2,7 @@ import { Loader2Icon } from "lucide-react";
 import type { ComponentProps } from "react";
 import { cn } from "#/shared/lib/utils";
 
-function Spinner({ className, ...props }: ComponentProps<"svg">) {
+export function Spinner({ className, ...props }: ComponentProps<"svg">) {
 	return (
 		<Loader2Icon
 			data-slot="spinner"
@@ -13,5 +13,3 @@ function Spinner({ className, ...props }: ComponentProps<"svg">) {
 		/>
 	);
 }
-
-export { Spinner };
