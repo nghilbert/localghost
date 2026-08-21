@@ -240,3 +240,16 @@ export const chatPersistence: ChatWithInterruptsPersistence = defineAIPersistenc
 		interrupts: createInterruptStore(),
 	},
 });
+
+/**
+ * Every persistence row a thread owns, as deletes to compose into the caller's
+ * `$transaction`. None of these tables has a foreign key to the owning record, so
+ * each owner deletes them explicitly; listing them once keeps the set honest.
+ */
+export function deleteChatThreadRows({ threadId }: { threadId: string }) {
+	return [
+		prisma.chatThread.deleteMany({ where: { threadId } }),
+		prisma.chatRun.deleteMany({ where: { threadId } }),
+		prisma.chatInterrupt.deleteMany({ where: { threadId } }),
+	];
+}

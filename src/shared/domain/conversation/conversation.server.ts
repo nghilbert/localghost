@@ -1,3 +1,4 @@
+import { deleteChatThreadRows } from "#/shared/domain/chat/chat-persistence.server";
 import { prisma } from "#/shared/lib/db.server";
 import { listModels } from "#/shared/lib/llamacpp/client.server";
 import { deriveConversationTitle, threadMessagesFrom } from "./messages";
@@ -247,9 +248,7 @@ export async function removeConversation({
 	});
 	if (!owned) return;
 	await prisma.$transaction([
-		prisma.chatThread.deleteMany({ where: { threadId: id } }),
-		prisma.chatRun.deleteMany({ where: { threadId: id } }),
-		prisma.chatInterrupt.deleteMany({ where: { threadId: id } }),
+		...deleteChatThreadRows({ threadId: id }),
 		prisma.conversation.deleteMany({ where: { id, ownerId } }),
 	]);
 }
