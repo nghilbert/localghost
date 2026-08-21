@@ -18,6 +18,7 @@ import { Route as PublicSignInRouteImport } from './routes/_public/sign-in'
 import { Route as PublicSignUpRouteImport } from './routes/_public/sign-up'
 import { Route as AuthenticatedChatNewRouteImport } from './routes/_authenticated/_chat/new'
 import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authenticated/settings/index'
+import { Route as ApiAgentStreamRouteImport } from './routes/api/agent/stream'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiBackupExportRouteImport } from './routes/api/backup/export'
 import { Route as ApiBackupImportRouteImport } from './routes/api/backup/import'
@@ -68,6 +69,11 @@ const AuthenticatedSettingsIndexRoute =
     path: '/settings/',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const ApiAgentStreamRoute = ApiAgentStreamRouteImport.update({
+  id: '/api/agent/stream',
+  path: '/api/agent/stream',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -106,6 +112,7 @@ export interface FileRoutesByFullPath {
   '/sign-in': typeof PublicSignInRoute
   '/sign-up': typeof PublicSignUpRoute
   '/new': typeof AuthenticatedChatNewRoute
+  '/api/agent/stream': typeof ApiAgentStreamRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/backup/export': typeof ApiBackupExportRoute
   '/api/backup/import': typeof ApiBackupImportRoute
@@ -120,6 +127,7 @@ export interface FileRoutesByTo {
   '/sign-in': typeof PublicSignInRoute
   '/sign-up': typeof PublicSignUpRoute
   '/new': typeof AuthenticatedChatNewRoute
+  '/api/agent/stream': typeof ApiAgentStreamRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/backup/export': typeof ApiBackupExportRoute
   '/api/backup/import': typeof ApiBackupImportRoute
@@ -138,6 +146,7 @@ export interface FileRoutesById {
   '/_public/sign-up': typeof PublicSignUpRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/_chat/new': typeof AuthenticatedChatNewRoute
+  '/api/agent/stream': typeof ApiAgentStreamRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/backup/export': typeof ApiBackupExportRoute
   '/api/backup/import': typeof ApiBackupImportRoute
@@ -154,6 +163,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/new'
+    | '/api/agent/stream'
     | '/api/auth/$'
     | '/api/backup/export'
     | '/api/backup/import'
@@ -168,6 +178,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/new'
+    | '/api/agent/stream'
     | '/api/auth/$'
     | '/api/backup/export'
     | '/api/backup/import'
@@ -185,6 +196,7 @@ export interface FileRouteTypes {
     | '/_public/sign-up'
     | '/_authenticated/'
     | '/_authenticated/_chat/new'
+    | '/api/agent/stream'
     | '/api/auth/$'
     | '/api/backup/export'
     | '/api/backup/import'
@@ -197,6 +209,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   PublicRoute: typeof PublicRouteWithChildren
+  ApiAgentStreamRoute: typeof ApiAgentStreamRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiBackupExportRoute: typeof ApiBackupExportRoute
   ApiBackupImportRoute: typeof ApiBackupImportRoute
@@ -268,6 +281,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/settings/'
       preLoaderRoute: typeof AuthenticatedSettingsIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
+    }
+    '/api/agent/stream': {
+      id: '/api/agent/stream'
+      path: '/api/agent/stream'
+      fullPath: '/api/agent/stream'
+      preLoaderRoute: typeof ApiAgentStreamRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/auth/$': {
       id: '/api/auth/$'
@@ -365,6 +385,7 @@ const PublicRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   PublicRoute: PublicRouteWithChildren,
+  ApiAgentStreamRoute: ApiAgentStreamRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiBackupExportRoute: ApiBackupExportRoute,
   ApiBackupImportRoute: ApiBackupImportRoute,
