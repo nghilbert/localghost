@@ -5,7 +5,7 @@
 # panel. Omit on CPU-only hosts.
 services:
   llamacpp:
-    image: ghcr.io/ggml-org/llama.cpp:server-cuda-b10276
+    image: ghcr.io/ggml-org/llama.cpp:server-cuda-b10380
     gpus: all
   web: &gpu
     deploy:

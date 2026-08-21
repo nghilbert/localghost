@@ -8,8 +8,10 @@ use_default_settings:
       - wikidata # Needs a live call to query.wikidata.org on init; often 403s
 
 server:
-  # App-only, no reverse proxy: disable the limiter/bot detection. SearXNG's
-  # one-time "no X-Forwarded-For" warning is expected here, not a bug.
+  # App-only, no reverse proxy: disable the limiter/bot detection. The two
+  # one-time startup lines this leaves behind ("missing config file:
+  # limiter.toml" and "X-Forwarded-For nor X-Real-IP header is set!") are
+  # expected here, not bugs.
   limiter: false
   public_instance: false
 

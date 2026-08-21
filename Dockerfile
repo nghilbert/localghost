@@ -12,8 +12,14 @@ RUN npm run prisma -- generate && npm run build
 # `predev` hook, then serves Vite with HMR bound to all interfaces.
 FROM node:24-bookworm-slim AS dev
 WORKDIR /app
-COPY package.json package-lock.json ./
-RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
+# Unprivileged, like the final stage. `node` is uid 1000, so what the container
+# writes through the bind mount stays owned by the usual host account; npm runs
+# as `node` so the anonymous node_modules volume seeds from a dir it owns.
+RUN chown node:node /app
+USER node
+COPY --chown=node:node package.json package-lock.json ./
 RUN npm ci
 CMD ["sh", "-c", "npm run prisma -- generate && npm run dev -- --host"]
 
@@ -21,7 +27,8 @@ FROM node:24-bookworm-slim
 WORKDIR /app
 ENV NODE_ENV=production
 COPY package.json package-lock.json ./
-RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
 RUN npm ci --omit=dev
 COPY --from=build /app/.output ./.output
 COPY prisma.config.ts ./
