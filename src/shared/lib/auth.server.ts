@@ -11,6 +11,11 @@ function getSecret(): string {
 	return secret;
 }
 
+/** Whether this deployment still accepts a sign-up, i.e. holds no account yet. */
+export async function isSignUpOpen(): Promise<boolean> {
+	return (await prisma.user.count()) === 0;
+}
+
 export const auth = betterAuth({
 	database: prismaAdapter(prisma, { provider: "postgresql" }),
 	// On the Postgres adapter this makes better-auth omit `id` from its inserts rather
@@ -41,11 +46,11 @@ export const auth = betterAuth({
 	},
 	hooks: {
 		// Personal deployment: only the first account may sign up; later attempts
-		// are rejected regardless of who is asking.
+		// are rejected regardless of who is asking. The sign-up page reads the same
+		// rule to redirect, but this is the boundary.
 		before: createAuthMiddleware(async (ctx) => {
 			if (ctx.path !== "/sign-up/email") return;
-			const existingUserCount = await prisma.user.count();
-			if (existingUserCount > 0) {
+			if (!(await isSignUpOpen())) {
 				throw new APIError("FORBIDDEN", {
 					message: "Sign-up is closed: this app is already set up for one account.",
 				});
