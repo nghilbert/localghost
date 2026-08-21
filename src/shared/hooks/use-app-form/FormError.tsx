@@ -6,7 +6,7 @@ export function FormError({ children }: { children?: ReactNode }) {
 	if (!children) return null;
 
 	return (
-		<Alert variant="destructive">
+		<Alert variant="destructive" data-testid="form-error">
 			<CircleAlertIcon />
 			<AlertDescription>{children}</AlertDescription>
 		</Alert>
