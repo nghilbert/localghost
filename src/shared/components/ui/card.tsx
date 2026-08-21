@@ -1,7 +1,7 @@
 import type { ComponentProps } from "react";
 import { cn } from "#/shared/lib/utils";
 
-function Card({
+export function Card({
 	className,
 	size = "default",
 	...props
@@ -19,7 +19,7 @@ function Card({
 	);
 }
 
-function CardHeader({ className, ...props }: ComponentProps<"div">) {
+export function CardHeader({ className, ...props }: ComponentProps<"div">) {
 	return (
 		<div
 			data-slot="card-header"
@@ -32,7 +32,7 @@ function CardHeader({ className, ...props }: ComponentProps<"div">) {
 	);
 }
 
-function CardTitle({ className, ...props }: ComponentProps<"div">) {
+export function CardTitle({ className, ...props }: ComponentProps<"div">) {
 	return (
 		<div
 			data-slot="card-title"
@@ -45,7 +45,7 @@ function CardTitle({ className, ...props }: ComponentProps<"div">) {
 	);
 }
 
-function CardDescription({ className, ...props }: ComponentProps<"div">) {
+export function CardDescription({ className, ...props }: ComponentProps<"div">) {
 	return (
 		<div
 			data-slot="card-description"
@@ -55,7 +55,7 @@ function CardDescription({ className, ...props }: ComponentProps<"div">) {
 	);
 }
 
-function CardAction({ className, ...props }: ComponentProps<"div">) {
+export function CardAction({ className, ...props }: ComponentProps<"div">) {
 	return (
 		<div
 			data-slot="card-action"
@@ -65,13 +65,13 @@ function CardAction({ className, ...props }: ComponentProps<"div">) {
 	);
 }
 
-function CardContent({ className, ...props }: ComponentProps<"div">) {
+export function CardContent({ className, ...props }: ComponentProps<"div">) {
 	return (
 		<div data-slot="card-content" className={cn("px-(--card-spacing)", className)} {...props} />
 	);
 }
 
-function CardFooter({ className, ...props }: ComponentProps<"div">) {
+export function CardFooter({ className, ...props }: ComponentProps<"div">) {
 	return (
 		<div
 			data-slot="card-footer"
@@ -83,5 +83,3 @@ function CardFooter({ className, ...props }: ComponentProps<"div">) {
 		/>
 	);
 }
-
-export { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle };

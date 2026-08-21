@@ -19,6 +19,7 @@ import {
 	AlertDialogTitle,
 } from "#/shared/components/ui/alert-dialog";
 import { Button } from "#/shared/components/ui/button";
+import { Container } from "#/shared/components/ui/container";
 import {
 	Item,
 	ItemActions,
@@ -34,13 +35,15 @@ import {
 	hardwareQueryOptions,
 	libraryStatusQueryOptions,
 } from "#/shared/domain/model/model.functions";
+import type { CatalogQuery } from "#/shared/domain/model/schemas";
 import { useDeleteModel, useModelDownload } from "#/shared/domain/model/use-model";
 
-const DEFAULT_CATALOG_QUERY = {
+const DEFAULT_CATALOG_QUERY: CatalogQuery = {
 	page: 0,
 	pageSize: CATALOG_PAGE_SIZE,
 	sortBy: DEFAULT_SORT.sortBy,
 	sortDir: DEFAULT_SORT.sortDir,
+	hiddenFits: ["wont-fit"],
 };
 
 const SKELETON_ROW_KEYS = ["a", "b", "c", "d", "e", "f"];
@@ -73,7 +76,7 @@ function LibraryPage() {
 
 	return (
 		<div className="h-full overflow-auto">
-			<div className="space-y-6 p-6">
+			<Container size="6xl" className="space-y-6 p-6">
 				<HardwareCard hardware={hardware} isLoading={isLoadingHardware} />
 
 				<Separator />
@@ -126,7 +129,7 @@ function LibraryPage() {
 				) : (
 					<RuntimeSetupCard />
 				)}
-			</div>
+			</Container>
 			<AlertDialog
 				open={pendingDelete !== null}
 				onOpenChange={(open) => {

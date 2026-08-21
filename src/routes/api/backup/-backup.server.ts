@@ -1,4 +1,5 @@
 import { z } from "zod/v4";
+import type { ImportBackupCounts } from "#/shared/domain/backup/schemas";
 import { samplingOptionsSchema } from "#/shared/domain/endpoint/schemas";
 import { embed } from "#/shared/domain/memory/embeddings.server";
 import { insertMemory } from "#/shared/domain/memory/memory.server";
@@ -190,17 +191,7 @@ export async function importBackup({
 }: {
 	userId: string;
 	payload: ImportPayload;
-}): Promise<{
-	memories: number;
-	conversations: number;
-	endpoints: number;
-	modelSettings: number;
-	skippedMemories: number;
-	skippedConversations: number;
-	skippedEndpoints: number;
-	skippedModelSettings: number;
-	invalidConversations: number;
-}> {
+}): Promise<ImportBackupCounts> {
 	const incomingMemories = (payload.memories ?? [])
 		.filter((m) => m?.text)
 		.map((m) => ({

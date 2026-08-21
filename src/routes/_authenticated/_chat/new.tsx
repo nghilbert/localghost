@@ -1,10 +1,10 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { ChatInput } from "#/routes/_authenticated/_chat/-components/ChatInput";
 import { useChatTools } from "#/routes/_authenticated/_chat/-hooks/use-chat-tools";
 import type { Attachment } from "#/routes/_authenticated/_chat/-lib/attachments";
 import { storeChatHandoff } from "#/routes/_authenticated/_chat/-lib/chat-handoff";
+import { ChatInput } from "#/routes/_authenticated/-components/ChatInput";
 import {
 	Empty,
 	EmptyContent,

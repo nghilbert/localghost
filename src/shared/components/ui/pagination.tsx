@@ -3,10 +3,9 @@ import type { ComponentProps } from "react";
 import { Button } from "#/shared/components/ui/button";
 import { cn } from "#/shared/lib/utils";
 
-function Pagination({ className, ...props }: ComponentProps<"nav">) {
+export function Pagination({ className, ...props }: ComponentProps<"nav">) {
 	return (
 		<nav
-			role="navigation"
 			aria-label="pagination"
 			data-slot="pagination"
 			className={cn("mx-auto flex w-full justify-center", className)}
@@ -15,7 +14,7 @@ function Pagination({ className, ...props }: ComponentProps<"nav">) {
 	);
 }
 
-function PaginationContent({ className, ...props }: ComponentProps<"ul">) {
+export function PaginationContent({ className, ...props }: ComponentProps<"ul">) {
 	return (
 		<ul
 			data-slot="pagination-content"
@@ -25,7 +24,7 @@ function PaginationContent({ className, ...props }: ComponentProps<"ul">) {
 	);
 }
 
-function PaginationItem({ ...props }: ComponentProps<"li">) {
+export function PaginationItem({ ...props }: ComponentProps<"li">) {
 	return <li data-slot="pagination-item" {...props} />;
 }
 
@@ -34,7 +33,12 @@ type PaginationLinkProps = {
 } & Pick<ComponentProps<typeof Button>, "size"> &
 	ComponentProps<"a">;
 
-function PaginationLink({ className, isActive, size = "icon", ...props }: PaginationLinkProps) {
+export function PaginationLink({
+	className,
+	isActive,
+	size = "icon",
+	...props
+}: PaginationLinkProps) {
 	return (
 		<Button
 			variant={isActive ? "outline" : "ghost"}
@@ -45,7 +49,7 @@ function PaginationLink({ className, isActive, size = "icon", ...props }: Pagina
 				<a
 					aria-current={isActive ? "page" : undefined}
 					data-slot="pagination-link"
-					data-active={isActive}
+					data-active={isActive ? "" : undefined}
 					{...props}
 				/>
 			}
@@ -53,7 +57,7 @@ function PaginationLink({ className, isActive, size = "icon", ...props }: Pagina
 	);
 }
 
-function PaginationPrevious({
+export function PaginationPrevious({
 	className,
 	text = "Previous",
 	...props
@@ -71,7 +75,7 @@ function PaginationPrevious({
 	);
 }
 
-function PaginationNext({
+export function PaginationNext({
 	className,
 	text = "Next",
 	...props
@@ -89,7 +93,7 @@ function PaginationNext({
 	);
 }
 
-function PaginationEllipsis({ className, ...props }: ComponentProps<"span">) {
+export function PaginationEllipsis({ className, ...props }: ComponentProps<"span">) {
 	return (
 		<span
 			aria-hidden
@@ -105,13 +109,3 @@ function PaginationEllipsis({ className, ...props }: ComponentProps<"span">) {
 		</span>
 	);
 }
-
-export {
-	Pagination,
-	PaginationContent,
-	PaginationEllipsis,
-	PaginationItem,
-	PaginationLink,
-	PaginationNext,
-	PaginationPrevious,
-};

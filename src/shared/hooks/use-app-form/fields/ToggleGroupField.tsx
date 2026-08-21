@@ -18,15 +18,16 @@ export function ToggleGroupField({
 
 	return (
 		<FieldShell label={label} description={description} orientation={fieldOrientation}>
+			{/* Base UI ToggleGroup doesn't read Field context, so FieldLabel can't
+			    bind to it; name the group directly instead of leaving it unlabelled. */}
 			<ToggleGroup
-				id={field.name}
+				aria-label={label}
 				value={[field.state.value]}
 				onValueChange={(value) => {
 					const newValue = value[0];
 					if (newValue) field.handleChange(newValue);
 				}}
 				onBlur={field.handleBlur}
-				aria-invalid={!field.state.meta.isValid}
 				{...props}
 			>
 				{options.map((option) => (

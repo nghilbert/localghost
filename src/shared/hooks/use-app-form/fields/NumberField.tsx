@@ -1,37 +1,48 @@
-import { Input } from "#/shared/components/ui/input";
+import { MinusIcon, PlusIcon } from "lucide-react";
+import {
+	NumberFieldDecrement,
+	NumberFieldGroup,
+	NumberFieldIncrement,
+	NumberFieldInput,
+	NumberField as NumberFieldRoot,
+} from "#/shared/components/ui/number-field";
 import { useFieldContext } from "..";
 import { FieldShell } from "./FieldShell";
 import type { ComponentFieldProps } from "./types";
 
 /**
- * Numeric input bound to an optional `number`. A blank field maps to `undefined`
- * rather than `0`, so an empty value means "unset", letting the consumer fall
- * back to a provider default instead of forcing a zero.
+ * Numeric input bound to an optional `number`, on Base UI's NumberField primitive.
+ * A blank field is `undefined`, not `0`, so "unset" falls back to a provider default.
+ * Base UI models blank as `null`, bridged to `undefined` at the value boundary.
  */
 export function NumberField({
 	label,
 	description,
 	fieldOrientation,
+	className,
+	placeholder,
 	...props
-}: ComponentFieldProps<typeof Input>) {
+}: ComponentFieldProps<typeof NumberFieldRoot> & { placeholder?: string }) {
 	const field = useFieldContext<number | undefined>();
 
 	return (
 		<FieldShell label={label} description={description} orientation={fieldOrientation}>
-			<Input
-				id={field.name}
-				data-testid={`${field.name}-input`}
-				type="number"
-				inputMode="numeric"
-				value={field.state.value ?? ""}
+			<NumberFieldRoot
+				value={field.state.value ?? null}
+				onValueChange={(value) => field.handleChange(value ?? undefined)}
 				onBlur={field.handleBlur}
-				onChange={(event) => {
-					const next = event.target.valueAsNumber;
-					field.handleChange(Number.isNaN(next) ? undefined : next);
-				}}
-				aria-invalid={!field.state.meta.isValid}
 				{...props}
-			/>
+			>
+				<NumberFieldGroup className={className}>
+					<NumberFieldDecrement data-testid={`${field.name}-decrement`}>
+						<MinusIcon />
+					</NumberFieldDecrement>
+					<NumberFieldInput data-testid={`${field.name}-input`} placeholder={placeholder} />
+					<NumberFieldIncrement data-testid={`${field.name}-increment`}>
+						<PlusIcon />
+					</NumberFieldIncrement>
+				</NumberFieldGroup>
+			</NumberFieldRoot>
 		</FieldShell>
 	);
 }

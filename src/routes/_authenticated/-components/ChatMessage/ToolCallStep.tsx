@@ -10,9 +10,9 @@ import {
 	XIcon,
 } from "lucide-react";
 import { useState } from "react";
-import { ActivityMarker } from "#/routes/_authenticated/_chat/-components/ActivityMarker";
-import type { ChatInterrupts } from "#/routes/_authenticated/_chat/-components/ChatThread";
-import { useStepDuration } from "#/routes/_authenticated/_chat/-hooks/use-step-duration";
+import type { ChatInterrupts } from "#/routes/_authenticated/_chat/-lib/chat-tools";
+import { useStepDuration } from "#/routes/_authenticated/-hooks/use-step-duration";
+import { ActivityMarker } from "#/shared/components/ActivityMarker";
 import { Button } from "#/shared/components/ui/button";
 import { Marker, MarkerContent, MarkerIcon } from "#/shared/components/ui/marker";
 
@@ -201,8 +201,8 @@ export function ToolCallStep({ toolCall, isStreaming, interrupt }: ToolCallStepP
 				<MarkerContent className="flex items-center gap-1 hover:text-foreground">
 					{done(input)}
 					<ChevronRightIcon
-						className="size-3 transition-transform data-[open=true]:rotate-90"
-						data-open={open}
+						className="size-3 transition-transform data-open:rotate-90"
+						data-open={open ? "" : undefined}
 					/>
 				</MarkerContent>
 			</Marker>

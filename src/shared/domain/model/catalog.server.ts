@@ -1,5 +1,10 @@
 import { rankItem } from "@tanstack/match-sorter-utils";
-import { requiredMemoryGb } from "#/shared/domain/model/hardware-fit";
+import { getHardwareInfo } from "#/shared/domain/model/hardware.server";
+import {
+	classifyHardwareFit,
+	type HardwareFit,
+	requiredMemoryGb,
+} from "#/shared/domain/model/hardware-fit";
 import {
 	type CatalogCandidate,
 	contextKFromLength,
@@ -200,6 +205,14 @@ export async function getCatalogPage(
 	].sort();
 
 	let filtered = all;
+	if (query.hiddenFits.length > 0) {
+		const hardware = await getHardwareInfo();
+		const hidden = new Set<HardwareFit>(query.hiddenFits);
+		filtered = filtered.filter((model) => {
+			const fit = classifyHardwareFit({ model, hardware });
+			return fit === null || !hidden.has(fit);
+		});
+	}
 	if (query.licenses && query.licenses.length > 0) {
 		const licenses = new Set(query.licenses);
 		filtered = filtered.filter((model) => model.license !== null && licenses.has(model.license));

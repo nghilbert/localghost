@@ -1,12 +1,13 @@
-import { cva, type VariantProps } from "class-variance-authority";
 import type { ComponentProps } from "react";
+import { tv, type VariantProps } from "tailwind-variants";
 import { Button } from "#/shared/components/ui/button";
 import { Input } from "#/shared/components/ui/input";
 import { Textarea } from "#/shared/components/ui/textarea";
 import { cn } from "#/shared/lib/utils";
 
-function InputGroup({ className, ...props }: ComponentProps<"div">) {
+export function InputGroup({ className, ...props }: ComponentProps<"div">) {
 	return (
+		// biome-ignore lint/a11y/useSemanticElements: role="group" bundles a set of related controls. A <fieldset> carries form-field UA styling and legend semantics this is not.
 		<div
 			data-slot="input-group"
 			role="group"
@@ -19,31 +20,31 @@ function InputGroup({ className, ...props }: ComponentProps<"div">) {
 	);
 }
 
-const inputGroupAddonVariants = cva(
-	"flex h-auto cursor-text items-center justify-center gap-2 py-1.5 text-sm font-medium text-muted-foreground select-none group-data-[disabled=true]/input-group:opacity-50 [&>kbd]:rounded-[calc(var(--radius)-5px)] [&>svg:not([class*='size-'])]:size-4",
-	{
-		variants: {
-			align: {
-				"inline-start": "order-first pl-2 has-[>button]:ml-[-0.3rem] has-[>kbd]:ml-[-0.15rem]",
-				"inline-end": "order-last pr-2 has-[>button]:mr-[-0.3rem] has-[>kbd]:mr-[-0.15rem]",
-				"block-start":
-					"order-first w-full justify-start px-2.5 pt-2 group-has-[>input]/input-group:pt-2 [.border-b]:pb-2",
-				"block-end":
-					"order-last w-full justify-start px-2.5 pb-2 group-has-[>input]/input-group:pb-2 [.border-t]:pt-2",
-			},
-		},
-		defaultVariants: {
-			align: "inline-start",
+const inputGroupAddonVariants = tv({
+	base: "flex h-auto cursor-text items-center justify-center gap-2 py-1.5 text-sm font-medium text-muted-foreground select-none group-has-disabled/input-group:opacity-50 [&>kbd]:rounded-[calc(var(--radius)-5px)] [&>svg:not([class*='size-'])]:size-4",
+	variants: {
+		align: {
+			"inline-start": "order-first pl-2 has-[>button]:ml-[-0.3rem] has-[>kbd]:ml-[-0.15rem]",
+			"inline-end": "order-last pr-2 has-[>button]:mr-[-0.3rem] has-[>kbd]:mr-[-0.15rem]",
+			"block-start":
+				"order-first w-full justify-start px-2.5 pt-2 group-has-[>input]/input-group:pt-2 [.border-b]:pb-2",
+			"block-end":
+				"order-last w-full justify-start px-2.5 pb-2 group-has-[>input]/input-group:pb-2 [.border-t]:pt-2",
 		},
 	},
-);
+	defaultVariants: {
+		align: "inline-start",
+	},
+});
 
-function InputGroupAddon({
+export function InputGroupAddon({
 	className,
 	align = "inline-start",
 	...props
 }: ComponentProps<"div"> & VariantProps<typeof inputGroupAddonVariants>) {
 	return (
+		// biome-ignore lint/a11y/useKeyWithClickEvents: onClick only forwards focus to the group's real input, which is separately keyboard reachable. There is no keyboard-only action to mirror.
+		// biome-ignore lint/a11y/useSemanticElements: role="group" bundles an addon with its input. A <fieldset> carries form-field UA styling and legend semantics this is not.
 		<div
 			role="group"
 			data-slot="input-group-addon"
@@ -60,7 +61,8 @@ function InputGroupAddon({
 	);
 }
 
-const inputGroupButtonVariants = cva("flex items-center gap-2 text-sm shadow-none", {
+const inputGroupButtonVariants = tv({
+	base: "flex items-center gap-2 text-sm shadow-none",
 	variants: {
 		size: {
 			xs: "h-6 gap-1 rounded-[calc(var(--radius)-3px)] px-1.5 [&>svg:not([class*='size-'])]:size-3.5",
@@ -74,7 +76,7 @@ const inputGroupButtonVariants = cva("flex items-center gap-2 text-sm shadow-non
 	},
 });
 
-function InputGroupButton({
+export function InputGroupButton({
 	className,
 	type = "button",
 	variant = "ghost",
@@ -95,7 +97,7 @@ function InputGroupButton({
 	);
 }
 
-function InputGroupText({ className, ...props }: ComponentProps<"span">) {
+export function InputGroupText({ className, ...props }: ComponentProps<"span">) {
 	return (
 		<span
 			className={cn(
@@ -107,7 +109,7 @@ function InputGroupText({ className, ...props }: ComponentProps<"span">) {
 	);
 }
 
-function InputGroupInput({ className, ...props }: ComponentProps<"input">) {
+export function InputGroupInput({ className, ...props }: ComponentProps<typeof Input>) {
 	return (
 		<Input
 			data-slot="input-group-control"
@@ -120,7 +122,7 @@ function InputGroupInput({ className, ...props }: ComponentProps<"input">) {
 	);
 }
 
-function InputGroupTextarea({ className, ...props }: ComponentProps<"textarea">) {
+export function InputGroupTextarea({ className, ...props }: ComponentProps<"textarea">) {
 	return (
 		<Textarea
 			data-slot="input-group-control"
@@ -132,12 +134,3 @@ function InputGroupTextarea({ className, ...props }: ComponentProps<"textarea">)
 		/>
 	);
 }
-
-export {
-	InputGroup,
-	InputGroupAddon,
-	InputGroupButton,
-	InputGroupInput,
-	InputGroupText,
-	InputGroupTextarea,
-};

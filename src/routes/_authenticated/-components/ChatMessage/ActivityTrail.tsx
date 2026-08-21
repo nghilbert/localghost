@@ -1,6 +1,7 @@
 import type { UIMessage } from "@tanstack/ai-client";
-import { ActivityMarker } from "#/routes/_authenticated/_chat/-components/ActivityMarker";
-import type { ChatInterrupts } from "#/routes/_authenticated/_chat/-components/ChatThread";
+import type { ChatInterrupts } from "#/routes/_authenticated/_chat/-lib/chat-tools";
+import { ActivityMarker } from "#/shared/components/ActivityMarker";
+import { useElapsedSeconds } from "#/shared/hooks/use-elapsed-seconds";
 import { ReasoningStep } from "./ReasoningStep";
 import { type ToolApprovalInterrupt, ToolCallStep } from "./ToolCallStep";
 
@@ -32,6 +33,7 @@ export function ActivityTrail({
 		(lastPart?.type === "tool-call" && lastPart.output === undefined) ||
 		(lastPart?.type === "text" && lastPart.content.length > 0);
 	const showHead = Boolean(isStreaming) && !tailActive;
+	const headSeconds = useElapsedSeconds(showHead);
 
 	const steps = parts.flatMap((part, idx) => {
 		if (part.type === "thinking") {
@@ -66,7 +68,7 @@ export function ActivityTrail({
 	return (
 		<div className="flex flex-col gap-2">
 			{steps}
-			{showHead && <ActivityMarker label={pendingLabel ?? "Thinking"} />}
+			{showHead && <ActivityMarker label={pendingLabel ?? "Thinking"} seconds={headSeconds} />}
 		</div>
 	);
 }

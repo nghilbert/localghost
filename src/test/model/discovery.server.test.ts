@@ -6,18 +6,21 @@ import {
 	toRuntimeModels,
 	upsertRuntimeEndpoint,
 } from "#/shared/domain/model/discovery.server";
-import type { LlamaModel } from "#/shared/lib/llamacpp/client.server";
+import { type LlamaModel, LOCAL_LLAMACPP_API_KEY } from "#/shared/lib/llamacpp/client.server";
 
-const { findFirst, findMany, upsert, update } = vi.hoisted(() => ({
+const { findFirst, findMany, upsert, update, decryptMock } = vi.hoisted(() => ({
 	findFirst: vi.fn(),
 	findMany: vi.fn(),
 	upsert: vi.fn(),
 	update: vi.fn(),
+	decryptMock: vi.fn(),
 }));
 
 vi.mock("#/shared/lib/db.server", () => ({
 	prisma: { endpoint: { findFirst, findMany, upsert, update } },
 }));
+
+vi.mock("#/shared/lib/crypto.server", () => ({ decrypt: decryptMock, encrypt: vi.fn() }));
 
 describe("getRuntimeEndpoint", () => {
 	beforeEach(() => {
@@ -33,7 +36,7 @@ describe("getRuntimeEndpoint", () => {
 		findFirst.mockResolvedValue({ url: "http://my-llamacpp:9999/" });
 		await expect(getRuntimeEndpoint("user-1")).resolves.toEqual({
 			url: "http://my-llamacpp:9999",
-			apiKey: undefined,
+			apiKey: LOCAL_LLAMACPP_API_KEY,
 		});
 	});
 
@@ -41,7 +44,22 @@ describe("getRuntimeEndpoint", () => {
 		findFirst.mockResolvedValue(null);
 		await expect(getRuntimeEndpoint("user-1")).resolves.toEqual({
 			url: "http://localhost:8080",
-			apiKey: undefined,
+			apiKey: LOCAL_LLAMACPP_API_KEY,
+		});
+	});
+
+	// /models/sse and /models/unload reject unauthenticated requests, so a discovered
+	// endpoint (which stores no key) still has to send the bundled service's.
+	it("sends the bundled key when the endpoint stores none, the stored key otherwise", async () => {
+		findFirst.mockResolvedValue({ url: "http://my-llamacpp:9999", apiKeyEncrypted: null });
+		await expect(getRuntimeEndpoint("user-1")).resolves.toMatchObject({
+			apiKey: LOCAL_LLAMACPP_API_KEY,
+		});
+
+		decryptMock.mockReturnValue("user-supplied-key");
+		findFirst.mockResolvedValue({ url: "http://my-llamacpp:9999", apiKeyEncrypted: "ciphertext" });
+		await expect(getRuntimeEndpoint("user-1")).resolves.toMatchObject({
+			apiKey: "user-supplied-key",
 		});
 	});
 
@@ -60,7 +78,7 @@ describe("getRuntimeEndpointById", () => {
 		findFirst.mockResolvedValue({ url: "http://my-llamacpp:9999/", apiKeyEncrypted: null });
 		await expect(
 			getRuntimeEndpointById({ userId: "user-42", endpointId: "endpoint-7" }),
-		).resolves.toEqual({ url: "http://my-llamacpp:9999", apiKey: undefined });
+		).resolves.toEqual({ url: "http://my-llamacpp:9999", apiKey: LOCAL_LLAMACPP_API_KEY });
 		expect(findFirst).toHaveBeenCalledWith({
 			where: { id: "endpoint-7", ownerId: "user-42", provider: "llamacpp" },
 		});

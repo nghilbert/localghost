@@ -4,6 +4,6 @@
 # var is needed. Tune device selection with GGML_VK_VISIBLE_DEVICES=<ids>.
 services:
   llamacpp:
-    image: ghcr.io/ggml-org/llama.cpp:server-vulkan-b10276
+    image: ghcr.io/ggml-org/llama.cpp:server-vulkan-b10380
     devices:
       - /dev/dri

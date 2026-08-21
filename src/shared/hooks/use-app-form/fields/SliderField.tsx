@@ -1,5 +1,4 @@
 import { Slider } from "#/shared/components/ui/slider";
-import { cn } from "#/shared/lib/utils";
 import { useFieldContext } from "..";
 import { FieldShell } from "./FieldShell";
 import type { ComponentFieldProps } from "./types";
@@ -8,7 +7,6 @@ export function SliderField({
 	label,
 	description,
 	fieldOrientation,
-	className,
 	...props
 }: ComponentFieldProps<typeof Slider>) {
 	const field = useFieldContext<number>();
@@ -22,9 +20,8 @@ export function SliderField({
 					if (typeof value === "number") field.handleChange(value);
 					else field.handleChange(value[0] ?? field.state.value);
 				}}
-				onBlur={field.handleBlur}
-				aria-invalid={!field.state.meta.isValid}
-				className={cn("min-w-xs", className)}
+				// Commit on thumb release marks the field touched, so blur-mode validation fires.
+				onValueCommitted={field.handleBlur}
 				{...props}
 			/>
 		</FieldShell>

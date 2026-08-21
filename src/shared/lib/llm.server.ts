@@ -12,6 +12,7 @@ import { createAnthropicChat } from "@tanstack/ai-anthropic";
 import { createGeminiChat } from "@tanstack/ai-gemini";
 import { openaiCompatibleText } from "@tanstack/ai-openai/compatible";
 import { trimPathRight } from "@tanstack/react-router";
+import { LOCAL_LLAMACPP_API_KEY } from "./llamacpp/client.server";
 import { DEFAULT_MAX_TOKENS } from "./llm-constants";
 import { detectProvider, type LLMProvider } from "./llm-provider";
 
@@ -184,7 +185,8 @@ const PROVIDERS: Record<LLMProvider, ProviderConfig> = {
 	},
 	llamacpp: {
 		...OPENAI_COMPATIBLE,
-		buildAdapter: (args) => openaiAdapter({ ...args, apiKey: args.apiKey || "local-llamacpp" }),
+		buildAdapter: (args) =>
+			openaiAdapter({ ...args, apiKey: args.apiKey || LOCAL_LLAMACPP_API_KEY }),
 		// `GET /models` (router mode) also lists downloaded-but-unloaded models,
 		// which `/v1/models` may omit. The SDK requires a nonempty key even when
 		// the local server does not; a configured `--api-key` still takes precedence.

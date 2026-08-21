@@ -5,7 +5,7 @@ import { type DayButton, DayPicker, getDefaultClassNames, type Locale } from "re
 import { Button, buttonVariants } from "#/shared/components/ui/button";
 import { cn } from "#/shared/lib/utils";
 
-function Calendar({
+export function Calendar({
 	className,
 	classNames,
 	showOutsideDays = true,
@@ -142,7 +142,7 @@ function Calendar({
 	);
 }
 
-function CalendarDayButton({
+export function CalendarDayButton({
 	className,
 	day,
 	modifiers,
@@ -179,5 +179,3 @@ function CalendarDayButton({
 		/>
 	);
 }
-
-export { Calendar, CalendarDayButton };

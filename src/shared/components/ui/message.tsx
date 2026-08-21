@@ -1,7 +1,7 @@
 import type { ComponentProps } from "react";
 import { cn } from "#/shared/lib/utils";
 
-function MessageGroup({ className, ...props }: ComponentProps<"div">) {
+export function MessageGroup({ className, ...props }: ComponentProps<"div">) {
 	return (
 		<div
 			data-slot="message-group"
@@ -11,7 +11,7 @@ function MessageGroup({ className, ...props }: ComponentProps<"div">) {
 	);
 }
 
-function Message({
+export function Message({
 	className,
 	align = "start",
 	...props
@@ -29,7 +29,7 @@ function Message({
 	);
 }
 
-function MessageAvatar({ className, ...props }: ComponentProps<"div">) {
+export function MessageAvatar({ className, ...props }: ComponentProps<"div">) {
 	return (
 		<div
 			data-slot="message-avatar"
@@ -42,7 +42,7 @@ function MessageAvatar({ className, ...props }: ComponentProps<"div">) {
 	);
 }
 
-function MessageContent({ className, ...props }: ComponentProps<"div">) {
+export function MessageContent({ className, ...props }: ComponentProps<"div">) {
 	return (
 		<div
 			data-slot="message-content"
@@ -55,7 +55,7 @@ function MessageContent({ className, ...props }: ComponentProps<"div">) {
 	);
 }
 
-function MessageHeader({ className, ...props }: ComponentProps<"div">) {
+export function MessageHeader({ className, ...props }: ComponentProps<"div">) {
 	return (
 		<div
 			data-slot="message-header"
@@ -68,7 +68,7 @@ function MessageHeader({ className, ...props }: ComponentProps<"div">) {
 	);
 }
 
-function MessageFooter({ className, ...props }: ComponentProps<"div">) {
+export function MessageFooter({ className, ...props }: ComponentProps<"div">) {
 	return (
 		<div
 			data-slot="message-footer"
@@ -80,5 +80,3 @@ function MessageFooter({ className, ...props }: ComponentProps<"div">) {
 		/>
 	);
 }
-
-export { Message, MessageAvatar, MessageContent, MessageFooter, MessageGroup, MessageHeader };

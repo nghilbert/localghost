@@ -1,6 +1,6 @@
 import { Drawer as DrawerPrimitive } from "@base-ui/react/drawer";
 import type { ComponentProps } from "react";
-import { createContext, useContext, useMemo } from "react";
+import { createContext, use } from "react";
 import { cn } from "#/shared/lib/utils";
 
 type DrawerContextProps = {
@@ -13,7 +13,7 @@ type DrawerContextProps = {
 const DrawerContext = createContext<DrawerContextProps | null>(null);
 
 function useDrawer() {
-	const context = useContext(DrawerContext);
+	const context = use(DrawerContext);
 
 	if (!context) {
 		throw new Error("useDrawer must be used within a Drawer.");
@@ -22,7 +22,7 @@ function useDrawer() {
 	return context;
 }
 
-function Drawer({
+export function Drawer({
 	modal = true,
 	showSwipeHandle = false,
 	snapPoints,
@@ -32,13 +32,9 @@ function Drawer({
 	showSwipeHandle?: boolean;
 }) {
 	const hasSnapPoints = snapPoints != null && snapPoints.length > 0;
-	const contextValue = useMemo(
-		() => ({ hasSnapPoints, modal, showSwipeHandle, swipeDirection }),
-		[hasSnapPoints, modal, showSwipeHandle, swipeDirection],
-	);
 
 	return (
-		<DrawerContext.Provider value={contextValue}>
+		<DrawerContext.Provider value={{ hasSnapPoints, modal, showSwipeHandle, swipeDirection }}>
 			<DrawerPrimitive.Root
 				data-slot="drawer"
 				modal={modal}
@@ -50,19 +46,19 @@ function Drawer({
 	);
 }
 
-function DrawerTrigger({ ...props }: DrawerPrimitive.Trigger.Props) {
+export function DrawerTrigger({ ...props }: DrawerPrimitive.Trigger.Props) {
 	return <DrawerPrimitive.Trigger data-slot="drawer-trigger" {...props} />;
 }
 
-function DrawerPortal({ ...props }: DrawerPrimitive.Portal.Props) {
+export function DrawerPortal({ ...props }: DrawerPrimitive.Portal.Props) {
 	return <DrawerPrimitive.Portal data-slot="drawer-portal" {...props} />;
 }
 
-function DrawerClose({ ...props }: DrawerPrimitive.Close.Props) {
+export function DrawerClose({ ...props }: DrawerPrimitive.Close.Props) {
 	return <DrawerPrimitive.Close data-slot="drawer-close" {...props} />;
 }
 
-function DrawerOverlay({ className, ...props }: DrawerPrimitive.Backdrop.Props) {
+export function DrawerOverlay({ className, ...props }: DrawerPrimitive.Backdrop.Props) {
 	return (
 		<DrawerPrimitive.Backdrop
 			data-slot="drawer-overlay"
@@ -75,7 +71,7 @@ function DrawerOverlay({ className, ...props }: DrawerPrimitive.Backdrop.Props) 
 	);
 }
 
-function DrawerSwipeHandle({ className, ...props }: ComponentProps<"div">) {
+export function DrawerSwipeHandle({ className, ...props }: ComponentProps<"div">) {
 	return (
 		<div
 			data-slot="drawer-swipe-handle"
@@ -89,7 +85,7 @@ function DrawerSwipeHandle({ className, ...props }: ComponentProps<"div">) {
 	);
 }
 
-function DrawerContent({ className, children, ...props }: DrawerPrimitive.Popup.Props) {
+export function DrawerContent({ className, children, ...props }: DrawerPrimitive.Popup.Props) {
 	const { hasSnapPoints, modal, showSwipeHandle, swipeDirection } = useDrawer();
 	const swipeAxis = swipeDirection === "down" || swipeDirection === "up" ? "y" : "x";
 
@@ -149,7 +145,7 @@ function DrawerContent({ className, children, ...props }: DrawerPrimitive.Popup.
 	);
 }
 
-function DrawerHeader({ className, ...props }: ComponentProps<"div">) {
+export function DrawerHeader({ className, ...props }: ComponentProps<"div">) {
 	return (
 		<div
 			data-slot="drawer-header"
@@ -162,7 +158,7 @@ function DrawerHeader({ className, ...props }: ComponentProps<"div">) {
 	);
 }
 
-function DrawerFooter({ className, ...props }: ComponentProps<"div">) {
+export function DrawerFooter({ className, ...props }: ComponentProps<"div">) {
 	return (
 		<div
 			data-slot="drawer-footer"
@@ -172,7 +168,7 @@ function DrawerFooter({ className, ...props }: ComponentProps<"div">) {
 	);
 }
 
-function DrawerTitle({ className, ...props }: DrawerPrimitive.Title.Props) {
+export function DrawerTitle({ className, ...props }: DrawerPrimitive.Title.Props) {
 	return (
 		<DrawerPrimitive.Title
 			data-slot="drawer-title"
@@ -182,7 +178,7 @@ function DrawerTitle({ className, ...props }: DrawerPrimitive.Title.Props) {
 	);
 }
 
-function DrawerDescription({ className, ...props }: DrawerPrimitive.Description.Props) {
+export function DrawerDescription({ className, ...props }: DrawerPrimitive.Description.Props) {
 	return (
 		<DrawerPrimitive.Description
 			data-slot="drawer-description"
@@ -191,17 +187,3 @@ function DrawerDescription({ className, ...props }: DrawerPrimitive.Description.
 		/>
 	);
 }
-
-export {
-	Drawer,
-	DrawerClose,
-	DrawerContent,
-	DrawerDescription,
-	DrawerFooter,
-	DrawerHeader,
-	DrawerOverlay,
-	DrawerPortal,
-	DrawerSwipeHandle,
-	DrawerTitle,
-	DrawerTrigger,
-};

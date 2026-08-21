@@ -4,13 +4,13 @@ import { ChevronRightIcon, MoreHorizontalIcon } from "lucide-react";
 import type { ComponentProps } from "react";
 import { cn } from "#/shared/lib/utils";
 
-function Breadcrumb({ className, ...props }: ComponentProps<"nav">) {
+export function Breadcrumb({ className, ...props }: ComponentProps<"nav">) {
 	return (
 		<nav aria-label="breadcrumb" data-slot="breadcrumb" className={cn(className)} {...props} />
 	);
 }
 
-function BreadcrumbList({ className, ...props }: ComponentProps<"ol">) {
+export function BreadcrumbList({ className, ...props }: ComponentProps<"ol">) {
 	return (
 		<ol
 			data-slot="breadcrumb-list"
@@ -23,7 +23,7 @@ function BreadcrumbList({ className, ...props }: ComponentProps<"ol">) {
 	);
 }
 
-function BreadcrumbItem({ className, ...props }: ComponentProps<"li">) {
+export function BreadcrumbItem({ className, ...props }: ComponentProps<"li">) {
 	return (
 		<li
 			data-slot="breadcrumb-item"
@@ -33,7 +33,7 @@ function BreadcrumbItem({ className, ...props }: ComponentProps<"li">) {
 	);
 }
 
-function BreadcrumbLink({ className, render, ...props }: useRender.ComponentProps<"a">) {
+export function BreadcrumbLink({ className, render, ...props }: useRender.ComponentProps<"a">) {
 	return useRender({
 		defaultTagName: "a",
 		props: mergeProps<"a">(
@@ -49,8 +49,10 @@ function BreadcrumbLink({ className, render, ...props }: useRender.ComponentProp
 	});
 }
 
-function BreadcrumbPage({ className, ...props }: ComponentProps<"span">) {
+export function BreadcrumbPage({ className, ...props }: ComponentProps<"span">) {
 	return (
+		// biome-ignore lint/a11y/useFocusableInteractive: BreadcrumbPage is the current, non-navigable page (aria-disabled + aria-current="page"), so it must stay unfocusable.
+		// biome-ignore lint/a11y/useSemanticElements: role="link" with no href is intentional. An <a>/<link> would imply a navigable target this element is not.
 		<span
 			data-slot="breadcrumb-page"
 			role="link"
@@ -62,7 +64,7 @@ function BreadcrumbPage({ className, ...props }: ComponentProps<"span">) {
 	);
 }
 
-function BreadcrumbSeparator({ children, className, ...props }: ComponentProps<"li">) {
+export function BreadcrumbSeparator({ children, className, ...props }: ComponentProps<"li">) {
 	return (
 		<li
 			data-slot="breadcrumb-separator"
@@ -76,7 +78,7 @@ function BreadcrumbSeparator({ children, className, ...props }: ComponentProps<"
 	);
 }
 
-function BreadcrumbEllipsis({ className, ...props }: ComponentProps<"span">) {
+export function BreadcrumbEllipsis({ className, ...props }: ComponentProps<"span">) {
 	return (
 		<span
 			data-slot="breadcrumb-ellipsis"
@@ -90,13 +92,3 @@ function BreadcrumbEllipsis({ className, ...props }: ComponentProps<"span">) {
 		</span>
 	);
 }
-
-export {
-	Breadcrumb,
-	BreadcrumbEllipsis,
-	BreadcrumbItem,
-	BreadcrumbLink,
-	BreadcrumbList,
-	BreadcrumbPage,
-	BreadcrumbSeparator,
-};

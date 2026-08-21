@@ -64,8 +64,8 @@ describe("ModelDetailPanel", () => {
 			.element(screen.getByTestId("model-variant-target"))
 			.toHaveTextContent("org/llama3.1-GGUF:Q4_K_M");
 
-		await screen.getByTestId("model-variant-combobox").fill("q8_0");
-		await screen.getByTestId("model-variant-option").first().click();
+		await screen.getByTestId("variant-combobox").fill("q8_0");
+		await screen.getByTestId("variant-combobox-option").first().click();
 
 		await expect
 			.element(screen.getByTestId("model-variant-target"))
@@ -122,8 +122,8 @@ describe("ModelDetailPanel", () => {
 		await expect.element(screen.getByTestId("model-pull-button")).not.toBeInTheDocument();
 		await expect.element(screen.getByTestId("model-variant-installed-hint")).toBeInTheDocument();
 
-		await screen.getByTestId("model-variant-combobox").fill("q8_0");
-		await screen.getByTestId("model-variant-option").first().click();
+		await screen.getByTestId("variant-combobox").fill("q8_0");
+		await screen.getByTestId("variant-combobox-option").first().click();
 		await expect
 			.element(screen.getByTestId("model-variant-installed-hint"))
 			.not.toBeInTheDocument();

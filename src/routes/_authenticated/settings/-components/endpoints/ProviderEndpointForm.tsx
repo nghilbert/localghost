@@ -1,4 +1,3 @@
-import { revalidateLogic } from "@tanstack/react-form";
 import { ChevronDownIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import type { buildEndpointFormSchema } from "#/routes/_authenticated/settings/-lib/providers";
@@ -59,7 +58,6 @@ export function ProviderEndpointForm({
 	const form = useAppForm({
 		defaultValues,
 		validators: { onDynamic: schema },
-		validationLogic: revalidateLogic(),
 		onSubmit: ({ value, formApi }) =>
 			onSubmit({
 				value: { name: value.name.trim(), url: value.url.trim(), apiKey: value.apiKey },

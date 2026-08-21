@@ -24,12 +24,10 @@ export function PasswordField({
 		<FieldShell label={label} description={description} orientation={fieldOrientation}>
 			<InputGroup>
 				<InputGroupInput
-					id={field.name}
 					data-testid={`${field.name}-input`}
 					value={field.state.value}
 					onBlur={field.handleBlur}
-					onChange={(event) => field.handleChange(event.target.value)}
-					aria-invalid={!field.state.meta.isValid}
+					onValueChange={field.handleChange}
 					{...props}
 					type={show ? "text" : "password"}
 				/>

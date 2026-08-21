@@ -1,11 +1,11 @@
 import useEmblaCarousel, { type UseEmblaCarouselType } from "embla-carousel-react";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import type { ComponentProps, KeyboardEvent } from "react";
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, use, useEffect, useState } from "react";
 import { Button } from "#/shared/components/ui/button";
 import { cn } from "#/shared/lib/utils";
 
-type CarouselApi = UseEmblaCarouselType[1];
+export type CarouselApi = UseEmblaCarouselType[1];
 type UseCarouselParameters = Parameters<typeof useEmblaCarousel>;
 type CarouselOptions = UseCarouselParameters[0];
 type CarouselPlugin = UseCarouselParameters[1];
@@ -28,8 +28,8 @@ type CarouselContextProps = {
 
 const CarouselContext = createContext<CarouselContextProps | null>(null);
 
-function useCarousel() {
-	const context = useContext(CarouselContext);
+export function useCarousel() {
+	const context = use(CarouselContext);
 
 	if (!context) {
 		throw new Error("useCarousel must be used within a <Carousel />");
@@ -38,7 +38,7 @@ function useCarousel() {
 	return context;
 }
 
-function Carousel({
+export function Carousel({
 	orientation = "horizontal",
 	opts,
 	setApi,
@@ -57,32 +57,23 @@ function Carousel({
 	const [canScrollPrev, setCanScrollPrev] = useState(false);
 	const [canScrollNext, setCanScrollNext] = useState(false);
 
-	const onSelect = useCallback((api: CarouselApi) => {
-		if (!api) return;
-		setCanScrollPrev(api.canScrollPrev());
-		setCanScrollNext(api.canScrollNext());
-	}, []);
-
-	const scrollPrev = useCallback(() => {
+	const scrollPrev = () => {
 		api?.scrollPrev();
-	}, [api]);
+	};
 
-	const scrollNext = useCallback(() => {
+	const scrollNext = () => {
 		api?.scrollNext();
-	}, [api]);
+	};
 
-	const handleKeyDown = useCallback(
-		(event: KeyboardEvent<HTMLDivElement>) => {
-			if (event.key === "ArrowLeft") {
-				event.preventDefault();
-				scrollPrev();
-			} else if (event.key === "ArrowRight") {
-				event.preventDefault();
-				scrollNext();
-			}
-		},
-		[scrollPrev, scrollNext],
-	);
+	const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+		if (event.key === "ArrowLeft") {
+			event.preventDefault();
+			scrollPrev();
+		} else if (event.key === "ArrowRight") {
+			event.preventDefault();
+			scrollNext();
+		}
+	};
 
 	useEffect(() => {
 		if (!api || !setApi) return;
@@ -91,6 +82,13 @@ function Carousel({
 
 	useEffect(() => {
 		if (!api) return;
+
+		const onSelect = (api: CarouselApi) => {
+			if (!api) return;
+			setCanScrollPrev(api.canScrollPrev());
+			setCanScrollNext(api.canScrollNext());
+		};
+
 		onSelect(api);
 		api.on("reInit", onSelect);
 		api.on("select", onSelect);
@@ -98,7 +96,7 @@ function Carousel({
 		return () => {
 			api?.off("select", onSelect);
 		};
-	}, [api, onSelect]);
+	}, [api]);
 
 	return (
 		<CarouselContext.Provider
@@ -113,6 +111,7 @@ function Carousel({
 				canScrollNext,
 			}}
 		>
+			{/* biome-ignore lint/a11y/useSemanticElements: role="region" plus aria-roledescription="carousel" is the ARIA carousel pattern. A <section> cannot carry the roledescription. */}
 			<div
 				onKeyDownCapture={handleKeyDown}
 				className={cn("relative", className)}
@@ -127,7 +126,7 @@ function Carousel({
 	);
 }
 
-function CarouselContent({ className, ...props }: ComponentProps<"div">) {
+export function CarouselContent({ className, ...props }: ComponentProps<"div">) {
 	const { carouselRef, orientation } = useCarousel();
 
 	return (
@@ -140,10 +139,11 @@ function CarouselContent({ className, ...props }: ComponentProps<"div">) {
 	);
 }
 
-function CarouselItem({ className, ...props }: ComponentProps<"div">) {
+export function CarouselItem({ className, ...props }: ComponentProps<"div">) {
 	const { orientation } = useCarousel();
 
 	return (
+		// biome-ignore lint/a11y/useSemanticElements: role="group" plus aria-roledescription="slide" is the ARIA carousel slide pattern. A <fieldset> cannot carry the roledescription.
 		<div
 			role="group"
 			aria-roledescription="slide"
@@ -158,7 +158,7 @@ function CarouselItem({ className, ...props }: ComponentProps<"div">) {
 	);
 }
 
-function CarouselPrevious({
+export function CarouselPrevious({
 	className,
 	variant = "outline",
 	size = "icon-sm",
@@ -188,7 +188,7 @@ function CarouselPrevious({
 	);
 }
 
-function CarouselNext({
+export function CarouselNext({
 	className,
 	variant = "outline",
 	size = "icon-sm",
@@ -217,13 +217,3 @@ function CarouselNext({
 		</Button>
 	);
 }
-
-export {
-	Carousel,
-	type CarouselApi,
-	CarouselContent,
-	CarouselItem,
-	CarouselNext,
-	CarouselPrevious,
-	useCarousel,
-};

@@ -1,8 +1,8 @@
 import { Toggle as TogglePrimitive } from "@base-ui/react/toggle";
 import { ToggleGroup as ToggleGroupPrimitive } from "@base-ui/react/toggle-group";
-import type { VariantProps } from "class-variance-authority";
 import type { CSSProperties } from "react";
-import { createContext, useContext } from "react";
+import { createContext, use } from "react";
+import type { VariantProps } from "tailwind-variants";
 import { toggleVariants } from "#/shared/components/ui/toggle";
 import { cn } from "#/shared/lib/utils";
 
@@ -18,7 +18,7 @@ const ToggleGroupContext = createContext<
 	orientation: "horizontal",
 });
 
-function ToggleGroup({
+export function ToggleGroup({
 	className,
 	variant,
 	size,
@@ -31,6 +31,7 @@ function ToggleGroup({
 		spacing?: number;
 		orientation?: "horizontal" | "vertical";
 	}) {
+	const style: CSSProperties & { "--gap": number } = { "--gap": spacing };
 	return (
 		<ToggleGroupPrimitive
 			data-slot="toggle-group"
@@ -38,7 +39,7 @@ function ToggleGroup({
 			data-size={size}
 			data-spacing={spacing}
 			data-orientation={orientation}
-			style={{ "--gap": spacing } as CSSProperties}
+			style={style}
 			className={cn(
 				"group/toggle-group flex w-fit flex-row items-center gap-[--spacing(var(--gap))] rounded-lg data-[size=sm]:rounded-[min(var(--radius-md),10px)] data-vertical:flex-col data-vertical:items-stretch",
 				className,
@@ -52,14 +53,14 @@ function ToggleGroup({
 	);
 }
 
-function ToggleGroupItem({
+export function ToggleGroupItem({
 	className,
 	children,
 	variant = "default",
 	size = "default",
 	...props
 }: TogglePrimitive.Props & VariantProps<typeof toggleVariants>) {
-	const context = useContext(ToggleGroupContext);
+	const context = use(ToggleGroupContext);
 
 	return (
 		<TogglePrimitive
@@ -81,5 +82,3 @@ function ToggleGroupItem({
 		</TogglePrimitive>
 	);
 }
-
-export { ToggleGroup, ToggleGroupItem };

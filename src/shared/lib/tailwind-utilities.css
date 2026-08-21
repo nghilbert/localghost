@@ -1,0 +1,163 @@
+/*
+ * Hand-owned Tailwind utilities: variants and utilities that Tailwind v4 and Base UI don't
+ * provide natively.
+ *
+ * The `data-*` variants here map a value-carrying state attribute (e.g.
+ * `data-orientation="horizontal"`) to a bare variant name, which Tailwind's built-in
+ * attribute variants can't express. Presence-only attributes need no entry — the native
+ * `data-*` variant already targets them.
+ *
+ * The `scroll-fade-*` and `shimmer` utilities are defined only in the directions and with the
+ * knobs used in the app; an unused variation compiles to nothing rather than erroring, so add
+ * the direction or knob here before reaching for it.
+ */
+
+@custom-variant data-horizontal {
+	&:where([data-orientation="horizontal"]) {
+		@slot;
+	}
+}
+
+@custom-variant data-vertical {
+	&:where([data-orientation="vertical"]) {
+		@slot;
+	}
+}
+
+/*
+ * Fades the end edge of a Base UI `ScrollArea.Viewport`, which publishes its remaining
+ * scroll distance as `--scroll-area-overflow-y-end`. Reading that instead of a scroll-driven
+ * animation keeps the fade correct in browsers without `animation-timeline` support.
+ */
+@utility scroll-fade-b {
+	--scroll-fade-b: clamp(
+		0px,
+		calc(var(--scroll-area-overflow-y-end, 0px) * 10 / 24),
+		calc(var(--spacing) * 10)
+	);
+	mask-image: linear-gradient(
+		to bottom,
+		#000 0,
+		#000 calc(100% - var(--scroll-fade-b)),
+		transparent 100%
+	);
+	mask-repeat: no-repeat;
+}
+
+/*
+ * Fades both inline edges of a plain overflow container, driven by scroll-driven animations
+ * since there is no Base UI scroll area to publish edge distances. Browsers without
+ * `animation-timeline` hold both fades on.
+ */
+@property --scroll-fade-s {
+	syntax: "<length-percentage>";
+	inherits: false;
+	initial-value: 0px;
+}
+@property --scroll-fade-e {
+	syntax: "<length-percentage>";
+	inherits: false;
+	initial-value: 0px;
+}
+
+@theme inline {
+	@keyframes scroll-fade-reveal-s {
+		from {
+			--scroll-fade-s: 0px;
+		}
+		to {
+			--scroll-fade-s: min(12%, calc(var(--spacing) * 10));
+		}
+	}
+
+	@keyframes scroll-fade-reveal-e {
+		from {
+			--scroll-fade-e: min(12%, calc(var(--spacing) * 10));
+		}
+		to {
+			--scroll-fade-e: 0px;
+		}
+	}
+
+	@keyframes tw-shimmer {
+		from {
+			background-position: 100% 0;
+		}
+		to {
+			background-position: 0 0;
+		}
+	}
+}
+
+@utility scroll-fade-x {
+	--scroll-fade-mask: linear-gradient(
+		to right,
+		transparent 0,
+		#000 var(--scroll-fade-s, 0px),
+		#000 calc(100% - var(--scroll-fade-e, 0px)),
+		transparent 100%
+	);
+	&:where([dir="rtl"], [dir="rtl"] *) {
+		--scroll-fade-mask: linear-gradient(
+			to left,
+			transparent 0,
+			#000 var(--scroll-fade-s, 0px),
+			#000 calc(100% - var(--scroll-fade-e, 0px)),
+			transparent 100%
+		);
+	}
+	mask-image: var(--scroll-fade-mask);
+	mask-repeat: no-repeat;
+
+	@supports (animation-timeline: scroll()) {
+		animation:
+			scroll-fade-reveal-s 1ms ease-in-out,
+			scroll-fade-reveal-e 1ms ease-in-out;
+		animation-timeline: scroll(self inline), scroll(self inline);
+		animation-range:
+			0 calc(var(--spacing) * 24),
+			calc(100% - calc(var(--spacing) * 24)) 100%;
+		animation-fill-mode: both;
+	}
+
+	@supports not (animation-timeline: scroll()) {
+		--scroll-fade-s: min(12%, calc(var(--spacing) * 10));
+		--scroll-fade-e: min(12%, calc(var(--spacing) * 10));
+	}
+}
+
+@utility shimmer {
+	--_shimmer-spread: calc(3ch + 40px);
+	--_shimmer-highlight: oklch(from currentColor l c h / calc(alpha * 0.2));
+	background-image: linear-gradient(
+		110deg,
+		currentColor calc(50% - var(--_shimmer-spread)),
+		color-mix(in oklch, var(--_shimmer-highlight), currentColor 50%)
+			calc(50% - var(--_shimmer-spread) * 0.5),
+		var(--_shimmer-highlight) 50%,
+		color-mix(in oklch, var(--_shimmer-highlight), currentColor 50%)
+			calc(50% + var(--_shimmer-spread) * 0.5),
+		currentColor calc(50% + var(--_shimmer-spread))
+	);
+	background-repeat: no-repeat;
+	background-size: calc(200% + var(--_shimmer-spread) * 2) 100%;
+	background-position: 0 0;
+	background-clip: text;
+	-webkit-background-clip: text;
+	-webkit-text-fill-color: transparent;
+	animation: tw-shimmer 2s linear infinite;
+
+	@variant dark {
+		--_shimmer-highlight: oklch(from currentColor max(0.8, calc(l + 0.4)) c h / calc(alpha + 0.4));
+	}
+
+	&:where([dir="rtl"], [dir="rtl"] *) {
+		animation-direction: reverse;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		background-image: none;
+		-webkit-text-fill-color: currentColor;
+		animation: none;
+	}
+}

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import type { ToolControls } from "#/routes/_authenticated/_chat/-components/ChatInput/ToolsMenu";
-import { toolRows } from "#/routes/_authenticated/_chat/-components/ChatInput/ToolsMenu";
+import type { ToolControls } from "#/routes/_authenticated/-components/ChatInput/ToolsMenu";
+import { toolRows } from "#/routes/_authenticated/-components/ChatInput/ToolsMenu";
 
 function makeControls(overrides: Partial<ToolControls> = {}): ToolControls {
 	return {

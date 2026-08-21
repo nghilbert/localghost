@@ -19,7 +19,7 @@ import {
 } from "#/shared/components/ui/dropdown-menu";
 import { cn } from "#/shared/lib/utils";
 
-function Menubar({ className, ...props }: MenubarPrimitive.Props) {
+export function Menubar({ className, ...props }: MenubarPrimitive.Props) {
 	return (
 		<MenubarPrimitive
 			data-slot="menubar"
@@ -29,19 +29,22 @@ function Menubar({ className, ...props }: MenubarPrimitive.Props) {
 	);
 }
 
-function MenubarMenu({ ...props }: ComponentProps<typeof DropdownMenu>) {
+export function MenubarMenu({ ...props }: ComponentProps<typeof DropdownMenu>) {
 	return <DropdownMenu data-slot="menubar-menu" {...props} />;
 }
 
-function MenubarGroup({ ...props }: ComponentProps<typeof DropdownMenuGroup>) {
+export function MenubarGroup({ ...props }: ComponentProps<typeof DropdownMenuGroup>) {
 	return <DropdownMenuGroup data-slot="menubar-group" {...props} />;
 }
 
-function MenubarPortal({ ...props }: ComponentProps<typeof DropdownMenuPortal>) {
+export function MenubarPortal({ ...props }: ComponentProps<typeof DropdownMenuPortal>) {
 	return <DropdownMenuPortal data-slot="menubar-portal" {...props} />;
 }
 
-function MenubarTrigger({ className, ...props }: ComponentProps<typeof DropdownMenuTrigger>) {
+export function MenubarTrigger({
+	className,
+	...props
+}: ComponentProps<typeof DropdownMenuTrigger>) {
 	return (
 		<DropdownMenuTrigger
 			data-slot="menubar-trigger"
@@ -54,7 +57,7 @@ function MenubarTrigger({ className, ...props }: ComponentProps<typeof DropdownM
 	);
 }
 
-function MenubarContent({
+export function MenubarContent({
 	className,
 	align = "start",
 	alignOffset = -4,
@@ -76,7 +79,7 @@ function MenubarContent({
 	);
 }
 
-function MenubarItem({
+export function MenubarItem({
 	className,
 	inset,
 	variant = "default",
@@ -96,7 +99,7 @@ function MenubarItem({
 	);
 }
 
-function MenubarCheckboxItem({
+export function MenubarCheckboxItem({
 	className,
 	children,
 	checked,
@@ -126,11 +129,11 @@ function MenubarCheckboxItem({
 	);
 }
 
-function MenubarRadioGroup({ ...props }: ComponentProps<typeof DropdownMenuRadioGroup>) {
+export function MenubarRadioGroup({ ...props }: ComponentProps<typeof DropdownMenuRadioGroup>) {
 	return <DropdownMenuRadioGroup data-slot="menubar-radio-group" {...props} />;
 }
 
-function MenubarRadioItem({
+export function MenubarRadioItem({
 	className,
 	children,
 	inset,
@@ -158,7 +161,7 @@ function MenubarRadioItem({
 	);
 }
 
-function MenubarLabel({
+export function MenubarLabel({
 	className,
 	inset,
 	...props
@@ -175,7 +178,10 @@ function MenubarLabel({
 	);
 }
 
-function MenubarSeparator({ className, ...props }: ComponentProps<typeof DropdownMenuSeparator>) {
+export function MenubarSeparator({
+	className,
+	...props
+}: ComponentProps<typeof DropdownMenuSeparator>) {
 	return (
 		<DropdownMenuSeparator
 			data-slot="menubar-separator"
@@ -185,7 +191,10 @@ function MenubarSeparator({ className, ...props }: ComponentProps<typeof Dropdow
 	);
 }
 
-function MenubarShortcut({ className, ...props }: ComponentProps<typeof DropdownMenuShortcut>) {
+export function MenubarShortcut({
+	className,
+	...props
+}: ComponentProps<typeof DropdownMenuShortcut>) {
 	return (
 		<DropdownMenuShortcut
 			data-slot="menubar-shortcut"
@@ -198,11 +207,11 @@ function MenubarShortcut({ className, ...props }: ComponentProps<typeof Dropdown
 	);
 }
 
-function MenubarSub({ ...props }: ComponentProps<typeof DropdownMenuSub>) {
+export function MenubarSub({ ...props }: ComponentProps<typeof DropdownMenuSub>) {
 	return <DropdownMenuSub data-slot="menubar-sub" {...props} />;
 }
 
-function MenubarSubTrigger({
+export function MenubarSubTrigger({
 	className,
 	inset,
 	...props
@@ -222,7 +231,10 @@ function MenubarSubTrigger({
 	);
 }
 
-function MenubarSubContent({ className, ...props }: ComponentProps<typeof DropdownMenuSubContent>) {
+export function MenubarSubContent({
+	className,
+	...props
+}: ComponentProps<typeof DropdownMenuSubContent>) {
 	return (
 		<DropdownMenuSubContent
 			data-slot="menubar-sub-content"
@@ -234,22 +246,3 @@ function MenubarSubContent({ className, ...props }: ComponentProps<typeof Dropdo
 		/>
 	);
 }
-
-export {
-	Menubar,
-	MenubarCheckboxItem,
-	MenubarContent,
-	MenubarGroup,
-	MenubarItem,
-	MenubarLabel,
-	MenubarMenu,
-	MenubarPortal,
-	MenubarRadioGroup,
-	MenubarRadioItem,
-	MenubarSeparator,
-	MenubarShortcut,
-	MenubarSub,
-	MenubarSubContent,
-	MenubarSubTrigger,
-	MenubarTrigger,
-};

@@ -1,4 +1,3 @@
-import { revalidateLogic } from "@tanstack/react-form";
 import { useUpdateAccount } from "#/routes/_authenticated/settings/-hooks/use-update-account";
 import { accountFormSchema } from "#/routes/_authenticated/settings/-lib/schemas";
 import { Card, CardContent, CardHeader, CardTitle } from "#/shared/components/ui/card";
@@ -18,7 +17,6 @@ export function ProfileForm({ name, email, systemPrompt, temperature }: ProfileF
 	const form = useAppForm({
 		defaultValues: { name, systemPrompt, temperature },
 		validators: { onDynamic: accountFormSchema },
-		validationLogic: revalidateLogic(),
 		onSubmit: ({ value }) =>
 			updateAccount.mutateAsync({
 				name: value.name.trim(),
@@ -57,6 +55,7 @@ export function ProfileForm({ name, email, systemPrompt, temperature }: ProfileF
 									label={`Temperature (${field.state.value.toFixed(1)})`}
 									description="Higher values make replies more random; lower values more focused."
 									fieldOrientation="vertical"
+									className="min-w-xs"
 									min={0}
 									max={2}
 									step={0.1}

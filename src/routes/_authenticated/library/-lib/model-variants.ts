@@ -98,7 +98,8 @@ function variantFit({
 	return estimatedMemoryGb <= totalMemoryGb(hardware) ? "may-be-too-large" : "wont-fit";
 }
 
-function groupOptions({
+/** Buckets options into hardware-fit groups, or a single "Variants" group when hardware is unknown. */
+export function groupModelVariantOptions({
 	options,
 	hardware,
 }: {
@@ -161,6 +162,81 @@ export function buildModelVariants({
 			options[0]?.modelId ??
 			`${current.repoId}:${current.quant}`,
 		options,
-		groups: groupOptions({ options, hardware }),
+		groups: groupModelVariantOptions({ options, hardware }),
 	};
+}
+
+/** One publisher offering quants of a model, e.g. `"unsloth"`. */
+export type ModelAuthor = {
+	/** The Hugging Face org/user that owns the repo. */
+	name: string;
+	/** A representative repo owned by this author, for reference. */
+	repoId: string;
+};
+
+/** The org/user segment of a repo id, e.g. `"bartowski/Qwen_Qwen3-8B-GGUF"` → `"bartowski"`. */
+export function authorOf(repoId: string): string {
+	return repoId.split("/")[0] ?? repoId;
+}
+
+/**
+ * The distinct publishers across a model's variant options, most-trusted first.
+ * Follows the dedupe group's own trust order (`primaryRepoId`, then `siblingRepoIds`)
+ * instead of re-ranking; unranked authors trail name-sorted. Defaults to the primary author.
+ */
+export function buildModelAuthors({
+	options,
+	primaryRepoId,
+	siblingRepoIds,
+}: {
+	options: ModelVariantOption[];
+	primaryRepoId: string;
+	siblingRepoIds: string[];
+}): { authors: ModelAuthor[]; defaultAuthor: string } {
+	const byName = new Map<string, ModelAuthor>();
+	for (const option of options) {
+		const name = authorOf(option.repoId);
+		if (!byName.has(name)) byName.set(name, { name, repoId: option.repoId });
+	}
+
+	const authors: ModelAuthor[] = [];
+	const added = new Set<string>();
+	const append = (name: string) => {
+		const author = byName.get(name);
+		if (author && !added.has(name)) {
+			added.add(name);
+			authors.push(author);
+		}
+	};
+	for (const repoId of [primaryRepoId, ...siblingRepoIds]) append(authorOf(repoId));
+	for (const name of [...byName.keys()].sort()) append(name);
+
+	const primaryAuthor = authorOf(primaryRepoId);
+	const defaultAuthor = byName.has(primaryAuthor)
+		? primaryAuthor
+		: (authors[0]?.name ?? primaryAuthor);
+	return { authors, defaultAuthor };
+}
+
+/** The options belonging to one author, in their existing (current-first, then size) order. */
+export function optionsForAuthor({
+	options,
+	author,
+}: {
+	options: ModelVariantOption[];
+	author: string;
+}): ModelVariantOption[] {
+	return options.filter((option) => authorOf(option.repoId) === author);
+}
+
+/** The variant to select by default for an author: its current quant, else its smallest. */
+export function defaultOptionForAuthor({
+	options,
+	author,
+}: {
+	options: ModelVariantOption[];
+	author: string;
+}): ModelVariantOption | undefined {
+	const forAuthor = optionsForAuthor({ options, author });
+	return forAuthor.find((option) => option.isCurrent) ?? forAuthor[0];
 }

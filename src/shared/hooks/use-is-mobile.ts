@@ -1,19 +1,20 @@
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 
-const MOBILE_BREAKPOINT = 768;
+/** mobile = viewport below the md breakpoint (768px) */
+const mobileQuery = () => window.matchMedia("(max-width: 767px)");
 
-export function useIsMobile() {
-	const [isMobile, setIsMobile] = useState<boolean | undefined>(undefined);
+/** Re-run `onChange` whenever the viewport crosses the mobile breakpoint. */
+function subscribe(onChange: () => void) {
+	const mediaQueryList = mobileQuery();
+	mediaQueryList.addEventListener("change", onChange);
+	return () => mediaQueryList.removeEventListener("change", onChange);
+}
 
-	useEffect(() => {
-		const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`);
-		const onChange = () => {
-			setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
-		};
-		mql.addEventListener("change", onChange);
-		setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
-		return () => mql.removeEventListener("change", onChange);
-	}, []);
-
-	return !!isMobile;
+/** `true` while the viewport is below the mobile breakpoint; re-renders on resize. */
+export function useIsMobile(): boolean {
+	return useSyncExternalStore(
+		subscribe,
+		() => mobileQuery().matches,
+		() => false, // SSR has no viewport, so assume desktop until the client hydrates.
+	);
 }

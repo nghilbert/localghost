@@ -1,4 +1,3 @@
-import { revalidateLogic } from "@tanstack/react-form";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { FieldError } from "#/shared/components/ui/field";
@@ -13,7 +12,6 @@ export function SignInForm() {
 	const form = useAppForm({
 		defaultValues: signInDefaults,
 		validators: { onDynamic: signInSchema },
-		validationLogic: revalidateLogic(),
 		onSubmit: async ({ value }) => {
 			setErrorMsg(null);
 

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useElapsedSeconds } from "./use-elapsed-seconds";
+import { useElapsedSeconds } from "#/shared/hooks/use-elapsed-seconds";
 
 /**
  * Times one train-of-thought step: `seconds` ticks live while `active`,

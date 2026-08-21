@@ -1,7 +1,7 @@
 import type { ComponentProps } from "react";
 import { cn } from "#/shared/lib/utils";
 
-function Table({ className, ...props }: ComponentProps<"table">) {
+export function Table({ className, ...props }: ComponentProps<"table">) {
 	return (
 		<div data-slot="table-container" className="relative w-full overflow-x-auto">
 			<table
@@ -13,11 +13,11 @@ function Table({ className, ...props }: ComponentProps<"table">) {
 	);
 }
 
-function TableHeader({ className, ...props }: ComponentProps<"thead">) {
+export function TableHeader({ className, ...props }: ComponentProps<"thead">) {
 	return <thead data-slot="table-header" className={cn("[&_tr]:border-b", className)} {...props} />;
 }
 
-function TableBody({ className, ...props }: ComponentProps<"tbody">) {
+export function TableBody({ className, ...props }: ComponentProps<"tbody">) {
 	return (
 		<tbody
 			data-slot="table-body"
@@ -27,7 +27,7 @@ function TableBody({ className, ...props }: ComponentProps<"tbody">) {
 	);
 }
 
-function TableFooter({ className, ...props }: ComponentProps<"tfoot">) {
+export function TableFooter({ className, ...props }: ComponentProps<"tfoot">) {
 	return (
 		<tfoot
 			data-slot="table-footer"
@@ -37,7 +37,7 @@ function TableFooter({ className, ...props }: ComponentProps<"tfoot">) {
 	);
 }
 
-function TableRow({ className, ...props }: ComponentProps<"tr">) {
+export function TableRow({ className, ...props }: ComponentProps<"tr">) {
 	return (
 		<tr
 			data-slot="table-row"
@@ -50,12 +50,12 @@ function TableRow({ className, ...props }: ComponentProps<"tr">) {
 	);
 }
 
-function TableHead({ className, ...props }: ComponentProps<"th">) {
+export function TableHead({ className, ...props }: ComponentProps<"th">) {
 	return (
 		<th
 			data-slot="table-head"
 			className={cn(
-				"h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0",
+				"h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground has-[[role=checkbox]]:pr-0",
 				className,
 			)}
 			{...props}
@@ -63,17 +63,17 @@ function TableHead({ className, ...props }: ComponentProps<"th">) {
 	);
 }
 
-function TableCell({ className, ...props }: ComponentProps<"td">) {
+export function TableCell({ className, ...props }: ComponentProps<"td">) {
 	return (
 		<td
 			data-slot="table-cell"
-			className={cn("p-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0", className)}
+			className={cn("p-2 align-middle whitespace-nowrap has-[[role=checkbox]]:pr-0", className)}
 			{...props}
 		/>
 	);
 }
 
-function TableCaption({ className, ...props }: ComponentProps<"caption">) {
+export function TableCaption({ className, ...props }: ComponentProps<"caption">) {
 	return (
 		<caption
 			data-slot="table-caption"
@@ -82,5 +82,3 @@ function TableCaption({ className, ...props }: ComponentProps<"caption">) {
 		/>
 	);
 }
-
-export { Table, TableBody, TableCaption, TableCell, TableFooter, TableHead, TableHeader, TableRow };

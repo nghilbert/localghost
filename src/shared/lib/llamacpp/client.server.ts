@@ -1,3 +1,4 @@
+import { Agent, type Response as UndiciResponse, fetch as undiciFetch } from "undici";
 import { z } from "zod/v4";
 import { llamaDownloadFileProgressSchema } from "#/shared/domain/model/schemas";
 
@@ -28,6 +29,14 @@ const llamaModelListSchema = z.object({ data: z.array(llamaModelSchema) });
 
 export type LlamaModel = z.infer<typeof llamaModelSchema>;
 
+/**
+ * Key for the bundled llama.cpp service, mirroring its `LLAMA_API_KEY` (compose.yaml).
+ * llama.cpp enforces `--api-key` on `/models/sse` and `/models/unload` but not `/models`,
+ * so an unset key breaks download progress and cancellation but not discovery. A server
+ * without `--api-key` ignores the header.
+ */
+export const LOCAL_LLAMACPP_API_KEY = process.env.LLAMACPP_API_KEY || "local-llamacpp";
+
 async function timeoutFetch({
 	url,
 	init,
@@ -44,7 +53,7 @@ async function responseError({
 	response,
 	operation,
 }: {
-	response: Response;
+	response: Response | UndiciResponse;
 	operation: string;
 }): Promise<Error> {
 	const body: unknown = await response.json().catch(() => null);
@@ -82,6 +91,12 @@ export async function listModels({
 	return llamaModelListSchema.parse(await response.json()).data;
 }
 
+// `bodyTimeout: 0` disables undici's 5-min between-chunks timeout for this long-lived stream.
+const modelEventDispatcher = new Agent({ bodyTimeout: 0 });
+
+/** undici's response body stream; its element type diverges from the DOM `ReadableStream`. */
+type ModelEventStream = NonNullable<UndiciResponse["body"]>;
+
 /** A single connection attempt to llama.cpp's router model-event stream. */
 async function fetchModelEventStream({
 	url,
@@ -91,10 +106,11 @@ async function fetchModelEventStream({
 	url: string;
 	apiKey?: string;
 	signal: AbortSignal;
-}): Promise<ReadableStream<Uint8Array>> {
-	const response = await fetch(`${url}/models/sse`, {
+}): Promise<ModelEventStream> {
+	const response = await undiciFetch(`${url}/models/sse`, {
 		headers: { Accept: "text/event-stream", ...authHeaders(apiKey) },
 		signal,
+		dispatcher: modelEventDispatcher,
 	});
 	if (!response.ok) throw await responseError({ response, operation: "GET /models/sse" });
 	if (!response.body) throw new Error("GET /models/sse returned no response body");
@@ -126,7 +142,7 @@ export async function openModelEventStream({
 
 	return new ReadableStream<Uint8Array>({
 		async start(controller) {
-			let source: ReadableStream<Uint8Array> | null = initial;
+			let source: ModelEventStream | null = initial;
 			while (!signal.aborted) {
 				try {
 					const upstream = source ?? (await fetchModelEventStream({ url, apiKey, signal }));

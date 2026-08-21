@@ -1,4 +1,6 @@
 import { SlidersHorizontalIcon } from "lucide-react";
+import { Fragment } from "react";
+import type { Facet } from "#/routes/_authenticated/library/-lib/facets";
 import { Badge } from "#/shared/components/ui/badge";
 import { Button } from "#/shared/components/ui/button";
 import {
@@ -11,31 +13,15 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "#/shared/components/ui/dropdown-menu";
-import type { CatalogCapability } from "#/shared/domain/model/schemas";
-
-const CAPABILITY_OPTIONS: { value: CatalogCapability; label: string }[] = [
-	{ value: "vision", label: "Vision" },
-	{ value: "code", label: "Code" },
-	{ value: "fast", label: "Fast" },
-];
 
 type ModelFilterMenuProps = {
-	licenses: string[];
-	selectedLicenses: string[];
-	selectedCapabilities: CatalogCapability[];
-	onLicensesChange: (licenses: string[]) => void;
-	onCapabilitiesChange: (capabilities: CatalogCapability[]) => void;
+	facets: Facet[];
 };
 
-/** Facet filters for the model catalog: a fixed set of capabilities plus the catalog's dynamic licenses. */
-export function ModelFilterMenu({
-	licenses,
-	selectedLicenses,
-	selectedCapabilities,
-	onLicensesChange,
-	onCapabilitiesChange,
-}: ModelFilterMenuProps) {
-	const activeCount = selectedLicenses.length + selectedCapabilities.length;
+/** Renders the catalog's filter facets as grouped checkboxes; a facet with no options is skipped. */
+export function ModelFilterMenu({ facets }: ModelFilterMenuProps) {
+	const activeCount = facets.reduce((total, facet) => total + facet.chips.length, 0);
+	const groups = facets.filter((facet) => facet.controls.length > 0);
 
 	return (
 		<DropdownMenu>
@@ -62,8 +48,7 @@ export function ModelFilterMenu({
 							data-testid="model-filter-clear"
 							className="justify-center text-muted-foreground"
 							onClick={() => {
-								onLicensesChange([]);
-								onCapabilitiesChange([]);
+								for (const facet of facets) facet.clear();
 							}}
 						>
 							Clear filters
@@ -71,49 +56,24 @@ export function ModelFilterMenu({
 						<DropdownMenuSeparator />
 					</>
 				)}
-				<DropdownMenuGroup>
-					<DropdownMenuLabel>Capabilities</DropdownMenuLabel>
-					{CAPABILITY_OPTIONS.map((option) => (
-						<DropdownMenuCheckboxItem
-							key={option.value}
-							checked={selectedCapabilities.includes(option.value)}
-							data-testid={`model-filter-capability-${option.value}`}
-							onCheckedChange={(checked) =>
-								onCapabilitiesChange(
-									checked
-										? [...selectedCapabilities, option.value]
-										: selectedCapabilities.filter((v) => v !== option.value),
-								)
-							}
-						>
-							{option.label}
-						</DropdownMenuCheckboxItem>
-					))}
-				</DropdownMenuGroup>
-				{licenses.length > 0 && (
-					<>
-						<DropdownMenuSeparator />
+				{groups.map((facet, index) => (
+					<Fragment key={facet.id}>
+						{index > 0 && <DropdownMenuSeparator />}
 						<DropdownMenuGroup>
-							<DropdownMenuLabel>License</DropdownMenuLabel>
-							{licenses.map((license) => (
+							<DropdownMenuLabel>{facet.label}</DropdownMenuLabel>
+							{facet.controls.map((control) => (
 								<DropdownMenuCheckboxItem
-									key={license}
-									checked={selectedLicenses.includes(license)}
-									data-testid={`model-filter-license-${license}`}
-									onCheckedChange={(checked) =>
-										onLicensesChange(
-											checked
-												? [...selectedLicenses, license]
-												: selectedLicenses.filter((v) => v !== license),
-										)
-									}
+									key={control.value}
+									checked={control.checked}
+									data-testid={`model-filter-${facet.testId}-${control.value}`}
+									onCheckedChange={control.onToggle}
 								>
-									{license}
+									{control.label}
 								</DropdownMenuCheckboxItem>
 							))}
 						</DropdownMenuGroup>
-					</>
-				)}
+					</Fragment>
+				))}
 			</DropdownMenuContent>
 		</DropdownMenu>
 	);

@@ -1,5 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("#/shared/domain/model/hardware.server", () => ({
+	getHardwareInfo: vi.fn(async () => ({
+		totalRamGb: 8,
+		freeRamGb: 8,
+		cpuModel: "test-cpu",
+		cpuCount: 4,
+		gpus: null,
+	})),
+}));
+
 async function freshCatalogModule() {
 	vi.resetModules();
 	return import("#/shared/domain/model/catalog.server");
@@ -129,6 +139,25 @@ describe("getCatalog (Hugging Face)", () => {
 		expect(model?.variants?.[0]?.sizeGb).toBeCloseTo(1.9, 1);
 	});
 
+	it("excludes imatrix and draft files that llama.cpp itself would skip", async () => {
+		mockHfFetch({
+			textGeneration: [
+				indexEntry({ id: "org/model-8B-GGUF", downloads: 1, tags: ["conversational"] }),
+			],
+			tree: [
+				{ path: "model-imatrix-Q4_K_M.gguf", lfs: { size: 300_000_000 } },
+				{ path: "mtp-model-Q4_K_M.gguf", lfs: { size: 300_000_000 } },
+				{ path: "model-Q4_K_M.gguf", lfs: { size: 4_500_000_000 } },
+			],
+		});
+
+		const { getCatalog } = await freshCatalogModule();
+		const [model] = await getCatalog();
+		expect(model?.variants).toHaveLength(1);
+		expect(model?.variants?.[0]?.fileName).toBe("model-Q4_K_M.gguf");
+		expect(model?.variants?.[0]?.sizeGb).toBeCloseTo(4.2, 1);
+	});
+
 	it("drops repositories with no eligible GGUF variant", async () => {
 		mockHfFetch({
 			textGeneration: [
@@ -236,6 +265,7 @@ describe("getCatalog (Hugging Face)", () => {
 			sortBy: "pullCount",
 			sortDir: "desc",
 			licenses: ["mit", "apache-2.0"],
+			hiddenFits: [],
 		});
 		expect(licensePage.rows.map((model) => model.name)).toEqual([
 			"org/alpha-code-8B-GGUF",
@@ -250,6 +280,7 @@ describe("getCatalog (Hugging Face)", () => {
 			sortDir: "desc",
 			licenses: ["mit", "apache-2.0"],
 			capabilities: ["code", "vision"],
+			hiddenFits: [],
 		});
 		expect(capabilityPage.rows.map((model) => model.name)).toEqual(["org/alpha-code-8B-GGUF"]);
 		expect(capabilityPage.total).toBe(2);
@@ -262,8 +293,38 @@ describe("getCatalog (Hugging Face)", () => {
 			sortDir: "desc",
 			licenses: ["mit"],
 			capabilities: ["code", "vision"],
+			hiddenFits: [],
 		});
 		expect(intersection.rows.map((model) => model.name)).toEqual(["org/alpha-code-8B-GGUF"]);
+	});
+
+	it("hides rows whose fit band is in hiddenFits, keyed on the same classification as the badge", async () => {
+		mockHfFetch({
+			textGeneration: [
+				indexEntry({ id: "org/small-8B-GGUF", downloads: 200, tags: ["conversational"] }),
+				indexEntry({ id: "org/huge-70B-GGUF", downloads: 100, tags: ["conversational"] }),
+			],
+			treeByRepo: {
+				// host has 8GB: 2GB quant classifies "fits", 40GB quant classifies "wont-fit".
+				"org/small-8B-GGUF": [{ path: "model-Q4_K_M.gguf", lfs: { size: 2_000_000_000 } }],
+				"org/huge-70B-GGUF": [{ path: "model-Q4_K_M.gguf", lfs: { size: 40_000_000_000 } }],
+			},
+		});
+
+		const { getCatalogPage } = await freshCatalogModule();
+		const base = { page: 0, pageSize: 10, sortBy: "pullCount", sortDir: "desc" } as const;
+
+		// Default: hide "wont-fit" only, so the 40GB row's default quant drops out.
+		const filtered = await getCatalogPage({ ...base, hiddenFits: ["wont-fit"] });
+		expect(filtered.rows.map((model) => model.name)).toEqual(["org/small-8B-GGUF"]);
+		expect(filtered.total).toBe(1);
+
+		// Empty hiddenFits shows everything.
+		const unfiltered = await getCatalogPage({ ...base, hiddenFits: [] });
+		expect(unfiltered.rows.map((model) => model.name)).toEqual([
+			"org/small-8B-GGUF",
+			"org/huge-70B-GGUF",
+		]);
 	});
 });
 
