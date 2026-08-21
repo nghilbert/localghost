@@ -1,5 +1,6 @@
 model Account {
   id                    String    @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  issuer                String
   accountId             String    @map("account_id")
   providerId            String    @map("provider_id")
   userId                String    @map("user_id") @db.Uuid
@@ -14,6 +15,7 @@ model Account {
   createdAt             DateTime  @default(now()) @map("created_at")
   updatedAt             DateTime  @updatedAt @map("updated_at")
 
+  @@unique([issuer, accountId], map: "account_issuer_accountId_uidx")
   @@index([userId])
   @@map("account")
 }
