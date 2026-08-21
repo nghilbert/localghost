@@ -19,6 +19,18 @@ Capabilities are inline in chat or in Settings, never separate tabs.
   automatically; running natively, set `SEARXNG_URL` or the tool stays off.
 - **Memory.** A long-term memory the model reads and writes, opt-in per message.
   Browse and edit entries in Settings.
+- **Code agent.** A dedicated `/agent` surface that points Claude Code at a
+  directory on the host and lets it work there. It runs against your real files
+  with no copy and no undo, so point it at a git repo with a clean tree. Every
+  command it wants to run needs your approval first, and allowing one keeps it
+  allowed for that session. Kept off the chat pipeline deliberately: nothing it
+  does can destabilise a normal conversation. Needs the `claude` CLI on the
+  server's PATH (the Docker image installs it) and an Anthropic or llama.cpp
+  endpoint. It may only open directories inside `CODE_AGENT_WORKSPACE_ROOT`,
+  which defaults to `~/localghost` — create that directory (or point the variable
+  at your own) before starting a session, since Compose bind-mounts it. Keeping
+  it off `$HOME` is deliberate: it keeps the agent away from `~/.ssh`, `~/.aws`
+  and this checkout's own `.env`. Best-effort against non-Anthropic models.
 - **Backup.** Export everything (conversations, endpoints, memory, settings) to a
   file and import it back. Import merges non-destructively.
 - **Themes.** Light and dark with accent theming in Settings > Appearance.

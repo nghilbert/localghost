@@ -2,6 +2,26 @@ node_modules
 dist
 .output
 .git
+.gitignore
 .env
+.env.*
 src/generated
 public/uploads
+
+# Local tooling and editor state: never part of a build, and keeping it out stops
+# a local hook edit from breaking `docker build` through the typecheck.
+.claude
+.vscode
+.idea
+.DS_Store
+
+# CI and docs, which the runtime never reads.
+.github
+*.md
+LICENSE
+
+# Test artifacts and logs.
+coverage
+test-results
+playwright-report
+*.log

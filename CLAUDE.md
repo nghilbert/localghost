@@ -97,7 +97,7 @@ src/
   shared/          # everything used app-wide, not tied to one page
     domain/        #   domain nouns, one folder each; files named for what they own: <noun>.server.ts (data access) + <noun>.functions.ts (thin RPC + queryOptions) + schemas.ts/types.ts + use-<noun>.ts hooks + any UI shared across routes
       endpoint/    #     the kernel other nouns lean on (conversation/memory/model-setting import it)
-      conversation/  chat/  memory/  model/  model-setting/  user-settings/  auth/  backup/
+      conversation/  chat/  code-agent/  memory/  model/  model-setting/  user-settings/  auth/  backup/
     components/    #   reusable components: ui/ (hand-owned Base UI primitives, flat) + our own (RouteErrorScreen/, ActivityMarker)
     lib/           #   domain-free infra, server and isomorphic: crypto/db/llm/auth/session (*.server.ts), llama.cpp client + url, tools/, constants, format/utils, globals.css + themes/
     hooks/         #   use-app-form/, use-is-mobile, use-sign-out
@@ -108,6 +108,8 @@ src/
       -components/                      # SignInForm, SignUpForm (local to the public pages)
     _authenticated/
       -components/AppSidebar/  -components/ChatInput/  -components/ChatMessage/  -hooks/  # shared by every authenticated page (ChatInput/ChatMessage, use-step-duration, use-endpoint-model-groups)
+      _agent/                            # pathless layout for the code agent (/agent, /agent/$id)
+        route.tsx  agent/index.tsx  agent/$sessionId.tsx  agent/-components/  agent/-lib/
       _chat/                             # pathless layout shared by /new and /chat/$id
         route.tsx  new.tsx  chat/$conversationId.tsx
         -components/  -hooks/  -lib/     # code owned only by the chat route subtree
@@ -153,6 +155,7 @@ Vitest in `src/test/<area>/` (folders named for the slice they test: the domain 
 | Endpoints / providers | domain `src/shared/domain/endpoint/` (the kernel: endpoint api, schemas, query hooks), config UI `src/routes/_authenticated/settings/-components/` (`EndpointItem`, `ProviderSetupForm/`) + `-lib/providers.ts` registry |
 | Memory (pgvector) | `src/shared/domain/memory/` (`memory.functions.ts` RPC, `memory.server.ts` pgvector semantic recall via `embeddings.server.ts`, `memory-tool.server.ts` the `manage_memory`/`delete_memory` tool bodies, `memory-adapter.server.ts` the `MemoryAdapter` `memoryMiddleware` runs); always-on middleware (not a per-message toggle), browse/delete in Settings |
 | Built-in agent tools | wired in `src/shared/domain/chat/agent.server.ts` (the `web_search` toggle activates both `web_search` and `read_url`) plus `memory-adapter.server.ts`'s always-on memory tools; handlers in `src/shared/lib/tools/{web-search,read-url}.server.ts`; single client toggle in `src/routes/_authenticated/_chat/-lib/tool-catalog.ts`, availability in `src/shared/domain/chat/tools.functions.ts` |
+| Code agent | `src/shared/domain/code-agent/` (`code-agent-run.server.ts` runs Claude Code via `localProcessSandbox` directly against the session's `workspacePath`, `code-agent-policy.ts` builds the sandbox policy and renames the approval chunk, `code-agent-env.server.ts` scrubs the inherited environment by inversion), page UI `src/routes/_authenticated/_agent/`. `harnesses.ts` is the harness registry, pinned to the endpoint providers whose wire protocol it speaks and the CLI it needs on PATH; models come from the chosen endpoint, never the registry. The session id doubles as the AG-UI `threadId`, so `/api/agent/stream` reads `params.threadId` and needs no forwarded props. Under Compose `CODE_AGENT_WORKSPACE_ROOT` (default `$HOME/localghost`) is mounted at its host path, so a workspace path resolves the same inside and out. Edits land in place; the approval gate and Claude Code's own Bash sandbox stand in for container isolation |
 | Settings | page `src/routes/_authenticated/settings/` (`index.tsx` + `-components/` tabs + `-hooks/` + `-lib/`: account, memory, endpoints, theme, backup) |
 | Backup/import | `src/routes/api/backup/` (handlers + colocated `-backup.server.ts`): non-destructive merge |
 | Auth | forms `src/routes/_public/-components/`, RPC `src/shared/domain/auth/` (`auth.functions.ts`, `schemas.ts`), `use-sign-out` in `shared/hooks`, session infra `src/shared/lib/{auth,session}.server.ts` |
