@@ -1,4 +1,5 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import { Container } from "#/shared/components/ui/container";
 import { APP_NAME } from "#/shared/lib/constants";
 
 export const Route = createFileRoute("/_public")({
@@ -12,9 +13,9 @@ export const Route = createFileRoute("/_public")({
 				<p className="mt-1 text-sm text-muted-foreground">Your self-hosted AI workspace</p>
 			</header>
 			{/* The active public page (sign-in/sign-up) renders into this <main /> */}
-			<main className="w-full max-w-sm">
+			<Container size="sm" render={<main />}>
 				<Outlet />
-			</main>
+			</Container>
 		</div>
 	),
 });

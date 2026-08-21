@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { BrainIcon, PaletteIcon, PlugIcon, UserIcon } from "lucide-react";
+import { Container } from "#/shared/components/ui/container";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "#/shared/components/ui/tabs";
 import { memoriesQueryOptions } from "#/shared/domain/memory/memory.functions";
 import { userSettingsQueryOptions } from "#/shared/domain/user-settings/user-settings.functions";
@@ -27,43 +28,45 @@ function SettingsPage() {
 
 	return (
 		<Tabs value={activeTab} className="flex h-full flex-col overflow-hidden">
-			<div className="shrink-0 overflow-x-auto border-b px-4 py-2">
-				<TabsList variant="line">
-					<TabsTrigger
-						value="account"
-						className="gap-1.5"
-						render={<Link to="/settings" search={{ tab: "account" }} />}
-					>
-						<UserIcon size={13} />
-						Account
-					</TabsTrigger>
-					<TabsTrigger
-						value="memory"
-						className="gap-1.5"
-						render={<Link to="/settings" search={{ tab: "memory" }} />}
-					>
-						<BrainIcon size={13} />
-						Memory
-					</TabsTrigger>
-					<TabsTrigger
-						value="endpoints"
-						className="gap-1.5"
-						render={<Link to="/settings" search={{ tab: "endpoints" }} />}
-					>
-						<PlugIcon size={13} />
-						Provider endpoints
-					</TabsTrigger>
-					<TabsTrigger
-						value="appearance"
-						className="gap-1.5"
-						render={<Link to="/settings" search={{ tab: "appearance" }} />}
-					>
-						<PaletteIcon size={13} />
-						Appearance
-					</TabsTrigger>
-				</TabsList>
+			<div className="shrink-0 overflow-x-auto border-b">
+				<Container size="2xl" className="px-6 py-2">
+					<TabsList variant="line">
+						<TabsTrigger
+							value="account"
+							className="gap-1.5"
+							render={<Link to="/settings" search={{ tab: "account" }} />}
+						>
+							<UserIcon size={13} />
+							Account
+						</TabsTrigger>
+						<TabsTrigger
+							value="memory"
+							className="gap-1.5"
+							render={<Link to="/settings" search={{ tab: "memory" }} />}
+						>
+							<BrainIcon size={13} />
+							Memory
+						</TabsTrigger>
+						<TabsTrigger
+							value="endpoints"
+							className="gap-1.5"
+							render={<Link to="/settings" search={{ tab: "endpoints" }} />}
+						>
+							<PlugIcon size={13} />
+							Provider endpoints
+						</TabsTrigger>
+						<TabsTrigger
+							value="appearance"
+							className="gap-1.5"
+							render={<Link to="/settings" search={{ tab: "appearance" }} />}
+						>
+							<PaletteIcon size={13} />
+							Appearance
+						</TabsTrigger>
+					</TabsList>
+				</Container>
 			</div>
-			<div className="mx-auto w-full max-w-2xl overflow-auto p-6">
+			<Container size="2xl" className="overflow-auto p-6">
 				<TabsContent value="account">
 					<AccountTab />
 				</TabsContent>
@@ -76,7 +79,7 @@ function SettingsPage() {
 				<TabsContent value="appearance">
 					<AppearanceTab />
 				</TabsContent>
-			</div>
+			</Container>
 		</Tabs>
 	);
 }
