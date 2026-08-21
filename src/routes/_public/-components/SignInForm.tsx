@@ -1,24 +1,14 @@
-import { useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useSignIn } from "#/routes/_public/-hooks/use-sign-in";
 import { signInDefaults, signInSchema } from "#/shared/domain/auth/schemas";
 import { useAppForm } from "#/shared/hooks/use-app-form";
-import { authClient } from "#/shared/lib/auth-client";
 
 export function SignInForm() {
-	const navigate = useNavigate();
-	const [errorMsg, setErrorMsg] = useState<string | null>(null);
+	const signIn = useSignIn();
 
 	const form = useAppForm({
 		defaultValues: signInDefaults,
 		validators: { onDynamic: signInSchema },
-		onSubmit: async ({ value }) => {
-			setErrorMsg(null);
-
-			await authClient.signIn.email(value, {
-				onError: () => setErrorMsg("Invalid credentials."),
-				onSuccess: async () => navigate({ to: "/" }),
-			});
-		},
+		onSubmit: ({ value }) => signIn.mutateAsync(value),
 	});
 
 	return (
@@ -39,8 +29,8 @@ export function SignInForm() {
 					{(field) => <field.PasswordField label="Password" autoComplete="current-password" />}
 				</form.AppField>
 
-				<form.SubmitButton>Sign in</form.SubmitButton>
-				<form.FormError>{errorMsg}</form.FormError>
+				<form.SubmitButton data-testid="sign-in-submit">Sign in</form.SubmitButton>
+				<form.FormError>{signIn.error?.message}</form.FormError>
 			</form.SubmitForm>
 		</form.AppForm>
 	);

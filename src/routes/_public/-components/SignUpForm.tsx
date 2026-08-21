@@ -1,24 +1,14 @@
-import { useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useSignUp } from "#/routes/_public/-hooks/use-sign-up";
 import { signUpDefaults, signUpSchema } from "#/shared/domain/auth/schemas";
 import { useAppForm } from "#/shared/hooks/use-app-form";
-import { authClient } from "#/shared/lib/auth-client";
 
 export function SignUpForm() {
-	const navigate = useNavigate();
-	const [errorMsg, setErrorMsg] = useState<string | null>(null);
+	const signUp = useSignUp();
 
 	const form = useAppForm({
 		defaultValues: signUpDefaults,
 		validators: { onDynamic: signUpSchema },
-		onSubmit: async ({ value }) => {
-			setErrorMsg(null);
-
-			await authClient.signUp.email(value, {
-				onError: ({ error }) => setErrorMsg(error.message ?? "Sign up failed. Please try again."),
-				onSuccess: async () => navigate({ to: "/" }),
-			});
-		},
+		onSubmit: ({ value }) => signUp.mutateAsync(value),
 	});
 
 	return (
@@ -50,8 +40,8 @@ export function SignUpForm() {
 					{(field) => <field.PasswordField label="Password" autoComplete="new-password" />}
 				</form.AppField>
 
-				<form.SubmitButton>Sign up</form.SubmitButton>
-				<form.FormError>{errorMsg}</form.FormError>
+				<form.SubmitButton data-testid="sign-up-submit">Sign up</form.SubmitButton>
+				<form.FormError>{signUp.error?.message}</form.FormError>
 			</form.SubmitForm>
 		</form.AppForm>
 	);
