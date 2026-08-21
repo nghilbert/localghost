@@ -1,4 +1,3 @@
-import { revalidateLogic } from "@tanstack/react-form";
 import { Button } from "#/shared/components/ui/button";
 import { Field } from "#/shared/components/ui/field";
 import { toast } from "#/shared/components/ui/toast";
@@ -23,7 +22,6 @@ export function RuntimeConnectionForm({
 	const form = useAppForm({
 		defaultValues: { url: defaultUrl },
 		validators: { onDynamic: llamacppUrlSchema },
-		validationLogic: revalidateLogic(),
 		onSubmit: ({ value }) => connectRemote.mutateAsync({ url: value.url }),
 	});
 

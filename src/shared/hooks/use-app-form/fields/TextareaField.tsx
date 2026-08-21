@@ -1,3 +1,4 @@
+import { FieldControl } from "#/shared/components/ui/field";
 import { Textarea } from "#/shared/components/ui/textarea";
 import { useFieldContext } from "..";
 import { FieldShell } from "./FieldShell";
@@ -13,14 +14,16 @@ export function TextareaField({
 
 	return (
 		<FieldShell label={label} description={description} orientation={fieldOrientation}>
-			<Textarea
-				id={field.name}
-				data-testid={`${field.name}-input`}
-				value={field.state.value}
-				onBlur={field.handleBlur}
-				onChange={(event) => field.handleChange(event.target.value)}
-				aria-invalid={!field.state.meta.isValid}
-				{...props}
+			<FieldControl
+				render={
+					<Textarea
+						data-testid={`${field.name}-input`}
+						value={field.state.value}
+						onBlur={field.handleBlur}
+						onChange={(event) => field.handleChange(event.target.value)}
+						{...props}
+					/>
+				}
 			/>
 		</FieldShell>
 	);

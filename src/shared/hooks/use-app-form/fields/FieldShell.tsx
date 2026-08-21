@@ -31,15 +31,18 @@ export function FieldShell({
 	return (
 		<Field
 			orientation={orientation}
-			data-invalid={!field.state.meta.isValid}
+			invalid={!field.state.meta.isValid}
 			data-testid={`field-${field.name}`}
 		>
 			<FieldContent>
-				<FieldLabel htmlFor={field.name}>{label}</FieldLabel>
+				<FieldLabel>{label}</FieldLabel>
 				{description && <FieldDescription>{description}</FieldDescription>}
 			</FieldContent>
 			{children}
-			<FieldError errors={field.state.meta.errorMap.onDynamic} />
+			<FieldError
+				data-testid={`${field.name}-error`}
+				errors={field.state.meta.errorMap.onDynamic}
+			/>
 		</Field>
 	);
 }

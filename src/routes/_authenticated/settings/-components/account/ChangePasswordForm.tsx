@@ -1,4 +1,3 @@
-import { revalidateLogic } from "@tanstack/react-form";
 import { useChangePassword } from "#/routes/_authenticated/settings/-hooks/use-change-password";
 import { changePasswordFormSchema } from "#/routes/_authenticated/settings/-lib/schemas";
 import { Card, CardContent, CardHeader, CardTitle } from "#/shared/components/ui/card";
@@ -10,7 +9,6 @@ export function ChangePasswordForm() {
 	const form = useAppForm({
 		defaultValues: { currentPassword: "", newPassword: "", confirmPassword: "" },
 		validators: { onDynamic: changePasswordFormSchema },
-		validationLogic: revalidateLogic(),
 		onSubmit: ({ value }) =>
 			changePassword.mutateAsync(
 				{ currentPassword: value.currentPassword, newPassword: value.newPassword },

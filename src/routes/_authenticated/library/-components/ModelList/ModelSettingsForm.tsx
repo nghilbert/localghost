@@ -1,4 +1,3 @@
-import { revalidateLogic } from "@tanstack/react-form";
 import { ChevronDownIcon } from "lucide-react";
 import type { z } from "zod/v4";
 import { Button } from "#/shared/components/ui/button";
@@ -78,7 +77,6 @@ function ModelSettingsFields({
 	const form = useAppForm({
 		defaultValues,
 		validators: { onDynamic: perModelOptionsSchema },
-		validationLogic: revalidateLogic(),
 		onSubmit: async ({ value }) => onSave(value),
 	});
 
@@ -91,7 +89,7 @@ function ModelSettingsFields({
 							label="Temperature"
 							description="Overrides the global default for this model."
 							placeholder="Global default"
-							step="0.1"
+							step={0.1}
 							min={0}
 							max={2}
 						/>
@@ -109,13 +107,13 @@ function ModelSettingsFields({
 					</CollapsibleTrigger>
 					<CollapsibleContent className="space-y-3 pt-2">
 						<form.AppField name="top_p">
-							{(field) => <field.NumberField label="top_p" step="0.05" min={0} max={1} />}
+							{(field) => <field.NumberField label="top_p" step={0.05} min={0} max={1} />}
 						</form.AppField>
 						<form.AppField name="top_k">
 							{(field) => <field.NumberField label="top_k" min={0} />}
 						</form.AppField>
 						<form.AppField name="repeat_penalty">
-							{(field) => <field.NumberField label="Repeat penalty" step="0.1" min={0} />}
+							{(field) => <field.NumberField label="Repeat penalty" step={0.1} min={0} />}
 						</form.AppField>
 						<form.AppField name="max_tokens">
 							{(field) => <field.NumberField label="Max output tokens" />}

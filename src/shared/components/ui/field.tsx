@@ -1,12 +1,13 @@
-import { cva, type VariantProps } from "class-variance-authority";
-import { type ComponentProps, type ReactNode, useMemo } from "react";
-import { Label } from "#/shared/components/ui/label";
+import { Field as FieldPrimitive } from "@base-ui/react/field";
+import { Fieldset as FieldsetPrimitive } from "@base-ui/react/fieldset";
+import type { ComponentProps, ReactNode } from "react";
+import { tv, type VariantProps } from "tailwind-variants";
 import { Separator } from "#/shared/components/ui/separator";
 import { cn } from "#/shared/lib/utils";
 
-function FieldSet({ className, ...props }: ComponentProps<"fieldset">) {
+export function FieldSet({ className, ...props }: FieldsetPrimitive.Root.Props) {
 	return (
-		<fieldset
+		<FieldsetPrimitive.Root
 			data-slot="field-set"
 			className={cn(
 				"flex flex-col gap-4 has-[>[data-slot=checkbox-group]]:gap-3 has-[>[data-slot=radio-group]]:gap-3",
@@ -17,13 +18,13 @@ function FieldSet({ className, ...props }: ComponentProps<"fieldset">) {
 	);
 }
 
-function FieldLegend({
+export function FieldLegend({
 	className,
 	variant = "legend",
 	...props
-}: ComponentProps<"legend"> & { variant?: "legend" | "label" }) {
+}: FieldsetPrimitive.Legend.Props & { variant?: "legend" | "label" }) {
 	return (
-		<legend
+		<FieldsetPrimitive.Legend
 			data-slot="field-legend"
 			data-variant={variant}
 			className={cn(
@@ -35,7 +36,7 @@ function FieldLegend({
 	);
 }
 
-function FieldGroup({ className, ...props }: ComponentProps<"div">) {
+export function FieldGroup({ className, ...props }: ComponentProps<"div">) {
 	return (
 		<div
 			data-slot="field-group"
@@ -48,7 +49,8 @@ function FieldGroup({ className, ...props }: ComponentProps<"div">) {
 	);
 }
 
-const fieldVariants = cva("group/field flex w-full gap-2 data-[invalid=true]:text-destructive", {
+const fieldVariants = tv({
+	base: "group/field flex w-full gap-2 data-invalid:text-destructive",
 	variants: {
 		orientation: {
 			vertical: "flex-col *:w-full [&>.sr-only]:w-auto",
@@ -63,14 +65,13 @@ const fieldVariants = cva("group/field flex w-full gap-2 data-[invalid=true]:tex
 	},
 });
 
-function Field({
+export function Field({
 	className,
 	orientation = "vertical",
 	...props
-}: ComponentProps<"div"> & VariantProps<typeof fieldVariants>) {
+}: FieldPrimitive.Root.Props & VariantProps<typeof fieldVariants>) {
 	return (
-		<div
-			role="group"
+		<FieldPrimitive.Root
 			data-slot="field"
 			data-orientation={orientation}
 			className={cn(fieldVariants({ orientation }), className)}
@@ -79,7 +80,7 @@ function Field({
 	);
 }
 
-function FieldContent({ className, ...props }: ComponentProps<"div">) {
+export function FieldContent({ className, ...props }: ComponentProps<"div">) {
 	return (
 		<div
 			data-slot="field-content"
@@ -89,12 +90,12 @@ function FieldContent({ className, ...props }: ComponentProps<"div">) {
 	);
 }
 
-function FieldLabel({ className, ...props }: ComponentProps<typeof Label>) {
+export function FieldLabel({ className, ...props }: FieldPrimitive.Label.Props) {
 	return (
-		<Label
+		<FieldPrimitive.Label
 			data-slot="field-label"
 			className={cn(
-				"group/field-label peer/field-label flex w-fit gap-2 leading-snug group-data-[disabled=true]/field:opacity-50 has-data-checked:border-primary/30 has-data-checked:bg-primary/5 has-[>[data-slot=field]]:rounded-lg has-[>[data-slot=field]]:border *:data-[slot=field]:p-2.5 dark:has-data-checked:border-primary/20 dark:has-data-checked:bg-primary/10",
+				"group/field-label peer/field-label flex w-fit items-center gap-2 leading-snug select-none group-data-disabled/field:opacity-50 has-data-checked:border-primary/30 has-data-checked:bg-primary/5 has-[>[data-slot=field]]:rounded-lg has-[>[data-slot=field]]:border *:data-[slot=field]:p-2.5 dark:has-data-checked:border-primary/20 dark:has-data-checked:bg-primary/10",
 				"has-[>[data-slot=field]]:w-full has-[>[data-slot=field]]:flex-col",
 				className,
 			)}
@@ -103,12 +104,16 @@ function FieldLabel({ className, ...props }: ComponentProps<typeof Label>) {
 	);
 }
 
-function FieldTitle({ className, ...props }: ComponentProps<"div">) {
+export function FieldControl({ ...props }: FieldPrimitive.Control.Props) {
+	return <FieldPrimitive.Control data-slot="field-control" {...props} />;
+}
+
+export function FieldTitle({ className, ...props }: ComponentProps<"div">) {
 	return (
 		<div
 			data-slot="field-label"
 			className={cn(
-				"flex w-fit items-center gap-2 text-sm font-medium group-data-[disabled=true]/field:opacity-50",
+				"flex w-fit items-center gap-2 text-sm font-medium group-data-disabled/field:opacity-50",
 				className,
 			)}
 			{...props}
@@ -116,9 +121,9 @@ function FieldTitle({ className, ...props }: ComponentProps<"div">) {
 	);
 }
 
-function FieldDescription({ className, ...props }: ComponentProps<"p">) {
+export function FieldDescription({ className, ...props }: FieldPrimitive.Description.Props) {
 	return (
-		<p
+		<FieldPrimitive.Description
 			data-slot="field-description"
 			className={cn(
 				"text-left text-sm leading-normal font-normal text-muted-foreground group-has-data-horizontal/field:text-balance [[data-variant=legend]+&]:-mt-1.5",
@@ -131,7 +136,7 @@ function FieldDescription({ className, ...props }: ComponentProps<"p">) {
 	);
 }
 
-function FieldSeparator({
+export function FieldSeparator({
 	children,
 	className,
 	...props
@@ -159,59 +164,55 @@ function FieldSeparator({
 	);
 }
 
-function FieldError({
+function resolveFieldErrorContent({
+	children,
+	errors,
+}: {
+	children?: ReactNode;
+	errors?: Array<{ message?: string } | undefined>;
+}): ReactNode {
+	if (children) {
+		return children;
+	}
+
+	const errorMessages = [
+		...new Set(
+			errors?.map((error) => error?.message).filter((message): message is string => !!message),
+		),
+	];
+
+	if (errorMessages.length === 0) return null;
+	if (errorMessages.length === 1) return errorMessages[0];
+
+	return (
+		<ul className="ml-4 flex list-disc flex-col gap-1">
+			{errorMessages.map((message) => (
+				<li key={message}>{message}</li>
+			))}
+		</ul>
+	);
+}
+
+export function FieldError({
 	className,
 	children,
 	errors,
+	match = true,
 	...props
-}: ComponentProps<"div"> & { errors?: Array<{ message?: string } | undefined> }) {
-	const content = useMemo(() => {
-		if (children) {
-			return children;
-		}
+}: FieldPrimitive.Error.Props & { errors?: Array<{ message?: string } | undefined> }) {
+	const content = resolveFieldErrorContent({ children, errors });
 
-		if (!errors?.length) {
-			return null;
-		}
-
-		const uniqueErrors = [...new Map(errors.map((error) => [error?.message, error])).values()];
-
-		if (uniqueErrors?.length == 1) {
-			return uniqueErrors[0]?.message;
-		}
-
-		return (
-			<ul className="ml-4 flex list-disc flex-col gap-1">
-				{uniqueErrors.map((error, index) => error?.message && <li key={index}>{error.message}</li>)}
-			</ul>
-		);
-	}, [children, errors]);
-
-	if (!content) {
-		return null;
-	}
+	if (!content) return null;
 
 	return (
-		<div
+		<FieldPrimitive.Error
 			role="alert"
 			data-slot="field-error"
+			match={match}
 			className={cn("text-sm font-normal text-destructive", className)}
 			{...props}
 		>
 			{content}
-		</div>
+		</FieldPrimitive.Error>
 	);
 }
-
-export {
-	Field,
-	FieldContent,
-	FieldDescription,
-	FieldError,
-	FieldGroup,
-	FieldLabel,
-	FieldLegend,
-	FieldSeparator,
-	FieldSet,
-	FieldTitle,
-};
