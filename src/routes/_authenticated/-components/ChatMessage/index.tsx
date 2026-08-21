@@ -3,7 +3,7 @@ import type { UIMessage } from "@tanstack/ai-client";
 import { CircleAlertIcon, CopyIcon, PencilIcon, RefreshCwIcon } from "lucide-react";
 import { type KeyboardEvent, useState } from "react";
 import { Streamdown } from "streamdown";
-import type { ChatInterrupts } from "#/routes/_authenticated/_chat/-components/ChatThread";
+import type { ChatInterrupts } from "#/routes/_authenticated/_chat/-lib/chat-tools";
 import { Alert, AlertDescription, AlertTitle } from "#/shared/components/ui/alert";
 import { Bubble, BubbleContent } from "#/shared/components/ui/bubble";
 import { Button } from "#/shared/components/ui/button";

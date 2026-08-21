@@ -3,11 +3,11 @@ import { userEvent } from "vitest/browser";
 import type { Attachment } from "#/routes/_authenticated/_chat/-lib/attachments";
 import { render } from "#/test/utils";
 
-vi.mock("#/routes/_authenticated/_chat/-components/ChatInput/ModelPicker", () => ({
+vi.mock("#/routes/_authenticated/-components/ChatInput/ModelPicker", () => ({
 	ModelPicker: () => null,
 }));
 
-const { ChatInput } = await import("#/routes/_authenticated/_chat/-components/ChatInput");
+const { ChatInput } = await import("#/routes/_authenticated/-components/ChatInput");
 
 const selection = { endpointId: "endpoint-1", model: "test-model" };
 

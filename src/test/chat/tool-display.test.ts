@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { display } from "#/routes/_authenticated/_chat/-components/ChatMessage/ToolCallStep";
+import { display } from "#/routes/_authenticated/-components/ChatMessage/ToolCallStep";
 
 describe("display", () => {
 	describe("web_search", () => {

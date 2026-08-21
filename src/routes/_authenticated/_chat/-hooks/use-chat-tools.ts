@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { useCallback, useState } from "react";
-import type { ToolControls } from "#/routes/_authenticated/_chat/-components/ChatInput/ToolsMenu";
+import { useState } from "react";
 import { defaultEnabledTools } from "#/routes/_authenticated/_chat/-lib/tool-catalog";
+import type { ToolControls } from "#/routes/_authenticated/-components/ChatInput/ToolsMenu";
 import { toolAvailabilityQueryOptions } from "#/shared/domain/chat/tools.functions";
 import { modelCapabilitiesQueryOptions } from "#/shared/domain/endpoint/endpoint.functions";
 import type { ModelSelection } from "#/shared/domain/endpoint/types";
@@ -30,9 +30,7 @@ export function useChatTools({ selection }: { selection: ModelSelection | null }
 		webSearchAvailable,
 		initialEnabledTools: override ?? undefined,
 	});
-	const resetTools = useCallback(() => {
-		setOverride(null);
-	}, []);
+	const resetTools = () => setOverride(null);
 
 	const controls: ToolControls = {
 		enabledTools,

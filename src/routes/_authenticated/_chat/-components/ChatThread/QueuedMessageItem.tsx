@@ -1,6 +1,6 @@
 import type { QueuedMessage } from "@tanstack/ai-client";
 import { XIcon } from "lucide-react";
-import { ActionButton } from "#/routes/_authenticated/_chat/-components/ChatMessage/ActionButton";
+import { ActionButton } from "#/routes/_authenticated/-components/ChatMessage/ActionButton";
 import { Bubble, BubbleContent } from "#/shared/components/ui/bubble";
 import { Message, MessageContent, MessageFooter } from "#/shared/components/ui/message";
 

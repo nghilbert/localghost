@@ -24,18 +24,3 @@ export const changePasswordFormSchema = z
 		message: "Passwords do not match",
 		path: ["confirmPassword"],
 	});
-
-/** What `POST /api/backup/import` answers with: merge counts per kind. */
-export const importBackupResultSchema = z.object({
-	imported: z.object({
-		memories: z.number(),
-		conversations: z.number(),
-		endpoints: z.number(),
-		modelSettings: z.number(),
-		skippedMemories: z.number(),
-		skippedConversations: z.number(),
-		skippedEndpoints: z.number(),
-		skippedModelSettings: z.number(),
-		invalidConversations: z.number(),
-	}),
-});

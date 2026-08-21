@@ -1,9 +1,6 @@
-import type { BoundInterrupts } from "@tanstack/ai-client";
 import { useChat } from "@tanstack/ai-react";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { ChatInput } from "#/routes/_authenticated/_chat/-components/ChatInput";
-import { ChatMessage } from "#/routes/_authenticated/_chat/-components/ChatMessage";
+import { useEffect, useRef, useState } from "react";
 import { useConversation } from "#/routes/_authenticated/_chat/-hooks/use-conversation";
 import {
 	type Attachment,
@@ -11,6 +8,9 @@ import {
 } from "#/routes/_authenticated/_chat/-lib/attachments";
 import { createChatConnection } from "#/routes/_authenticated/_chat/-lib/chat-client";
 import { takeChatHandoff } from "#/routes/_authenticated/_chat/-lib/chat-handoff";
+import { CHAT_TOOLS } from "#/routes/_authenticated/_chat/-lib/chat-tools";
+import { ChatInput } from "#/routes/_authenticated/-components/ChatInput";
+import { ChatMessage } from "#/routes/_authenticated/-components/ChatMessage";
 import {
 	MessageScroller,
 	MessageScrollerButton,
@@ -19,7 +19,6 @@ import {
 	MessageScrollerProvider,
 	MessageScrollerViewport,
 } from "#/shared/components/ui/message-scroller";
-import { deleteMemoryToolDef } from "#/shared/domain/chat/tool-definitions";
 import {
 	type ConversationDetail,
 	modelRunStateQueryOptions,
@@ -27,13 +26,6 @@ import {
 import { awaitingAssistantResponse, editUserMessage } from "#/shared/domain/conversation/messages";
 import { ChatStatus } from "./ChatStatus";
 import { QueuedMessageItem } from "./QueuedMessageItem";
-
-/**
- * Client-declared tool stubs (no `execute`): the server owns execution, this
- * only gives `useChat` the tool types it needs to type approval interrupts.
- */
-const CHAT_TOOLS = [deleteMemoryToolDef] as const;
-export type ChatInterrupts = BoundInterrupts<typeof CHAT_TOOLS>;
 
 type ChatThreadProps = { conversation: ConversationDetail };
 export function ChatThread({ conversation }: ChatThreadProps) {
@@ -53,16 +45,13 @@ export function ChatThread({ conversation }: ChatThreadProps) {
 	// `forwardedProps` and never persisted. `useChat` re-reads `forwardedProps` on
 	// every send, so a fresh object here means the latest choice rides along.
 	// The timezone rides along so the server can state the user's local time.
-	const forwardedProps = useMemo(
-		() => ({
-			conversationId: conversation.id,
-			enabledTools: toolsToSend,
-			timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-		}),
-		[conversation.id, toolsToSend],
-	);
+	const forwardedProps = {
+		conversationId: conversation.id,
+		enabledTools: toolsToSend,
+		timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+	};
 
-	const connection = useMemo(() => createChatConnection(), []);
+	const [connection] = useState(() => createChatConnection());
 	const {
 		messages,
 		queue,
