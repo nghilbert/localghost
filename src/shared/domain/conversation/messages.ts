@@ -3,11 +3,13 @@ import type { DocumentPart, ImagePart } from "@tanstack/ai/client";
 import type { UIMessage } from "@tanstack/ai-client";
 
 /**
- * Reads the `messages` JSONB blob back as `@tanstack/ai`'s `ModelMessage[]`.
- * The one trust boundary between the stored blob and the typed transcript.
+ * Revives `createdAt` back into a real `Date` after a JSONB or RPC round-trip
+ * flattens it to a string.
  */
-export function storedMessages(value: unknown): ModelMessage[] {
-	return JSON.parse(JSON.stringify(value ?? []));
+export function reviveMessageDates(messages: Array<ModelMessage>): Array<ModelMessage> {
+	return messages.map((message) =>
+		message.createdAt ? { ...message, createdAt: new Date(message.createdAt) } : message,
+	);
 }
 
 /**

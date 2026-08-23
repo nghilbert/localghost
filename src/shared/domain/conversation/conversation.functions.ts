@@ -12,7 +12,7 @@ import {
 	removeConversation,
 	searchConversations,
 } from "./conversation.server";
-import { storedMessages } from "./messages";
+import { reviveMessageDates } from "./messages";
 import {
 	conversationIdInput,
 	createConversationInput,
@@ -125,7 +125,11 @@ export const conversationQueryOptions = (id: string) =>
 		// provably serializable to Start's validator); type it at the query seam.
 		queryFn: async (): Promise<ConversationDetail> => {
 			const conversation = await getConversation({ data: { id } });
-			return { ...conversation, messages: storedMessages(conversation.messages) };
+			const messages: Array<ModelMessage> = JSON.parse(JSON.stringify(conversation.messages));
+			return {
+				...conversation,
+				messages: reviveMessageDates(messages),
+			};
 		},
 	});
 

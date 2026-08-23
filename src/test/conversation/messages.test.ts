@@ -8,7 +8,7 @@ import {
 	editUserMessage,
 	messageDocumentSources,
 	partsText,
-	storedMessages,
+	reviveMessageDates,
 	strandedToolCall,
 } from "#/shared/domain/conversation/messages";
 
@@ -115,6 +115,20 @@ describe("documentMessageParts / messageDocumentSources", () => {
 	});
 });
 
+describe("reviveMessageDates", () => {
+	it("revives a JSON-flattened createdAt string back into a real Date", () => {
+		const [message] = reviveMessageDates([
+			{ role: "user", content: "hi", createdAt: new Date("2026-01-15T10:30:00.000Z") },
+		]);
+		expect(message?.createdAt).toBeInstanceOf(Date);
+	});
+
+	it("leaves a message with no createdAt untouched", () => {
+		const [message] = reviveMessageDates([{ role: "user", content: "hi" }]);
+		expect(message?.createdAt).toBeUndefined();
+	});
+});
+
 describe("awaitingAssistantResponse", () => {
 	it("is true when the transcript ends on a user message", () => {
 		expect(awaitingAssistantResponse([userMessage("hi")])).toBe(true);
@@ -177,18 +191,6 @@ describe("partsText", () => {
 			{ type: "text", content: " world" },
 		];
 		expect(partsText(parts)).toBe("Hello world");
-	});
-});
-
-describe("storedMessages", () => {
-	it("round-trips a ModelMessage[] blob through JSON", () => {
-		const messages = [{ role: "user", content: "hi" }];
-		expect(storedMessages(messages)).toEqual(messages);
-	});
-
-	it("treats a missing value as an empty transcript", () => {
-		expect(storedMessages(undefined)).toEqual([]);
-		expect(storedMessages(null)).toEqual([]);
 	});
 });
 

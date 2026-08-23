@@ -7,6 +7,7 @@ import type {
 	MessageStore,
 } from "@tanstack/ai-persistence";
 import { defineAIPersistence } from "@tanstack/ai-persistence";
+import { reviveMessageDates } from "#/shared/domain/conversation/messages";
 import { prisma } from "#/shared/lib/db.server";
 
 const RUN_STATUSES: ReadonlyArray<RunStatus> = [
@@ -91,8 +92,10 @@ function createMessageStore(): MessageStore {
 				where: { threadId },
 				select: { messages: true },
 			});
-			// Unknown thread is [], never null — the contract's invariant.
-			return row ? (row.messages as unknown as Array<ModelMessage>) : [];
+			// Unknown thread is [], never null. That's the contract's invariant.
+			if (!row) return [];
+			const stored: Array<ModelMessage> = JSON.parse(JSON.stringify(row.messages));
+			return reviveMessageDates(stored);
 		},
 		// Full overwrite — `messages` is the complete authoritative transcript.
 		// Upsert: the store must be able to create a thread from nothing, which

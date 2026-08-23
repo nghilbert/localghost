@@ -1,6 +1,6 @@
 import type { z } from "zod/v4";
 import { prisma } from "#/shared/lib/db.server";
-import type { perModelOptionsSchema } from "./schemas";
+import { perModelOptionsSchema } from "./schemas";
 
 /** The saved per-model overrides, or null when the model has none. */
 export async function getModelSetting({
@@ -13,7 +13,9 @@ export async function getModelSetting({
 	ownerId: string;
 }) {
 	const setting = await prisma.modelSetting.findFirst({ where: { endpointId, model, ownerId } });
-	return setting?.options as z.infer<typeof perModelOptionsSchema> | null | undefined;
+	if (!setting) return undefined;
+	if (setting.options == null) return null;
+	return perModelOptionsSchema.parse(setting.options);
 }
 
 /**
