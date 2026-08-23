@@ -6,7 +6,7 @@ x-app: &app
   ports:
     - "3000:3000"
   # node has global fetch; the slim image has no curl. start_period covers the
-  # prod migrate step and the dev Vite cold start.
+  # dev Vite cold start.
   healthcheck:
     test: [ "CMD", "node", "-e", "fetch('http://localhost:3000/').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))" ]
     interval: 15s
@@ -49,11 +49,33 @@ services:
       timeout: 5s
       retries: 5
 
+  # Pre-deploy step: applies pending migrations, then exits. web waits on it, so a
+  # `docker compose up` on a fresh volume still comes up migrated. Its image is the
+  # build stage, which carries the prisma CLI the lean runtime image drops.
+  migrate:
+    build:
+      context: .
+      target: migrate
+    profiles: [ prod ]
+    restart: "no"
+    environment:
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:-localghost}"
+    depends_on:
+      db:
+        condition: service_healthy
+
   # Production: the built image. COMPOSE_PROFILES selects prod or dev (web-dev).
   web:
     <<: *app
     build: .
     profiles: [ prod ]
+    depends_on:
+      db:
+        condition: service_healthy
+      searxng:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
 
   # Development: serves Vite with HMR over a bind mount instead of the built
   # bundle. Mutually exclusive with web (both bind 3000); pick one via profile.

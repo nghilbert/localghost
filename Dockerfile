@@ -1,10 +1,18 @@
 FROM node:24-bookworm-slim AS build
 WORKDIR /app
-COPY package.json package-lock.json ./
 RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates && rm -rf /var/lib/apt/lists/*
+RUN chown node:node /app
+USER node
+COPY --chown=node:node package.json package-lock.json ./
 RUN npm ci
-COPY . .
+COPY --chown=node:node . .
 RUN npm run prisma -- generate && npm run build
+
+# Pre-deploy step: applies pending migrations before the server starts (see the
+# migrate service in compose.yaml). The prisma CLI needs the dependency tree and
+# prisma/, neither of which the runtime image carries; this stage already has both.
+FROM build AS migrate
+CMD ["npm", "run", "prisma", "--", "migrate", "deploy"]
 
 # Dev image: dependencies only. Source, the prisma schema, and the generated
 # client are supplied by a bind mount at runtime (see web-dev in compose.yaml).
@@ -26,14 +34,11 @@ CMD ["sh", "-c", "npm run prisma -- generate && npm run dev -- --host"]
 FROM node:24-bookworm-slim
 WORKDIR /app
 ENV NODE_ENV=production
-COPY package.json package-lock.json ./
 RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates \
   && rm -rf /var/lib/apt/lists/*
-RUN npm ci --omit=dev
 COPY --from=build /app/.output ./.output
-COPY prisma.config.ts ./
-COPY prisma ./prisma
-# Run unprivileged; the runtime only reads these files and connects to Postgres.
+# Run unprivileged. Migrations run beforehand in the migrate service (see
+# compose.yaml), so this stage carries only .output.
 USER node
 EXPOSE 3000
-CMD ["sh", "-c", "npm run prisma -- migrate deploy && node .output/server/index.mjs"]
+CMD ["node", ".output/server/index.mjs"]

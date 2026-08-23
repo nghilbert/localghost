@@ -11,6 +11,5 @@
 	"js/ts.tsdk.promptToUseWorkspaceVersion": true,
 	"js/ts.preferences.importModuleSpecifierEnding": "minimal",
 	"js/ts.tsserver.experimental.enableProjectDiagnostics": true,
-	"files.associations": { "*.css": "tailwindcss" },
-	"json.schemaDownload.trustedDomains": { "https://ui.shadcn.com/schema.json": true }
+	"files.associations": { "*.css": "tailwindcss" }
 }

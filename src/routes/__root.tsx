@@ -34,7 +34,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 	head: () => ({
 		meta: [{ title: "localghost" }, { name: "description", content: "Self-hosted AI workspace" }],
 		links: [
-			{ rel: "icon", href: "/favicon.ico" },
+			{ rel: "icon", href: "/favicon.svg" },
 			{ rel: "manifest", href: "/manifest.json" },
 			{ rel: "stylesheet", href: globalCss },
 		],
