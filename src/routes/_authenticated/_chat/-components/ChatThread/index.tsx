@@ -6,9 +6,9 @@ import {
 	type Attachment,
 	composeMessageContent,
 } from "#/routes/_authenticated/_chat/-lib/attachments";
-import { createChatConnection } from "#/routes/_authenticated/_chat/-lib/chat-client";
-import { takeChatHandoff } from "#/routes/_authenticated/_chat/-lib/chat-handoff";
-import { CHAT_TOOLS } from "#/routes/_authenticated/_chat/-lib/chat-tools";
+import { createChatConnection } from "#/routes/_authenticated/_chat/-lib/connection";
+import { takeChatHandoff } from "#/routes/_authenticated/_chat/-lib/handoff";
+import { CHAT_TOOLS } from "#/routes/_authenticated/_chat/-lib/tool-stubs";
 import { ChatInput } from "#/routes/_authenticated/-components/ChatInput";
 import { ChatMessage } from "#/routes/_authenticated/-components/ChatMessage";
 import { ChatStatus } from "#/routes/_authenticated/-components/ChatStatus";

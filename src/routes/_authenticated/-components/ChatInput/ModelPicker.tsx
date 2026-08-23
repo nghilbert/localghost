@@ -19,7 +19,7 @@ import {
 	DropdownMenuTrigger,
 } from "#/shared/components/ui/dropdown-menu";
 import { Spinner } from "#/shared/components/ui/spinner";
-import type { ModelSelection } from "#/shared/domain/endpoint/types";
+import type { ModelSelection } from "#/shared/domain/endpoint/schemas";
 import { cn } from "#/shared/lib/utils";
 
 type ModelPickerProps = {

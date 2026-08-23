@@ -8,8 +8,8 @@ import {
 	listModels,
 	modelSupportsTools,
 	probeEndpoint,
-} from "#/shared/lib/llm.server";
-import { asLLMProvider } from "#/shared/lib/llm-provider";
+} from "#/shared/lib/llm/client.server";
+import { asLLMProvider } from "#/shared/lib/llm/provider";
 import type { createEndpointSchema, updateEndpointSchema } from "./schemas";
 
 /** Strips the encrypted key off an endpoint row, replacing it with a `hasApiKey` flag. */

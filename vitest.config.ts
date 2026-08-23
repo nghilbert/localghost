@@ -8,14 +8,14 @@ export default defineConfig({
 		projects: [
 			{
 				extends: true,
-				test: { name: "unit", environment: "node", include: ["src/test/**/*.test.ts"] },
+				test: { name: "unit", environment: "node", include: ["src/**/*.test.ts"] },
 			},
 			{
 				extends: true,
 				optimizeDeps: { exclude: ["@tanstack/react-start", "@tanstack/react-start/server"] },
 				test: {
 					name: "browser",
-					include: ["src/test/**/*.test.tsx"],
+					include: ["src/**/*.test.tsx"],
 					browser: {
 						enabled: true,
 						headless: true,

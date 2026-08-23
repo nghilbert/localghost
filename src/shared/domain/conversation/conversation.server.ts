@@ -1,4 +1,4 @@
-import { deleteChatThreadRows } from "#/shared/domain/chat/chat-persistence.server";
+import { deleteChatThreadRows } from "#/shared/domain/chat/persistence.server";
 import { prisma } from "#/shared/lib/db.server";
 import { listModels } from "#/shared/lib/llamacpp/client.server";
 import { deriveConversationTitle, threadMessagesFrom } from "./messages";

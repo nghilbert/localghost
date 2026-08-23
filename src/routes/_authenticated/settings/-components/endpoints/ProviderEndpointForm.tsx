@@ -11,7 +11,7 @@ import { Field } from "#/shared/components/ui/field";
 import { toast } from "#/shared/components/ui/toast";
 import { useTestEndpoint } from "#/shared/domain/endpoint/use-endpoints";
 import { useAppForm } from "#/shared/hooks/use-app-form";
-import type { LLMProvider } from "#/shared/lib/llm-provider";
+import type { LLMProvider } from "#/shared/lib/llm/provider";
 
 /** The trimmed values a provider-endpoint submission produces. */
 export type EndpointFormValues = { name: string; url: string; apiKey: string };

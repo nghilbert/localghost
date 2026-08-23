@@ -1,4 +1,4 @@
-import type { LLMProvider } from "#/shared/lib/llm-provider";
+import type { LLMProvider } from "#/shared/lib/llm/provider";
 
 /** Every harness id the code agent can run, the schema's single source of truth. */
 export const CODE_AGENT_HARNESS_IDS = ["claude-code"] as const;

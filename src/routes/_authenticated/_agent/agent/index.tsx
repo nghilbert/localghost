@@ -34,7 +34,7 @@ import {
 	codeAgentAvailabilityQueryOptions,
 	codeAgentSessionsQueryOptions,
 } from "#/shared/domain/code-agent/code-agent.functions";
-import { useDeleteCodeAgentSession } from "#/shared/domain/code-agent/use-code-agent-sessions";
+import { useDeleteCodeAgentSession } from "#/shared/domain/code-agent/use-sessions";
 
 export const Route = createFileRoute("/_authenticated/_agent/agent/")({
 	head: () => ({ meta: [{ title: "Code agent · localghost" }] }),

@@ -1,5 +1,5 @@
 import { z } from "zod/v4";
-import type { LLMProvider } from "#/shared/lib/llm-provider";
+import type { LLMProvider } from "#/shared/lib/llm/provider";
 
 export type ProviderId =
 	| "anthropic"

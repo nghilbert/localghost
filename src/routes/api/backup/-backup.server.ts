@@ -6,7 +6,7 @@ import { insertMemory } from "#/shared/domain/memory/memory.server";
 import { listModelSettings } from "#/shared/domain/model-setting/model-setting.server";
 import { perModelOptionsSchema } from "#/shared/domain/model-setting/schemas";
 import { prisma } from "#/shared/lib/db.server";
-import { llmProviderSchema } from "#/shared/lib/llm-provider";
+import { llmProviderSchema } from "#/shared/lib/llm/provider";
 
 /** The backup format this build writes; imports claiming a newer one are rejected.
  * Bumped to 4: `conversations[].messages` is now `ModelMessage[]`, not `UIMessage[]`.

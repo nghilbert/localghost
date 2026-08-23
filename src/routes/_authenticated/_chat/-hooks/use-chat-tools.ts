@@ -4,7 +4,7 @@ import { defaultEnabledTools } from "#/routes/_authenticated/_chat/-lib/tool-cat
 import type { ToolControls } from "#/routes/_authenticated/-components/ChatInput/ToolsMenu";
 import { toolAvailabilityQueryOptions } from "#/shared/domain/chat/tools.functions";
 import { modelCapabilitiesQueryOptions } from "#/shared/domain/endpoint/endpoint.functions";
-import type { ModelSelection } from "#/shared/domain/endpoint/types";
+import type { ModelSelection } from "#/shared/domain/endpoint/schemas";
 
 /**
  * The ephemeral per-message tool state shared by the New-chat draft page and an

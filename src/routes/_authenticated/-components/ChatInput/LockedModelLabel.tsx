@@ -1,7 +1,7 @@
 import { LockIcon } from "lucide-react";
 import { Button } from "#/shared/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "#/shared/components/ui/tooltip";
-import type { ModelSelection } from "#/shared/domain/endpoint/types";
+import type { ModelSelection } from "#/shared/domain/endpoint/schemas";
 
 /** Read-only model label for a locked conversation, explaining the lock on hover. */
 export function LockedModelLabel({ selection }: { selection: ModelSelection | null }) {

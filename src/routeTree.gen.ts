@@ -14,10 +14,10 @@ import { Route as PublicRouteImport } from './routes/_public'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedAgentRouteRouteImport } from './routes/_authenticated/_agent/route'
 import { Route as AuthenticatedChatRouteRouteImport } from './routes/_authenticated/_chat/route'
-import { Route as AuthenticatedLibraryRouteImport } from './routes/_authenticated/library'
 import { Route as PublicSignInRouteImport } from './routes/_public/sign-in'
 import { Route as PublicSignUpRouteImport } from './routes/_public/sign-up'
 import { Route as AuthenticatedChatNewRouteImport } from './routes/_authenticated/_chat/new'
+import { Route as AuthenticatedLibraryIndexRouteImport } from './routes/_authenticated/library/index'
 import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authenticated/settings/index'
 import { Route as ApiAgentStreamRouteImport } from './routes/api/agent/stream'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
@@ -50,11 +50,6 @@ const AuthenticatedChatRouteRoute = AuthenticatedChatRouteRouteImport.update({
   id: '/_chat',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedLibraryRoute = AuthenticatedLibraryRouteImport.update({
-  id: '/library',
-  path: '/library',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
 const PublicSignInRoute = PublicSignInRouteImport.update({
   id: '/sign-in',
   path: '/sign-in',
@@ -70,6 +65,12 @@ const AuthenticatedChatNewRoute = AuthenticatedChatNewRouteImport.update({
   path: '/new',
   getParentRoute: () => AuthenticatedChatRouteRoute,
 } as any)
+const AuthenticatedLibraryIndexRoute =
+  AuthenticatedLibraryIndexRouteImport.update({
+    id: '/library/',
+    path: '/library/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedSettingsIndexRoute =
   AuthenticatedSettingsIndexRouteImport.update({
     id: '/settings/',
@@ -127,7 +128,6 @@ const AuthenticatedChatChatConversationIdRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
-  '/library': typeof AuthenticatedLibraryRoute
   '/sign-in': typeof PublicSignInRoute
   '/sign-up': typeof PublicSignUpRoute
   '/new': typeof AuthenticatedChatNewRoute
@@ -137,6 +137,7 @@ export interface FileRoutesByFullPath {
   '/api/backup/import': typeof ApiBackupImportRoute
   '/api/chat/stream': typeof ApiChatStreamRoute
   '/api/models/events': typeof ApiModelsEventsRoute
+  '/library/': typeof AuthenticatedLibraryIndexRoute
   '/settings/': typeof AuthenticatedSettingsIndexRoute
   '/agent/$sessionId': typeof AuthenticatedAgentAgentSessionIdRoute
   '/chat/$conversationId': typeof AuthenticatedChatChatConversationIdRoute
@@ -144,7 +145,6 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof AuthenticatedIndexRoute
-  '/library': typeof AuthenticatedLibraryRoute
   '/sign-in': typeof PublicSignInRoute
   '/sign-up': typeof PublicSignUpRoute
   '/new': typeof AuthenticatedChatNewRoute
@@ -154,6 +154,7 @@ export interface FileRoutesByTo {
   '/api/backup/import': typeof ApiBackupImportRoute
   '/api/chat/stream': typeof ApiChatStreamRoute
   '/api/models/events': typeof ApiModelsEventsRoute
+  '/library': typeof AuthenticatedLibraryIndexRoute
   '/settings': typeof AuthenticatedSettingsIndexRoute
   '/agent/$sessionId': typeof AuthenticatedAgentAgentSessionIdRoute
   '/chat/$conversationId': typeof AuthenticatedChatChatConversationIdRoute
@@ -165,7 +166,6 @@ export interface FileRoutesById {
   '/_public': typeof PublicRouteWithChildren
   '/_authenticated/_agent': typeof AuthenticatedAgentRouteRouteWithChildren
   '/_authenticated/_chat': typeof AuthenticatedChatRouteRouteWithChildren
-  '/_authenticated/library': typeof AuthenticatedLibraryRoute
   '/_public/sign-in': typeof PublicSignInRoute
   '/_public/sign-up': typeof PublicSignUpRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
@@ -176,6 +176,7 @@ export interface FileRoutesById {
   '/api/backup/import': typeof ApiBackupImportRoute
   '/api/chat/stream': typeof ApiChatStreamRoute
   '/api/models/events': typeof ApiModelsEventsRoute
+  '/_authenticated/library/': typeof AuthenticatedLibraryIndexRoute
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
   '/_authenticated/_agent/agent/$sessionId': typeof AuthenticatedAgentAgentSessionIdRoute
   '/_authenticated/_chat/chat/$conversationId': typeof AuthenticatedChatChatConversationIdRoute
@@ -185,7 +186,6 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/library'
     | '/sign-in'
     | '/sign-up'
     | '/new'
@@ -195,6 +195,7 @@ export interface FileRouteTypes {
     | '/api/backup/import'
     | '/api/chat/stream'
     | '/api/models/events'
+    | '/library/'
     | '/settings/'
     | '/agent/$sessionId'
     | '/chat/$conversationId'
@@ -202,7 +203,6 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/library'
     | '/sign-in'
     | '/sign-up'
     | '/new'
@@ -212,6 +212,7 @@ export interface FileRouteTypes {
     | '/api/backup/import'
     | '/api/chat/stream'
     | '/api/models/events'
+    | '/library'
     | '/settings'
     | '/agent/$sessionId'
     | '/chat/$conversationId'
@@ -222,7 +223,6 @@ export interface FileRouteTypes {
     | '/_public'
     | '/_authenticated/_agent'
     | '/_authenticated/_chat'
-    | '/_authenticated/library'
     | '/_public/sign-in'
     | '/_public/sign-up'
     | '/_authenticated/'
@@ -233,6 +233,7 @@ export interface FileRouteTypes {
     | '/api/backup/import'
     | '/api/chat/stream'
     | '/api/models/events'
+    | '/_authenticated/library/'
     | '/_authenticated/settings/'
     | '/_authenticated/_agent/agent/$sessionId'
     | '/_authenticated/_chat/chat/$conversationId'
@@ -287,13 +288,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedChatRouteRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/library': {
-      id: '/_authenticated/library'
-      path: '/library'
-      fullPath: '/library'
-      preLoaderRoute: typeof AuthenticatedLibraryRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
     '/_public/sign-in': {
       id: '/_public/sign-in'
       path: '/sign-in'
@@ -314,6 +308,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/new'
       preLoaderRoute: typeof AuthenticatedChatNewRouteImport
       parentRoute: typeof AuthenticatedChatRouteRoute
+    }
+    '/_authenticated/library/': {
+      id: '/_authenticated/library/'
+      path: '/library'
+      fullPath: '/library/'
+      preLoaderRoute: typeof AuthenticatedLibraryIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/settings/': {
       id: '/_authenticated/settings/'
@@ -425,16 +426,16 @@ const AuthenticatedChatRouteRouteWithChildren =
 interface AuthenticatedRouteChildren {
   AuthenticatedAgentRouteRoute: typeof AuthenticatedAgentRouteRouteWithChildren
   AuthenticatedChatRouteRoute: typeof AuthenticatedChatRouteRouteWithChildren
-  AuthenticatedLibraryRoute: typeof AuthenticatedLibraryRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedLibraryIndexRoute: typeof AuthenticatedLibraryIndexRoute
   AuthenticatedSettingsIndexRoute: typeof AuthenticatedSettingsIndexRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAgentRouteRoute: AuthenticatedAgentRouteRouteWithChildren,
   AuthenticatedChatRouteRoute: AuthenticatedChatRouteRouteWithChildren,
-  AuthenticatedLibraryRoute: AuthenticatedLibraryRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedLibraryIndexRoute: AuthenticatedLibraryIndexRoute,
   AuthenticatedSettingsIndexRoute: AuthenticatedSettingsIndexRoute,
 }
 

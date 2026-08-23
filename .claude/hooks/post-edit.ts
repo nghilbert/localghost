@@ -99,16 +99,17 @@ const NAMING_CHECKS: Check[] = [
 	},
 ];
 
-const CLIENT_SUFFIX = /\.client\.ts$/;
-function clientSuffixHit(filePath: string): Finding | null {
-	if (!CLIENT_SUFFIX.test(filePath)) return null;
+// `server.ts` holds `server.` but not `.server.`, so TanStack's `**/*.server.*` glob skips it and
+// the module loses import protection with no error and no type failure.
+const STEMLESS_BOUNDARY = /(^|[/\\])(server|client)\.(functions\.)?tsx?$/;
+function stemlessBoundaryHit(filePath: string): Finding | null {
+	if (!STEMLESS_BOUNDARY.test(filePath)) return null;
 	return {
 		line: 1,
 		excerpt: basename(filePath),
 		label:
-			"the `.client.ts` suffix is a TanStack Start build boundary that strips the module from " +
-			"the server bundle and breaks SSR imports. Isomorphic client modules use a plain " +
-			"hyphenated name (auth-client.ts).",
+			"stem-less boundary filename: import protection needs a word before `.server.`/`.client.`, " +
+			"so this file gets none at all. Name it <role>.server.ts.",
 	};
 }
 
@@ -174,7 +175,7 @@ const SRC_TS = /src[/\\].*\.(ts|tsx)$/;
 const TEST_FILE = /src[/\\]test[/\\].*\.(ts|tsx)$/;
 const GENERATED = /(src[/\\]generated[/\\]|\.gen\.ts$)/;
 const SKIP_PROSE =
-	/\.claude[/\\]hooks|src[/\\]shared[/\\]ui[/\\]|src[/\\]generated[/\\]|routeTree\.gen\.ts|node_modules/;
+	/\.claude[/\\]hooks|src[/\\]shared[/\\]components[/\\]ui[/\\]|src[/\\]generated[/\\]|routeTree\.gen\.ts|node_modules/;
 
 /** A named group of findings for one check-set, for readable per-category reports. */
 type Section = { heading: string; findings: Finding[] };
@@ -191,8 +192,8 @@ function analyze({ filePath, text }: { filePath: string; text: string }): Sectio
 	}
 	if (isSrcTs) {
 		const findings = runChecks({ code: codeSkeleton(text), text, checks: NAMING_CHECKS });
-		const suffix = clientSuffixHit(filePath);
-		if (suffix) findings.push(suffix);
+		const stemless = stemlessBoundaryHit(filePath);
+		if (stemless) findings.push(stemless);
 		if (findings.length > 0) sections.push({ heading: "Naming rules", findings });
 	}
 	if (TEST_FILE.test(filePath)) {

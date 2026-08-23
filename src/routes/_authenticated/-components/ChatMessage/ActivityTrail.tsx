@@ -1,5 +1,5 @@
 import type { UIMessage } from "@tanstack/ai-client";
-import type { ChatInterrupts } from "#/routes/_authenticated/_chat/-lib/chat-tools";
+import type { ChatInterrupts } from "#/routes/_authenticated/_chat/-lib/tool-stubs";
 import { ActivityMarker } from "#/shared/components/ActivityMarker";
 import { useElapsedSeconds } from "#/shared/hooks/use-elapsed-seconds";
 import { ReasoningStep } from "./ReasoningStep";

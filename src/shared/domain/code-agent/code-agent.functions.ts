@@ -10,8 +10,8 @@ import {
 	recordApprovedCommand,
 	removeCodeAgentSession,
 } from "./code-agent.server";
-import { approvalCommandTarget } from "./code-agent-policy.server";
 import { availableCodeAgentHarnessIds } from "./harness-availability.server";
+import { approvalCommandTarget } from "./policy.server";
 import {
 	approveCodeAgentCommandInput,
 	codeAgentSessionIdInput,

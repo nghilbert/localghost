@@ -1,17 +1,17 @@
 import { memoryStream, resumeServerSentEventsResponse } from "@tanstack/ai";
 import { reconstructChat } from "@tanstack/ai-persistence";
 import { createFileRoute } from "@tanstack/react-router";
-import { chatPersistence } from "#/shared/domain/chat/chat-persistence.server";
+import { chatPersistence } from "#/shared/domain/chat/persistence.server";
 import {
 	codeAgentSessionOwnedBy,
 	findCodeAgentSessionWithEndpoint,
 } from "#/shared/domain/code-agent/code-agent.server";
-import { streamCodeAgentEvents } from "#/shared/domain/code-agent/code-agent-run.server";
+import { streamCodeAgentEvents } from "#/shared/domain/code-agent/run.server";
 import { codeAgentModelSchema, codeAgentThreadIdSchema } from "#/shared/domain/code-agent/schemas";
 import { assertWorkspacePathAllowed } from "#/shared/domain/code-agent/workspace-path.server";
 import { endpointApiKey } from "#/shared/domain/endpoint/endpoint.server";
-import { readRunParams, streamRunResponse } from "#/shared/lib/ai-stream.server";
-import { asLLMProvider, detectProvider } from "#/shared/lib/llm-provider";
+import { asLLMProvider, detectProvider } from "#/shared/lib/llm/provider";
+import { readRunParams, streamRunResponse } from "#/shared/lib/llm/stream.server";
 import { authedRequest } from "#/shared/lib/middleware";
 
 // Roomy enough for a full history; an agent transcript carries no image attachments.

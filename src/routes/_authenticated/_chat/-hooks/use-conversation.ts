@@ -1,7 +1,7 @@
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { conversationQueryOptions } from "#/shared/domain/conversation/conversation.functions";
 import { endpointsQueryOptions } from "#/shared/domain/endpoint/endpoint.functions";
-import type { ModelSelection } from "#/shared/domain/endpoint/types";
+import type { ModelSelection } from "#/shared/domain/endpoint/schemas";
 import { useChatTools } from "./use-chat-tools";
 
 /**

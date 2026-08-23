@@ -3,7 +3,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useChatTools } from "#/routes/_authenticated/_chat/-hooks/use-chat-tools";
 import type { Attachment } from "#/routes/_authenticated/_chat/-lib/attachments";
-import { storeChatHandoff } from "#/routes/_authenticated/_chat/-lib/chat-handoff";
+import { storeChatHandoff } from "#/routes/_authenticated/_chat/-lib/handoff";
 import { ChatInput } from "#/routes/_authenticated/-components/ChatInput";
 import {
 	Empty,
@@ -17,7 +17,7 @@ import {
 	createConversation,
 	defaultSelectionQueryOptions,
 } from "#/shared/domain/conversation/conversation.functions";
-import type { ModelSelection } from "#/shared/domain/endpoint/types";
+import type { ModelSelection } from "#/shared/domain/endpoint/schemas";
 
 export const Route = createFileRoute("/_authenticated/_chat/new")({
 	head: () => ({ meta: [{ title: "New chat · localghost" }] }),

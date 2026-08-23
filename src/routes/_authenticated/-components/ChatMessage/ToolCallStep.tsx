@@ -10,7 +10,7 @@ import {
 	XIcon,
 } from "lucide-react";
 import { useState } from "react";
-import type { ChatInterrupts } from "#/routes/_authenticated/_chat/-lib/chat-tools";
+import type { ChatInterrupts } from "#/routes/_authenticated/_chat/-lib/tool-stubs";
 import { useStepDuration } from "#/routes/_authenticated/-hooks/use-step-duration";
 import { ActivityMarker } from "#/shared/components/ActivityMarker";
 import { Button } from "#/shared/components/ui/button";

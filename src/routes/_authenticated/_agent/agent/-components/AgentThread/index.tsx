@@ -1,6 +1,6 @@
 import { useChat } from "@tanstack/ai-react";
 import { useEffect, useRef, useState } from "react";
-import { createAgentConnection } from "#/routes/_authenticated/_agent/agent/-lib/agent-client";
+import { createAgentConnection } from "#/routes/_authenticated/_agent/agent/-lib/connection";
 import { ChatInput } from "#/routes/_authenticated/-components/ChatInput";
 import { ChatMessage } from "#/routes/_authenticated/-components/ChatMessage";
 import { ChatStatus } from "#/routes/_authenticated/-components/ChatStatus";
@@ -12,12 +12,9 @@ import {
 	MessageScrollerProvider,
 	MessageScrollerViewport,
 } from "#/shared/components/ui/message-scroller";
+import { type CodeAgentApproval, isCodeAgentApproval } from "#/shared/domain/code-agent/approval";
 import type { CodeAgentSessionDetail } from "#/shared/domain/code-agent/code-agent.functions";
-import {
-	type CodeAgentApproval,
-	isCodeAgentApproval,
-} from "#/shared/domain/code-agent/code-agent-approval";
-import { useApproveCodeAgentCommand } from "#/shared/domain/code-agent/use-code-agent-sessions";
+import { useApproveCodeAgentCommand } from "#/shared/domain/code-agent/use-sessions";
 import { awaitingAssistantResponse } from "#/shared/domain/conversation/messages";
 import { CommandApprovalMarker } from "./CommandApprovalMarker";
 

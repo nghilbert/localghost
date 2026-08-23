@@ -26,7 +26,7 @@ import { Separator } from "#/shared/components/ui/separator";
 import { Spinner } from "#/shared/components/ui/spinner";
 import { toast } from "#/shared/components/ui/toast";
 import { Tooltip, TooltipContent, TooltipTrigger } from "#/shared/components/ui/tooltip";
-import type { ModelSelection } from "#/shared/domain/endpoint/types";
+import type { ModelSelection } from "#/shared/domain/endpoint/schemas";
 import { AttachmentPreviews } from "./AttachmentPreviews";
 import { LockedModelLabel } from "./LockedModelLabel";
 import { ModelPicker } from "./ModelPicker";

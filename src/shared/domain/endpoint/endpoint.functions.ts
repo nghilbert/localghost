@@ -1,6 +1,6 @@
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
-import { probeEndpoint } from "#/shared/lib/llm.server";
+import { probeEndpoint } from "#/shared/lib/llm/client.server";
 import { authedFn } from "#/shared/lib/middleware";
 import {
 	fetchEndpointModels,
@@ -11,6 +11,7 @@ import {
 	probeSavedEndpoint,
 	removeEndpoint,
 } from "./endpoint.server";
+import type { ModelSelection } from "./schemas";
 import {
 	createEndpointSchema,
 	endpointIdInput,
@@ -19,7 +20,6 @@ import {
 	testEndpointInput,
 	updateEndpointInput,
 } from "./schemas";
-import type { ModelSelection } from "./types";
 
 /**
  * The current user's configured endpoints.

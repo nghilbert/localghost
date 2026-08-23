@@ -1,5 +1,5 @@
 import { stat } from "node:fs/promises";
-import { deleteChatThreadRows } from "#/shared/domain/chat/chat-persistence.server";
+import { deleteChatThreadRows } from "#/shared/domain/chat/persistence.server";
 import { deriveConversationTitle, threadMessagesFrom } from "#/shared/domain/conversation/messages";
 import { fetchEndpointModels } from "#/shared/domain/endpoint/endpoint.server";
 import { prisma } from "#/shared/lib/db.server";

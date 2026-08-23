@@ -21,7 +21,7 @@ import {
 	listGgufChatModels,
 	listGgufVariants,
 } from "./huggingface.server";
-import { parseParamB } from "./model-id";
+import { parseParamB } from "./param-count";
 import type { CatalogQuery } from "./schemas";
 import type { CatalogModel, ModelVariantInfo } from "./types";
 

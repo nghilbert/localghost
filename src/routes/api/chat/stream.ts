@@ -3,7 +3,7 @@ import { memoryMiddleware } from "@tanstack/ai-memory";
 import { reconstructChat, withPersistence } from "@tanstack/ai-persistence";
 import { createFileRoute } from "@tanstack/react-router";
 import { buildChatTools } from "#/shared/domain/chat/agent.server";
-import { chatPersistence } from "#/shared/domain/chat/chat-persistence.server";
+import { chatPersistence } from "#/shared/domain/chat/persistence.server";
 import { resolveGenerationOptions } from "#/shared/domain/chat/resolve-generation-options";
 import { chatStreamForwardedPropsSchema } from "#/shared/domain/chat/schemas";
 import { buildChatSystemPrompt } from "#/shared/domain/chat/system-prompt";
@@ -13,12 +13,12 @@ import {
 } from "#/shared/domain/conversation/conversation.server";
 import { endpointApiKey } from "#/shared/domain/endpoint/endpoint.server";
 import { samplingOptionsSchema } from "#/shared/domain/endpoint/schemas";
-import { memoryAdapter } from "#/shared/domain/memory/memory-adapter.server";
+import { memoryAdapter } from "#/shared/domain/memory/adapter.server";
 import { getModelSetting } from "#/shared/domain/model-setting/model-setting.server";
 import { findUserSettings } from "#/shared/domain/user-settings/user-settings.server";
-import { readRunParams, streamRunResponse } from "#/shared/lib/ai-stream.server";
-import { streamLLMEvents } from "#/shared/lib/llm.server";
-import { asLLMProvider } from "#/shared/lib/llm-provider";
+import { streamLLMEvents } from "#/shared/lib/llm/client.server";
+import { asLLMProvider } from "#/shared/lib/llm/provider";
+import { readRunParams, streamRunResponse } from "#/shared/lib/llm/stream.server";
 import { authedRequest } from "#/shared/lib/middleware";
 
 // Roomy enough for a full history carrying image attachments as data URLs.

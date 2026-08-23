@@ -1,10 +1,12 @@
 import { z } from "zod/v4";
-import { llmProviderSchema } from "#/shared/lib/llm-provider";
+import { llmProviderSchema } from "#/shared/lib/llm/provider";
 
 const uuid = z.uuid();
 
 /** A chosen model on a specific endpoint. The unit the composer reads and writes. */
 export const modelSelectionSchema = z.object({ endpointId: uuid, model: z.string().min(1) });
+
+export type ModelSelection = z.infer<typeof modelSelectionSchema>;
 
 /** Per-endpoint generation settings sent with chat requests.
  * All fields are optional; load-time llama.cpp flags stay out of this schema.

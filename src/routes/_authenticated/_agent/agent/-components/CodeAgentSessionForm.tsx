@@ -6,7 +6,7 @@ import {
 	harnessAcceptsProvider,
 } from "#/shared/domain/code-agent/harnesses";
 import { createCodeAgentSessionSchema } from "#/shared/domain/code-agent/schemas";
-import { useCreateCodeAgentSession } from "#/shared/domain/code-agent/use-code-agent-sessions";
+import { useCreateCodeAgentSession } from "#/shared/domain/code-agent/use-sessions";
 import { useAppForm } from "#/shared/hooks/use-app-form";
 
 type EndpointModelGroups = ReturnType<typeof useEndpointModelGroups>["groups"];

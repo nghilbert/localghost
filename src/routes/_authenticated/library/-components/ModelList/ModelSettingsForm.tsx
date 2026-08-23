@@ -15,7 +15,7 @@ import {
 } from "#/shared/components/ui/field";
 import { Skeleton } from "#/shared/components/ui/skeleton";
 import { perModelOptionsSchema } from "#/shared/domain/model-setting/schemas";
-import { useModelSetting } from "#/shared/domain/model-setting/use-model-setting";
+import { useModelSetting } from "#/shared/domain/model-setting/use-model-settings";
 import { useAppForm } from "#/shared/hooks/use-app-form";
 
 type ModelSettingsFormValues = z.infer<typeof perModelOptionsSchema>;

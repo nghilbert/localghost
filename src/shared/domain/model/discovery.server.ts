@@ -1,7 +1,7 @@
 import { trimPathRight } from "@tanstack/react-router";
 import type { Endpoint } from "#/generated/prisma/client";
 import { endpointApiKey } from "#/shared/domain/endpoint/endpoint.server";
-import { parseParamB } from "#/shared/domain/model/model-id";
+import { parseParamB } from "#/shared/domain/model/param-count";
 import { aggregatePullProgress } from "#/shared/domain/model/pull-progress";
 import { prisma } from "#/shared/lib/db.server";
 import {

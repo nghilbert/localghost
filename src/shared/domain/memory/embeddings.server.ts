@@ -2,7 +2,7 @@ import { trimPathRight } from "@tanstack/react-router";
 import { z } from "zod/v4";
 import { endpointApiKey } from "#/shared/domain/endpoint/endpoint.server";
 import { prisma } from "#/shared/lib/db.server";
-import { asLLMProvider, type LLMProvider } from "#/shared/lib/llm-provider";
+import { asLLMProvider, type LLMProvider } from "#/shared/lib/llm/provider";
 
 const embeddingResponseSchema = z.object({
 	data: z.array(z.object({ embedding: z.array(z.number()) })).optional(),
