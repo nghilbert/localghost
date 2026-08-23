@@ -12,7 +12,11 @@ export default defineConfig({
 		devtools(),
 		nitro({ rollupConfig: { external: [/^@sentry\//] } }),
 		tailwindcss(),
-		tanstackStart(),
+		tanstackStart({
+			importProtection: {
+				client: { specifiers: ["@tanstack/ai-sandbox", "@tanstack/ai-sandbox-local-process"] },
+			},
+		}),
 		babel({ presets: [reactCompilerPreset({ target: "19" })] }),
 		viteReact(),
 	],

@@ -3,12 +3,14 @@ import { EventType } from "@tanstack/ai/client";
 import { evaluateCommand } from "@tanstack/ai-sandbox";
 import { describe, expect, it } from "vitest";
 import {
-	approvalCommandTarget,
-	buildCodeAgentPolicy,
 	CODE_AGENT_APPROVAL_EVENT,
 	isCodeAgentApproval,
+} from "#/shared/domain/code-agent/code-agent-approval";
+import {
+	approvalCommandTarget,
+	buildCodeAgentPolicy,
 	renameApprovalChunks,
-} from "#/shared/domain/code-agent/code-agent-policy";
+} from "#/shared/domain/code-agent/code-agent-policy.server";
 
 async function collect<T>(source: AsyncIterable<T>): Promise<T[]> {
 	const out: T[] = [];

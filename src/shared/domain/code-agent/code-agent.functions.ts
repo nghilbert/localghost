@@ -1,7 +1,7 @@
 import type { ModelMessage } from "@tanstack/ai";
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
-import { storedMessages } from "#/shared/domain/conversation/messages";
+import { reviveMessageDates } from "#/shared/domain/conversation/messages";
 import { authedFn } from "#/shared/lib/middleware";
 import {
 	findCodeAgentSession,
@@ -10,7 +10,7 @@ import {
 	recordApprovedCommand,
 	removeCodeAgentSession,
 } from "./code-agent.server";
-import { approvalCommandTarget } from "./code-agent-policy";
+import { approvalCommandTarget } from "./code-agent-policy.server";
 import { availableCodeAgentHarnessIds } from "./harness-availability.server";
 import {
 	approveCodeAgentCommandInput,
@@ -99,6 +99,7 @@ export const codeAgentSessionQueryOptions = (id: string) =>
 		// The server fn returns `messages` as the raw JSONB value; type it at the query seam.
 		queryFn: async (): Promise<CodeAgentSessionDetail> => {
 			const session = await getCodeAgentSession({ data: { id } });
-			return { ...session, messages: storedMessages(session.messages) };
+			const messages: ModelMessage[] = JSON.parse(JSON.stringify(session.messages ?? []));
+			return { ...session, messages: reviveMessageDates(messages) };
 		},
 	});

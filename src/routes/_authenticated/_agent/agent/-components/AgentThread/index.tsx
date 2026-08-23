@@ -16,7 +16,7 @@ import type { CodeAgentSessionDetail } from "#/shared/domain/code-agent/code-age
 import {
 	type CodeAgentApproval,
 	isCodeAgentApproval,
-} from "#/shared/domain/code-agent/code-agent-policy";
+} from "#/shared/domain/code-agent/code-agent-approval";
 import { useApproveCodeAgentCommand } from "#/shared/domain/code-agent/use-code-agent-sessions";
 import { awaitingAssistantResponse } from "#/shared/domain/conversation/messages";
 import { CommandApprovalMarker } from "./CommandApprovalMarker";

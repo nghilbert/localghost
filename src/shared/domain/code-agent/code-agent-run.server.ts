@@ -19,7 +19,7 @@ import { LOCAL_LLAMACPP_API_KEY } from "#/shared/lib/llamacpp/client.server";
 import { chatBaseUrl } from "#/shared/lib/llm.server";
 import type { LLMProvider } from "#/shared/lib/llm-provider";
 import { scrubbedEnvKeys } from "./code-agent-env.server";
-import { buildCodeAgentPolicy, renameApprovalChunks } from "./code-agent-policy";
+import { buildCodeAgentPolicy, renameApprovalChunks } from "./code-agent-policy.server";
 
 /** Caps a runaway harness loop; the chat surface bounds its agent rounds the same way. */
 const MAX_HARNESS_TURNS = 60;

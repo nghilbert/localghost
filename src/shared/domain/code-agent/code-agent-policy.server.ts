@@ -1,6 +1,7 @@
 import type { StreamChunk } from "@tanstack/ai";
 import { EventType } from "@tanstack/ai/client";
 import { defineSandboxPolicy, type SandboxPolicy } from "@tanstack/ai-sandbox";
+import { CODE_AGENT_APPROVAL_EVENT } from "./code-agent-approval";
 
 /**
  * The sandbox emits its approval request under this name, which `@tanstack/ai`'s stream
@@ -8,9 +9,6 @@ import { defineSandboxPolicy, type SandboxPolicy } from "@tanstack/ai-sandbox";
  * payload has no field for, then returns before the generic custom-event fan-out.
  */
 const SANDBOX_APPROVAL_EVENT = "approval-requested";
-
-/** What we re-emit it as, so it reaches `useChat`'s `onCustomEvent` intact. */
-export const CODE_AGENT_APPROVAL_EVENT = "code-agent.approval";
 
 /** Commands refused outright, whatever the user approves. Patterns glob on `*` only. */
 const DENIED_COMMANDS = ["sudo *", "rm -rf *", "rm -fr *"];
@@ -40,18 +38,6 @@ export function approvalCommandTarget(approvalId: string): string | null {
 	const [, kind, ...target] = approvalId.split(":");
 	if (kind !== "command" || target.length === 0) return null;
 	return target.join(":");
-}
-
-/** A pending approval as the transcript renders it. */
-export type CodeAgentApproval = { approvalId: string; title: string };
-
-/** Whether a custom event payload is one of our renamed approval requests. */
-export function isCodeAgentApproval(name: string, value: unknown): value is CodeAgentApproval {
-	if (name !== CODE_AGENT_APPROVAL_EVENT || typeof value !== "object" || value === null) {
-		return false;
-	}
-	const candidate: Record<string, unknown> = { ...value };
-	return typeof candidate.approvalId === "string" && typeof candidate.title === "string";
 }
 
 /**

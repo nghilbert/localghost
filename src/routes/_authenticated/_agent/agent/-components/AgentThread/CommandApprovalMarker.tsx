@@ -1,7 +1,7 @@
 import { CheckIcon, ShieldAlertIcon, XIcon } from "lucide-react";
 import { Button } from "#/shared/components/ui/button";
 import { Marker, MarkerContent, MarkerIcon } from "#/shared/components/ui/marker";
-import type { CodeAgentApproval } from "#/shared/domain/code-agent/code-agent-policy";
+import type { CodeAgentApproval } from "#/shared/domain/code-agent/code-agent-approval";
 
 type CommandApprovalMarkerProps = {
 	approval: CodeAgentApproval;
