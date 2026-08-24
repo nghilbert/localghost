@@ -32,14 +32,6 @@ export const listWorkspaceEntriesSchema = z.object({
 	subpath: z.string().max(4096).default(""),
 });
 
-/** A new folder's name, not a path: created inside whichever directory the browser has open. */
-export const workspaceFolderNameSchema = z
-	.string()
-	.min(1, "Enter a folder name.")
-	.max(100)
-	.regex(/^[A-Za-z0-9._-]+$/, "Use letters, numbers, dots, dashes, or underscores.")
-	.refine((name) => name !== "." && name !== "..", "Choose a different name.");
-
 export const codeAgentSessionIdInput = z.object({ id: uuid });
 
 /** Approving one command the sandbox asked about, for the rest of this session. */

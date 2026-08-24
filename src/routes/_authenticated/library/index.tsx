@@ -28,6 +28,7 @@ import {
 	ItemGroup,
 	ItemTitle,
 } from "#/shared/components/ui/item";
+import { ScrollArea } from "#/shared/components/ui/scroll-area";
 import { Separator } from "#/shared/components/ui/separator";
 import { Skeleton } from "#/shared/components/ui/skeleton";
 import {
@@ -75,7 +76,7 @@ function LibraryPage() {
 	}
 
 	return (
-		<div className="h-full overflow-auto">
+		<ScrollArea className="h-full">
 			<Container size="6xl" className="space-y-6 p-6">
 				<HardwareCard hardware={hardware} isLoading={isLoadingHardware} />
 
@@ -167,6 +168,6 @@ function LibraryPage() {
 					</AlertDialogFooter>
 				</AlertDialogContent>
 			</AlertDialog>
-		</div>
+		</ScrollArea>
 	);
 }

@@ -27,6 +27,7 @@ import { Route as ApiChatStreamRouteImport } from './routes/api/chat/stream'
 import { Route as ApiModelsEventsRouteImport } from './routes/api/models/events'
 import { Route as AuthenticatedAgentAgentIndexRouteImport } from './routes/_authenticated/_agent/agent/index'
 import { Route as AuthenticatedAgentAgentSessionIdRouteImport } from './routes/_authenticated/_agent/agent/$sessionId'
+import { Route as AuthenticatedAgentAgentNewRouteImport } from './routes/_authenticated/_agent/agent/new'
 import { Route as AuthenticatedChatChatConversationIdRouteImport } from './routes/_authenticated/_chat/chat/$conversationId'
 
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
@@ -119,6 +120,12 @@ const AuthenticatedAgentAgentSessionIdRoute =
     path: '/agent/$sessionId',
     getParentRoute: () => AuthenticatedAgentRouteRoute,
   } as any)
+const AuthenticatedAgentAgentNewRoute =
+  AuthenticatedAgentAgentNewRouteImport.update({
+    id: '/agent/new',
+    path: '/agent/new',
+    getParentRoute: () => AuthenticatedAgentRouteRoute,
+  } as any)
 const AuthenticatedChatChatConversationIdRoute =
   AuthenticatedChatChatConversationIdRouteImport.update({
     id: '/chat/$conversationId',
@@ -140,6 +147,7 @@ export interface FileRoutesByFullPath {
   '/library/': typeof AuthenticatedLibraryIndexRoute
   '/settings/': typeof AuthenticatedSettingsIndexRoute
   '/agent/$sessionId': typeof AuthenticatedAgentAgentSessionIdRoute
+  '/agent/new': typeof AuthenticatedAgentAgentNewRoute
   '/chat/$conversationId': typeof AuthenticatedChatChatConversationIdRoute
   '/agent/': typeof AuthenticatedAgentAgentIndexRoute
 }
@@ -157,6 +165,7 @@ export interface FileRoutesByTo {
   '/library': typeof AuthenticatedLibraryIndexRoute
   '/settings': typeof AuthenticatedSettingsIndexRoute
   '/agent/$sessionId': typeof AuthenticatedAgentAgentSessionIdRoute
+  '/agent/new': typeof AuthenticatedAgentAgentNewRoute
   '/chat/$conversationId': typeof AuthenticatedChatChatConversationIdRoute
   '/agent': typeof AuthenticatedAgentAgentIndexRoute
 }
@@ -179,6 +188,7 @@ export interface FileRoutesById {
   '/_authenticated/library/': typeof AuthenticatedLibraryIndexRoute
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
   '/_authenticated/_agent/agent/$sessionId': typeof AuthenticatedAgentAgentSessionIdRoute
+  '/_authenticated/_agent/agent/new': typeof AuthenticatedAgentAgentNewRoute
   '/_authenticated/_chat/chat/$conversationId': typeof AuthenticatedChatChatConversationIdRoute
   '/_authenticated/_agent/agent/': typeof AuthenticatedAgentAgentIndexRoute
 }
@@ -198,6 +208,7 @@ export interface FileRouteTypes {
     | '/library/'
     | '/settings/'
     | '/agent/$sessionId'
+    | '/agent/new'
     | '/chat/$conversationId'
     | '/agent/'
   fileRoutesByTo: FileRoutesByTo
@@ -215,6 +226,7 @@ export interface FileRouteTypes {
     | '/library'
     | '/settings'
     | '/agent/$sessionId'
+    | '/agent/new'
     | '/chat/$conversationId'
     | '/agent'
   id:
@@ -236,6 +248,7 @@ export interface FileRouteTypes {
     | '/_authenticated/library/'
     | '/_authenticated/settings/'
     | '/_authenticated/_agent/agent/$sessionId'
+    | '/_authenticated/_agent/agent/new'
     | '/_authenticated/_chat/chat/$conversationId'
     | '/_authenticated/_agent/agent/'
   fileRoutesById: FileRoutesById
@@ -379,6 +392,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAgentAgentSessionIdRouteImport
       parentRoute: typeof AuthenticatedAgentRouteRoute
     }
+    '/_authenticated/_agent/agent/new': {
+      id: '/_authenticated/_agent/agent/new'
+      path: '/agent/new'
+      fullPath: '/agent/new'
+      preLoaderRoute: typeof AuthenticatedAgentAgentNewRouteImport
+      parentRoute: typeof AuthenticatedAgentRouteRoute
+    }
     '/_authenticated/_chat/chat/$conversationId': {
       id: '/_authenticated/_chat/chat/$conversationId'
       path: '/chat/$conversationId'
@@ -391,6 +411,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedAgentRouteRouteChildren {
   AuthenticatedAgentAgentSessionIdRoute: typeof AuthenticatedAgentAgentSessionIdRoute
+  AuthenticatedAgentAgentNewRoute: typeof AuthenticatedAgentAgentNewRoute
   AuthenticatedAgentAgentIndexRoute: typeof AuthenticatedAgentAgentIndexRoute
 }
 
@@ -398,6 +419,7 @@ const AuthenticatedAgentRouteRouteChildren: AuthenticatedAgentRouteRouteChildren
   {
     AuthenticatedAgentAgentSessionIdRoute:
       AuthenticatedAgentAgentSessionIdRoute,
+    AuthenticatedAgentAgentNewRoute: AuthenticatedAgentAgentNewRoute,
     AuthenticatedAgentAgentIndexRoute: AuthenticatedAgentAgentIndexRoute,
   }
 

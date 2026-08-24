@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { BrainIcon, PaletteIcon, PlugIcon, UserIcon } from "lucide-react";
 import { Container } from "#/shared/components/ui/container";
+import { ScrollArea } from "#/shared/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "#/shared/components/ui/tabs";
 import { memoriesQueryOptions } from "#/shared/domain/memory/memory.functions";
 import { userSettingsQueryOptions } from "#/shared/domain/user-settings/user-settings.functions";
@@ -66,20 +67,22 @@ function SettingsPage() {
 					</TabsList>
 				</Container>
 			</div>
-			<Container size="2xl" className="overflow-auto p-6">
-				<TabsContent value="account">
-					<AccountTab />
-				</TabsContent>
-				<TabsContent value="memory">
-					<MemoryTab />
-				</TabsContent>
-				<TabsContent value="endpoints">
-					<EndpointsTab />
-				</TabsContent>
-				<TabsContent value="appearance">
-					<AppearanceTab />
-				</TabsContent>
-			</Container>
+			<ScrollArea className="min-h-0 flex-1">
+				<Container size="2xl" className="p-6">
+					<TabsContent value="account">
+						<AccountTab />
+					</TabsContent>
+					<TabsContent value="memory">
+						<MemoryTab />
+					</TabsContent>
+					<TabsContent value="endpoints">
+						<EndpointsTab />
+					</TabsContent>
+					<TabsContent value="appearance">
+						<AppearanceTab />
+					</TabsContent>
+				</Container>
+			</ScrollArea>
 		</Tabs>
 	);
 }
