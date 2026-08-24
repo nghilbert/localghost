@@ -1,5 +1,19 @@
+import { useQuery } from "@tanstack/react-query";
+import { FolderIcon } from "lucide-react";
+import { useState } from "react";
 import { useEndpointModelGroups } from "#/routes/_authenticated/-hooks/use-endpoint-model-groups";
+import {
+	Breadcrumb,
+	BreadcrumbItem,
+	BreadcrumbLink,
+	BreadcrumbList,
+	BreadcrumbPage,
+	BreadcrumbSeparator,
+} from "#/shared/components/ui/breadcrumb";
+import { Empty, EmptyMedia, EmptyTitle } from "#/shared/components/ui/empty";
+import { Item, ItemContent, ItemGroup, ItemMedia, ItemTitle } from "#/shared/components/ui/item";
 import { Spinner } from "#/shared/components/ui/spinner";
+import { codeAgentWorkspaceEntriesQueryOptions } from "#/shared/domain/code-agent/code-agent.functions";
 import {
 	CODE_AGENT_HARNESSES,
 	type CodeAgentHarnessId,
@@ -74,12 +88,13 @@ function SessionFields({ harnessId, groups, onCreated, className }: SessionField
 			<form.SubmitForm formClassName={className}>
 				<form.AppField name="workspacePath">
 					{(field) => (
-						<field.InputField
+						<field.CustomField
 							label="Workspace directory"
-							description="An absolute path this server can see. The agent edits these files in place, so commit or back up first."
-							placeholder="/home/you/projects/my-repo"
+							description="The agent edits these files in place, so commit or back up first."
 							fieldOrientation="vertical"
-						/>
+						>
+							<WorkspaceBrowser onChange={field.handleChange} />
+						</field.CustomField>
 					)}
 				</form.AppField>
 
@@ -137,5 +152,79 @@ function SessionFields({ harnessId, groups, onCreated, className }: SessionField
 				<form.SubmitButton data-testid="code-agent-session-submit">Start session</form.SubmitButton>
 			</form.SubmitForm>
 		</form.AppForm>
+	);
+}
+
+/** Click-to-navigate folder browser standing in for a typed path: a few composed primitives, no path ever typed. */
+function WorkspaceBrowser({ onChange }: { onChange: (workspacePath: string) => void }) {
+	const [subpath, setSubpath] = useState("");
+	const { data } = useQuery(codeAgentWorkspaceEntriesQueryOptions(subpath));
+	const segments = subpath.split("/").filter(Boolean);
+
+	function selectFolder(nextSubpath: string) {
+		if (!data) return;
+		setSubpath(nextSubpath);
+		/** Absolute path a browser click resolves to, given the workspace root and a subpath. */
+		onChange(nextSubpath ? `${data.root}/${nextSubpath}` : data.root);
+	}
+
+	return (
+		<div className="flex flex-col gap-2 rounded-lg border p-2.5">
+			<Breadcrumb>
+				<BreadcrumbList className="flex-nowrap overflow-x-auto text-nowrap">
+					<BreadcrumbItem>
+						{segments.length === 0 ? (
+							<BreadcrumbPage>Home</BreadcrumbPage>
+						) : (
+							<BreadcrumbLink onClick={() => selectFolder("")}>Home</BreadcrumbLink>
+						)}
+					</BreadcrumbItem>
+					{segments.map((segment, index) => {
+						const crumbSubpath = segments.slice(0, index + 1).join("/");
+						return (
+							<BreadcrumbItem key={crumbSubpath}>
+								<BreadcrumbSeparator />
+								{index === segments.length - 1 ? (
+									<BreadcrumbPage>{segment}</BreadcrumbPage>
+								) : (
+									<BreadcrumbLink onClick={() => selectFolder(crumbSubpath)}>
+										{segment}
+									</BreadcrumbLink>
+								)}
+							</BreadcrumbItem>
+						);
+					})}
+				</BreadcrumbList>
+			</Breadcrumb>
+
+			<div className="max-h-40 overflow-y-auto">
+				{data?.entries.length ? (
+					<ItemGroup className="gap-0.5">
+						{data.entries.map((entry) => (
+							<Item
+								key={entry}
+								size="sm"
+								render={<button type="button" />}
+								onClick={() => selectFolder(subpath ? `${subpath}/${entry}` : entry)}
+							>
+								<ItemMedia variant="icon">
+									<FolderIcon />
+								</ItemMedia>
+								<ItemContent>
+									<ItemTitle>{entry}</ItemTitle>
+								</ItemContent>
+							</Item>
+						))}
+					</ItemGroup>
+				) : (
+					<Empty>
+						<EmptyMedia variant="icon">
+							<FolderIcon />
+						</EmptyMedia>
+						<EmptyTitle>No folders</EmptyTitle>
+					</Empty>
+				)}
+			</div>
+		</div>
 	);
 }

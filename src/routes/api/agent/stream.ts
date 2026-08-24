@@ -8,7 +8,10 @@ import {
 } from "#/shared/domain/code-agent/code-agent.server";
 import { streamCodeAgentEvents } from "#/shared/domain/code-agent/run.server";
 import { codeAgentModelSchema, codeAgentThreadIdSchema } from "#/shared/domain/code-agent/schemas";
-import { assertWorkspacePathAllowed } from "#/shared/domain/code-agent/workspace-path.server";
+import {
+	getCodeAgentWorkspaceRoot,
+	resolveContainedPath,
+} from "#/shared/domain/code-agent/workspace-path.server";
 import { endpointApiKey } from "#/shared/domain/endpoint/endpoint.server";
 import { asLLMProvider, detectProvider } from "#/shared/lib/llm/provider";
 import { readRunParams, streamRunResponse } from "#/shared/lib/llm/stream.server";
@@ -44,7 +47,8 @@ export const Route = createFileRoute("/api/agent/stream")({
 				const model = codeAgentModelSchema.safeParse(session.model);
 				if (!model.success) return new Response("Session has an unusable model", { status: 400 });
 				try {
-					await assertWorkspacePathAllowed(session.workspacePath);
+					const root = await getCodeAgentWorkspaceRoot();
+					await resolveContainedPath({ root, target: session.workspacePath });
 				} catch {
 					return new Response("Session workspace is no longer allowed", { status: 403 });
 				}

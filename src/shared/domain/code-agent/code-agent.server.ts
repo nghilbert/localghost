@@ -1,4 +1,4 @@
-import { stat } from "node:fs/promises";
+import { mkdir } from "node:fs/promises";
 import { deleteChatThreadRows } from "#/shared/domain/chat/persistence.server";
 import { deriveConversationTitle, threadMessagesFrom } from "#/shared/domain/conversation/messages";
 import { fetchEndpointModels } from "#/shared/domain/endpoint/endpoint.server";
@@ -7,7 +7,7 @@ import { availableCodeAgentHarnessIds } from "./harness-availability.server";
 import { harnessAcceptsProvider } from "./harnesses";
 import { codeAgentModelSchema } from "./schemas";
 import { type CodeAgentSessionListItem, sortSessionsByActivity } from "./session-activity";
-import { assertWorkspacePathAllowed } from "./workspace-path.server";
+import { getCodeAgentWorkspaceRoot, resolveContainedPath } from "./workspace-path.server";
 
 /** Session list, ordered by whichever is more recent: the last message or a metadata edit. */
 export async function findCodeAgentSessions({
@@ -109,19 +109,15 @@ export async function insertCodeAgentSession({
 		throw new Error(`${model} isn't served by that endpoint.`);
 	}
 
-	await assertWorkspacePathAllowed(workspacePath);
-	const stats = await stat(workspacePath).catch(() => null);
-	if (!stats?.isDirectory()) {
-		throw new Error(
-			`This server cannot see a directory at ${workspacePath}. Paths resolve against the app process, so under Compose the directory has to sit inside CODE_AGENT_WORKSPACE_ROOT.`,
-		);
-	}
+	const root = await getCodeAgentWorkspaceRoot();
+	const resolvedWorkspacePath = await resolveContainedPath({ root, target: workspacePath });
+	await mkdir(resolvedWorkspacePath, { recursive: true });
 
 	return prisma.$transaction(async (tx) => {
 		const session = await tx.codeAgentSession.create({
 			data: {
 				ownerId,
-				workspacePath,
+				workspacePath: resolvedWorkspacePath,
 				endpointId,
 				harness,
 				model: parsedModel.data,

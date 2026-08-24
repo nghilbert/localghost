@@ -1,6 +1,7 @@
 import { createFormHook, createFormHookContexts, revalidateLogic } from "@tanstack/react-form";
 import { FormError } from "./FormError";
 import { ComboboxField } from "./fields/ComboboxField";
+import { CustomField } from "./fields/CustomField";
 import { InputField } from "./fields/InputField";
 import { NumberField } from "./fields/NumberField";
 import { PasswordField } from "./fields/PasswordField";
@@ -20,6 +21,7 @@ const { useAppForm: baseAppForm } = createFormHook({
 	formContext,
 	fieldComponents: {
 		ComboboxField,
+		CustomField,
 		InputField,
 		NumberField,
 		PasswordField,

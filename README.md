@@ -26,11 +26,14 @@ Capabilities are inline in chat or in Settings, never separate tabs.
   allowed for that session. Kept off the chat pipeline deliberately: nothing it
   does can destabilise a normal conversation. Needs the `claude` CLI on the
   server's PATH (the Docker image installs it) and an Anthropic or llama.cpp
-  endpoint. It may only open directories inside `CODE_AGENT_WORKSPACE_ROOT`,
-  which defaults to `~/localghost` — create that directory (or point the variable
-  at your own) before starting a session, since Compose bind-mounts it. Keeping
-  it off `$HOME` is deliberate: it keeps the agent away from `~/.ssh`, `~/.aws`
-  and this checkout's own `.env`. Best-effort against non-Anthropic models.
+  endpoint. Starting a session browses folders under `CODE_AGENT_WORKSPACE_ROOT`,
+  which defaults to your home directory so real projects are reachable with no
+  setup; set it narrower to scope what's browsable. The picker hides dotfiles and
+  won't let a session point at the bare root itself, but that's a UI guardrail,
+  not a sandbox boundary. The underlying mount, and `local-process`'s own
+  no-isolation model, still gives the agent's shell real access to whatever
+  directory you pointed it at and anything reachable from there. Best-effort
+  against non-Anthropic models.
 - **Backup.** Export everything (conversations, endpoints, memory, settings) to a
   file and import it back. Import merges non-destructively.
 - **Themes.** Light and dark with accent theming in Settings > Appearance.

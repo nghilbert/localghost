@@ -21,7 +21,7 @@ x-app: &app
     SEARXNG_URL: ${SEARXNG_URL:-http://searxng:8080}
     HF_TOKEN: ${HF_TOKEN:-}
     LLAMACPP_API_KEY: ${LLAMACPP_API_KEY:-local-llamacpp}
-    CODE_AGENT_WORKSPACE_ROOT: ${CODE_AGENT_WORKSPACE_ROOT:-${HOME}/localghost}
+    CODE_AGENT_WORKSPACE_ROOT: ${CODE_AGENT_WORKSPACE_ROOT:-${HOME}}
   extra_hosts:
     - "host.docker.internal:host-gateway"
   depends_on:
@@ -71,10 +71,10 @@ services:
     build: .
     profiles: [ prod ]
     volumes:
-      # /agent's workspace root, mounted at the same path so a directory the user
-      # types resolves identically inside and out. Defaults to $HOME, so it needs
-      # no configuration to work.
-      - "${CODE_AGENT_WORKSPACE_ROOT:-${HOME}/localghost}:${CODE_AGENT_WORKSPACE_ROOT:-${HOME}/localghost}"
+      # /agent's workspace root, mounted at the same path so a folder browsed inside
+      # the container resolves identically on the host. Defaults to $HOME, so it
+      # needs no configuration to work.
+      - "${CODE_AGENT_WORKSPACE_ROOT:-${HOME}}:${CODE_AGENT_WORKSPACE_ROOT:-${HOME}}"
     depends_on:
       db:
         condition: service_healthy
@@ -97,7 +97,7 @@ services:
     volumes:
       - .:/app # live source for HMR
       - /app/node_modules # anonymous volume: keep the image's deps, don't shadow with host's
-      - "${CODE_AGENT_WORKSPACE_ROOT:-${HOME}/localghost}:${CODE_AGENT_WORKSPACE_ROOT:-${HOME}/localghost}"
+      - "${CODE_AGENT_WORKSPACE_ROOT:-${HOME}}:${CODE_AGENT_WORKSPACE_ROOT:-${HOME}}"
     environment:
       <<: *app-env
 

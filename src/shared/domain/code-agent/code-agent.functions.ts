@@ -16,7 +16,9 @@ import {
 	approveCodeAgentCommandInput,
 	codeAgentSessionIdInput,
 	createCodeAgentSessionSchema,
+	listWorkspaceEntriesSchema,
 } from "./schemas";
+import { getCodeAgentWorkspaceRoot, listWorkspaceEntries } from "./workspace-path.server";
 
 /** Which harnesses this server can run, by whether their CLI is on PATH. */
 export const getCodeAgentAvailability = createServerFn({ method: "GET" })
@@ -77,6 +79,16 @@ export const deleteCodeAgentSession = createServerFn({ method: "POST" })
 		await removeCodeAgentSession({ id, ownerId: context.userId });
 	});
 
+/** The workspace browser's current level: its root plus the subdirectories at `subpath`. */
+export const listCodeAgentWorkspaceEntries = createServerFn({ method: "GET" })
+	.middleware([authedFn])
+	.validator(listWorkspaceEntriesSchema)
+	.handler(async ({ data: { subpath } }) => {
+		const root = await getCodeAgentWorkspaceRoot();
+		const entries = await listWorkspaceEntries({ root, subpath });
+		return { root, subpath, entries };
+	});
+
 // ── Query options (for TanStack Query) ───────────────────────
 
 export const codeAgentAvailabilityQueryOptions = () =>
@@ -102,4 +114,10 @@ export const codeAgentSessionQueryOptions = (id: string) =>
 			const messages: ModelMessage[] = JSON.parse(JSON.stringify(session.messages ?? []));
 			return { ...session, messages: reviveMessageDates(messages) };
 		},
+	});
+
+export const codeAgentWorkspaceEntriesQueryOptions = (subpath: string) =>
+	queryOptions({
+		queryKey: ["code-agent-workspace-entries", subpath],
+		queryFn: () => listCodeAgentWorkspaceEntries({ data: { subpath } }),
 	});

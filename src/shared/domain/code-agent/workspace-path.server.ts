@@ -1,4 +1,5 @@
-import { realpath } from "node:fs/promises";
+import { mkdir, readdir, realpath } from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 
 /**
@@ -12,16 +13,51 @@ export function pathIsInside({ candidate, root }: { candidate: string; root: str
 }
 
 /**
- * Rejects a workspace outside `CODE_AGENT_WORKSPACE_ROOT`, when set. Unset means the
- * native loop, where the user's own filesystem is the bound. Resolves symlinks first,
- * so a link inside the root cannot point out of it.
+ * The tree the workspace browser opens into: `CODE_AGENT_WORKSPACE_ROOT` if set, else the
+ * user's home directory, so existing projects are reachable with no setup. The browser
+ * itself keeps the bare root from being picked as a session's own workspace.
  */
-export async function assertWorkspacePathAllowed(workspacePath: string): Promise<void> {
-	const root = process.env.CODE_AGENT_WORKSPACE_ROOT;
-	if (!root) return;
+export async function getCodeAgentWorkspaceRoot(): Promise<string> {
+	const root = process.env.CODE_AGENT_WORKSPACE_ROOT || os.homedir();
+	await mkdir(root, { recursive: true });
+	return root;
+}
+
+/**
+ * Resolves `target` (absolute, or relative to `root`) against `root`, rejecting anything
+ * that escapes it. Resolves symlinks first, so one inside `root` can't point out; a
+ * not-yet-created target (a folder about to be made) falls back to a plain join.
+ */
+export async function resolveContainedPath({
+	root,
+	target,
+}: {
+	root: string;
+	target: string;
+}): Promise<string> {
+	const joined = path.isAbsolute(target) ? target : path.join(root, target);
+	const resolved = await realpath(joined).catch(() => path.resolve(joined));
 	const resolvedRoot = await realpath(root).catch(() => path.resolve(root));
-	const candidate = await realpath(workspacePath).catch(() => path.resolve(workspacePath));
-	if (!pathIsInside({ candidate, root: resolvedRoot })) {
-		throw new Error(`${workspacePath} is outside CODE_AGENT_WORKSPACE_ROOT.`);
+	if (!pathIsInside({ candidate: resolved, root: resolvedRoot })) {
+		throw new Error(`${target} is outside the workspace root.`);
 	}
+	return resolved;
+}
+
+/** Direct child directories under `root`/`subpath`, hidden ones excluded. */
+export async function listWorkspaceEntries({
+	root,
+	subpath,
+}: {
+	root: string;
+	subpath: string;
+}): Promise<string[]> {
+	const dir = await resolveContainedPath({ root, target: subpath });
+	const entries = await readdir(dir, { withFileTypes: true }).catch(() => {
+		throw new Error("This folder no longer exists.");
+	});
+	return entries
+		.filter((entry) => entry.isDirectory() && !entry.name.startsWith("."))
+		.map((entry) => entry.name)
+		.sort();
 }
