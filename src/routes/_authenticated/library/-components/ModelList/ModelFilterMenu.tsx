@@ -1,4 +1,5 @@
 import { SlidersHorizontalIcon } from "lucide-react";
+import type { ReactNode } from "react";
 import { Fragment } from "react";
 import type { Facet } from "#/routes/_authenticated/library/-lib/facets";
 import { Badge } from "#/shared/components/ui/badge";
@@ -16,10 +17,11 @@ import {
 
 type ModelFilterMenuProps = {
 	facets: Facet[];
+	children?: ReactNode;
 };
 
 /** Renders the catalog's filter facets as grouped checkboxes; a facet with no options is skipped. */
-export function ModelFilterMenu({ facets }: ModelFilterMenuProps) {
+export function ModelFilterMenu({ facets, children }: ModelFilterMenuProps) {
 	const activeCount = facets.reduce((total, facet) => total + facet.chips.length, 0);
 	const groups = facets.filter((facet) => facet.controls.length > 0);
 
@@ -41,6 +43,8 @@ export function ModelFilterMenu({ facets }: ModelFilterMenuProps) {
 				)}
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="end" className="w-72">
+				{children}
+				<DropdownMenuSeparator />
 				{activeCount > 0 && (
 					<>
 						<DropdownMenuItem

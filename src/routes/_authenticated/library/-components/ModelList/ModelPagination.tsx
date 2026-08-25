@@ -10,14 +10,20 @@ type ModelPaginationProps = {
 	page: number;
 	pageCount: number;
 	onPageChange: (page: number) => void;
+	className?: string;
 };
 
 /** Prev/next controls for the server-paginated catalog. */
-export function ModelPagination({ page, pageCount, onPageChange }: ModelPaginationProps) {
+export function ModelPagination({
+	page,
+	pageCount,
+	onPageChange,
+	className,
+}: ModelPaginationProps) {
 	if (pageCount <= 1) return null;
 
 	return (
-		<Pagination className="justify-end">
+		<Pagination className={className}>
 			<PaginationContent>
 				<PaginationItem>
 					<PaginationPrevious

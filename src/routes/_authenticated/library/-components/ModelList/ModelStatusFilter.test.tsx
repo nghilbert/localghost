@@ -3,7 +3,7 @@ import { ModelStatusFilter } from "#/routes/_authenticated/library/-components/M
 import { render } from "#/test/utils";
 
 describe("ModelStatusFilter", () => {
-	it("calls onValueChange when a status toggle is pressed", async () => {
+	it("calls onValueChange when a status option is pressed", async () => {
 		const onValueChange = vi.fn();
 		const screen = await render(
 			<ModelStatusFilter

@@ -87,10 +87,16 @@ export function ModelList({
 						data-testid="model-list-search"
 					/>
 				</div>
-				<ModelStatusFilter value={status} counts={counts} onValueChange={handleStatusChange} />
-				<ModelFilterMenu facets={facets} />
+				<ModelFilterMenu facets={facets}>
+					<ModelStatusFilter value={status} counts={counts} onValueChange={handleStatusChange} />
+				</ModelFilterMenu>
 				<ModelSortControls value={sort} onValueChange={handleSortChange} />
-				<ModelPagination page={page} pageCount={pageCount} onPageChange={setPage} />
+				<ModelPagination
+					page={page}
+					pageCount={pageCount}
+					onPageChange={setPage}
+					className="ml-auto shrink-0"
+				/>
 			</div>
 
 			<ModelActiveFilters facets={facets} />
@@ -140,7 +146,12 @@ export function ModelList({
 				</ItemGroup>
 			)}
 
-			<ModelPagination page={page} pageCount={pageCount} onPageChange={setPage} />
+			<ModelPagination
+				page={page}
+				pageCount={pageCount}
+				onPageChange={setPage}
+				className="ml-auto w-fit"
+			/>
 		</div>
 	);
 }
