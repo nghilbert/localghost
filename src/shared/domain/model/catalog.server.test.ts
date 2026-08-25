@@ -43,11 +43,9 @@ function indexEntry(
 }
 
 /**
- * Routes a mocked `fetch` by path shape and the `pipeline_tag` query param, rather
- * than an exact query string — `@huggingface/hub` owns URL construction and its
- * param order isn't our contract. Ingest makes one index pass per chat pipeline
- * tag ("text-generation", "image-text-to-text"); `textGeneration` supplies the
- * first, `imageTextToText` (default empty) the second.
+ * Routes a mocked `fetch` by path shape rather than an exact query string —
+ * `@huggingface/hub` owns URL construction and its param order isn't our contract.
+ * Ingest makes one GGUF index pass, so both fixture arrays are combined for it.
  */
 function mockHfFetch({
 	textGeneration,
@@ -65,8 +63,7 @@ function mockHfFetch({
 	fetchMock.mockImplementation(async (input) => {
 		const url = new URL(String(input));
 		if (url.pathname === "/api/models") {
-			const task = url.searchParams.get("pipeline_tag");
-			return jsonResponse(task === "image-text-to-text" ? imageTextToText : textGeneration);
+			return jsonResponse([...textGeneration, ...imageTextToText]);
 		}
 		if (url.pathname.includes("/tree/")) {
 			const repoId = url.pathname.slice("/api/models/".length).split("/tree/")[0] ?? "";
@@ -199,8 +196,8 @@ describe("getCatalog (Hugging Face)", () => {
 		const { getCatalog } = await freshCatalogModule();
 		const models = await getCatalog();
 		expect(models.map((model) => model.name)).toEqual(["org/open-8B"]);
-		// Two index passes (one per chat pipeline tag) plus one tree fetch for the sole survivor.
-		expect(fetchMock).toHaveBeenCalledTimes(3);
+		// One GGUF index pass plus one tree fetch for the sole survivor.
+		expect(fetchMock).toHaveBeenCalledTimes(2);
 	});
 
 	it("dedupes repacks by base-model link and prefers the higher-ranked publisher", async () => {
@@ -228,7 +225,7 @@ describe("getCatalog (Hugging Face)", () => {
 		expect(models[0]?.displayName).toBe("Qwen3 8B");
 	});
 
-	it("raises when the Hub returns no models for either chat pipeline tag", async () => {
+	it("raises when the Hub returns no GGUF models", async () => {
 		mockHfFetch({ textGeneration: [] });
 
 		const { getCatalog } = await freshCatalogModule();
@@ -253,7 +250,7 @@ describe("getCatalog (Hugging Face)", () => {
 				indexEntry({
 					id: "org/gamma-vision-8B-GGUF",
 					downloads: 100,
-					tags: ["conversational", "license:apache-2.0"],
+					tags: ["image-text-to-text", "license:apache-2.0"],
 				}),
 			],
 		});

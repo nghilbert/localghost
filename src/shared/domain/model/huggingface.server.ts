@@ -1,5 +1,5 @@
 import { parseGGUFQuantLabel, parseGgufShardFilename, RE_GGUF_FILE } from "@huggingface/gguf";
-import { HubApiError, listFiles, listModels, modelInfo, type PipelineType } from "@huggingface/hub";
+import { HubApiError, listFiles, listModels, modelInfo } from "@huggingface/hub";
 import { z } from "zod/v4";
 import type { ModelVariantInfo } from "./types";
 
@@ -15,9 +15,6 @@ function isAuxiliaryGgufFile(fileName: string): boolean {
 	const basename = segments[segments.length - 1] ?? fileName;
 	return AUXILIARY_GGUF_SUBSTRINGS.some((substring) => basename.includes(substring));
 }
-
-/** The pipeline tags worth chatting with. The Hub filters on one value per query. */
-export const CHAT_PIPELINE_TAGS: PipelineType[] = ["text-generation", "image-text-to-text"];
 
 /**
  * Index metadata the Hub returns for GGUF repos that `@huggingface/hub` cannot ask
@@ -150,13 +147,11 @@ function toHfChatModel({
 	};
 }
 
-/** Lists popular public GGUF repos for one pipeline tag, newest metadata first. */
+/** Lists popular public GGUF repos, newest metadata first. */
 export async function listGgufChatModels({
-	task,
 	limit,
 	accessToken,
 }: {
-	task: PipelineType;
 	limit: number;
 	accessToken: string | undefined;
 }): Promise<HfChatModel[]> {
@@ -164,7 +159,7 @@ export async function listGgufChatModels({
 	const models: HfChatModel[] = [];
 
 	for await (const model of listModels({
-		search: { task, tags: ["gguf"] },
+		search: { tags: ["gguf"] },
 		additionalFields: ADDITIONAL_FIELDS,
 		sort: "downloads",
 		limit,
@@ -176,8 +171,7 @@ export async function listGgufChatModels({
 			toHfChatModel({
 				model,
 				extra: extras.get(model.name),
-				isVision:
-					task === "image-text-to-text" || (model.tags ?? []).includes("image-text-to-text"),
+				isVision: model.tags.includes("image-text-to-text"),
 			}),
 		);
 	}

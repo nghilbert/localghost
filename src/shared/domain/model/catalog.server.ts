@@ -15,7 +15,6 @@ import {
 	pickDefaultVariant,
 } from "./catalog-curation";
 import {
-	CHAT_PIPELINE_TAGS,
 	getGgufChatModel,
 	type HfChatModel,
 	listGgufChatModels,
@@ -114,10 +113,10 @@ function toCatalogModel(candidate: CatalogCandidate): CatalogModel {
  */
 async function fetchHfCatalog(): Promise<CatalogModel[]> {
 	const accessToken = process.env.HF_TOKEN;
-	const listed: HfChatModel[] = [];
-	for (const task of CHAT_PIPELINE_TAGS) {
-		listed.push(...(await listGgufChatModels({ task, limit: SCAN_LIMIT_PER_TAG, accessToken })));
-	}
+	const listed: HfChatModel[] = await listGgufChatModels({
+		limit: SCAN_LIMIT_PER_TAG,
+		accessToken,
+	});
 	if (listed.length === 0) throw new Error("Hugging Face GGUF index returned 0 eligible models");
 
 	const grouped = dedupeByBaseModel(listed.map(toCandidate))
