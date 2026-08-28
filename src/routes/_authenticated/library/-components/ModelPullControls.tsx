@@ -1,18 +1,8 @@
 import { DownloadIcon, SquareIcon } from "lucide-react";
 import { Button } from "#/shared/components/ui/button";
-import {
-	Item,
-	ItemActions,
-	ItemContent,
-	ItemDescription,
-	ItemMedia,
-	ItemTitle,
-} from "#/shared/components/ui/item";
-import { Progress } from "#/shared/components/ui/progress";
-import { Spinner } from "#/shared/components/ui/spinner";
+import { Item, ItemActions, ItemContent, ItemTitle } from "#/shared/components/ui/item";
 import { Tooltip, TooltipContent, TooltipTrigger } from "#/shared/components/ui/tooltip";
-import { formatPullDetail } from "#/shared/domain/model/pull-format";
-import { pullProgressPercent } from "#/shared/domain/model/pull-progress";
+import { DownloadStatus } from "#/shared/domain/model/DownloadStatus";
 import type { PullProgress } from "#/shared/domain/model/types";
 
 type ModelPullControlsProps = {
@@ -25,20 +15,11 @@ type ModelPullControlsProps = {
 /** Renders the available actions and status for one exact model pull target. */
 export function ModelPullControls({ modelId, pullState, onPull, onStop }: ModelPullControlsProps) {
 	if (pullState) {
-		const progress = pullProgressPercent(pullState);
-		const detail = formatPullDetail(pullState);
-
 		return (
 			<Item variant="muted" size="sm" data-testid="model-pull-progress">
-				{progress === null && (
-					<ItemMedia variant="icon">
-						<Spinner />
-					</ItemMedia>
-				)}
 				<ItemContent>
 					<ItemTitle>{pullState.status || "Downloading model"}</ItemTitle>
-					{detail && <ItemDescription className="tabular-nums">{detail}</ItemDescription>}
-					{progress !== null && <Progress value={progress} aria-label="Model download progress" />}
+					<DownloadStatus pullState={pullState} />
 				</ItemContent>
 				<ItemActions>
 					<Tooltip>

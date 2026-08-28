@@ -52,9 +52,9 @@ const SKELETON_ROW_KEYS = ["a", "b", "c", "d", "e", "f"];
 export const Route = createFileRoute("/_authenticated/library/")({
 	head: () => ({ meta: [{ title: "Library · localghost" }] }),
 	loader: ({ context }) => {
-		context.queryClient.prefetchQuery(hardwareQueryOptions());
-		context.queryClient.prefetchQuery(libraryStatusQueryOptions());
-		context.queryClient.prefetchQuery(catalogQueryOptions(DEFAULT_CATALOG_QUERY));
+		context.queryClient.query(hardwareQueryOptions()).catch(() => {});
+		context.queryClient.query(libraryStatusQueryOptions()).catch(() => {});
+		context.queryClient.query(catalogQueryOptions(DEFAULT_CATALOG_QUERY)).catch(() => {});
 	},
 	component: LibraryPage,
 });
@@ -64,7 +64,7 @@ function LibraryPage() {
 
 	const { data: runtimeStatus, isPending: isStatusPending } = useQuery(libraryStatusQueryOptions());
 
-	const { pulling, pull, stop } = useModelDownload(runtimeStatus?.endpointId ?? null);
+	const { pulling, pull, stop } = useModelDownload();
 	const deleteModel = useDeleteModel();
 
 	const [isReconnecting, setIsReconnecting] = useState(false);

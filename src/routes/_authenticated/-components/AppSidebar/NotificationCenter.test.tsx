@@ -3,14 +3,14 @@ import { SidebarProvider } from "#/shared/components/ui/sidebar";
 import type { PullProgress } from "#/shared/domain/model/types";
 import { render } from "#/test/utils";
 
-const { fetchLibraryStatus, stopMock } = vi.hoisted(() => ({
+const { fetchLibraryStatus, pullingMock, stopMock } = vi.hoisted(() => ({
 	fetchLibraryStatus: vi.fn(),
+	pullingMock: vi.fn(),
 	stopMock: vi.fn(),
 }));
 
 vi.mock("#/shared/domain/model/use-models", () => ({
-	useModelDownload: () => ({ pulling: {}, pull: vi.fn(), stop: stopMock }),
-	useModelDownloadEvents: vi.fn(),
+	useModelDownload: () => ({ pulling: pullingMock(), pull: vi.fn(), stop: stopMock }),
 }));
 
 vi.mock("#/shared/domain/model/model.functions", () => ({
@@ -24,8 +24,10 @@ const { NotificationCenter } = await import(
 	"#/routes/_authenticated/-components/AppSidebar/NotificationCenter"
 );
 
-function withDownloads(downloads: Record<string, PullProgress>) {
-	fetchLibraryStatus.mockResolvedValue({ found: true, endpointId: "endpoint-1", downloads });
+/** The merged map the sidebar reads; the raw poll payload never carries byte counts. */
+function withDownloads(pulling: Record<string, PullProgress>) {
+	pullingMock.mockReturnValue(pulling);
+	fetchLibraryStatus.mockResolvedValue({ found: true, endpointId: "endpoint-1", downloads: {} });
 }
 
 function renderCenter() {
@@ -61,7 +63,7 @@ describe("NotificationCenter", () => {
 		await expect.poll(() => items.all().length).toBe(2);
 		await expect.element(items.first()).toHaveTextContent("50% · 50 B / 100 B");
 		// No total yet, so the bar stays indeterminate rather than sitting at zero.
-		await expect.element(items.last().getByRole("status")).toBeInTheDocument();
+		await expect.element(items.last().getByTestId("download-status-spinner")).toBeInTheDocument();
 	});
 
 	it("stops a pull by the model it was rendered for", async () => {

@@ -66,6 +66,7 @@ export const llamaModelDownloadEventSchema = z.union([
 ]);
 
 export type LlamaDownloadFileProgress = z.infer<typeof llamaDownloadFileProgressSchema>;
+export type LlamaModelDownloadEvent = z.infer<typeof llamaModelDownloadEventSchema>;
 
 export const catalogModelsByIdsInput = z.object({ ids: z.array(z.string()) });
 

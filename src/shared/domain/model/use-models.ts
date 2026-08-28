@@ -1,17 +1,39 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { type QueryClient, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import { toast } from "#/shared/components/ui/toast";
 import {
 	cancelModelDownload,
 	deleteModel,
 	libraryStatusQueryOptions,
+	modelDownloadProgressQueryOptions,
 	registerRemoteRuntime,
 	startModelDownload,
 	testRemoteRuntime,
 } from "./model.functions";
-import { aggregatePullProgress } from "./pull-progress";
-import { llamaModelDownloadEventSchema } from "./schemas";
-import type { RuntimeStatus } from "./types";
+import type { PullProgress } from "./types";
+
+/**
+ * Drops a model's streamed byte progress so a restart or a stop falls back to the
+ * spinner instead of showing the previous run's percentage.
+ */
+function evictDownloadProgress({
+	queryClient,
+	endpointId,
+	model,
+}: {
+	queryClient: QueryClient;
+	endpointId: string | null;
+	model: string;
+}) {
+	queryClient.setQueryData<Record<string, PullProgress>>(
+		modelDownloadProgressQueryOptions(endpointId).queryKey,
+		(progress = {}) => {
+			if (!(model in progress)) return progress;
+			const { [model]: _dropped, ...rest } = progress;
+			return rest;
+		},
+	);
+}
 
 /** Deletes an installed model. */
 export function useDeleteModel() {
@@ -57,13 +79,27 @@ export function useTestRuntime() {
 	});
 }
 
-/** Starts and stops router-owned downloads while the runtime query reports progress. */
-export function useModelDownload(endpointId: string | null) {
+/**
+ * Starts and stops router-owned downloads. `pulling` is the merged view: the poll says
+ * which models are downloading, the stream supplies the bytes `GET /models` omits. Read
+ * progress from here, never from `runtimeStatus.downloads`, which can only ever spin.
+ */
+export function useModelDownload() {
 	const queryClient = useQueryClient();
 	const { data: runtimeStatus } = useQuery(libraryStatusQueryOptions());
+	const endpointId = runtimeStatus?.endpointId ?? null;
+	const { data: byteProgress = {} } = useQuery(modelDownloadProgressQueryOptions(endpointId));
 	const startedModels = useRef<Set<string>>(new Set());
 	const observedDownloads = useRef<Set<string>>(new Set());
-	const pulling = runtimeStatus?.found ? runtimeStatus.downloads : {};
+
+	const rawDownloads = runtimeStatus?.found ? runtimeStatus.downloads : {};
+	const pulling: Record<string, PullProgress> = {};
+	for (const [id, progress] of Object.entries(rawDownloads)) {
+		const bytes = byteProgress[id];
+		pulling[id] = bytes
+			? { ...progress, completed: bytes.completed, total: bytes.total }
+			: progress;
+	}
 
 	useEffect(() => {
 		if (!runtimeStatus?.found) return;
@@ -87,7 +123,10 @@ export function useModelDownload(endpointId: string | null) {
 			if (!endpointId) throw new Error("llama.cpp endpoint not found");
 			await startModelDownload({ data: { endpointId, model } });
 		},
-		onMutate: (model) => startedModels.current.add(model),
+		onMutate: (model) => {
+			startedModels.current.add(model);
+			evictDownloadProgress({ queryClient, endpointId, model });
+		},
 		onSuccess: () =>
 			queryClient.invalidateQueries({ queryKey: libraryStatusQueryOptions().queryKey }),
 		onError: (error, model) => {
@@ -105,6 +144,7 @@ export function useModelDownload(endpointId: string | null) {
 		onSuccess: (_data, model) => {
 			startedModels.current.delete(model);
 			observedDownloads.current.delete(model);
+			evictDownloadProgress({ queryClient, endpointId, model });
 			queryClient.invalidateQueries({ queryKey: libraryStatusQueryOptions().queryKey });
 			toast.add({ title: `Stopped downloading ${model}`, type: "info" });
 		},
@@ -113,54 +153,4 @@ export function useModelDownload(endpointId: string | null) {
 	});
 
 	return { pulling, pull: pullMutation.mutate, stop: stopMutation.mutate };
-}
-
-/** Keeps the shared runtime-status cache synchronized with llama.cpp's model event stream. */
-export function useModelDownloadEvents(endpointId: string | null): void {
-	const queryClient = useQueryClient();
-
-	useEffect(() => {
-		if (!endpointId) return;
-		const queryKey = libraryStatusQueryOptions().queryKey;
-		const search = new URLSearchParams({ endpointId });
-		const source = new EventSource(`/api/models/events?${search}`);
-
-		source.onopen = () => {
-			void queryClient.invalidateQueries({ queryKey });
-		};
-		source.onerror = () => {
-			console.warn("llama.cpp model-event stream errored", { readyState: source.readyState });
-		};
-		source.onmessage = (message) => {
-			let value: unknown;
-			try {
-				value = JSON.parse(message.data);
-			} catch {
-				console.warn("Unparseable llama.cpp model event", { data: message.data });
-				return;
-			}
-			const parsed = llamaModelDownloadEventSchema.safeParse(value);
-			if (!parsed.success) {
-				console.warn("Unrecognized llama.cpp model event", { value, error: parsed.error });
-				return;
-			}
-			const event = parsed.data;
-			if (event.event === "download_progress") {
-				queryClient.setQueryData<RuntimeStatus>(queryKey, (status) => {
-					if (!status?.found) return status;
-					return {
-						...status,
-						downloads: {
-							...status.downloads,
-							[event.model]: aggregatePullProgress(event.data.progress),
-						},
-					};
-				});
-				return;
-			}
-			void queryClient.invalidateQueries({ queryKey });
-		};
-
-		return () => source.close();
-	}, [endpointId, queryClient]);
 }
