@@ -85,7 +85,7 @@ describe("buildModelRows", () => {
 		expect(matchesModelFacets({ row, licenses: ["mit"], capabilities: ["code"] })).toBe(true);
 	});
 
-	it("excludes installed/pulling ids not already on the page when includeOffPageInstalled is false", () => {
+	it("excludes off-page installed models when includeOffPageInstalled is false", () => {
 		const catalogPage = [makeCatalogModel({ id: "org/qwen2.5-GGUF:Q4_K_M" })];
 		const installed = [makeInstalledModel({ id: "org/llama3.2-GGUF:Q4_K_M" })];
 
@@ -98,5 +98,27 @@ describe("buildModelRows", () => {
 		});
 
 		expect(rows.map((r) => r.id)).toEqual(["org/qwen2.5-GGUF:Q4_K_M"]);
+	});
+
+	it("always keeps an off-page download, even when installed models are excluded", () => {
+		const catalogPage = [makeCatalogModel({ id: "org/qwen2.5-GGUF:Q4_K_M" })];
+		const installed = [makeInstalledModel({ id: "org/llama3.2-GGUF:Q4_K_M" })];
+		const pulling: Record<string, PullProgress> = {
+			"org/mistral-GGUF:Q4_K_M": { status: "Downloading", completed: 37, total: 120 },
+		};
+
+		const rows = buildModelRows({
+			catalogPage,
+			catalogById: catalogById(catalogPage),
+			installedModels: installed,
+			pulling,
+			includeOffPageInstalled: false,
+		});
+
+		expect(rows.map((r) => r.id).sort()).toEqual([
+			"org/mistral-GGUF:Q4_K_M",
+			"org/qwen2.5-GGUF:Q4_K_M",
+		]);
+		expect(rowById(rows, "org/mistral-GGUF:Q4_K_M").installed).toBeNull();
 	});
 });

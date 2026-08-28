@@ -95,7 +95,8 @@ export function toRuntimeModels(models: LlamaModel[]): {
 	const downloads: Record<string, PullProgress> = {};
 
 	for (const model of models) {
-		if (model.status.value === "downloading") {
+		// "downloaded" is a one-poll-wide transient the router clears on its next reload.
+		if (model.status.value === "downloading" || model.status.value === "downloaded") {
 			downloads[model.id] = aggregatePullProgress(model.status.progress ?? {});
 			continue;
 		}

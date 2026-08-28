@@ -28,7 +28,10 @@ export const Route = createFileRoute("/_authenticated/_agent/agent/")({
 	// Nothing to list yet sends the user straight to the composer, same as the app root
 	// redirecting to `/new` when there's no chat to show either.
 	loader: async ({ context }) => {
-		const sessions = await context.queryClient.ensureQueryData(codeAgentSessionsQueryOptions());
+		const sessions = await context.queryClient.query({
+			...codeAgentSessionsQueryOptions(),
+			staleTime: "static",
+		});
 		if (sessions.length === 0) throw redirect({ to: "/agent/new" });
 	},
 	component: CodeAgentPage,

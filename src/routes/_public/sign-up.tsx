@@ -14,7 +14,10 @@ export const Route = createFileRoute("/_public/sign-up")({
 	// The account already exists, so this page has nothing to offer; better-auth
 	// would refuse the submit anyway, only after the form had been filled in.
 	beforeLoad: async ({ context }) => {
-		const { open } = await context.queryClient.ensureQueryData(signUpAvailabilityQueryOptions());
+		const { open } = await context.queryClient.query({
+			...signUpAvailabilityQueryOptions(),
+			staleTime: "static",
+		});
 		if (!open) throw redirect({ to: "/sign-in" });
 	},
 	component: SignUpPage,

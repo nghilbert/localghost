@@ -13,10 +13,20 @@ const downloadProgress = {
 	event: "download_progress",
 	data: { progress: { "https://huggingface.co/…/gemma-3-270m-Q8_0.gguf": { done: 4, total: 10 } } },
 };
+/** Emitted around a multimodal model's mmproj load/unload, distinct from `model_status`. */
+const statusChange = {
+	model: "unsloth/Qwen3.5-4B-GGUF:Q4_K_M",
+	event: "status_change",
+	data: {
+		status: "loading",
+		progress: { stages: ["text_model", "mmproj_model"], current: "mmproj_model", value: 0.5 },
+	},
+};
 
 describe("llamaModelDownloadEventSchema", () => {
 	it("accepts the router's status and progress frames", () => {
 		expect(llamaModelDownloadEventSchema.parse(modelStatus).event).toBe("model_status");
+		expect(llamaModelDownloadEventSchema.parse(statusChange).event).toBe("status_change");
 
 		const parsed = llamaModelDownloadEventSchema.parse(downloadProgress);
 		if (parsed.event !== "download_progress") throw new Error("expected a progress event");

@@ -90,7 +90,10 @@ export function RecentChatList() {
 
 	async function exportConversation({ id, format }: { id: string; format: "markdown" | "json" }) {
 		try {
-			const conversation = await queryClient.ensureQueryData(conversationQueryOptions(id));
+			const conversation = await queryClient.query({
+				...conversationQueryOptions(id),
+				staleTime: "static",
+			});
 			const extension = format === "markdown" ? "md" : "json";
 			downloadTextFile({
 				filename: conversationExportFilename({ title: conversation.title, extension }),

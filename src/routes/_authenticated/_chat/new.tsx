@@ -21,7 +21,11 @@ import type { ModelSelection } from "#/shared/domain/endpoint/schemas";
 
 export const Route = createFileRoute("/_authenticated/_chat/new")({
 	head: () => ({ meta: [{ title: "New chat · localghost" }] }),
-	loader: ({ context }) => context.queryClient.ensureQueryData(defaultSelectionQueryOptions()),
+	loader: ({ context }) =>
+		context.queryClient.query({
+			...defaultSelectionQueryOptions(),
+			staleTime: "static",
+		}),
 	component: NewChatPage,
 });
 

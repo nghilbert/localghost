@@ -14,9 +14,10 @@ import { conversationQueryOptions } from "#/shared/domain/conversation/conversat
 
 export const Route = createFileRoute("/_authenticated/_chat/chat/$conversationId")({
 	loader: async ({ params, context }) => {
-		const conversation = await context.queryClient.ensureQueryData(
-			conversationQueryOptions(params.conversationId),
-		);
+		const conversation = await context.queryClient.query({
+			...conversationQueryOptions(params.conversationId),
+			staleTime: "static",
+		});
 		return { title: conversation.title };
 	},
 	head: ({ loaderData }) => ({

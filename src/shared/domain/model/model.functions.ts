@@ -1,4 +1,9 @@
-import { keepPreviousData, queryOptions } from "@tanstack/react-query";
+import {
+	experimental_streamedQuery,
+	keepPreviousData,
+	queryOptions,
+	skipToken,
+} from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod/v4";
 import { downloadModel, unloadModel } from "#/shared/lib/llamacpp/client.server";
@@ -11,14 +16,16 @@ import {
 	scanForRuntime,
 	upsertRuntimeEndpoint,
 } from "./discovery.server";
+import { reduceDownloadEvent, streamModelEvents } from "./download-stream";
 import { getHardwareInfo } from "./hardware.server";
 import {
 	type CatalogQuery,
 	catalogModelsByIdsInput,
 	catalogQuerySchema,
+	type LlamaModelDownloadEvent,
 	modelVariantsInput,
 } from "./schemas";
-import type { RuntimeStatus } from "./types";
+import type { PullProgress, RuntimeStatus } from "./types";
 import { removeInstalledModel } from "./uninstall.server";
 
 export const getHardware = createServerFn({ method: "GET" })
@@ -135,6 +142,40 @@ export const libraryStatusQueryOptions = () =>
 		queryKey: ["library-status"],
 		queryFn: () => scanRuntimeStatus(),
 		refetchInterval: (query) => libraryStatusPollInterval(query.state.data),
+	});
+
+/**
+ * Byte progress per model id, folded out of llama.cpp's `/models/sse` feed. Subscribing
+ * opens the stream, unsubscribing closes it, and default staleness makes a refetch a
+ * no-op while it is live but reopen it once llama.cpp goes away and comes back.
+ */
+export const modelDownloadProgressQueryOptions = (endpointId: string | null) =>
+	queryOptions({
+		queryKey: ["model-download-progress", endpointId],
+		queryFn:
+			endpointId === null
+				? skipToken
+				: experimental_streamedQuery<LlamaModelDownloadEvent, Record<string, PullProgress>>({
+						streamFn: async function* (context) {
+							const resync = () =>
+								void context.client.invalidateQueries({
+									queryKey: libraryStatusQueryOptions().queryKey,
+								});
+							for await (const event of streamModelEvents({
+								endpointId,
+								signal: context.signal,
+								onOpen: resync,
+							})) {
+								if (event.event !== "download_progress") resync();
+								yield event;
+							}
+						},
+						initialValue: {},
+						reducer: reduceDownloadEvent,
+						// Reopening folds onto what the last connection produced instead of
+						// resetting the query and blanking the bar back to a spinner.
+						refetchMode: "append",
+					}),
 	});
 
 export const hardwareQueryOptions = () =>

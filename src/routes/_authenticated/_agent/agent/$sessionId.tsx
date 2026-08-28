@@ -14,9 +14,10 @@ import { codeAgentSessionQueryOptions } from "#/shared/domain/code-agent/code-ag
 
 export const Route = createFileRoute("/_authenticated/_agent/agent/$sessionId")({
 	loader: async ({ params, context }) => {
-		const session = await context.queryClient.ensureQueryData(
-			codeAgentSessionQueryOptions(params.sessionId),
-		);
+		const session = await context.queryClient.query({
+			...codeAgentSessionQueryOptions(params.sessionId),
+			staleTime: "static",
+		});
 		return { title: session.title };
 	},
 	head: ({ loaderData }) => ({

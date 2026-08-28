@@ -10,8 +10,8 @@ export type ModelRow = {
 };
 
 /** Builds Library rows from the catalog page, installed models, and downloads.
- * `catalogById` enriches off-page rows; `includeOffPageInstalled` controls whether
- * installed and downloading models outside the current catalog page are included.
+ * `catalogById` enriches off-page rows. Downloads always ride in regardless of the page,
+ * since the "Available" tab hides installed models but must still show a pull it started.
  */
 export function buildModelRows({
 	catalogPage,
@@ -33,8 +33,8 @@ export function buildModelRows({
 	const ids = new Set(catalogPageById.keys());
 	if (includeOffPageInstalled) {
 		for (const id of installedById.keys()) ids.add(id);
-		for (const id of pullingById.keys()) ids.add(id);
 	}
+	for (const id of pullingById.keys()) ids.add(id);
 
 	return [...ids].map((id) => {
 		const model = catalogPageById.get(id) ?? catalogById.get(id) ?? null;

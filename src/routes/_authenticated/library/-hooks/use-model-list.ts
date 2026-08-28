@@ -130,22 +130,35 @@ export function useModelList({ installedModels, pulling, hardware }: UseModelLis
 		includeOffPageInstalled: true,
 	});
 
+	// The Installed tab's own rows, filtered once and reused for the "Available"
+	// subtraction below instead of re-running the same three filters twice.
+	let installedTabRows = installedRows.filter(fitFilter);
+	if (debouncedSearch) {
+		installedTabRows = installedTabRows.filter((row) => matchesSearch(row, debouncedSearch));
+	}
+	if (hasActiveFacets) {
+		installedTabRows = installedTabRows.filter((row) =>
+			matchesModelFacets({ row, licenses, capabilities }),
+		);
+	}
+
 	let base: ModelRow[];
 	if (isInstalledOnly) {
-		base = installedRows.filter(fitFilter);
-		if (debouncedSearch) base = base.filter((row) => matchesSearch(row, debouncedSearch));
+		base = installedTabRows;
 	} else {
 		const merged = buildModelRows({
 			catalogPage,
 			catalogById,
 			installedModels,
 			pulling,
+			// An in-flight download stays visible on every tab, including "Available",
+			// where its row would otherwise vanish the moment it left the catalog page.
 			includeOffPageInstalled: status === "all",
 		});
 		base = status === "available" ? merged.filter((row) => !row.installed) : merged;
-	}
-	if (hasActiveFacets) {
-		base = base.filter((row) => matchesModelFacets({ row, licenses, capabilities }));
+		if (hasActiveFacets) {
+			base = base.filter((row) => matchesModelFacets({ row, licenses, capabilities }));
+		}
 	}
 	const dir = sort.sortDir === "asc" ? 1 : -1;
 	const rows = [...base].sort((leftRow, rightRow) => {
@@ -156,21 +169,17 @@ export function useModelList({ installedModels, pulling, hardware }: UseModelLis
 		return 0;
 	});
 
-	// `total` is the server's facet/search-filtered catalog count, which knows
-	// nothing about install status; subtracting the raw installed count would
-	// double-subtract whenever an active facet excludes some installed models.
-	// Only the installed rows that still match the current facets and search
-	// count against it.
-	let matched = installedRows.filter(fitFilter);
-	if (debouncedSearch) matched = matched.filter((row) => matchesSearch(row, debouncedSearch));
-	if (hasActiveFacets) {
-		matched = matched.filter((row) => matchesModelFacets({ row, licenses, capabilities }));
-	}
-	const matchingInstalledCount = matched.length;
+	// `total` is the server's facet/search-filtered catalog count and knows nothing about
+	// install status, so only installed rows still matching it count against it.
+	// Not-yet-installed downloads ride in `installedTabRows` but stay on "Available",
+	// so they must not be subtracted.
+	const matchingInstalledCount = installedTabRows.filter((row) => row.installed !== null).length;
 
 	const counts: Record<ModelStatus, number> = {
 		all: total,
-		installed: installedModels.length,
+		// Total installed (or downloading) count, independent of the active search/facets —
+		// distinct from the possibly-narrower rows `installedTabRows` lists on the tab itself.
+		installed: installedRows.length,
 		available: Math.max(total - matchingInstalledCount, 0),
 	};
 	const pageCount = isInstalledOnly ? 1 : Math.max(1, Math.ceil(total / CATALOG_PAGE_SIZE));

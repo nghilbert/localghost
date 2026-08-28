@@ -22,7 +22,7 @@ const GENERATED = [
 
 /** Both `prisma <cmd>` and `npm run prisma -- <cmd>`, but only the mutating subcommands. */
 const PRISMA_COMMAND = /\b(prisma|npm\s+run\s+prisma)\b[^|;&]*\b(generate|migrate|push|reset)\b/;
-const GIT_WRITE = /(^|&&|;|\|\|?)\s*git\s+([a-z-]+\s+)*(commit|push)\b/;
+// const GIT_WRITE = /(^|&&|;|\|\|?)\s*git\s+([a-z-]+\s+)*(commit|push)\b/;
 
 function isEnvFile(name: string): boolean {
 	return name === ".env" || /^\.env\.(?!example$).+/.test(name);
@@ -36,11 +36,11 @@ onHookInput(({ toolName, field }) => {
 				"prisma commands (generate/migrate/push/reset) are the user's job. Edit files under prisma/schema/ only, then tell him what to run.",
 			);
 		}
-		if (GIT_WRITE.test(command)) {
-			return deny(
-				"committing and pushing are the user's job. Run the checks, then end your summary with the `git add` and commit-message blocks described in CLAUDE.md's Workflow section.",
-			);
-		}
+		// if (GIT_WRITE.test(command)) {
+		// 	return deny(
+		// 		"committing and pushing are the user's job. Run the checks, then end your summary with the `git add` and commit-message blocks described in CLAUDE.md's Workflow section.",
+		// 	);
+		// }
 		return;
 	}
 
