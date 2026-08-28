@@ -50,13 +50,18 @@ const llamaDownloadProgressEventSchema = z.object({
 	}),
 });
 
-/** Events from llama.cpp that change download progress or the cached model list. */
+/**
+ * The `/models/sse` events we act on. llama.cpp ships no schema for this feed, so
+ * these names are transcribed from `notify_sse` in `server-models.cpp` at the tag
+ * compose.yaml pins; a name missing here fails to parse and the event is dropped.
+ */
 export const llamaModelDownloadEventSchema = z.union([
 	llamaDownloadProgressEventSchema,
 	z.object({
 		model: z.string().min(1),
 		event: z.enum([
 			"model_status",
+			"status_change",
 			"download_finished",
 			"download_failed",
 			"model_remove",

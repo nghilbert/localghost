@@ -6,7 +6,14 @@ import { llamaDownloadFileProgressSchema } from "#/shared/domain/model/schemas";
  * Thin `fetch` wrapper over `llama-server`'s router-mode HTTP API. There is no
  * official JS SDK for it (unlike Ollama); the surface is a few small REST calls.
  */
-const llamaModelStatusSchema = z.enum(["loaded", "loading", "unloaded", "sleeping", "downloading"]);
+const llamaModelStatusSchema = z.enum([
+	"loaded",
+	"loading",
+	"unloaded",
+	"sleeping",
+	"downloading",
+	"downloaded",
+]);
 export type LlamaModelStatus = z.infer<typeof llamaModelStatusSchema>;
 
 const llamaModelSchema = z.object({

@@ -86,6 +86,21 @@ describe("llama.cpp model status", () => {
 		);
 	});
 
+	// The router reports this between a finished download and its next reload.
+	it("parses the transient downloaded state", async () => {
+		fetchMock.mockResolvedValue(
+			new Response(
+				JSON.stringify({
+					data: [{ id: "org/just-finished:Q4_K_M", status: { value: "downloaded" } }],
+				}),
+			),
+		);
+
+		await expect(listModels({ url: "http://localhost:8080" })).resolves.toEqual([
+			{ id: "org/just-finished:Q4_K_M", status: { value: "downloaded" } },
+		]);
+	});
+
 	it("opens the authenticated model event stream with the caller's abort signal", async () => {
 		undiciFetchMock.mockResolvedValue(
 			new Response("data: {}\n\n", { headers: { "Content-Type": "text/event-stream" } }),
