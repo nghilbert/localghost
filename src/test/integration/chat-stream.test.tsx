@@ -1,8 +1,7 @@
-import type { UIMessage } from "@tanstack/ai-client";
+import { fetchServerSentEvents, type UIMessage } from "@tanstack/ai-client";
 import { useChat } from "@tanstack/ai-react";
 import { HttpResponse, http } from "msw";
 import { beforeEach, describe, expect, it } from "vitest";
-import { createChatConnection } from "#/routes/_authenticated/_chat/-lib/connection";
 import { worker } from "#/test/msw";
 import { renderHook } from "#/test/utils";
 
@@ -35,7 +34,7 @@ function textRun(messageId: string, deltas: string[]): StreamEvent[] {
 function mountChat() {
 	return renderHook(() =>
 		useChat({
-			connection: createChatConnection(),
+			connection: fetchServerSentEvents("/api/chat/stream"),
 			persistence: true,
 			threadId: "c1",
 			forwardedProps: { conversationId: "c1", enabledTools: [], timeZone: "UTC" },

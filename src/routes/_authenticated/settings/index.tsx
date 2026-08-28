@@ -17,8 +17,8 @@ export const Route = createFileRoute("/_authenticated/settings/")({
 	validateSearch: settingsSearchSchema,
 	loader: async ({ context }) => {
 		await Promise.all([
-			context.queryClient.ensureQueryData(userSettingsQueryOptions()),
-			context.queryClient.ensureQueryData(memoriesQueryOptions()),
+			context.queryClient.query({ ...userSettingsQueryOptions(), staleTime: "static" }),
+			context.queryClient.query({ ...memoriesQueryOptions(), staleTime: "static" }),
 		]);
 	},
 });

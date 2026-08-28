@@ -10,7 +10,7 @@ export const Route = createFileRoute("/_authenticated")({
 	},
 	// Warm the cache so the chat surfaces can seed their default toggles synchronously.
 	loader: async ({ context }) => {
-		await context.queryClient.ensureQueryData(toolAvailabilityQueryOptions());
+		await context.queryClient.query({ ...toolAvailabilityQueryOptions(), staleTime: "static" });
 	},
 	component: () => (
 		<SidebarProvider className="bg-background">

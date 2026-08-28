@@ -6,7 +6,8 @@ import { codeAgentAvailabilityQueryOptions } from "#/shared/domain/code-agent/co
 
 export const Route = createFileRoute("/_authenticated/_agent/agent/new")({
 	head: () => ({ meta: [{ title: "New code-agent session · localghost" }] }),
-	loader: ({ context }) => context.queryClient.ensureQueryData(codeAgentAvailabilityQueryOptions()),
+	loader: ({ context }) =>
+		context.queryClient.query({ ...codeAgentAvailabilityQueryOptions(), staleTime: "static" }),
 	component: NewCodeAgentSessionPage,
 });
 

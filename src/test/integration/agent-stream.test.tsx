@@ -1,7 +1,7 @@
+import { fetchServerSentEvents } from "@tanstack/ai-client";
 import { useChat } from "@tanstack/ai-react";
 import { HttpResponse, http } from "msw";
 import { beforeEach, describe, expect, it } from "vitest";
-import { createAgentConnection } from "#/routes/_authenticated/_agent/agent/-lib/connection";
 import { codeAgentThreadIdSchema } from "#/shared/domain/code-agent/schemas";
 import { worker } from "#/test/msw";
 import { renderHook } from "#/test/utils";
@@ -30,7 +30,7 @@ function emptyRun(): StreamEvent[] {
 function mountAgent() {
 	return renderHook(() =>
 		useChat({
-			connection: createAgentConnection(),
+			connection: fetchServerSentEvents("/api/agent/stream"),
 			persistence: true,
 			threadId: SESSION_ID,
 		}),

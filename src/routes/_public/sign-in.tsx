@@ -12,7 +12,8 @@ import {
 import { signUpAvailabilityQueryOptions } from "#/shared/domain/auth/auth.functions";
 
 export const Route = createFileRoute("/_public/sign-in")({
-	loader: ({ context }) => context.queryClient.ensureQueryData(signUpAvailabilityQueryOptions()),
+	loader: ({ context }) =>
+		context.queryClient.query({ ...signUpAvailabilityQueryOptions(), staleTime: "static" }),
 	component: SignInPage,
 });
 

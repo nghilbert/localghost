@@ -1,6 +1,6 @@
+import { fetchServerSentEvents } from "@tanstack/ai-client";
 import { useChat } from "@tanstack/ai-react";
 import { useEffect, useRef, useState } from "react";
-import { createAgentConnection } from "#/routes/_authenticated/_agent/agent/-lib/connection";
 import { ChatInput } from "#/routes/_authenticated/-components/ChatInput";
 import { ChatMessage } from "#/routes/_authenticated/-components/ChatMessage";
 import { ChatStatus } from "#/routes/_authenticated/-components/ChatStatus";
@@ -25,7 +25,7 @@ type AgentThreadProps = { session: CodeAgentSessionDetail };
  * with the stream route: everything else the run needs lives on the session row.
  */
 export function AgentThread({ session }: AgentThreadProps) {
-	const [connection] = useState(() => createAgentConnection());
+	const [connection] = useState(() => fetchServerSentEvents("/api/agent/stream"));
 	const [approvals, setApprovals] = useState<CodeAgentApproval[]>([]);
 	const approveCommand = useApproveCodeAgentCommand();
 

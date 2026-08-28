@@ -1,3 +1,4 @@
+import { fetchServerSentEvents } from "@tanstack/ai-client";
 import { useChat } from "@tanstack/ai-react";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
@@ -6,7 +7,6 @@ import {
 	type Attachment,
 	composeMessageContent,
 } from "#/routes/_authenticated/_chat/-lib/attachments";
-import { createChatConnection } from "#/routes/_authenticated/_chat/-lib/connection";
 import { takeChatHandoff } from "#/routes/_authenticated/_chat/-lib/handoff";
 import { CHAT_TOOLS } from "#/routes/_authenticated/_chat/-lib/tool-stubs";
 import { ChatInput } from "#/routes/_authenticated/-components/ChatInput";
@@ -51,7 +51,7 @@ export function ChatThread({ conversation }: ChatThreadProps) {
 		timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
 	};
 
-	const [connection] = useState(() => createChatConnection());
+	const [connection] = useState(() => fetchServerSentEvents("/api/chat/stream"));
 	const {
 		messages,
 		queue,
