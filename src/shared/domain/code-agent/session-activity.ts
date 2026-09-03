@@ -1,9 +1,11 @@
+import { Temporal } from "temporal-polyfill";
+
 /** A session as the list renders it, ordered by its most recent activity. */
 export type CodeAgentSessionListItem = {
 	id: string;
 	title: string;
 	workspacePath: string;
-	updatedAt: Date;
+	updatedAt: Temporal.PlainDateTime;
 };
 
 /**
@@ -15,12 +17,14 @@ export function sortSessionsByActivity({
 	threadActivity,
 }: {
 	sessions: CodeAgentSessionListItem[];
-	threadActivity: Map<string, Date>;
+	threadActivity: Map<string, Temporal.PlainDateTime>;
 }): CodeAgentSessionListItem[] {
 	return sessions
 		.map((session) => {
 			const thread = threadActivity.get(session.id);
-			return thread && thread > session.updatedAt ? { ...session, updatedAt: thread } : session;
+			return thread && Temporal.PlainDateTime.compare(thread, session.updatedAt) > 0
+				? { ...session, updatedAt: thread }
+				: session;
 		})
-		.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+		.sort((a, b) => Temporal.PlainDateTime.compare(b.updatedAt, a.updatedAt));
 }

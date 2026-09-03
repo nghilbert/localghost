@@ -3,7 +3,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const { decrypt, findMany } = vi.hoisted(() => ({ decrypt: vi.fn(), findMany: vi.fn() }));
 
 vi.mock("#/shared/lib/crypto.server", () => ({ decrypt, encrypt: vi.fn() }));
-vi.mock("#/shared/lib/db.server", () => ({ prisma: { endpoint: { findMany } } }));
+vi.mock("#/prisma/db", () => ({
+	db: {
+		orm: {
+			public: {
+				Endpoint: { where: () => ({ orderBy: () => ({ all: findMany }) }) },
+			},
+		},
+	},
+}));
 
 import {
 	embed,

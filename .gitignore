@@ -43,3 +43,10 @@ pnpm-debug.log*
 .DS_Store
 Thumbs.db
 *.sw?
+
+# Agents
+.agents
+.claude/skills
+skills-lock.json
+.devin
+.cursor

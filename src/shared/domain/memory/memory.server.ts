@@ -1,38 +1,49 @@
-import type { Prisma } from "#/generated/prisma/client";
-import { prisma } from "#/shared/lib/db.server";
+import { db } from "#/prisma/db";
 import { embed, toVectorLiteral } from "./embeddings.server";
 
 export type RecalledMemory = { id: string; text: string; category: string };
 
+/** Either the top-level runtime (`db.runtime()`) or a transaction context
+ * (`tx`): both expose `.query(plan)` (rows) and `.execute(plan)` (mutation). */
+type RawExecutor =
+	| ReturnType<typeof db.runtime>
+	| Parameters<Parameters<typeof db.transaction>[0]>[0];
+
 /**
- * Inserts one memory row with a precomputed embedding (raw SQL: Prisma has no
- * pgvector type). Takes the client so callers can batch rows inside a
+ * Inserts one memory row with a precomputed embedding (raw SQL: Prisma Next
+ * has no pgvector type). Takes the executor so callers can batch rows inside a
  * transaction; embed beforehand, external calls don't belong in one.
  */
 export async function insertMemory({
-	db,
+	client,
 	ownerId,
 	text,
 	category,
 	source,
 	embedding,
 }: {
-	db: Prisma.TransactionClient;
+	client: RawExecutor;
 	ownerId: string;
 	text: string;
 	category?: string;
 	source: string;
 	embedding: number[] | null;
 }): Promise<void> {
-	await db.$executeRaw`
-		INSERT INTO memory (text, category, source, owner_id, embedding)
-		VALUES (
-			${text},
-			${category ?? "fact"},
-			${source},
-			${ownerId}::uuid,
-			${embedding ? toVectorLiteral(embedding) : null}::vector
-		)`;
+	// `db.raw.sql` doesn't accept a bare `null` interpolation (no publicly
+	// exported codec-hint helper for it yet), so the two cases get their own
+	// query text instead of a shared `${embedding ? ... : null}` expression.
+	const plan = embedding
+		? db.raw.sql`
+				INSERT INTO memory (text, category, source, owner_id, embedding)
+				VALUES (${text}, ${category ?? "fact"}, ${source}, ${ownerId}::uuid, ${toVectorLiteral(embedding)}::vector)`
+				.affectedCount()
+				.build()
+		: db.raw.sql`
+				INSERT INTO memory (text, category, source, owner_id, embedding)
+				VALUES (${text}, ${category ?? "fact"}, ${source}, ${ownerId}::uuid, NULL::vector)`
+				.affectedCount()
+				.build();
+	await client.execute(plan);
 }
 
 /** Whether {@link saveMemory} stored a new row or found the fact already remembered. */
@@ -59,29 +70,31 @@ export async function saveMemory({
 
 	// Serializable so two concurrent saves of the same fact can't both pass the
 	// dedup check and both insert; the loser's transaction fails and retries as
-	// a plain duplicate result on the caller's next attempt.
-	return prisma.$transaction(
-		async (tx) => {
-			// Cheap exact match first (mirrors the backup importer's dedup key).
-			const exact = await tx.memory.findFirst({
-				where: { ownerId, text, category: category ?? "fact" },
-				select: { text: true },
-			});
-			if (exact) return { status: "duplicate", text: exact.text };
+	// a plain duplicate result on the caller's next attempt. `db.transaction`
+	// has no isolation-level option, so it's set with a raw statement first.
+	return db.transaction(async (tx) => {
+		const isolationPlan = db.raw.sql`SET TRANSACTION ISOLATION LEVEL SERIALIZABLE`
+			.affectedCount()
+			.build();
+		await tx.execute(isolationPlan);
 
-			// Then a semantic near-duplicate check, reusing the embedding we just computed.
-			if (embedding) {
-				const nearest = await nearestMemory({ db: tx, ownerId, embedding });
-				if (nearest && nearest.distance < DEDUP_MAX_COSINE_DISTANCE) {
-					return { status: "duplicate", text: nearest.text };
-				}
+		// Cheap exact match first (mirrors the backup importer's dedup key).
+		const exact = await tx.orm.public.Memory.select("text")
+			.where({ ownerId, text, category: category ?? "fact" })
+			.first();
+		if (exact) return { status: "duplicate", text: exact.text } as const;
+
+		// Then a semantic near-duplicate check, reusing the embedding we just computed.
+		if (embedding) {
+			const nearest = await nearestMemory({ client: tx, ownerId, embedding });
+			if (nearest && nearest.distance < DEDUP_MAX_COSINE_DISTANCE) {
+				return { status: "duplicate", text: nearest.text } as const;
 			}
+		}
 
-			await insertMemory({ db: tx, ownerId, text, category, source, embedding });
-			return { status: "saved" };
-		},
-		{ isolationLevel: "Serializable" },
-	);
+		await insertMemory({ client: tx, ownerId, text, category, source, embedding });
+		return { status: "saved" } as const;
+	});
 }
 
 /**
@@ -90,21 +103,24 @@ export async function saveMemory({
  * vector's dimension mismatches, same as {@link recallMemories}.
  */
 async function nearestMemory({
-	db = prisma,
+	client = db.runtime(),
 	ownerId,
 	embedding,
 }: {
-	db?: Prisma.TransactionClient;
+	client?: RawExecutor;
 	ownerId: string;
 	embedding: number[];
 }): Promise<{ text: string; distance: number } | null> {
 	try {
-		const rows = await db.$queryRaw<Array<{ text: string; distance: number }>>`
+		const plan = db.raw.sql`
 			SELECT text, embedding <=> ${toVectorLiteral(embedding)}::vector AS distance
 			FROM memory
 			WHERE owner_id = ${ownerId}::uuid AND embedding IS NOT NULL
 			ORDER BY embedding <=> ${toVectorLiteral(embedding)}::vector
-			LIMIT 1`;
+			LIMIT 1`
+			.returnsRow({ text: "pg/text@1", distance: "pg/float8@1" })
+			.build();
+		const rows = await client.query(plan);
 		return rows[0] ?? null;
 	} catch (error) {
 		console.warn("Nearest-memory lookup failed; skipping semantic dedup", { error });
@@ -134,12 +150,15 @@ export async function recallMemories({
 	if (embedding) {
 		try {
 			// Vector similarity search when embeddings are available.
-			return await prisma.$queryRaw<RecalledMemory[]>`
+			const plan = db.raw.sql`
 				SELECT id, text, category
 				FROM memory
 				WHERE owner_id = ${ownerId}::uuid AND embedding IS NOT NULL
 				ORDER BY embedding <=> ${toVectorLiteral(embedding)}::vector
-				LIMIT ${capped}`;
+				LIMIT ${capped}`
+				.returnsRow({ id: "pg/uuid@1", text: "pg/text@1", category: "pg/text@1" })
+				.build();
+			return await db.runtime().query(plan);
 		} catch (error) {
 			// A stored embedding from a different model/dimension makes pgvector's
 			// `<=>` throw; degrade to keyword search instead of failing the chat run.
@@ -152,7 +171,7 @@ export async function recallMemories({
 /** Keyword fallback when embedding recall is unavailable or fails.
  * Ranks memories by the number of distinct query words they contain.
  */
-function keywordRecall({
+async function keywordRecall({
 	ownerId,
 	query,
 	limit,
@@ -161,17 +180,28 @@ function keywordRecall({
 	query: string;
 	limit: number;
 }): Promise<RecalledMemory[]> {
-	const patterns = likePatterns(query);
-	return prisma.$queryRaw<RecalledMemory[]>`
+	// `db.raw.sql` doesn't accept a bare array interpolation either, so the
+	// pattern list is passed as one Postgres array-literal string instead.
+	const patternsLiteral = pgTextArrayLiteral(likePatterns(query));
+	const plan = db.raw.sql`
 		SELECT id, text, category
 		FROM memory
-		WHERE owner_id = ${ownerId}::uuid AND lower(text) LIKE ANY (${patterns}::text[])
+		WHERE owner_id = ${ownerId}::uuid AND lower(text) LIKE ANY (${patternsLiteral}::text[])
 		ORDER BY (
 			SELECT count(*)
-			FROM unnest(${patterns}::text[]) AS pattern
+			FROM unnest(${patternsLiteral}::text[]) AS pattern
 			WHERE lower(text) LIKE pattern
 		) DESC, id DESC
-		LIMIT ${limit}`;
+		LIMIT ${limit}`
+		.returnsRow({ id: "pg/uuid@1", text: "pg/text@1", category: "pg/text@1" })
+		.build();
+	return await db.runtime().query(plan);
+}
+
+/** A Postgres array-literal string (`{"a","b"}`) for interpolating a string
+ * list into raw SQL as one parameter, since array values aren't accepted directly. */
+function pgTextArrayLiteral(items: string[]): string {
+	return `{${items.map((item) => `"${item.replace(/["\\]/g, "\\$&")}"`).join(",")}}`;
 }
 
 /**
@@ -215,12 +245,10 @@ function likePatterns(query: string): string[] {
 
 /** The user's memories, newest first, optionally capped. */
 export async function findMemories({ ownerId, limit }: { ownerId: string; limit?: number }) {
-	return prisma.memory.findMany({
-		where: { ownerId },
-		orderBy: { id: "desc" },
-		...(limit !== undefined ? { take: limit } : {}),
-		select: { id: true, text: true, category: true, source: true },
-	});
+	const q = db.orm.public.Memory.where({ ownerId })
+		.select("id", "text", "category", "source")
+		.orderBy((m) => m.id.desc());
+	return limit !== undefined ? q.limit(limit).all() : q.all();
 }
 
 /**
@@ -237,12 +265,19 @@ export async function patchMemory({
 	text: string;
 }): Promise<boolean> {
 	const embedding = await embed({ text, ownerId });
-	const updated = await prisma.$executeRaw`
-		UPDATE memory
-		SET text = ${text},
-		    embedding = ${embedding ? toVectorLiteral(embedding) : null}::vector
-		WHERE id = ${id}::uuid AND owner_id = ${ownerId}::uuid`;
-	return updated > 0;
+	const plan = embedding
+		? db.raw.sql`
+				UPDATE memory SET text = ${text}, embedding = ${toVectorLiteral(embedding)}::vector
+				WHERE id = ${id}::uuid AND owner_id = ${ownerId}::uuid`
+				.affectedCount()
+				.build()
+		: db.raw.sql`
+				UPDATE memory SET text = ${text}, embedding = NULL::vector
+				WHERE id = ${id}::uuid AND owner_id = ${ownerId}::uuid`
+				.affectedCount()
+				.build();
+	const { affectedRows } = await db.runtime().execute(plan);
+	return affectedRows > 0;
 }
 
 /** @returns Whether a memory with that id belonged to the owner and was deleted. */
@@ -253,6 +288,6 @@ export async function removeMemory({
 	id: string;
 	ownerId: string;
 }): Promise<boolean> {
-	const deleted = await prisma.memory.deleteMany({ where: { id, ownerId } });
-	return deleted.count > 0;
+	const deleted = await db.orm.public.Memory.where({ id, ownerId }).deleteAndCount();
+	return deleted > 0;
 }

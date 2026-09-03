@@ -1,8 +1,10 @@
 import { mkdir } from "node:fs/promises";
+import { z } from "zod/v4";
+import { db } from "#/prisma/db";
 import { deleteChatThreadRows } from "#/shared/domain/chat/persistence.server";
 import { deriveConversationTitle, threadMessagesFrom } from "#/shared/domain/conversation/messages";
 import { fetchEndpointModels } from "#/shared/domain/endpoint/endpoint.server";
-import { prisma } from "#/shared/lib/db.server";
+import { nowTimestamp } from "#/shared/lib/temporal";
 import { availableCodeAgentHarnessIds } from "./harness-availability.server";
 import { harnessAcceptsProvider } from "./harnesses";
 import { codeAgentModelSchema } from "./schemas";
@@ -15,14 +17,14 @@ export async function findCodeAgentSessions({
 }: {
 	ownerId: string;
 }): Promise<CodeAgentSessionListItem[]> {
-	const sessions = await prisma.codeAgentSession.findMany({
-		where: { ownerId },
-		select: { id: true, title: true, workspacePath: true, updatedAt: true },
-	});
-	const threads = await prisma.chatThread.findMany({
-		where: { threadId: { in: sessions.map((session) => session.id) } },
-		select: { threadId: true, updatedAt: true },
-	});
+	const sessions = await db.orm.public.CodeAgentSession.where({ ownerId })
+		.select("id", "title", "workspacePath", "updatedAt")
+		.all();
+	const threads = await db.orm.public.ChatThread.where((t) =>
+		t.threadId.in(sessions.map((s) => s.id)),
+	)
+		.select("threadId", "updatedAt")
+		.all();
 	return sortSessionsByActivity({
 		sessions,
 		threadActivity: new Map(threads.map((thread) => [thread.threadId, thread.updatedAt])),
@@ -35,22 +37,34 @@ export async function findCodeAgentSessions({
  * waiting for its reply or the session simply ended on a user turn.
  */
 export async function findCodeAgentSession({ id, ownerId }: { id: string; ownerId: string }) {
-	const session = await prisma.codeAgentSession.findFirst({
-		where: { id, ownerId },
-		include: { endpoint: { select: { id: true, name: true, url: true, provider: true } } },
-	});
+	const session = await db.orm.public.CodeAgentSession.where({ id, ownerId })
+		.include("endpoint", (e) => e.select("id", "name", "url", "provider"))
+		.first();
 	if (!session) return null;
-	const thread = await prisma.chatThread.findUnique({
-		where: { threadId: id },
-		select: { messages: true },
-	});
-	const runs = await prisma.chatRun.count({ where: { threadId: id } });
+	const thread = await db.orm.public.ChatThread.select("messages").first({ threadId: id });
+	const { runs } = await db.orm.public.ChatRun.where({ threadId: id }).aggregate((a) => ({
+		runs: a.count(),
+	}));
 	return { ...session, messages: thread?.messages ?? [], hasRun: runs > 0 };
 }
 
 /** The session with its complete endpoint row (encrypted key included) for an agent run. */
 export function findCodeAgentSessionWithEndpoint({ id, ownerId }: { id: string; ownerId: string }) {
-	return prisma.codeAgentSession.findFirst({ where: { id, ownerId }, include: { endpoint: true } });
+	return db.orm.public.CodeAgentSession.where({ id, ownerId })
+		.include("endpoint", (e) =>
+			e.select(
+				"id",
+				"name",
+				"url",
+				"apiKeyEncrypted",
+				"provider",
+				"options",
+				"ownerId",
+				"updatedAt",
+				"discovered",
+			),
+		)
+		.first();
 }
 
 /** Whether `id` is a session owned by `ownerId`. For authorization checks that need no row data. */
@@ -61,14 +75,15 @@ export async function codeAgentSessionOwnedBy({
 	id: string;
 	ownerId: string;
 }): Promise<boolean> {
-	const count = await prisma.codeAgentSession.count({ where: { id, ownerId } });
-	return count > 0;
+	const { total } = await db.orm.public.CodeAgentSession.where({ id, ownerId }).aggregate((a) => ({
+		total: a.count(),
+	}));
+	return total > 0;
 }
 
 /**
  * Creates a session seeded with the first user message, plus its `ChatThread` row.
- * Every client-supplied choice is re-checked: a run decrypts this endpoint's key and
- * edits this directory, and the session row is all that ties the two together.
+ * Every client-supplied choice is re-checked before a run touches this endpoint's key or edits this directory.
  * @throws If the endpoint, harness, model or workspace can't run.
  */
 export async function insertCodeAgentSession({
@@ -86,10 +101,9 @@ export async function insertCodeAgentSession({
 	model: string;
 	firstMessage: string;
 }): Promise<{ id: string }> {
-	const endpoint = await prisma.endpoint.findFirst({
-		where: { id: endpointId, ownerId },
-		select: { provider: true },
-	});
+	const endpoint = await db.orm.public.Endpoint.select("provider")
+		.where({ id: endpointId, ownerId })
+		.first();
 	if (!endpoint) throw new Error("That endpoint no longer exists.");
 	if (!harnessAcceptsProvider({ harness, provider: endpoint.provider })) {
 		throw new Error(`${harness} cannot drive a ${endpoint.provider} endpoint.`);
@@ -113,21 +127,21 @@ export async function insertCodeAgentSession({
 	const resolvedWorkspacePath = await resolveContainedPath({ root, target: workspacePath });
 	await mkdir(resolvedWorkspacePath, { recursive: true });
 
-	return prisma.$transaction(async (tx) => {
-		const session = await tx.codeAgentSession.create({
-			data: {
-				ownerId,
-				workspacePath: resolvedWorkspacePath,
-				endpointId,
-				harness,
-				model: parsedModel.data,
-				title: deriveConversationTitle(firstMessage) ?? "New code session",
-				approvedCommands: [],
-			},
-			select: { id: true },
+	return db.transaction(async (tx) => {
+		const session = await tx.orm.public.CodeAgentSession.select("id").create({
+			ownerId,
+			workspacePath: resolvedWorkspacePath,
+			endpointId,
+			harness,
+			model: parsedModel.data,
+			title: deriveConversationTitle(firstMessage) ?? "New code session",
+			approvedCommands: [],
+			updatedAt: nowTimestamp(),
 		});
-		await tx.chatThread.create({
-			data: { threadId: session.id, messages: threadMessagesFrom({ content: firstMessage }) },
+		await tx.orm.public.ChatThread.create({
+			threadId: session.id,
+			messages: threadMessagesFrom({ content: firstMessage }),
+			updatedAt: nowTimestamp(),
 		});
 		return session;
 	});
@@ -143,14 +157,15 @@ export async function recordApprovedCommand({
 	ownerId: string;
 	command: string;
 }): Promise<void> {
-	const session = await prisma.codeAgentSession.findFirst({
-		where: { id, ownerId },
-		select: { approvedCommands: true },
-	});
-	if (!session || session.approvedCommands.includes(command)) return;
-	await prisma.codeAgentSession.update({
-		where: { id },
-		data: { approvedCommands: { push: command } },
+	const session = await db.orm.public.CodeAgentSession.select("approvedCommands")
+		.where({ id, ownerId })
+		.first();
+	if (!session) return;
+	const approvedCommands = z.array(z.string()).parse(session.approvedCommands);
+	if (approvedCommands.includes(command)) return;
+	await db.orm.public.CodeAgentSession.where({ id }).update({
+		approvedCommands: [...approvedCommands, command],
+		updatedAt: nowTimestamp(),
 	});
 }
 
@@ -165,13 +180,10 @@ export async function removeCodeAgentSession({
 	id: string;
 	ownerId: string;
 }): Promise<void> {
-	const owned = await prisma.codeAgentSession.findFirst({
-		where: { id, ownerId },
-		select: { id: true },
+	await db.transaction(async (tx) => {
+		const owned = await tx.orm.public.CodeAgentSession.select("id").where({ id, ownerId }).first();
+		if (!owned) return;
+		await deleteChatThreadRows({ tx, threadId: id });
+		await tx.orm.public.CodeAgentSession.where({ id, ownerId }).delete();
 	});
-	if (!owned) return;
-	await prisma.$transaction([
-		...deleteChatThreadRows({ threadId: id }),
-		prisma.codeAgentSession.deleteMany({ where: { id, ownerId } }),
-	]);
 }

@@ -1,6 +1,7 @@
 import type { ModelMessage } from "@tanstack/ai";
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
+import type { Temporal } from "temporal-polyfill";
 import { authedFn } from "#/shared/lib/middleware";
 import {
 	findConversation,
@@ -35,6 +36,31 @@ export const searchConversationsFn = createServerFn({ method: "GET" })
 	});
 
 /**
+ * Reshapes a row for the RPC boundary: `Temporal.PlainDateTime` has no
+ * registered serializer, and `.include()`'s row type carries a stray index
+ * signature that trips the same check.
+ */
+function toRpcConversation<
+	T extends {
+		updatedAt: Temporal.PlainDateTime;
+		endpoint: { id: string; name: string; url: string; provider: string } | null;
+	},
+>(row: T) {
+	return {
+		...row,
+		updatedAt: new Date(row.updatedAt.toString()),
+		endpoint: row.endpoint
+			? {
+					id: row.endpoint.id,
+					name: row.endpoint.name,
+					url: row.endpoint.url,
+					provider: row.endpoint.provider,
+				}
+			: null,
+	};
+}
+
+/**
  * Full conversation row, including the `messages` blob and endpoint config.
  * @throws If no conversation with that id is owned by the current user.
  */
@@ -44,7 +70,7 @@ export const getConversation = createServerFn({ method: "POST" })
 	.handler(async ({ data: { id }, context }) => {
 		const conversation = await findConversation({ id, ownerId: context.userId });
 		if (!conversation) throw new Error("Not found");
-		return conversation;
+		return toRpcConversation(conversation);
 	});
 
 /** A conversation as the query cache holds it: the row with `messages` typed. */
@@ -87,9 +113,11 @@ export const createConversation = createServerFn({ method: "POST" })
 export const updateConversation = createServerFn({ method: "POST" })
 	.middleware([authedFn])
 	.validator(updateConversationInput)
-	.handler(async ({ data: { id, data: patch }, context }) =>
-		patchConversation({ id, ownerId: context.userId, patch }),
-	);
+	.handler(async ({ data: { id, data: patch }, context }) => {
+		const conversation = await patchConversation({ id, ownerId: context.userId, patch });
+		if (!conversation) throw new Error("Not found");
+		return toRpcConversation(conversation);
+	});
 
 /** Whether the conversation's model is still loading into memory (local runtime warm-up). */
 export const getModelRunState = createServerFn({ method: "POST" })

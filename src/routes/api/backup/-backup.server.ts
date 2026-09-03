@@ -1,12 +1,13 @@
 import { z } from "zod/v4";
+import { db } from "#/prisma/db";
 import type { ImportBackupCounts } from "#/shared/domain/backup/schemas";
 import { samplingOptionsSchema } from "#/shared/domain/endpoint/schemas";
 import { embed } from "#/shared/domain/memory/embeddings.server";
 import { insertMemory } from "#/shared/domain/memory/memory.server";
 import { listModelSettings } from "#/shared/domain/model-setting/model-setting.server";
 import { perModelOptionsSchema } from "#/shared/domain/model-setting/schemas";
-import { prisma } from "#/shared/lib/db.server";
 import { llmProviderSchema } from "#/shared/lib/llm/provider";
+import { nowTimestamp } from "#/shared/lib/temporal";
 
 /** The backup format this build writes; imports claiming a newer one are rejected.
  * Bumped to 4: `conversations[].messages` is now `ModelMessage[]`, not `UIMessage[]`.
@@ -98,28 +99,27 @@ function normalizeLegacyEndpoint({ url, provider }: { url: string; provider: str
 /** Serializable backup of a user's memories, recent chats, and chat defaults. */
 export async function exportBackup({ userId, email }: { userId: string; email: string }) {
 	const [memories, conversations, userSettings, endpoints, modelSettings] = await Promise.all([
-		prisma.memory.findMany({ where: { ownerId: userId }, orderBy: { id: "asc" } }),
-		prisma.conversation.findMany({
-			where: { ownerId: userId },
-			orderBy: { updatedAt: "desc" },
-			select: { id: true, title: true, model: true },
-		}),
-		prisma.user.findUnique({
-			where: { id: userId },
-			select: { systemPrompt: true, temperature: true },
-		}),
-		prisma.endpoint.findMany({
-			where: { ownerId: userId },
-			orderBy: { id: "asc" },
-			// apiKeyEncrypted is deliberately never selected; see the schema comment.
-			select: { name: true, url: true, provider: true, options: true },
-		}),
+		db.orm.public.Memory.where({ ownerId: userId })
+			.orderBy((m) => m.id.asc())
+			.all(),
+		db.orm.public.Conversation.where({ ownerId: userId })
+			.select("id", "title", "model")
+			.orderBy((c) => c.updatedAt.desc())
+			.all(),
+		db.orm.public.User.where({ id: userId }).select("systemPrompt", "temperature").first(),
+		// apiKeyEncrypted is deliberately never selected; see the schema comment.
+		db.orm.public.Endpoint.where({ ownerId: userId })
+			.select("name", "url", "provider", "options")
+			.orderBy((e) => e.id.asc())
+			.all(),
 		listModelSettings({ ownerId: userId }),
 	]);
-	const threads = await prisma.chatThread.findMany({
-		where: { threadId: { in: conversations.map((c) => c.id) } },
-		select: { threadId: true, messages: true },
-	});
+	const conversationIds = conversations.map((c) => c.id);
+	const threads = conversationIds.length
+		? await db.orm.public.ChatThread.where((t) => t.threadId.in(conversationIds))
+				.select("threadId", "messages")
+				.all()
+		: [];
 	const messagesByThreadId = new Map(threads.map((t) => [t.threadId, t.messages]));
 
 	return {
@@ -245,39 +245,27 @@ export async function importBackup({
 	const [existingMemories, existingConversations, existingEndpoints, existingModelSettings] =
 		await Promise.all([
 			incomingMemories.length
-				? prisma.memory.findMany({
-						where: { ownerId: userId },
-						select: { text: true, category: true },
-					})
+				? db.orm.public.Memory.where({ ownerId: userId }).select("text", "category").all()
 				: [],
 			incomingConversations.length
-				? prisma.conversation.findMany({
-						where: { ownerId: userId },
-						select: { id: true, title: true },
-					})
+				? db.orm.public.Conversation.where({ ownerId: userId }).select("id", "title").all()
 				: [],
 			needEndpoints
-				? prisma.endpoint.findMany({
-						where: { ownerId: userId },
-						select: { id: true, url: true, provider: true },
-					})
+				? db.orm.public.Endpoint.where({ ownerId: userId }).select("id", "url", "provider").all()
 				: [],
 			incomingModelSettings.length
-				? prisma.modelSetting.findMany({
-						where: { ownerId: userId },
-						select: { endpointId: true, model: true },
-					})
+				? db.orm.public.ModelSetting.where({ ownerId: userId }).select("endpointId", "model").all()
 				: [],
 		]);
 	const normalizedExistingEndpoints = existingEndpoints.map((endpoint) => ({
 		...endpoint,
 		...normalizeLegacyEndpoint(endpoint),
 	}));
-	const existingThreads = existingConversations.length
-		? await prisma.chatThread.findMany({
-				where: { threadId: { in: existingConversations.map((c) => c.id) } },
-				select: { threadId: true, messages: true },
-			})
+	const existingConversationIds = existingConversations.map((c) => c.id);
+	const existingThreads = existingConversationIds.length
+		? await db.orm.public.ChatThread.where((t) => t.threadId.in(existingConversationIds))
+				.select("threadId", "messages")
+				.all()
 		: [];
 	const existingMessagesByThreadId = new Map(existingThreads.map((t) => [t.threadId, t.messages]));
 	const existingMemoryKeys = new Set(existingMemories.map(memoryKey));
@@ -304,23 +292,20 @@ export async function importBackup({
 
 	// One transaction: a mid-import failure rolls everything back instead of
 	// leaving a half-imported account.
-	const inserted = await prisma.$transaction(async (tx) => {
+	const inserted = await db.transaction(async (tx) => {
 		if (payload.userSettings) {
-			const existing = await tx.user.findUnique({
-				where: { id: userId },
-				select: { systemPrompt: true, temperature: true },
-			});
-			await tx.user.update({
-				where: { id: userId },
-				data: {
-					systemPrompt: existing?.systemPrompt ?? payload.userSettings.systemPrompt ?? null,
-					temperature: existing?.temperature ?? payload.userSettings.temperature ?? null,
-				},
+			const existing = await tx.orm.public.User.select("systemPrompt", "temperature")
+				.where({ id: userId })
+				.first();
+			await tx.orm.public.User.where({ id: userId }).update({
+				systemPrompt: existing?.systemPrompt ?? payload.userSettings.systemPrompt ?? null,
+				temperature: existing?.temperature ?? payload.userSettings.temperature ?? null,
+				updatedAt: nowTimestamp(),
 			});
 		}
 		for (const [index, memory] of memories.entries()) {
 			await insertMemory({
-				db: tx,
+				client: tx,
 				ownerId: userId,
 				text: memory.text,
 				category: memory.category,
@@ -336,15 +321,13 @@ export async function importBackup({
 			normalizedExistingEndpoints.map((endpoint) => [endpointKey(endpoint), endpoint.id]),
 		);
 		for (const endpoint of endpointsToCreate) {
-			const created = await tx.endpoint.create({
-				data: {
-					name: endpoint.name,
-					url: endpoint.url,
-					provider: endpoint.provider,
-					ownerId: userId,
-					...(endpoint.options ? { options: endpoint.options } : {}),
-				},
-				select: { id: true },
+			const created = await tx.orm.public.Endpoint.select("id").create({
+				name: endpoint.name,
+				url: endpoint.url,
+				provider: endpoint.provider,
+				ownerId: userId,
+				...(endpoint.options ? { options: endpoint.options } : {}),
+				updatedAt: nowTimestamp(),
 			});
 			endpointIdByKey.set(endpointKey(endpoint), created.id);
 		}
@@ -361,13 +344,12 @@ export async function importBackup({
 			const key = modelSettingKey({ endpointId, model: setting.model });
 			if (settingKeys.has(key)) continue;
 			settingKeys.add(key);
-			await tx.modelSetting.create({
-				data: {
-					endpointId,
-					model: setting.model,
-					options: setting.options,
-					ownerId: userId,
-				},
+			await tx.orm.public.ModelSetting.create({
+				endpointId,
+				model: setting.model,
+				options: setting.options,
+				ownerId: userId,
+				updatedAt: nowTimestamp(),
 			});
 			modelSettings += 1;
 		}
@@ -375,16 +357,16 @@ export async function importBackup({
 		// No `createMany`: each conversation needs its generated id paired with a
 		// `ChatThread` row, which a bulk insert can't return ids for.
 		for (const conversation of conversations) {
-			const created = await tx.conversation.create({
-				data: {
-					title: conversation.title,
-					model: conversation.model,
-					ownerId: conversation.ownerId,
-				},
-				select: { id: true },
+			const created = await tx.orm.public.Conversation.select("id").create({
+				title: conversation.title,
+				model: conversation.model,
+				ownerId: conversation.ownerId,
+				updatedAt: nowTimestamp(),
 			});
-			await tx.chatThread.create({
-				data: { threadId: created.id, messages: conversation.messages },
+			await tx.orm.public.ChatThread.create({
+				threadId: created.id,
+				messages: conversation.messages,
+				updatedAt: nowTimestamp(),
 			});
 		}
 		return {

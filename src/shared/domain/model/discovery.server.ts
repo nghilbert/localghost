@@ -1,14 +1,14 @@
 import { trimPathRight } from "@tanstack/react-router";
-import type { Endpoint } from "#/generated/prisma/client";
-import { endpointApiKey } from "#/shared/domain/endpoint/endpoint.server";
+import { db } from "#/prisma/db";
+import { type EndpointRow, endpointApiKey } from "#/shared/domain/endpoint/endpoint.server";
 import { parseParamB } from "#/shared/domain/model/param-count";
 import { aggregatePullProgress } from "#/shared/domain/model/pull-progress";
-import { prisma } from "#/shared/lib/db.server";
 import {
 	type LlamaModel,
 	LOCAL_LLAMACPP_API_KEY,
 	listModels,
 } from "#/shared/lib/llamacpp/client.server";
+import { nowTimestamp } from "#/shared/lib/temporal";
 import type { InstalledModel, PullProgress } from "./types";
 
 const DEFAULT_RUNTIME_URL = "http://localhost:8080";
@@ -26,7 +26,7 @@ const WELL_KNOWN_URLS = [
  * Auto-discovered endpoints store no key, and {@link LOCAL_LLAMACPP_API_KEY} documents
  * which routes reject an unauthenticated request.
  */
-function runtimeApiKey(endpoint: Pick<Endpoint, "apiKeyEncrypted"> | null): string {
+function runtimeApiKey(endpoint: Pick<EndpointRow, "apiKeyEncrypted"> | null): string {
 	return (endpoint ? endpointApiKey(endpoint) : undefined) || LOCAL_LLAMACPP_API_KEY;
 }
 
@@ -44,10 +44,9 @@ export async function getRuntimeEndpoint(userId: string): Promise<{
 	url: string;
 	apiKey: string;
 }> {
-	const endpoint = await prisma.endpoint.findFirst({
-		where: { ownerId: userId, provider: "llamacpp" },
-		orderBy: { id: "asc" },
-	});
+	const endpoint = await db.orm.public.Endpoint.where({ ownerId: userId, provider: "llamacpp" })
+		.orderBy((e) => e.id.asc())
+		.first();
 	return {
 		url: trimPathRight(endpoint?.url ?? DEFAULT_RUNTIME_URL),
 		apiKey: runtimeApiKey(endpoint),
@@ -62,9 +61,11 @@ export async function getRuntimeEndpointById({
 	userId: string;
 	endpointId: string;
 }): Promise<{ url: string; apiKey: string }> {
-	const endpoint = await prisma.endpoint.findFirst({
-		where: { id: endpointId, ownerId: userId, provider: "llamacpp" },
-	});
+	const endpoint = await db.orm.public.Endpoint.where({
+		id: endpointId,
+		ownerId: userId,
+		provider: "llamacpp",
+	}).first();
 	if (!endpoint) throw new Error("llama.cpp endpoint not found");
 	return { url: trimPathRight(endpoint.url), apiKey: runtimeApiKey(endpoint) };
 }
@@ -151,10 +152,9 @@ export type RuntimeScanResult = {
  * priority order. Saved endpoints use their API keys; fallback URLs do not.
  */
 export async function scanForRuntime(userId: string): Promise<RuntimeScanResult | null> {
-	const saved = await prisma.endpoint.findMany({
-		where: { ownerId: userId, provider: "llamacpp" },
-		orderBy: { id: "asc" },
-	});
+	const saved = await db.orm.public.Endpoint.where({ ownerId: userId, provider: "llamacpp" })
+		.orderBy((e) => e.id.asc())
+		.all();
 	const keyByUrl = new Map(
 		saved.map((endpoint) => [trimPathRight(endpoint.url), runtimeApiKey(endpoint)]),
 	);
@@ -200,35 +200,36 @@ export async function upsertRuntimeEndpoint({
 	const resolved =
 		existing !== undefined
 			? existing
-			: await prisma.endpoint.findFirst({
-					where: { ownerId: userId, provider: "llamacpp" },
-					orderBy: { id: "asc" },
-					select: { id: true, url: true },
-				});
+			: await db.orm.public.Endpoint.select("id", "url")
+					.where({ ownerId: userId, provider: "llamacpp" })
+					.orderBy((e) => e.id.asc())
+					.first();
 
 	if (!resolved) {
-		// Upsert on the (ownerId, discovered) unique: concurrent first-time scans both
-		// land here, and the loser updates (also correcting `provider` on a row still
-		// tagged "ollama" from before this migration) instead of inserting a duplicate.
-		const endpoint = await prisma.endpoint.upsert({
-			where: { ownerId_discovered: { ownerId: userId, discovered: true } },
-			create: {
-				name: "llama.cpp (local)",
-				url: normalizedUrl,
-				provider: "llamacpp",
-				ownerId: userId,
-				discovered: true,
-			},
-			update: { url: normalizedUrl, provider: "llamacpp" },
-			select: { id: true },
-		});
-		return endpoint.id;
+		// Real `ON CONFLICT` on the (ownerId, discovered) unique: concurrent first-time
+		// scans both land here, and the loser updates (also correcting `provider` on a
+		// row still tagged "ollama" from before this migration) instead of racing to
+		// insert a duplicate. `.upsert()` only targets the primary key, not a secondary
+		// unique constraint, so this needs raw SQL rather than the ORM's upsert.
+		const now = nowTimestamp();
+		const plan = db.raw.sql`
+			INSERT INTO endpoint (name, url, provider, owner_id, discovered, updated_at)
+			VALUES ('llama.cpp (local)', ${normalizedUrl}, 'llamacpp', ${userId}::uuid, true, ${now.toString()}::timestamp)
+			ON CONFLICT (owner_id, discovered)
+			DO UPDATE SET url = EXCLUDED.url, provider = EXCLUDED.provider, updated_at = EXCLUDED.updated_at
+			RETURNING id`
+			.returnsRow({ id: "pg/uuid@1" })
+			.build();
+		const [row] = await db.runtime().query(plan);
+		if (!row) throw new Error("INSERT ... ON CONFLICT ... RETURNING id returned no row");
+		return row.id;
 	}
 
 	if (resolved.url === normalizedUrl) return resolved.id;
-	await prisma.endpoint.update({
-		where: { id: resolved.id },
-		data: { url: normalizedUrl, provider: "llamacpp" },
+	await db.orm.public.Endpoint.where({ id: resolved.id }).update({
+		url: normalizedUrl,
+		provider: "llamacpp",
+		updatedAt: nowTimestamp(),
 	});
 	return resolved.id;
 }

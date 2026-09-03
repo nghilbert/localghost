@@ -1,7 +1,7 @@
 import { trimPathRight } from "@tanstack/react-router";
 import { z } from "zod/v4";
+import { db } from "#/prisma/db";
 import { endpointApiKey } from "#/shared/domain/endpoint/endpoint.server";
-import { prisma } from "#/shared/lib/db.server";
 import { asLLMProvider, type LLMProvider } from "#/shared/lib/llm/provider";
 
 const embeddingResponseSchema = z.object({
@@ -104,10 +104,9 @@ export async function embed({
 	text: string;
 	ownerId: string;
 }): Promise<number[] | null> {
-	const endpoints = await prisma.endpoint.findMany({
-		where: { ownerId },
-		orderBy: { id: "asc" },
-	});
+	const endpoints = await db.orm.public.Endpoint.where({ ownerId })
+		.orderBy((e) => e.id.asc())
+		.all();
 
 	for (const ep of endpoints) {
 		const config = embeddingConfigFor(asLLMProvider(ep.provider));

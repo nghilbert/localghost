@@ -7,8 +7,9 @@ import type {
 	MessageStore,
 } from "@tanstack/ai-persistence";
 import { defineAIPersistence } from "@tanstack/ai-persistence";
+import { db } from "#/prisma/db";
 import { reviveMessageDates } from "#/shared/domain/conversation/messages";
-import { prisma } from "#/shared/lib/db.server";
+import { nowTimestamp } from "#/shared/lib/temporal";
 
 const RUN_STATUSES: ReadonlyArray<RunStatus> = [
 	"running",
@@ -88,22 +89,18 @@ function mapInterrupt(row: {
 function createMessageStore(): MessageStore {
 	return {
 		async loadThread(threadId) {
-			const row = await prisma.chatThread.findUnique({
-				where: { threadId },
-				select: { messages: true },
-			});
+			const row = await db.orm.public.ChatThread.select("messages").first({ threadId });
 			// Unknown thread is [], never null. That's the contract's invariant.
 			if (!row) return [];
 			const stored: Array<ModelMessage> = JSON.parse(JSON.stringify(row.messages));
 			return reviveMessageDates(stored);
 		},
-		// Full overwrite — `messages` is the complete authoritative transcript.
+		// Full overwrite: `messages` is the complete authoritative transcript.
 		// Upsert: the store must be able to create a thread from nothing, which
 		// is why this table (unlike `Conversation`) has no required owner.
 		async saveThread(threadId, messages) {
-			const data = { messages: JSON.parse(JSON.stringify(messages)) };
-			await prisma.chatThread.upsert({
-				where: { threadId },
+			const data = { messages: JSON.parse(JSON.stringify(messages)), updatedAt: nowTimestamp() };
+			await db.orm.public.ChatThread.upsert({
 				create: { threadId, ...data },
 				update: data,
 			});
@@ -114,14 +111,13 @@ function createMessageStore(): MessageStore {
 function createRunStore(): RunStore {
 	return {
 		async get(runId) {
-			const row = await prisma.chatRun.findUnique({ where: { runId } });
+			const row = await db.orm.public.ChatRun.first({ runId });
 			return row ? mapRun(row) : null;
 		},
 		// An empty `update` is Prisma's insert-if-absent: an existing runId comes
 		// back unchanged, so resume and double-submit are safe.
 		async createOrResume({ runId, threadId, startedAt, status }) {
-			const row = await prisma.chatRun.upsert({
-				where: { runId },
+			const row = await db.orm.public.ChatRun.upsert({
 				create: { runId, threadId, status: status ?? "running", startedAt: BigInt(startedAt) },
 				update: {},
 			});
@@ -149,27 +145,26 @@ function createRunStore(): RunStore {
 			if ("cancelRequested" in patch) data.cancelRequested = patch.cancelRequested ?? null;
 			if ("driverEpoch" in patch) data.driverEpoch = patch.driverEpoch ?? null;
 			if (Object.keys(data).length === 0) return;
-			await prisma.chatRun.updateMany({ where: { runId }, data });
+			await db.orm.public.ChatRun.where({ runId }).update(data);
 		},
 		async findActiveRun(threadId) {
-			const row = await prisma.chatRun.findFirst({
-				where: { threadId, status: "running" },
-				orderBy: { startedAt: "desc" },
-			});
+			const row = await db.orm.public.ChatRun.where({ threadId, status: "running" })
+				.orderBy((r) => r.startedAt.desc())
+				.first();
 			return row ? mapRun(row) : null;
 		},
 		async listByThread(threadId) {
-			const rows = await prisma.chatRun.findMany({
-				where: { threadId },
-				orderBy: { startedAt: "asc" },
-			});
+			const rows = await db.orm.public.ChatRun.where({ threadId })
+				.orderBy((r) => r.startedAt.asc())
+				.all();
 			return rows.map(mapRun);
 		},
 		async listReclaimable({ now, ttlMs }) {
 			const cutoff = BigInt(now - ttlMs);
-			const rows = await prisma.chatRun.findMany({
-				where: { status: "running", detachedSince: { not: null, lte: cutoff } },
-			});
+			const rows = await db.orm.public.ChatRun.where({ status: "running" })
+				.where((r) => r.detachedSince.isNotNull())
+				.where((r) => r.detachedSince.lte(cutoff))
+				.all();
 			return rows.map(mapRun);
 		},
 	};
@@ -177,7 +172,9 @@ function createRunStore(): RunStore {
 
 function createInterruptStore(): InterruptStore {
 	const listWhere = async (where: { threadId?: string; runId?: string; status?: string }) => {
-		const rows = await prisma.chatInterrupt.findMany({ where, orderBy: { requestedAt: "asc" } });
+		const rows = await db.orm.public.ChatInterrupt.where(where)
+			.orderBy((i) => i.requestedAt.asc())
+			.all();
 		return rows.map(mapInterrupt);
 	};
 
@@ -185,8 +182,7 @@ function createInterruptStore(): InterruptStore {
 		// Insert-if-absent: a duplicate create must never clobber a resolved
 		// interrupt back to pending.
 		async create(record) {
-			await prisma.chatInterrupt.upsert({
-				where: { interruptId: record.interruptId },
+			await db.orm.public.ChatInterrupt.upsert({
 				create: {
 					interruptId: record.interruptId,
 					runId: record.runId,
@@ -202,23 +198,20 @@ function createInterruptStore(): InterruptStore {
 			});
 		},
 		async resolve(interruptId, response) {
-			await prisma.chatInterrupt.updateMany({
-				where: { interruptId },
-				data: {
-					status: "resolved",
-					resolvedAt: BigInt(Date.now()),
-					...(response !== undefined ? { response: JSON.parse(JSON.stringify(response)) } : {}),
-				},
+			await db.orm.public.ChatInterrupt.where({ interruptId }).update({
+				status: "resolved",
+				resolvedAt: BigInt(Date.now()),
+				...(response !== undefined ? { response: JSON.parse(JSON.stringify(response)) } : {}),
 			});
 		},
 		async cancel(interruptId) {
-			await prisma.chatInterrupt.updateMany({
-				where: { interruptId },
-				data: { status: "cancelled", resolvedAt: BigInt(Date.now()) },
+			await db.orm.public.ChatInterrupt.where({ interruptId }).update({
+				status: "cancelled",
+				resolvedAt: BigInt(Date.now()),
 			});
 		},
 		async get(interruptId) {
-			const row = await prisma.chatInterrupt.findUnique({ where: { interruptId } });
+			const row = await db.orm.public.ChatInterrupt.first({ interruptId });
 			return row ? mapInterrupt(row) : null;
 		},
 		list: (threadId) => listWhere({ threadId }),
@@ -242,14 +235,18 @@ export const chatPersistence: ChatWithInterruptsPersistence = defineAIPersistenc
 });
 
 /**
- * Every persistence row a thread owns, as deletes to compose into the caller's
- * `$transaction`. None of these tables has a foreign key to the owning record, so
- * each owner deletes them explicitly; listing them once keeps the set honest.
+ * Deletes every persistence row a thread owns, inside the caller's transaction.
+ * None of these tables has a foreign key to the owning record, so each owner
+ * deletes them explicitly; listing them once keeps the set honest.
  */
-export function deleteChatThreadRows({ threadId }: { threadId: string }) {
-	return [
-		prisma.chatThread.deleteMany({ where: { threadId } }),
-		prisma.chatRun.deleteMany({ where: { threadId } }),
-		prisma.chatInterrupt.deleteMany({ where: { threadId } }),
-	];
+export async function deleteChatThreadRows({
+	tx,
+	threadId,
+}: {
+	tx: Pick<typeof db, "orm">;
+	threadId: string;
+}): Promise<void> {
+	await tx.orm.public.ChatThread.where({ threadId }).delete();
+	await tx.orm.public.ChatRun.where({ threadId }).delete();
+	await tx.orm.public.ChatInterrupt.where({ threadId }).delete();
 }

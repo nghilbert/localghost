@@ -1,10 +1,10 @@
-import { prisma } from "#/shared/lib/db.server";
+import { db } from "#/prisma/db";
+import { nowTimestamp } from "#/shared/lib/temporal";
 
 /** Global chat defaults stored on the user row; null means unset (provider default). */
 export async function findUserSettings({ ownerId }: { ownerId: string }) {
-	const user = await prisma.user.findUnique({
-		where: { id: ownerId },
-		select: { systemPrompt: true, temperature: true },
+	const user = await db.orm.public.User.select("systemPrompt", "temperature").first({
+		id: ownerId,
 	});
 	return {
 		systemPrompt: user?.systemPrompt ?? null,
@@ -21,9 +21,11 @@ export async function saveUserSettings({
 	systemPrompt?: string | null;
 	temperature?: number | null;
 }) {
-	return prisma.user.update({
-		where: { id: ownerId },
-		data: { systemPrompt: systemPrompt ?? null, temperature: temperature ?? null },
-		select: { systemPrompt: true, temperature: true },
-	});
+	return db.orm.public.User.select("systemPrompt", "temperature")
+		.where({ id: ownerId })
+		.update({
+			systemPrompt: systemPrompt ?? null,
+			temperature: temperature ?? null,
+			updatedAt: nowTimestamp(),
+		});
 }

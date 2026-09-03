@@ -1,13 +1,12 @@
 import { config } from "@dotenvx/dotenvx";
-import { defineConfig } from "prisma/config";
+import { definePrismaConfig } from "@prisma/cli-engine";
+import { defineConfig } from "@prisma/orm-postgres/config";
 
 config({ ignore: ["MISSING_ENV_FILE"], quiet: true });
 
-export default defineConfig({
-	schema: "prisma/schema",
-	migrations: { path: "prisma/migrations" },
-	datasource: {
-		url: process.env.DATABASE_URL,
-		shadowDatabaseUrl: process.env.SHADOW_DATABASE_URL,
-	},
+export default definePrismaConfig({
+	orm: defineConfig({
+		contract: "./src/prisma/contract.ts",
+		db: { connection: process.env.DATABASE_URL },
+	}),
 });

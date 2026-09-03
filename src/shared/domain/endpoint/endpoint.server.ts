@@ -1,7 +1,6 @@
 import type { z } from "zod/v4";
-import type { Endpoint } from "#/generated/prisma/client";
+import { db } from "#/prisma/db";
 import { decrypt, encrypt } from "#/shared/lib/crypto.server";
-import { prisma } from "#/shared/lib/db.server";
 import { listModels as listLlamacppModels } from "#/shared/lib/llamacpp/client.server";
 import {
 	type EndpointProbeResult,
@@ -10,10 +9,13 @@ import {
 	probeEndpoint,
 } from "#/shared/lib/llm/client.server";
 import { asLLMProvider } from "#/shared/lib/llm/provider";
+import { nowTimestamp } from "#/shared/lib/temporal";
 import type { createEndpointSchema, updateEndpointSchema } from "./schemas";
 
+export type EndpointRow = NonNullable<Awaited<ReturnType<typeof db.orm.public.Endpoint.first>>>;
+
 /** Strips the encrypted key off an endpoint row, replacing it with a `hasApiKey` flag. */
-export function toClientEndpoint(endpoint: Endpoint) {
+export function toClientEndpoint(endpoint: EndpointRow) {
 	return { ...endpoint, apiKeyEncrypted: undefined, hasApiKey: !!endpoint.apiKeyEncrypted };
 }
 
@@ -22,7 +24,7 @@ export function toClientEndpoint(endpoint: Endpoint) {
  * @throws A user-readable error when the stored key cannot be decrypted
  * (typically after an `ENCRYPTION_KEY` rotation); the raw crypto failure is logged.
  */
-export function endpointApiKey(endpoint: Pick<Endpoint, "apiKeyEncrypted">) {
+export function endpointApiKey(endpoint: Pick<EndpointRow, "apiKeyEncrypted">) {
 	if (!endpoint.apiKeyEncrypted) return undefined;
 	try {
 		return decrypt(endpoint.apiKeyEncrypted);
@@ -38,10 +40,9 @@ export function endpointApiKey(endpoint: Pick<Endpoint, "apiKeyEncrypted">) {
 
 /** The user's endpoints, keys stripped. */
 export async function findEndpoints({ ownerId }: { ownerId: string }) {
-	const endpoints = await prisma.endpoint.findMany({
-		where: { ownerId },
-		orderBy: { id: "asc" },
-	});
+	const endpoints = await db.orm.public.Endpoint.where({ ownerId })
+		.orderBy((e) => e.id.asc())
+		.all();
 	return endpoints.map(toClientEndpoint);
 }
 
@@ -52,15 +53,14 @@ export async function insertEndpoint({
 	ownerId: string;
 	data: z.infer<typeof createEndpointSchema>;
 }) {
-	const endpoint = await prisma.endpoint.create({
-		data: {
-			name: data.name,
-			url: data.url,
-			apiKeyEncrypted: data.apiKey ? encrypt(data.apiKey) : null,
-			provider: data.provider,
-			ownerId,
-			...(data.options && { options: data.options }),
-		},
+	const endpoint = await db.orm.public.Endpoint.create({
+		name: data.name,
+		url: data.url,
+		apiKeyEncrypted: data.apiKey ? encrypt(data.apiKey) : null,
+		provider: data.provider,
+		ownerId,
+		...(data.options && { options: data.options }),
+		updatedAt: nowTimestamp(),
 	});
 	return toClientEndpoint(endpoint);
 }
@@ -78,20 +78,19 @@ export async function patchEndpoint({
 	ownerId: string;
 	patch: z.infer<typeof updateEndpointSchema>;
 }) {
-	const existing = await prisma.endpoint.findFirst({ where: { id, ownerId } });
+	const existing = await db.orm.public.Endpoint.where({ id, ownerId }).first();
 	if (!existing) throw new Error("Not found");
-	const endpoint = await prisma.endpoint.update({
-		where: { id },
-		data: {
-			...(patch.name !== undefined && { name: patch.name }),
-			...(patch.url !== undefined && { url: patch.url }),
-			...(patch.provider !== undefined && { provider: patch.provider }),
-			...(patch.apiKey !== undefined && {
-				apiKeyEncrypted: patch.apiKey ? encrypt(patch.apiKey) : null,
-			}),
-			...(patch.options !== undefined && { options: patch.options }),
-		},
+	const endpoint = await db.orm.public.Endpoint.where({ id }).update({
+		...(patch.name !== undefined && { name: patch.name }),
+		...(patch.url !== undefined && { url: patch.url }),
+		...(patch.provider !== undefined && { provider: patch.provider }),
+		...(patch.apiKey !== undefined && {
+			apiKeyEncrypted: patch.apiKey ? encrypt(patch.apiKey) : null,
+		}),
+		...(patch.options !== undefined && { options: patch.options }),
+		updatedAt: nowTimestamp(),
 	});
+	if (!endpoint) throw new Error("Not found");
 	return toClientEndpoint(endpoint);
 }
 
@@ -100,11 +99,11 @@ export async function removeEndpoint({ id, ownerId }: { id: string; ownerId: str
 	// Clear the model on conversations using this endpoint so the (endpointId, model)
 	// pair goes null together; the FK's SetNull only nulls endpointId. Keeps history,
 	// reopening the chat to a fresh model pick instead of an orphaned model string.
-	await prisma.conversation.updateMany({
-		where: { endpointId: id, ownerId },
-		data: { model: null },
+	await db.orm.public.Conversation.where({ endpointId: id, ownerId }).update({
+		model: null,
+		updatedAt: nowTimestamp(),
 	});
-	await prisma.endpoint.deleteMany({ where: { id, ownerId } });
+	await db.orm.public.Endpoint.where({ id, ownerId }).delete();
 }
 
 /**
@@ -118,7 +117,7 @@ export async function fetchEndpointModels({
 	endpointId: string;
 	ownerId: string;
 }) {
-	const endpoint = await prisma.endpoint.findFirst({ where: { id: endpointId, ownerId } });
+	const endpoint = await db.orm.public.Endpoint.where({ id: endpointId, ownerId }).first();
 	if (!endpoint) throw new Error("Not found");
 	return listModels({
 		url: endpoint.url,
@@ -137,7 +136,7 @@ export async function probeSavedEndpoint({
 	endpointId: string;
 	ownerId: string;
 }): Promise<EndpointProbeResult> {
-	const endpoint = await prisma.endpoint.findFirst({ where: { id: endpointId, ownerId } });
+	const endpoint = await db.orm.public.Endpoint.where({ id: endpointId, ownerId }).first();
 	if (!endpoint) throw new Error("Not found");
 	return probeEndpoint({
 		url: endpoint.url,
@@ -158,7 +157,7 @@ export async function probeModelCapabilities({
 	ownerId: string;
 	model: string;
 }): Promise<{ supportsTools: boolean; supportsImages: boolean; supportsDocuments: boolean }> {
-	const endpoint = await prisma.endpoint.findFirst({ where: { id: endpointId, ownerId } });
+	const endpoint = await db.orm.public.Endpoint.where({ id: endpointId, ownerId }).first();
 	if (!endpoint) return { supportsTools: true, supportsImages: false, supportsDocuments: false };
 	// Only the cloud providers whose adapters advertise document support get it;
 	// llama.cpp and unverified OpenAI-compatible endpoints stay images-only.

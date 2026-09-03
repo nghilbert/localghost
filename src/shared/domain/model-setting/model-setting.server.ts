@@ -1,5 +1,6 @@
 import type { z } from "zod/v4";
-import { prisma } from "#/shared/lib/db.server";
+import { db } from "#/prisma/db";
+import { nowTimestamp } from "#/shared/lib/temporal";
 import { perModelOptionsSchema } from "./schemas";
 
 /** The saved per-model overrides, or null when the model has none. */
@@ -12,7 +13,7 @@ export async function getModelSetting({
 	model: string;
 	ownerId: string;
 }) {
-	const setting = await prisma.modelSetting.findFirst({ where: { endpointId, model, ownerId } });
+	const setting = await db.orm.public.ModelSetting.where({ endpointId, model, ownerId }).first();
 	if (!setting) return undefined;
 	if (setting.options == null) return null;
 	return perModelOptionsSchema.parse(setting.options);
@@ -24,21 +25,16 @@ export async function getModelSetting({
  * a re-created endpoint on another instance where the endpoint id differs.
  */
 export async function listModelSettings({ ownerId }: { ownerId: string }) {
-	return prisma.modelSetting.findMany({
-		where: { ownerId },
-		select: {
-			model: true,
-			options: true,
-			endpoint: { select: { url: true, name: true, provider: true } },
-		},
-	});
+	return db.orm.public.ModelSetting.where({ ownerId })
+		.select("model", "options")
+		.include("endpoint", (e) => e.select("url", "name", "provider"))
+		.all();
 }
 
 /**
  * Creates or replaces a model's saved overrides.
- * @throws If the endpoint isn't owned by the user. The unique key this upserts
- * on is `(endpointId, model)`, which carries no owner, so the caller's claim to
- * the endpoint has to be checked before the write rather than inside it.
+ * @throws If the endpoint isn't owned by the user. The `(endpointId, model)`
+ * unique key carries no owner, so ownership is checked before the write.
  */
 export async function upsertModelSetting({
 	endpointId,
@@ -51,13 +47,30 @@ export async function upsertModelSetting({
 	options: z.infer<typeof perModelOptionsSchema>;
 	ownerId: string;
 }) {
-	const owned = await prisma.endpoint.count({ where: { id: endpointId, ownerId } });
+	const { owned } = await db.orm.public.Endpoint.where({ id: endpointId, ownerId }).aggregate(
+		(a) => ({ owned: a.count() }),
+	);
 	if (owned === 0) throw new Error("Not found");
-	await prisma.modelSetting.upsert({
-		where: { endpointId_model: { endpointId, model } },
-		create: { endpointId, model, options, ownerId },
-		update: { options },
-	});
+	// `.upsert()` only targets a conflict on the primary key; `(endpointId, model)`
+	// is a secondary unique constraint, so it can't detect the conflict there and
+	// would attempt a raw insert. Check-then-write instead.
+	const existing = await db.orm.public.ModelSetting.select("id")
+		.where({ endpointId, model })
+		.first();
+	if (existing) {
+		await db.orm.public.ModelSetting.where({ id: existing.id }).update({
+			options,
+			updatedAt: nowTimestamp(),
+		});
+	} else {
+		await db.orm.public.ModelSetting.create({
+			endpointId,
+			model,
+			options,
+			ownerId,
+			updatedAt: nowTimestamp(),
+		});
+	}
 }
 
 /** Clears a model's saved overrides, reverting it to the endpoint/user defaults. */
@@ -70,5 +83,5 @@ export async function deleteModelSetting({
 	model: string;
 	ownerId: string;
 }) {
-	await prisma.modelSetting.deleteMany({ where: { endpointId, model, ownerId } });
+	await db.orm.public.ModelSetting.where({ endpointId, model, ownerId }).deleteAndCount();
 }

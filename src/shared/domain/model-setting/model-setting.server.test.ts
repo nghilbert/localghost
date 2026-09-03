@@ -1,28 +1,29 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
+import { db } from "#/prisma/db";
+import {
+	getModelSetting,
+	upsertModelSetting,
+} from "#/shared/domain/model-setting/model-setting.server";
+import { nowTimestamp } from "#/shared/lib/temporal";
 
-const { endpointCount, modelSettingUpsert } = vi.hoisted(() => ({
-	endpointCount: vi.fn(),
-	modelSettingUpsert: vi.fn(),
-}));
+async function makeOwnerAndEndpoint() {
+	const owner = await db.orm.public.User.create({
+		name: "Test",
+		email: `test-${crypto.randomUUID()}@example.com`,
+		updatedAt: nowTimestamp(),
+	});
+	const endpoint = await db.orm.public.Endpoint.create({
+		name: "Test Endpoint",
+		url: "http://localhost",
+		provider: "openai",
+		ownerId: owner.id,
+		updatedAt: nowTimestamp(),
+	});
+	return { owner, endpoint };
+}
 
-vi.mock("#/shared/lib/db.server", () => ({
-	prisma: {
-		endpoint: { count: endpointCount },
-		modelSetting: { upsert: modelSettingUpsert },
-	},
-}));
-
-import { upsertModelSetting } from "#/shared/domain/model-setting/model-setting.server";
-
-const setting = {
-	endpointId: "endpoint-1",
-	model: "gpt-4o-mini",
-	options: { temperature: 0.2 },
-	ownerId: "owner-1",
-};
-
-beforeEach(() => {
-	vi.clearAllMocks();
+afterEach(async () => {
+	await db.orm.public.User.where((u) => u.email.like("test-%@example.com")).deleteAndCount();
 });
 
 describe("upsertModelSetting", () => {
@@ -30,20 +31,42 @@ describe("upsertModelSetting", () => {
 	// owner, and endpointId comes from the client. Without the pre-check a user
 	// could pass someone else's endpoint id and overwrite their saved options.
 	it("checks the endpoint belongs to the caller before writing", async () => {
-		endpointCount.mockResolvedValue(1);
+		const { owner, endpoint } = await makeOwnerAndEndpoint();
 
-		await upsertModelSetting(setting);
-
-		expect(endpointCount).toHaveBeenCalledWith({
-			where: { id: "endpoint-1", ownerId: "owner-1" },
+		await upsertModelSetting({
+			endpointId: endpoint.id,
+			model: "gpt-4o-mini",
+			options: { temperature: 0.2 },
+			ownerId: owner.id,
 		});
-		expect(modelSettingUpsert).toHaveBeenCalled();
+
+		expect(
+			await getModelSetting({ endpointId: endpoint.id, model: "gpt-4o-mini", ownerId: owner.id }),
+		).toEqual({ temperature: 0.2 });
 	});
 
 	it("refuses to write when the endpoint is not the caller's", async () => {
-		endpointCount.mockResolvedValue(0);
+		const { endpoint } = await makeOwnerAndEndpoint();
+		const otherOwner = await db.orm.public.User.create({
+			name: "Other",
+			email: `test-${crypto.randomUUID()}@example.com`,
+			updatedAt: nowTimestamp(),
+		});
 
-		await expect(upsertModelSetting(setting)).rejects.toThrow("Not found");
-		expect(modelSettingUpsert).not.toHaveBeenCalled();
+		await expect(
+			upsertModelSetting({
+				endpointId: endpoint.id,
+				model: "gpt-4o-mini",
+				options: { temperature: 0.2 },
+				ownerId: otherOwner.id,
+			}),
+		).rejects.toThrow("Not found");
+		expect(
+			await getModelSetting({
+				endpointId: endpoint.id,
+				model: "gpt-4o-mini",
+				ownerId: otherOwner.id,
+			}),
+		).toBeUndefined();
 	});
 });

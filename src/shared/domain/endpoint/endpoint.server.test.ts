@@ -1,10 +1,11 @@
+import { Temporal } from "temporal-polyfill";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Endpoint } from "#/generated/prisma/client";
+import type { EndpointRow } from "#/shared/domain/endpoint/endpoint.server";
 
 const { decrypt } = vi.hoisted(() => ({ decrypt: vi.fn() }));
 
 vi.mock("#/shared/lib/crypto.server", () => ({ decrypt, encrypt: vi.fn() }));
-vi.mock("#/shared/lib/db.server", () => ({ prisma: {} }));
+vi.mock("#/prisma/db", () => ({ db: {} }));
 
 import { endpointApiKey, toClientEndpoint } from "#/shared/domain/endpoint/endpoint.server";
 
@@ -12,7 +13,7 @@ beforeEach(() => {
 	vi.clearAllMocks();
 });
 
-function makeEndpoint(overrides: Partial<Endpoint> = {}): Endpoint {
+function makeEndpoint(overrides: Partial<EndpointRow> = {}): EndpointRow {
 	return {
 		id: "e1",
 		name: "My endpoint",
@@ -21,7 +22,7 @@ function makeEndpoint(overrides: Partial<Endpoint> = {}): Endpoint {
 		provider: "openai",
 		options: null,
 		ownerId: "owner-1",
-		updatedAt: new Date(),
+		updatedAt: Temporal.Now.plainDateTimeISO("UTC"),
 		discovered: null,
 		...overrides,
 	};

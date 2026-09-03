@@ -1,7 +1,7 @@
 import { runPersistenceConformance } from "@tanstack/ai-persistence/testkit";
 import { beforeAll } from "vitest";
+import { db } from "#/prisma/db";
 import { chatPersistence } from "#/shared/domain/chat/persistence.server";
-import { prisma } from "#/shared/lib/db.server";
 
 /**
  * The package's own compatibility gate for our `MessageStore`/`RunStore`/
@@ -14,9 +14,9 @@ import { prisma } from "#/shared/lib/db.server";
  * a previous run left behind.
  */
 beforeAll(async () => {
-	await prisma.chatInterrupt.deleteMany();
-	await prisma.chatRun.deleteMany();
-	await prisma.chatThread.deleteMany();
+	await db.orm.public.ChatInterrupt.where({}).deleteAndCount();
+	await db.orm.public.ChatRun.where({}).deleteAndCount();
+	await db.orm.public.ChatThread.where({}).deleteAndCount();
 });
 
 runPersistenceConformance("chatPersistence", () => chatPersistence, {

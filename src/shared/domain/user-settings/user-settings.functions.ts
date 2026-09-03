@@ -26,6 +26,7 @@ export const updateUserSettings = createServerFn({ method: "POST" })
 			systemPrompt: data.systemPrompt,
 			temperature: data.temperature,
 		});
+		if (!settings) throw new Error("Not found");
 		return { ...settings, temperature: settings.temperature ?? 0.7 };
 	});
 

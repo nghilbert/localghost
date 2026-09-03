@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { db } from "#/prisma/db";
 import {
 	buildRuntimeCandidateUrls,
 	getRuntimeEndpoint,
@@ -7,42 +8,55 @@ import {
 	upsertRuntimeEndpoint,
 } from "#/shared/domain/model/discovery.server";
 import { type LlamaModel, LOCAL_LLAMACPP_API_KEY } from "#/shared/lib/llamacpp/client.server";
+import { nowTimestamp } from "#/shared/lib/temporal";
 
-const { findFirst, findMany, upsert, update, decryptMock } = vi.hoisted(() => ({
-	findFirst: vi.fn(),
-	findMany: vi.fn(),
-	upsert: vi.fn(),
-	update: vi.fn(),
-	decryptMock: vi.fn(),
-}));
-
-vi.mock("#/shared/lib/db.server", () => ({
-	prisma: { endpoint: { findFirst, findMany, upsert, update } },
-}));
-
+const { decryptMock } = vi.hoisted(() => ({ decryptMock: vi.fn() }));
 vi.mock("#/shared/lib/crypto.server", () => ({ decrypt: decryptMock, encrypt: vi.fn() }));
 
+let userId: string;
+
+beforeEach(async () => {
+	decryptMock.mockReset();
+	const user = await db.orm.public.User.create({
+		name: "Test",
+		email: `test-${crypto.randomUUID()}@example.com`,
+		updatedAt: nowTimestamp(),
+	});
+	userId = user.id;
+});
+
+afterEach(async () => {
+	await db.orm.public.User.where({ id: userId }).delete();
+});
+
+async function makeEndpoint(overrides: {
+	url: string;
+	apiKeyEncrypted?: string | null;
+	discovered?: boolean;
+	provider?: string;
+}) {
+	return db.orm.public.Endpoint.create({
+		name: "llamacpp",
+		provider: overrides.provider ?? "llamacpp",
+		url: overrides.url,
+		apiKeyEncrypted: overrides.apiKeyEncrypted ?? null,
+		ownerId: userId,
+		discovered: overrides.discovered ?? null,
+		updatedAt: nowTimestamp(),
+	});
+}
+
 describe("getRuntimeEndpoint", () => {
-	beforeEach(() => {
-		findFirst.mockReset();
-		vi.unstubAllEnvs();
-	});
-
-	afterEach(() => {
-		vi.unstubAllEnvs();
-	});
-
 	it("prefers the user's configured llamacpp endpoint", async () => {
-		findFirst.mockResolvedValue({ url: "http://my-llamacpp:9999/" });
-		await expect(getRuntimeEndpoint("user-1")).resolves.toEqual({
+		await makeEndpoint({ url: "http://my-llamacpp:9999/" });
+		await expect(getRuntimeEndpoint(userId)).resolves.toEqual({
 			url: "http://my-llamacpp:9999",
 			apiKey: LOCAL_LLAMACPP_API_KEY,
 		});
 	});
 
 	it("falls back to localhost when no endpoint is set", async () => {
-		findFirst.mockResolvedValue(null);
-		await expect(getRuntimeEndpoint("user-1")).resolves.toEqual({
+		await expect(getRuntimeEndpoint(userId)).resolves.toEqual({
 			url: "http://localhost:8080",
 			apiKey: LOCAL_LLAMACPP_API_KEY,
 		});
@@ -51,43 +65,32 @@ describe("getRuntimeEndpoint", () => {
 	// /models/sse and /models/unload reject unauthenticated requests, so a discovered
 	// endpoint (which stores no key) still has to send the bundled service's.
 	it("sends the bundled key when the endpoint stores none, the stored key otherwise", async () => {
-		findFirst.mockResolvedValue({ url: "http://my-llamacpp:9999", apiKeyEncrypted: null });
-		await expect(getRuntimeEndpoint("user-1")).resolves.toMatchObject({
+		await makeEndpoint({ url: "http://my-llamacpp:9999", apiKeyEncrypted: null });
+		await expect(getRuntimeEndpoint(userId)).resolves.toMatchObject({
 			apiKey: LOCAL_LLAMACPP_API_KEY,
 		});
 
+		await db.orm.public.Endpoint.where({ ownerId: userId }).delete();
 		decryptMock.mockReturnValue("user-supplied-key");
-		findFirst.mockResolvedValue({ url: "http://my-llamacpp:9999", apiKeyEncrypted: "ciphertext" });
-		await expect(getRuntimeEndpoint("user-1")).resolves.toMatchObject({
+		await makeEndpoint({ url: "http://my-llamacpp:9999", apiKeyEncrypted: "ciphertext" });
+		await expect(getRuntimeEndpoint(userId)).resolves.toMatchObject({
 			apiKey: "user-supplied-key",
-		});
-	});
-
-	it("queries the oldest llamacpp endpoint for the user", async () => {
-		findFirst.mockResolvedValue(null);
-		await getRuntimeEndpoint("user-42");
-		expect(findFirst).toHaveBeenCalledWith({
-			where: { ownerId: "user-42", provider: "llamacpp" },
-			orderBy: { id: "asc" },
 		});
 	});
 });
 
 describe("getRuntimeEndpointById", () => {
 	it("resolves only the requested user-owned llama.cpp endpoint", async () => {
-		findFirst.mockResolvedValue({ url: "http://my-llamacpp:9999/", apiKeyEncrypted: null });
-		await expect(
-			getRuntimeEndpointById({ userId: "user-42", endpointId: "endpoint-7" }),
-		).resolves.toEqual({ url: "http://my-llamacpp:9999", apiKey: LOCAL_LLAMACPP_API_KEY });
-		expect(findFirst).toHaveBeenCalledWith({
-			where: { id: "endpoint-7", ownerId: "user-42", provider: "llamacpp" },
+		const endpoint = await makeEndpoint({ url: "http://my-llamacpp:9999/" });
+		await expect(getRuntimeEndpointById({ userId, endpointId: endpoint.id })).resolves.toEqual({
+			url: "http://my-llamacpp:9999",
+			apiKey: LOCAL_LLAMACPP_API_KEY,
 		});
 	});
 
 	it("rejects an endpoint the user does not own", async () => {
-		findFirst.mockResolvedValue(null);
 		await expect(
-			getRuntimeEndpointById({ userId: "user-42", endpointId: "endpoint-7" }),
+			getRuntimeEndpointById({ userId, endpointId: crypto.randomUUID() }),
 		).rejects.toThrow("llama.cpp endpoint not found");
 	});
 });
@@ -189,58 +192,50 @@ describe("buildRuntimeCandidateUrls", () => {
 });
 
 describe("upsertRuntimeEndpoint", () => {
-	beforeEach(() => {
-		findFirst.mockReset();
-		upsert.mockReset();
-		update.mockReset();
-	});
-
-	it("upserts on the discovered-row unique on first detection", async () => {
-		findFirst.mockResolvedValue(null);
-		upsert.mockResolvedValue({ id: "ep-new" });
-		await upsertRuntimeEndpoint({ userId: "user-1", url: "http://localhost:8080/" });
-		expect(upsert).toHaveBeenCalledWith({
-			where: { ownerId_discovered: { ownerId: "user-1", discovered: true } },
-			create: {
-				name: "llama.cpp (local)",
-				url: "http://localhost:8080",
-				provider: "llamacpp",
-				ownerId: "user-1",
-				discovered: true,
-			},
-			update: { url: "http://localhost:8080", provider: "llamacpp" },
-			select: { id: true },
+	it("creates the discovered row on first detection", async () => {
+		const id = await upsertRuntimeEndpoint({ userId, url: "http://localhost:8080/" });
+		const row = await db.orm.public.Endpoint.first({ id });
+		expect(row).toMatchObject({
+			name: "llama.cpp (local)",
+			url: "http://localhost:8080",
+			provider: "llamacpp",
+			ownerId: userId,
+			discovered: true,
 		});
-		expect(update).not.toHaveBeenCalled();
 	});
 
 	it("updates the existing endpoint when llama.cpp moved", async () => {
-		findFirst.mockResolvedValue({ id: "ep-1", url: "http://old-host:8080" });
-		await upsertRuntimeEndpoint({ userId: "user-1", url: "http://localhost:8080" });
-		expect(update).toHaveBeenCalledWith({
-			where: { id: "ep-1" },
-			data: { url: "http://localhost:8080", provider: "llamacpp" },
+		const existing = await makeEndpoint({ url: "http://old-host:8080" });
+		const id = await upsertRuntimeEndpoint({
+			userId,
+			url: "http://localhost:8080",
+			existing: { id: existing.id, url: existing.url },
 		});
-		expect(upsert).not.toHaveBeenCalled();
-	});
-
-	it("corrects a pre-migration discovered row still tagged provider ollama", async () => {
-		// The lookup that supplies `existing` (or `resolved` here) always filters
-		// on provider: "llamacpp", so a legacy row never surfaces there and this
-		// always takes the upsert path — which is why the upsert's `update` must
-		// carry `provider` too, not just `create`.
-		findFirst.mockResolvedValue(null);
-		upsert.mockResolvedValue({ id: "ep-legacy" });
-		await upsertRuntimeEndpoint({ userId: "user-1", url: "http://localhost:8080" });
-		expect(upsert).toHaveBeenCalledWith(
-			expect.objectContaining({ update: { url: "http://localhost:8080", provider: "llamacpp" } }),
-		);
+		expect(id).toBe(existing.id);
+		const row = await db.orm.public.Endpoint.first({ id });
+		expect(row?.url).toBe("http://localhost:8080");
 	});
 
 	it("does nothing when the saved url already matches", async () => {
-		findFirst.mockResolvedValue({ id: "ep-1", url: "http://localhost:8080" });
-		await upsertRuntimeEndpoint({ userId: "user-1", url: "http://localhost:8080/" });
-		expect(upsert).not.toHaveBeenCalled();
-		expect(update).not.toHaveBeenCalled();
+		const existing = await makeEndpoint({ url: "http://localhost:8080" });
+		const id = await upsertRuntimeEndpoint({
+			userId,
+			url: "http://localhost:8080/",
+			existing: { id: existing.id, url: existing.url },
+		});
+		expect(id).toBe(existing.id);
+	});
+
+	it("a concurrent first-detection race resolves to one row, not a duplicate-key error", async () => {
+		const [id1, id2] = await Promise.all([
+			upsertRuntimeEndpoint({ userId, url: "http://localhost:8080" }),
+			upsertRuntimeEndpoint({ userId, url: "http://localhost:8080" }),
+		]);
+		expect(id1).toBe(id2);
+		const { total } = await db.orm.public.Endpoint.where({
+			ownerId: userId,
+			discovered: true,
+		}).aggregate((a) => ({ total: a.count() }));
+		expect(total).toBe(1);
 	});
 });

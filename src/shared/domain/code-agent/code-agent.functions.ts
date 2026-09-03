@@ -1,6 +1,7 @@
 import type { ModelMessage } from "@tanstack/ai";
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
+import type { Temporal } from "temporal-polyfill";
 import { reviveMessageDates } from "#/shared/domain/conversation/messages";
 import { authedFn } from "#/shared/lib/middleware";
 import {
@@ -18,7 +19,14 @@ import {
 	createCodeAgentSessionSchema,
 	listWorkspaceEntriesSchema,
 } from "./schemas";
+import type { CodeAgentSessionListItem } from "./session-activity";
 import { getCodeAgentWorkspaceRoot, listWorkspaceEntries } from "./workspace-path.server";
+
+/** Reshapes a row's `updatedAt` for the RPC boundary: `Temporal.PlainDateTime`
+ * has no registered serializer for `createServerFn`'s return-type check. */
+function toRpcUpdatedAt<T extends { updatedAt: Temporal.PlainDateTime }>(row: T) {
+	return { ...row, updatedAt: new Date(row.updatedAt.toString()) };
+}
 
 /** Which harnesses this server can run, by whether their CLI is on PATH. */
 export const getCodeAgentAvailability = createServerFn({ method: "GET" })

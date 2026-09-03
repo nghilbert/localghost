@@ -1,40 +1,8 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { db } from "#/prisma/db";
+import { nowTimestamp } from "#/shared/lib/temporal";
 
-const {
-	conversationFindFirst,
-	conversationUpdate,
-	conversationDeleteMany,
-	chatThreadDeleteMany,
-	chatRunDeleteMany,
-	chatInterruptDeleteMany,
-	transaction,
-	listModels,
-} = vi.hoisted(() => ({
-	conversationFindFirst: vi.fn(),
-	conversationUpdate: vi.fn(),
-	conversationDeleteMany: vi.fn(),
-	chatThreadDeleteMany: vi.fn(),
-	chatRunDeleteMany: vi.fn(),
-	chatInterruptDeleteMany: vi.fn(),
-	transaction: vi.fn((ops: unknown) =>
-		typeof ops === "function" ? ops({}) : Promise.all(ops as Array<Promise<unknown>>),
-	),
-	listModels: vi.fn(),
-}));
-
-vi.mock("#/shared/lib/db.server", () => ({
-	prisma: {
-		conversation: {
-			findFirst: conversationFindFirst,
-			update: conversationUpdate,
-			deleteMany: conversationDeleteMany,
-		},
-		chatThread: { deleteMany: chatThreadDeleteMany },
-		chatRun: { deleteMany: chatRunDeleteMany },
-		chatInterrupt: { deleteMany: chatInterruptDeleteMany },
-		$transaction: transaction,
-	},
-}));
+const { listModels } = vi.hoisted(() => ({ listModels: vi.fn() }));
 vi.mock("#/shared/lib/llamacpp/client.server", () => ({ listModels }));
 
 import {
@@ -43,131 +11,171 @@ import {
 	removeConversation,
 } from "#/shared/domain/conversation/conversation.server";
 
-beforeEach(() => {
+let ownerId: string;
+let endpointId: string;
+
+beforeEach(async () => {
 	vi.clearAllMocks();
-	conversationDeleteMany.mockResolvedValue({ count: 1 });
-	chatThreadDeleteMany.mockResolvedValue({ count: 1 });
-	chatRunDeleteMany.mockResolvedValue({ count: 0 });
-	chatInterruptDeleteMany.mockResolvedValue({ count: 0 });
+	const user = await db.orm.public.User.create({
+		name: "Test",
+		email: `test-${crypto.randomUUID()}@example.com`,
+		updatedAt: nowTimestamp(),
+	});
+	ownerId = user.id;
+	const endpoint = await db.orm.public.Endpoint.create({
+		name: "E",
+		url: "http://localhost:8080",
+		provider: "llamacpp",
+		ownerId,
+		updatedAt: nowTimestamp(),
+	});
+	endpointId = endpoint.id;
 });
+
+afterEach(async () => {
+	await db.orm.public.User.where({ id: ownerId }).delete();
+});
+
+async function makeConversation(overrides: { model?: string; endpointId?: string | null } = {}) {
+	return db.orm.public.Conversation.create({
+		ownerId,
+		title: "Test",
+		model: overrides.model,
+		endpointId: overrides.endpointId === undefined ? endpointId : overrides.endpointId,
+		updatedAt: nowTimestamp(),
+	});
+}
 
 describe("patchConversation", () => {
 	it("throws when no conversation with that id is owned by the user", async () => {
-		conversationFindFirst.mockResolvedValue(null);
-
 		await expect(
-			patchConversation({ id: "c1", ownerId: "owner-1", patch: { title: "New title" } }),
+			patchConversation({ id: crypto.randomUUID(), ownerId, patch: { title: "New title" } }),
 		).rejects.toThrow("Not found");
-		expect(conversationUpdate).not.toHaveBeenCalled();
 	});
 
 	it("scopes the ownership lookup to the calling user, not just the id", async () => {
-		conversationFindFirst.mockResolvedValue({ id: "c1" });
+		const conversation = await makeConversation();
+		const otherOwner = crypto.randomUUID();
 
-		await patchConversation({ id: "c1", ownerId: "owner-1", patch: { title: "New title" } });
-
-		expect(conversationFindFirst).toHaveBeenCalledWith(
-			expect.objectContaining({ where: expect.objectContaining({ id: "c1", ownerId: "owner-1" }) }),
-		);
+		await expect(
+			patchConversation({ id: conversation.id, ownerId: otherOwner, patch: { title: "New" } }),
+		).rejects.toThrow("Not found");
 	});
 
 	it("patches title when provided", async () => {
-		conversationFindFirst.mockResolvedValue({ id: "c1" });
+		const conversation = await makeConversation();
 
-		await patchConversation({ id: "c1", ownerId: "owner-1", patch: { title: "New title" } });
+		const patched = await patchConversation({
+			id: conversation.id,
+			ownerId,
+			patch: { title: "New title" },
+		});
 
-		expect(conversationUpdate).toHaveBeenCalledWith(
-			expect.objectContaining({ where: { id: "c1" }, data: { title: "New title" } }),
-		);
+		expect(patched?.title).toBe("New title");
 	});
 });
 
 describe("probeModelRunState", () => {
 	it("reports ready when the conversation has no model", async () => {
-		conversationFindFirst.mockResolvedValue({ model: null, endpoint: null });
+		const conversation = await makeConversation({ model: undefined });
 
-		expect(await probeModelRunState({ id: "c1", ownerId: "owner-1" })).toBe("ready");
+		expect(await probeModelRunState({ id: conversation.id, ownerId })).toBe("ready");
 		expect(listModels).not.toHaveBeenCalled();
 	});
 
 	it("reports ready for a non-llamacpp endpoint without probing", async () => {
-		conversationFindFirst.mockResolvedValue({
-			model: "gpt-4",
-			endpoint: { url: "https://api.openai.com", provider: "openai" },
+		const otherEndpoint = await db.orm.public.Endpoint.create({
+			name: "OpenAI",
+			url: "https://api.openai.com",
+			provider: "openai",
+			ownerId,
+			updatedAt: nowTimestamp(),
 		});
+		const conversation = await makeConversation({ model: "gpt-4", endpointId: otherEndpoint.id });
 
-		expect(await probeModelRunState({ id: "c1", ownerId: "owner-1" })).toBe("ready");
+		expect(await probeModelRunState({ id: conversation.id, ownerId })).toBe("ready");
 		expect(listModels).not.toHaveBeenCalled();
 	});
 
 	it("reports ready when the model is loaded", async () => {
-		conversationFindFirst.mockResolvedValue({
-			model: "org/llama3-GGUF:Q4_K_M",
-			endpoint: { url: "http://localhost:8080", provider: "llamacpp" },
-		});
+		const conversation = await makeConversation({ model: "org/llama3-GGUF:Q4_K_M" });
 		listModels.mockResolvedValue([
 			{ id: "org/llama3-GGUF:Q4_K_M", path: "/models/x.gguf", status: { value: "loaded" } },
 		]);
 
-		expect(await probeModelRunState({ id: "c1", ownerId: "owner-1" })).toBe("ready");
+		expect(await probeModelRunState({ id: conversation.id, ownerId })).toBe("ready");
 	});
 
 	it("reports ready when the model is unloaded (the router autoloads on request)", async () => {
-		conversationFindFirst.mockResolvedValue({
-			model: "org/llama3-GGUF:Q4_K_M",
-			endpoint: { url: "http://localhost:8080", provider: "llamacpp" },
-		});
+		const conversation = await makeConversation({ model: "org/llama3-GGUF:Q4_K_M" });
 		listModels.mockResolvedValue([
 			{ id: "org/llama3-GGUF:Q4_K_M", path: "/models/x.gguf", status: { value: "unloaded" } },
 		]);
 
-		expect(await probeModelRunState({ id: "c1", ownerId: "owner-1" })).toBe("ready");
+		expect(await probeModelRunState({ id: conversation.id, ownerId })).toBe("ready");
 	});
 
 	it("reports warming when the model is loading", async () => {
-		conversationFindFirst.mockResolvedValue({
-			model: "org/llama3-GGUF:Q4_K_M",
-			endpoint: { url: "http://localhost:8080", provider: "llamacpp" },
-		});
+		const conversation = await makeConversation({ model: "org/llama3-GGUF:Q4_K_M" });
 		listModels.mockResolvedValue([
 			{ id: "org/llama3-GGUF:Q4_K_M", path: "/models/x.gguf", status: { value: "loading" } },
 		]);
 
-		expect(await probeModelRunState({ id: "c1", ownerId: "owner-1" })).toBe("warming");
+		expect(await probeModelRunState({ id: conversation.id, ownerId })).toBe("warming");
 	});
 
 	it("silently reports unreachable when the probe throws", async () => {
-		conversationFindFirst.mockResolvedValue({
-			model: "org/llama3-GGUF:Q4_K_M",
-			endpoint: { url: "http://localhost:8080", provider: "llamacpp" },
-		});
+		const conversation = await makeConversation({ model: "org/llama3-GGUF:Q4_K_M" });
 		listModels.mockRejectedValue(new Error("connection refused"));
 		const consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => {});
 
-		expect(await probeModelRunState({ id: "c1", ownerId: "owner-1" })).toBe("unreachable");
+		expect(await probeModelRunState({ id: conversation.id, ownerId })).toBe("unreachable");
 		expect(consoleWarn).toHaveBeenCalledOnce();
 	});
 });
 
 describe("removeConversation", () => {
 	it("is a no-op when the id isn't owned by the caller", async () => {
-		conversationFindFirst.mockResolvedValue(null);
+		const conversation = await makeConversation();
 
-		await removeConversation({ id: "c1", ownerId: "owner-1" });
+		await removeConversation({ id: conversation.id, ownerId: crypto.randomUUID() });
 
-		expect(transaction).not.toHaveBeenCalled();
+		expect(await db.orm.public.Conversation.first({ id: conversation.id })).not.toBeNull();
 	});
 
 	it("deletes the thread, runs, interrupts, and the conversation, all scoped to the caller", async () => {
-		conversationFindFirst.mockResolvedValue({ id: "c1" });
-
-		await removeConversation({ id: "c1", ownerId: "owner-1" });
-
-		expect(chatThreadDeleteMany).toHaveBeenCalledWith({ where: { threadId: "c1" } });
-		expect(chatRunDeleteMany).toHaveBeenCalledWith({ where: { threadId: "c1" } });
-		expect(chatInterruptDeleteMany).toHaveBeenCalledWith({ where: { threadId: "c1" } });
-		expect(conversationDeleteMany).toHaveBeenCalledWith({
-			where: { id: "c1", ownerId: "owner-1" },
+		const conversation = await makeConversation();
+		await db.orm.public.ChatThread.create({
+			threadId: conversation.id,
+			messages: [],
+			updatedAt: nowTimestamp(),
 		});
+		await db.orm.public.ChatRun.create({
+			runId: crypto.randomUUID(),
+			threadId: conversation.id,
+			status: "completed",
+			startedAt: 0n,
+		});
+		await db.orm.public.ChatInterrupt.create({
+			interruptId: crypto.randomUUID(),
+			runId: crypto.randomUUID(),
+			threadId: conversation.id,
+			status: "resolved",
+			requestedAt: 0n,
+			payload: {},
+		});
+
+		await removeConversation({ id: conversation.id, ownerId });
+
+		expect(await db.orm.public.Conversation.first({ id: conversation.id })).toBeNull();
+		expect(await db.orm.public.ChatThread.first({ threadId: conversation.id })).toBeNull();
+		const { total: runs } = await db.orm.public.ChatRun.where({
+			threadId: conversation.id,
+		}).aggregate((a) => ({ total: a.count() }));
+		expect(runs).toBe(0);
+		const { total: interrupts } = await db.orm.public.ChatInterrupt.where({
+			threadId: conversation.id,
+		}).aggregate((a) => ({ total: a.count() }));
+		expect(interrupts).toBe(0);
 	});
 });

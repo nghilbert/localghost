@@ -15,6 +15,10 @@
 		"noEmit": true,
 		"esModuleInterop": true,
 		"resolveJsonModule": true,
+		// `src/prisma/*.ts` imports each other with explicit `.ts` extensions —
+		// required by the Prisma CLI's Node-native loader, which runs contract.ts
+		// outside Vite's bundler resolution. Vite/tsc both tolerate the extension.
+		"allowImportingTsExtensions": true,
 		"verbatimModuleSyntax": true,
 		"isolatedModules": true,
 		"erasableSyntaxOnly": true,

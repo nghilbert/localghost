@@ -1,8 +1,8 @@
 import { betterAuth } from "better-auth";
-import { prismaAdapter } from "better-auth/adapters/prisma";
 import { APIError, createAuthMiddleware } from "better-auth/api";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
-import { prisma } from "./db.server";
+import { db } from "#/prisma/db";
+import { prismaNextAdapter } from "#/shared/domain/auth/prisma-next-adapter.server";
 
 function getSecret(): string {
 	const secret = process.env.BETTER_AUTH_SECRET;
@@ -13,13 +13,14 @@ function getSecret(): string {
 
 /** Whether this deployment still accepts a sign-up, i.e. holds no account yet. */
 export async function isSignUpOpen(): Promise<boolean> {
-	return (await prisma.user.count()) === 0;
+	const { total } = await db.orm.public.User.aggregate((a) => ({ total: a.count() }));
+	return total === 0;
 }
 
 export const auth = betterAuth({
-	database: prismaAdapter(prisma, { provider: "postgresql" }),
-	// On the Postgres adapter this makes better-auth omit `id` from its inserts rather
-	// than generating one itself, so the `uuidv7()` column default is what fills it.
+	database: prismaNextAdapter(),
+	// This makes better-auth omit `id` from its inserts rather than generating
+	// one itself, so the `uuidv7` execution-default is what fills it.
 	advanced: { database: { generateId: "uuid" } },
 	secret: getSecret(),
 	emailAndPassword: { enabled: true },

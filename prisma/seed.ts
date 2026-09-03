@@ -1,6 +1,7 @@
 import { faker } from "@faker-js/faker";
+import { db } from "#/prisma/db";
 import { auth } from "#/shared/lib/auth.server";
-import { prisma } from "#/shared/lib/db.server";
+import { nowTimestamp } from "#/shared/lib/temporal";
 
 /**
  * Dev-only seed: provisions a known login plus a spread of realistic chat
@@ -14,31 +15,35 @@ const DEV_PASSWORD = "password123";
 async function main() {
 	faker.seed(42);
 
-	const existing = await prisma.user.findFirst({ where: { email: DEV_EMAIL } });
+	const existing = await db.orm.public.User.where({ email: DEV_EMAIL }).first();
 	if (existing) {
-		await prisma.user.delete({ where: { id: existing.id } });
+		await db.orm.public.User.where({ id: existing.id }).delete();
 	}
 
 	await auth.api.signUpEmail({
 		body: { email: DEV_EMAIL, password: DEV_PASSWORD, name: faker.person.fullName() },
 	});
-	const user = await prisma.user.findFirstOrThrow({ where: { email: DEV_EMAIL } });
+	const user = await db.orm.public.User.where({ email: DEV_EMAIL }).first();
+	if (!user) throw new Error(`Sign-up didn't create ${DEV_EMAIL}`);
 
 	for (let i = 0; i < 5; i++) {
 		const messageCount = faker.number.int({ min: 2, max: 6 });
-		// One conversation row holds the whole transcript as a `@tanstack/ai`
+		// One `ChatThread` row holds the whole transcript as a `@tanstack/ai`
 		// UIMessage[] blob — the framework's native persistence shape.
 		const messages = Array.from({ length: messageCount }, (_, index) => ({
 			id: faker.string.uuid(),
 			role: index % 2 === 0 ? "user" : "assistant",
 			parts: [{ type: "text", content: faker.lorem.paragraph() }],
 		}));
-		await prisma.conversation.create({
-			data: {
-				ownerId: user.id,
-				title: faker.lorem.sentence({ min: 2, max: 4 }),
-				messages,
-			},
+		const conversation = await db.orm.public.Conversation.select("id").create({
+			ownerId: user.id,
+			title: faker.lorem.sentence({ min: 2, max: 4 }),
+			updatedAt: nowTimestamp(),
+		});
+		await db.orm.public.ChatThread.create({
+			threadId: conversation.id,
+			messages,
+			updatedAt: nowTimestamp(),
 		});
 	}
 
@@ -51,5 +56,5 @@ main()
 		process.exitCode = 1;
 	})
 	.finally(async () => {
-		await prisma.$disconnect();
+		await db.close();
 	});

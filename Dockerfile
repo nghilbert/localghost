@@ -18,7 +18,7 @@ CMD ["npm", "run", "prisma", "--", "migrate", "deploy"]
 # client are supplied by a bind mount at runtime (see web-dev in compose.yaml).
 # Startup regenerates the prisma client, applies pending migrations via the
 # `predev` hook, then serves Vite with HMR bound to all interfaces.
-FROM node:24-bookworm-slim AS dev
+FROM node:26-bookworm-slim AS dev
 WORKDIR /app
 # git: /agent's harness shells out to it. bubblewrap/socat: Claude Code's own Bash
 # sandbox. The harness runs in this container, not a separate one.
@@ -34,7 +34,7 @@ COPY --chown=node:node package.json package-lock.json ./
 RUN npm ci
 CMD ["sh", "-c", "npm run prisma -- generate && npm run dev -- --host"]
 
-FROM node:24-bookworm-slim
+FROM node:26-bookworm-slim
 WORKDIR /app
 ENV NODE_ENV=production
 RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates git bubblewrap socat \

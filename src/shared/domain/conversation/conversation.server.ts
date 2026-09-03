@@ -1,6 +1,7 @@
+import { db } from "#/prisma/db";
 import { deleteChatThreadRows } from "#/shared/domain/chat/persistence.server";
-import { prisma } from "#/shared/lib/db.server";
 import { listModels } from "#/shared/lib/llamacpp/client.server";
+import { nowTimestamp } from "#/shared/lib/temporal";
 import { deriveConversationTitle, threadMessagesFrom } from "./messages";
 
 /** One sidebar list entry: the fields needed to render and order conversation links. */
@@ -13,12 +14,12 @@ export type ConversationListItem = {
 };
 
 /** Sidebar list, ordered by whichever is more recent: the last message or a metadata edit (e.g. a title rename). */
-export function findConversations({
+async function findConversations({
 	ownerId,
 }: {
 	ownerId: string;
 }): Promise<ConversationListItem[]> {
-	return prisma.$queryRaw<ConversationListItem[]>`
+	const plan = db.raw.sql`
 		SELECT c.id,
 		       c.title,
 		       c.model,
@@ -27,8 +28,20 @@ export function findConversations({
 		FROM conversation c
 		LEFT JOIN chat_thread ct ON ct.thread_id = c.id::text
 		WHERE c.owner_id = ${ownerId}::uuid
-		ORDER BY "updatedAt" DESC`;
+		ORDER BY "updatedAt" DESC`
+		.returnsRow({
+			id: "pg/uuid@1",
+			title: "pg/text@1",
+			model: { codecId: "pg/text@1", nullable: true },
+			endpointId: { codecId: "pg/uuid@1", nullable: true },
+			updatedAt: "pg/timestamp-temporal@1",
+		})
+		.build();
+	const rows = await db.runtime().query(plan);
+	return rows.map((row) => ({ ...row, updatedAt: new Date(row.updatedAt.toString()) }));
 }
+
+export { findConversations };
 
 /** One sidebar search hit: the list fields plus a plain-text snippet of the match. */
 export type ConversationSearchHit = {
@@ -43,7 +56,7 @@ export type ConversationSearchHit = {
 /** Full-text transcript search ranked by relevance.
  * Computes the tsvector from flattened message text and returns a headline snippet.
  */
-export function searchConversations({
+export async function searchConversations({
 	ownerId,
 	query,
 }: {
@@ -52,7 +65,7 @@ export function searchConversations({
 }): Promise<ConversationSearchHit[]> {
 	// `ModelMessage.content` is a string, an array of `ContentPart` (text/image/…),
 	// or null; only the string case and text parts contribute searchable text.
-	return prisma.$queryRaw<ConversationSearchHit[]>`
+	const plan = db.raw.sql`
 		SELECT c.id,
 		       c.title,
 		       c.model,
@@ -79,29 +92,47 @@ export function searchConversations({
 		websearch_to_tsquery('english', ${query}) q
 		WHERE c.owner_id = ${ownerId}::uuid AND to_tsvector('english', flat.text) @@ q
 		ORDER BY ts_rank(to_tsvector('english', flat.text), q) DESC
-		LIMIT 20`;
+		LIMIT 20`
+		.returnsRow({
+			id: "pg/uuid@1",
+			title: "pg/text@1",
+			model: { codecId: "pg/text@1", nullable: true },
+			endpointId: { codecId: "pg/uuid@1", nullable: true },
+			updatedAt: "pg/timestamp-temporal@1",
+			snippet: "pg/text@1",
+		})
+		.build();
+	const rows = await db.runtime().query(plan);
+	return rows.map((row) => ({ ...row, updatedAt: new Date(row.updatedAt.toString()) }));
 }
 
 /** Full conversation row with client-safe endpoint config and its transcript, or null when not owned. */
 export async function findConversation({ id, ownerId }: { id: string; ownerId: string }) {
-	const conversation = await prisma.conversation.findFirst({
-		where: { id, ownerId },
-		include: { endpoint: { select: { id: true, name: true, url: true, provider: true } } },
-	});
+	const conversation = await db.orm.public.Conversation.where({ id, ownerId })
+		.include("endpoint", (e) => e.select("id", "name", "url", "provider"))
+		.first();
 	if (!conversation) return null;
-	const thread = await prisma.chatThread.findUnique({
-		where: { threadId: id },
-		select: { messages: true },
-	});
+	const thread = await db.orm.public.ChatThread.select("messages").first({ threadId: id });
 	return { ...conversation, messages: thread?.messages ?? [] };
 }
 
 /** The conversation with its complete endpoint row (encrypted key included) for a chat run. */
 export function findConversationWithEndpoint({ id, ownerId }: { id: string; ownerId: string }) {
-	return prisma.conversation.findFirst({
-		where: { id, ownerId },
-		include: { endpoint: true },
-	});
+	return db.orm.public.Conversation.where({ id, ownerId })
+		.include("endpoint", (e) =>
+			e.select(
+				"id",
+				"name",
+				"url",
+				"apiKeyEncrypted",
+				"provider",
+				"options",
+				"ownerId",
+				"updatedAt",
+				"discovered",
+			),
+		)
+		.first();
 }
 
 /** Whether `id` is a conversation owned by `ownerId`. For authorization checks that need no row data. */
@@ -112,8 +143,10 @@ export async function conversationOwnedBy({
 	id: string;
 	ownerId: string;
 }): Promise<boolean> {
-	const count = await prisma.conversation.count({ where: { id, ownerId } });
-	return count > 0;
+	const { total } = await db.orm.public.Conversation.where({ id, ownerId }).aggregate((a) => ({
+		total: a.count(),
+	}));
+	return total > 0;
 }
 
 /** The most recently used (endpointId, model) pair, or nulls when there is none. */
@@ -122,11 +155,12 @@ export async function findDefaultSelection({
 }: {
 	ownerId: string;
 }): Promise<{ endpointId: string | null; model: string | null }> {
-	const recent = await prisma.conversation.findFirst({
-		where: { ownerId, endpointId: { not: null }, model: { not: null } },
-		orderBy: { updatedAt: "desc" },
-		select: { endpointId: true, model: true },
-	});
+	const recent = await db.orm.public.Conversation.where({ ownerId })
+		.where((c) => c.endpointId.isNotNull())
+		.where((c) => c.model.isNotNull())
+		.orderBy((c) => c.updatedAt.desc())
+		.select("endpointId", "model")
+		.first();
 	return recent?.endpointId && recent.model
 		? { endpointId: recent.endpointId, model: recent.model }
 		: { endpointId: null, model: null };
@@ -134,7 +168,7 @@ export async function findDefaultSelection({
 
 /**
  * Creates a conversation seeded with the first user message and a derived
- * title, plus its `ChatThread` transcript row — so the message survives
+ * title, plus its `ChatThread` transcript row, so the message survives
  * navigation to the conversation view before the model has replied.
  */
 export async function insertConversation({
@@ -160,18 +194,21 @@ export async function insertConversation({
 		images: attachments.filter((attachment) => attachment.kind === "image"),
 		documents: attachments.filter((attachment) => attachment.kind === "document"),
 	});
+	const title = deriveConversationTitle(firstMessage);
 
-	return prisma.$transaction(async (tx) => {
-		const conversation = await tx.conversation.create({
-			data: {
-				ownerId,
-				endpointId,
-				model,
-				title: deriveConversationTitle(firstMessage) ?? undefined,
-			},
-			select: { id: true },
+	return db.transaction(async (tx) => {
+		const conversation = await tx.orm.public.Conversation.select("id").create({
+			ownerId,
+			endpointId,
+			model,
+			...(title !== null ? { title } : {}),
+			updatedAt: nowTimestamp(),
 		});
-		await tx.chatThread.create({ data: { threadId: conversation.id, messages } });
+		await tx.orm.public.ChatThread.create({
+			threadId: conversation.id,
+			messages,
+			updatedAt: nowTimestamp(),
+		});
 		return conversation;
 	});
 }
@@ -189,13 +226,14 @@ export async function patchConversation({
 	ownerId: string;
 	patch: { title?: string };
 }) {
-	const existing = await prisma.conversation.findFirst({ where: { id, ownerId } });
+	const existing = await db.orm.public.Conversation.where({ id, ownerId }).first();
 	if (!existing) throw new Error("Not found");
-	return prisma.conversation.update({
-		where: { id },
-		data: { ...(patch.title !== undefined && { title: patch.title }) },
-		include: { endpoint: { select: { id: true, name: true, url: true, provider: true } } },
-	});
+	return db.orm.public.Conversation.where({ id })
+		.include("endpoint", (e) => e.select("id", "name", "url", "provider"))
+		.update({
+			...(patch.title !== undefined && { title: patch.title }),
+			updatedAt: nowTimestamp(),
+		});
 }
 
 export type ModelRunState = "warming" | "ready" | "unreachable";
@@ -210,10 +248,10 @@ export async function probeModelRunState({
 	id: string;
 	ownerId: string;
 }): Promise<ModelRunState> {
-	const conversation = await prisma.conversation.findFirst({
-		where: { id, ownerId },
-		select: { model: true, endpoint: { select: { url: true, provider: true } } },
-	});
+	const conversation = await db.orm.public.Conversation.where({ id, ownerId })
+		.select("model")
+		.include("endpoint", (e) => e.select("url", "provider"))
+		.first();
 	if (!conversation?.model || conversation.endpoint?.provider !== "llamacpp") return "ready";
 	try {
 		const models = await listModels({ url: conversation.endpoint.url, timeoutMs: 3_000 });
@@ -242,13 +280,10 @@ export async function removeConversation({
 	id: string;
 	ownerId: string;
 }): Promise<void> {
-	const owned = await prisma.conversation.findFirst({
-		where: { id, ownerId },
-		select: { id: true },
+	await db.transaction(async (tx) => {
+		const owned = await tx.orm.public.Conversation.select("id").where({ id, ownerId }).first();
+		if (!owned) return;
+		await deleteChatThreadRows({ tx, threadId: id });
+		await tx.orm.public.Conversation.where({ id, ownerId }).delete();
 	});
-	if (!owned) return;
-	await prisma.$transaction([
-		...deleteChatThreadRows({ threadId: id }),
-		prisma.conversation.deleteMany({ where: { id, ownerId } }),
-	]);
 }
