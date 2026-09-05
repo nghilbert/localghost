@@ -1,14 +1,6 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { AgentThread } from "#/routes/_authenticated/_agent/agent/-components/AgentThread";
-import { Button } from "#/shared/components/ui/button";
-import {
-	Empty,
-	EmptyContent,
-	EmptyDescription,
-	EmptyHeader,
-	EmptyTitle,
-} from "#/shared/components/ui/empty";
 import { Spinner } from "#/shared/components/ui/spinner";
 import { codeAgentSessionQueryOptions } from "#/shared/domain/code-agent/code-agent.functions";
 
@@ -24,7 +16,6 @@ export const Route = createFileRoute("/_authenticated/_agent/agent/$sessionId")(
 		meta: [{ title: loaderData ? `${loaderData.title} · localghost` : "localghost" }],
 	}),
 	pendingComponent: SessionPending,
-	errorComponent: SessionError,
 	component: CodeAgentSessionPage,
 });
 
@@ -40,21 +31,5 @@ function SessionPending() {
 		<div className="flex items-center justify-center">
 			<Spinner />
 		</div>
-	);
-}
-
-function SessionError() {
-	return (
-		<Empty>
-			<EmptyHeader>
-				<EmptyTitle>Couldn't load this session</EmptyTitle>
-				<EmptyDescription>It may have been deleted, or the server is unreachable.</EmptyDescription>
-			</EmptyHeader>
-			<EmptyContent>
-				<Button variant="outline" render={<Link to="/agent" />}>
-					Back to code agent
-				</Button>
-			</EmptyContent>
-		</Empty>
 	);
 }
