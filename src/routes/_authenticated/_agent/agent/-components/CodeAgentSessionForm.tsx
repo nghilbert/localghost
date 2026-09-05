@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { FolderIcon } from "lucide-react";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { useEndpointModelGroups } from "#/routes/_authenticated/-hooks/use-endpoint-model-groups";
 import {
 	Breadcrumb,
@@ -182,16 +182,18 @@ function WorkspaceBrowser({ onChange }: { onChange: (workspacePath: string) => v
 					{segments.map((segment, index) => {
 						const crumbSubpath = segments.slice(0, index + 1).join("/");
 						return (
-							<BreadcrumbItem key={crumbSubpath}>
+							<Fragment key={crumbSubpath}>
 								<BreadcrumbSeparator />
-								{index === segments.length - 1 ? (
-									<BreadcrumbPage>{segment}</BreadcrumbPage>
-								) : (
-									<BreadcrumbLink onClick={() => selectFolder(crumbSubpath)}>
-										{segment}
-									</BreadcrumbLink>
-								)}
-							</BreadcrumbItem>
+								<BreadcrumbItem>
+									{index === segments.length - 1 ? (
+										<BreadcrumbPage>{segment}</BreadcrumbPage>
+									) : (
+										<BreadcrumbLink onClick={() => selectFolder(crumbSubpath)}>
+											{segment}
+										</BreadcrumbLink>
+									)}
+								</BreadcrumbItem>
+							</Fragment>
 						);
 					})}
 				</BreadcrumbList>
