@@ -35,6 +35,7 @@ function SettingsPage() {
 						<TabsTrigger
 							value="account"
 							className="gap-1.5"
+							nativeButton={false}
 							render={<Link to="/settings" search={{ tab: "account" }} />}
 						>
 							<UserIcon size={13} />
@@ -43,6 +44,7 @@ function SettingsPage() {
 						<TabsTrigger
 							value="memory"
 							className="gap-1.5"
+							nativeButton={false}
 							render={<Link to="/settings" search={{ tab: "memory" }} />}
 						>
 							<BrainIcon size={13} />
@@ -51,6 +53,7 @@ function SettingsPage() {
 						<TabsTrigger
 							value="endpoints"
 							className="gap-1.5"
+							nativeButton={false}
 							render={<Link to="/settings" search={{ tab: "endpoints" }} />}
 						>
 							<PlugIcon size={13} />
@@ -59,6 +62,7 @@ function SettingsPage() {
 						<TabsTrigger
 							value="appearance"
 							className="gap-1.5"
+							nativeButton={false}
 							render={<Link to="/settings" search={{ tab: "appearance" }} />}
 						>
 							<PaletteIcon size={13} />

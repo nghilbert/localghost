@@ -12,7 +12,7 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from "#/shared/components/ui/alert-dialog";
-import { Button } from "#/shared/components/ui/button";
+import { Button, buttonVariants } from "#/shared/components/ui/button";
 import {
 	Item,
 	ItemActions,
@@ -54,10 +54,10 @@ function CodeAgentPage() {
 		<div className="flex min-h-0 flex-col overflow-auto p-6">
 			<div className="mb-4 flex items-center justify-between">
 				<h1 className="font-heading font-medium text-xl">Code agent sessions</h1>
-				<Button render={<Link to="/agent/new" />} data-testid="new-code-agent-session">
+				<Link to="/agent/new" className={buttonVariants()} data-testid="new-code-agent-session">
 					<PlusIcon />
 					New session
-				</Button>
+				</Link>
 			</div>
 
 			<ItemGroup>

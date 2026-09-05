@@ -1,7 +1,7 @@
 import { DownloadIcon, UploadIcon } from "lucide-react";
 import { useRef } from "react";
 import { useImportBackup } from "#/routes/_authenticated/settings/-hooks/use-import-backup";
-import { Button } from "#/shared/components/ui/button";
+import { Button, buttonVariants } from "#/shared/components/ui/button";
 import {
 	Card,
 	CardContent,
@@ -24,10 +24,14 @@ export function BackupCard() {
 				</CardDescription>
 			</CardHeader>
 			<CardContent className="flex gap-2">
-				<Button variant="outline" size="sm" render={<a href="/api/backup/export" download />}>
+				<a
+					href="/api/backup/export"
+					download
+					className={buttonVariants({ variant: "outline", size: "sm" })}
+				>
 					<DownloadIcon size={13} />
 					Export backup
-				</Button>
+				</a>
 				<Button
 					variant="outline"
 					size="sm"

@@ -12,7 +12,7 @@ import {
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { RouteErrorScreen } from "#/shared/components/RouteErrorScreen";
-import { Button } from "#/shared/components/ui/button";
+import { buttonVariants } from "#/shared/components/ui/button";
 import {
 	Empty,
 	EmptyContent,
@@ -85,9 +85,9 @@ function NotFound() {
 				<EmptyDescription>The page you're looking for does not exist.</EmptyDescription>
 			</EmptyHeader>
 			<EmptyContent>
-				<Button variant="ghost" render={<Link to="/" />}>
+				<Link to="/" className={buttonVariants({ variant: "ghost" })}>
 					Go home
-				</Button>
+				</Link>
 			</EmptyContent>
 		</Empty>
 	);
