@@ -2,10 +2,21 @@ import { createMiddleware } from "@tanstack/react-start";
 import { auth } from "#/shared/lib/auth.server";
 import { getCurrentUserId } from "#/shared/lib/session.server";
 
-/** Resolves the current user once and hands `userId` to the handler's context. */
+/**
+ * Resolves the current user once and hands `userId` to the handler's context,
+ * logging anything the handler throws before it leaves the server.
+ */
 export const authedFn = createMiddleware({ type: "function" }).server(async ({ next }) => {
 	const userId = await getCurrentUserId();
-	return next({ context: { userId } });
+	try {
+		return await next({ context: { userId } });
+	} catch (error) {
+		// Start serializes only `error.message` to the client, which rebuilds the Error
+		// inside its deserializer. An unlogged failure therefore reaches the browser
+		// with a stack pointing there instead of at the throw site.
+		console.error(error);
+		throw error;
+	}
 });
 
 /**
