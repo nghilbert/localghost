@@ -75,13 +75,24 @@ describe("llm/client.server", () => {
 			expect(url).toContain("key=gm-key");
 		});
 
-		it("sends no auth header for llamacpp", () => {
+		it("falls back to the bundled placeholder key for llamacpp with no configured key", () => {
+			// Matches `buildAdapter`'s own fallback: the SDK requires a nonempty key even
+			// when the local server doesn't, and a bundled instance with no `--api-key`
+			// set still expects this exact placeholder.
 			const { headers } = buildModelsRequest({
 				url: "http://localhost:8080",
 				provider: "llamacpp",
 			});
-			expect(headers.Authorization).toBeUndefined();
-			expect(Object.keys(headers)).toEqual(["Content-Type"]);
+			expect(headers.Authorization).toBe("Bearer local-llamacpp");
+		});
+
+		it("prefers a configured llamacpp key over the placeholder", () => {
+			const { headers } = buildModelsRequest({
+				url: "http://localhost:8080",
+				provider: "llamacpp",
+				apiKey: "sk-configured",
+			});
+			expect(headers.Authorization).toBe("Bearer sk-configured");
 		});
 
 		it("prefers an explicit provider over URL sniffing on a custom domain", () => {

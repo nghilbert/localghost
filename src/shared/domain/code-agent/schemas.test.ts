@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { codeAgentModelSchema } from "#/shared/domain/code-agent/schemas";
+import {
+	codeAgentModelSchema,
+	codeAgentStreamForwardedPropsSchema,
+} from "#/shared/domain/code-agent/schemas";
 
 describe("codeAgentModelSchema", () => {
 	it.each([
@@ -22,5 +25,35 @@ describe("codeAgentModelSchema", () => {
 		["nothing at all", ""],
 	])("rejects a model id carrying %s", (_reason, model) => {
 		expect(codeAgentModelSchema.safeParse(model).success).toBe(false);
+	});
+});
+
+describe("codeAgentStreamForwardedPropsSchema", () => {
+	it("defaults to no grants, so a plain run widens nothing", () => {
+		const parsed = codeAgentStreamForwardedPropsSchema.parse({});
+
+		expect(parsed.approvedApprovalIds).toEqual([]);
+	});
+
+	it("accepts the ids the sandbox mints", () => {
+		const parsed = codeAgentStreamForwardedPropsSchema.parse({
+			approvedApprovalIds: ["claude-code:command:npm test"],
+		});
+
+		expect(parsed.approvedApprovalIds).toEqual(["claude-code:command:npm test"]);
+	});
+
+	it("caps how many grants one run can carry", () => {
+		const tooMany = Array.from({ length: 51 }, (_, i) => `claude-code:command:cmd${i}`);
+
+		expect(
+			codeAgentStreamForwardedPropsSchema.safeParse({ approvedApprovalIds: tooMany }).success,
+		).toBe(false);
+	});
+
+	it("rejects an empty id", () => {
+		expect(
+			codeAgentStreamForwardedPropsSchema.safeParse({ approvedApprovalIds: [""] }).success,
+		).toBe(false);
 	});
 });

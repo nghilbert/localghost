@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import {
+	assertNotWorkspaceRoot,
 	getCodeAgentWorkspaceRoot,
 	listWorkspaceEntries,
 	pathIsInside,
@@ -94,6 +95,41 @@ describe("resolveContainedPath", () => {
 
 	it("rejects a symlink pointing out of the root", async () => {
 		await expect(resolveContainedPath({ root, target: "escape" })).rejects.toThrow();
+	});
+
+	// A `path.resolve` fallback for a missing target would accept this and then `mkdir` it
+	// outside the root; only resolving the nearest existing ancestor catches the link.
+	it("rejects a not-yet-created target reached through a symlink out of the root", async () => {
+		await expect(resolveContainedPath({ root, target: "escape/new-project" })).rejects.toThrow();
+	});
+
+	it("rejects a path inside a hidden directory", async () => {
+		await mkdir(path.join(root, ".ssh"), { recursive: true });
+		await expect(resolveContainedPath({ root, target: ".ssh" })).rejects.toThrow();
+	});
+});
+
+describe("assertNotWorkspaceRoot", () => {
+	let root: string;
+
+	beforeAll(async () => {
+		root = await mkdtemp(path.join(os.tmpdir(), "localghost-workspace-bare-"));
+		await mkdir(path.join(root, "project"), { recursive: true });
+	});
+	afterAll(async () => {
+		await rm(root, { recursive: true, force: true });
+	});
+
+	// The root defaults to the home directory and a session gets `fileWrite: "allow"` over
+	// whatever it is given, so granting it the root would grant it everything.
+	it("rejects the root itself", async () => {
+		const candidate = await resolveContainedPath({ root, target: "" });
+		await expect(assertNotWorkspaceRoot({ candidate, root })).rejects.toThrow();
+	});
+
+	it("accepts a folder inside the root", async () => {
+		const candidate = await resolveContainedPath({ root, target: "project" });
+		await expect(assertNotWorkspaceRoot({ candidate, root })).resolves.toBeUndefined();
 	});
 });
 

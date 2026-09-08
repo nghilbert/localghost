@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	deleteModel,
 	downloadModel,
+	getProps,
 	listModels,
 	openModelEventStream,
 	unloadModel,
@@ -211,5 +212,46 @@ describe("llama.cpp model mutations", () => {
 			"http://localhost:8080/models?model=org%2Fmodel%3AQ4_K_M",
 			{ method: "DELETE", headers: {} },
 		);
+	});
+});
+
+describe("getProps", () => {
+	it("names the model in the query, encoded, and sends the key", async () => {
+		fetchMock.mockResolvedValue(new Response(JSON.stringify({ chat_template: "{{ x }}" })));
+
+		await getProps({ url: "http://llamacpp:8080", model: "qwen/qwen3.5:7b", apiKey: "sk-local" });
+
+		const [url, init] = fetchMock.mock.calls[0] ?? [];
+		expect(url).toBe("http://llamacpp:8080/props?model=qwen%2Fqwen3.5%3A7b");
+		expect(init.headers).toEqual({ Authorization: "Bearer sk-local" });
+	});
+
+	// Older builds omit the caps object; reading that as "no capabilities" would block
+	// every model on those servers.
+	it("leaves absent capabilities absent rather than defaulting them to false", async () => {
+		fetchMock.mockResolvedValue(new Response(JSON.stringify({ chat_template: "{{ x }}" })));
+
+		const props = await getProps({ url: "http://llamacpp:8080", model: "qwen" });
+
+		expect(props.chat_template_caps).toBeUndefined();
+	});
+
+	it("fills in a capability the server did not report on an object it did", async () => {
+		fetchMock.mockResolvedValue(
+			new Response(JSON.stringify({ chat_template_caps: { supports_tools: false } })),
+		);
+
+		const props = await getProps({ url: "http://llamacpp:8080", model: "qwen" });
+
+		expect(props.chat_template_caps).toMatchObject({
+			supports_tools: false,
+			supports_tool_calls: true,
+		});
+	});
+
+	it("throws on a non-ok response", async () => {
+		fetchMock.mockResolvedValue(new Response("nope", { status: 401 }));
+
+		await expect(getProps({ url: "http://llamacpp:8080", model: "qwen" })).rejects.toThrow();
 	});
 });

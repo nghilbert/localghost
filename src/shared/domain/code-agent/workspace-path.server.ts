@@ -12,10 +12,31 @@ export function pathIsInside({ candidate, root }: { candidate: string; root: str
 	return candidate.startsWith(rootWithSep);
 }
 
+/** Whether any path segment between `root` and `candidate` starts with `.` (a hidden directory). */
+function hasHiddenSegment({ candidate, root }: { candidate: string; root: string }): boolean {
+	const relative = path.relative(root, candidate);
+	if (!relative || relative.startsWith("..")) return false;
+	return relative.split(path.sep).some((segment) => segment.startsWith("."));
+}
+
+/**
+ * `realpath`, walking up to the nearest existing ancestor first. A not-yet-created
+ * target throws on plain `realpath`; this still catches a symlink planted at an
+ * existing ancestor (`$HOME/link -> /etc`) that a `path.resolve` fallback would miss.
+ */
+async function realpathNearestExisting(target: string): Promise<string> {
+	try {
+		return await realpath(target);
+	} catch {
+		const parent = path.dirname(target);
+		if (parent === target) return target;
+		return path.join(await realpathNearestExisting(parent), path.basename(target));
+	}
+}
+
 /**
  * The tree the workspace browser opens into: `CODE_AGENT_WORKSPACE_ROOT` if set, else the
- * user's home directory, so existing projects are reachable with no setup. The browser
- * itself keeps the bare root from being picked as a session's own workspace.
+ * user's home directory, so existing projects are reachable with no setup.
  */
 export async function getCodeAgentWorkspaceRoot(): Promise<string> {
 	const root = process.env.CODE_AGENT_WORKSPACE_ROOT || os.homedir();
@@ -25,8 +46,7 @@ export async function getCodeAgentWorkspaceRoot(): Promise<string> {
 
 /**
  * Resolves `target` (absolute, or relative to `root`) against `root`, rejecting anything
- * that escapes it. Resolves symlinks first, so one inside `root` can't point out; a
- * not-yet-created target (a folder about to be made) falls back to a plain join.
+ * that escapes it or passes through a hidden directory.
  */
 export async function resolveContainedPath({
 	root,
@@ -36,12 +56,33 @@ export async function resolveContainedPath({
 	target: string;
 }): Promise<string> {
 	const joined = path.isAbsolute(target) ? target : path.join(root, target);
-	const resolved = await realpath(joined).catch(() => path.resolve(joined));
-	const resolvedRoot = await realpath(root).catch(() => path.resolve(root));
+	const resolved = await realpathNearestExisting(joined);
+	const resolvedRoot = await realpathNearestExisting(root);
 	if (!pathIsInside({ candidate: resolved, root: resolvedRoot })) {
 		throw new Error(`${target} is outside the workspace root.`);
 	}
+	if (hasHiddenSegment({ candidate: resolved, root: resolvedRoot })) {
+		throw new Error(`${target} is inside a hidden directory.`);
+	}
 	return resolved;
+}
+
+/**
+ * The workspace root itself is never a valid session workspace: a session gets
+ * `fileWrite: "allow"` over whatever it's given, and the root defaults to `$HOME`.
+ * @throws If `candidate` resolves to `root`.
+ */
+export async function assertNotWorkspaceRoot({
+	candidate,
+	root,
+}: {
+	candidate: string;
+	root: string;
+}): Promise<void> {
+	const resolvedRoot = await realpathNearestExisting(root);
+	if (candidate === resolvedRoot) {
+		throw new Error("Pick a folder inside the workspace root, not the root itself.");
+	}
 }
 
 /** Direct child directories under `root`/`subpath`, hidden ones excluded. */

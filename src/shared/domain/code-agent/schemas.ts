@@ -34,8 +34,14 @@ export const listWorkspaceEntriesSchema = z.object({
 
 export const codeAgentSessionIdInput = z.object({ id: uuid });
 
-/** Approving one command the sandbox asked about, for the rest of this session. */
-export const approveCodeAgentCommandInput = z.object({ id: uuid, approvalId: z.string().min(1) });
+/**
+ * Approvals the user granted for this run, as the sandbox's `provider:kind:target` ids.
+ * They widen the run's policy and are never stored: the harness denies an `ask` action and
+ * asks the client to re-run with a decision, so a grant is only ever worth one run.
+ */
+export const codeAgentStreamForwardedPropsSchema = z.object({
+	approvedApprovalIds: z.array(z.string().min(1).max(4096)).max(50).default([]),
+});
 
 /** The agent stream's run identity: the session id doubles as the AG-UI thread id. */
 export const codeAgentThreadIdSchema = uuid;

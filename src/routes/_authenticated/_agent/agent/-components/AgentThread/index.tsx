@@ -13,8 +13,10 @@ import {
 	MessageScrollerViewport,
 } from "#/shared/components/ui/message-scroller";
 import { type CodeAgentApproval, isCodeAgentApproval } from "#/shared/domain/code-agent/approval";
-import type { CodeAgentSessionDetail } from "#/shared/domain/code-agent/code-agent.functions";
-import { useApproveCodeAgentCommand } from "#/shared/domain/code-agent/use-sessions";
+import {
+	type CodeAgentSessionDetail,
+	requestCodeAgentRunCancel,
+} from "#/shared/domain/code-agent/code-agent.functions";
 import { awaitingAssistantResponse } from "#/shared/domain/conversation/messages";
 import { CommandApprovalMarker } from "./CommandApprovalMarker";
 
@@ -26,13 +28,19 @@ type AgentThreadProps = { session: CodeAgentSessionDetail };
  */
 export function AgentThread({ session }: AgentThreadProps) {
 	const [connection] = useState(() => fetchServerSentEvents("/api/agent/stream"));
+	// Component state, not `useChat`'s native `pendingInterrupts`: the sandbox's approval
+	// payload carries no `approval.id`, so it rides a custom event instead (see
+	// `SANDBOX_APPROVAL_EVENT`'s comment in policy.server.ts) and a reload loses it.
 	const [approvals, setApprovals] = useState<CodeAgentApproval[]>([]);
-	const approveCommand = useApproveCodeAgentCommand();
+	// Approvals granted for the next run only. The harness denies an `ask` action and asks
+	// the client to re-run with a decision, so these ride the run and are never stored.
+	const [grantedApprovalIds, setGrantedApprovalIds] = useState<string[]>([]);
 
-	const { messages, status, isLoading, error, reload, sendMessage, stop } = useChat({
+	const { messages, status, isLoading, error, reload, sendMessage, stop, runId } = useChat({
 		connection,
 		persistence: true,
 		threadId: session.id,
+		forwardedProps: { approvedApprovalIds: grantedApprovalIds },
 		onCustomEvent: (eventType, data) => {
 			if (!isCodeAgentApproval(eventType, data)) return;
 			setApprovals((prev) =>
@@ -57,18 +65,35 @@ export function AgentThread({ session }: AgentThreadProps) {
 		setApprovals((prev) => prev.filter((pending) => pending.approvalId !== approvalId));
 	}
 
+	/**
+	 * Records the cancel before disconnecting: a dropped connection alone never aborts the
+	 * run, so the server tells Stop from a reload by this record, which has to land first.
+	 * A failed record still disconnects, so the run detaches instead of the button doing nothing.
+	 */
+	async function handleStop() {
+		try {
+			if (runId) await requestCodeAgentRunCancel({ data: runId });
+		} finally {
+			stop();
+		}
+	}
+
 	/** Allowing a command re-runs the turn the harness refused it on. */
 	function handleApprove(approval: CodeAgentApproval) {
-		approveCommand.mutate(
-			{ id: session.id, approvalId: approval.approvalId },
-			{
-				onSuccess: () => {
-					dismissApproval(approval.approvalId);
-					void reload();
-				},
-			},
+		setGrantedApprovalIds((prev) =>
+			prev.includes(approval.approvalId) ? prev : [...prev, approval.approvalId],
 		);
+		dismissApproval(approval.approvalId);
 	}
+
+	// `useChat` syncs `forwardedProps` in an effect, so a grant reaches the client one
+	// commit after it is made; re-running any sooner would send the run without it.
+	const grantsSent = useRef(0);
+	useEffect(() => {
+		if (grantedApprovalIds.length === grantsSent.current) return;
+		grantsSent.current = grantedApprovalIds.length;
+		void reload();
+	});
 
 	const canGenerate = session.hasRun && status === "ready" && awaitingAssistantResponse(messages);
 
@@ -96,7 +121,7 @@ export function AgentThread({ session }: AgentThreadProps) {
 								<MessageScrollerItem key={approval.approvalId}>
 									<CommandApprovalMarker
 										approval={approval}
-										isPending={approveCommand.isPending}
+										disabled={isStreaming}
 										onApprove={() => handleApprove(approval)}
 										onDeny={() => dismissApproval(approval.approvalId)}
 									/>
@@ -123,7 +148,7 @@ export function AgentThread({ session }: AgentThreadProps) {
 					selection={{ endpointId: session.endpointId, model: session.model }}
 					locked
 					sendMessage={(content) => void sendMessage(content)}
-					stop={stop}
+					stop={handleStop}
 				/>
 			</div>
 		</div>

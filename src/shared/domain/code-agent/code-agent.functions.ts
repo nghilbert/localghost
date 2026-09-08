@@ -1,19 +1,19 @@
-import type { ModelMessage } from "@tanstack/ai";
+import { type ModelMessage, requestRunCancel } from "@tanstack/ai";
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
+import { chatPersistence, findRunThreadId } from "#/shared/domain/chat/persistence.server";
+import { chatRunIdSchema } from "#/shared/domain/chat/schemas";
 import { reviveMessageDates } from "#/shared/domain/conversation/messages";
 import { authedFn } from "#/shared/lib/middleware";
 import {
+	codeAgentSessionOwnedBy,
 	findCodeAgentSession,
 	findCodeAgentSessions,
 	insertCodeAgentSession,
-	recordApprovedCommand,
 	removeCodeAgentSession,
 } from "./code-agent.server";
 import { availableCodeAgentHarnessIds } from "./harness-availability.server";
-import { approvalCommandTarget } from "./policy.server";
 import {
-	approveCodeAgentCommandInput,
 	codeAgentSessionIdInput,
 	createCodeAgentSessionSchema,
 	listWorkspaceEntriesSchema,
@@ -59,16 +59,18 @@ export const createCodeAgentSession = createServerFn({ method: "POST" })
 	.handler(({ data, context }) => insertCodeAgentSession({ ownerId: context.userId, ...data }));
 
 /**
- * Allows a command the sandbox asked about, for the rest of this session.
- * @throws If the approval names something other than a command.
+ * Records an explicit cancel for a run: the out-of-band signal `/api/agent/stream`'s
+ * disconnect handler checks to tell Stop apart from a dropped connection, which
+ * produces the identical disconnect.
  */
-export const approveCodeAgentCommand = createServerFn({ method: "POST" })
+export const requestCodeAgentRunCancel = createServerFn({ method: "POST" })
 	.middleware([authedFn])
-	.validator(approveCodeAgentCommandInput)
-	.handler(async ({ data: { id, approvalId }, context }) => {
-		const command = approvalCommandTarget(approvalId);
-		if (!command) throw new Error("That approval does not name a command.");
-		await recordApprovedCommand({ id, ownerId: context.userId, command });
+	.validator(chatRunIdSchema)
+	.handler(async ({ data: runId, context }) => {
+		const threadId = await findRunThreadId({ runId });
+		if (!threadId || !(await codeAgentSessionOwnedBy({ id: threadId, ownerId: context.userId })))
+			return;
+		await requestRunCancel(chatPersistence.stores.runs, runId);
 	});
 
 /** Delete a code-agent session by id. No-op when the id isn't owned by the current user. */

@@ -1,28 +1,37 @@
-import { memoryStream, resumeServerSentEventsResponse } from "@tanstack/ai";
 import { reconstructChat } from "@tanstack/ai-persistence";
 import { createFileRoute } from "@tanstack/react-router";
-import { chatPersistence } from "#/shared/domain/chat/persistence.server";
+import { chatPersistence, findRunThreadId } from "#/shared/domain/chat/persistence.server";
 import {
 	codeAgentSessionOwnedBy,
 	findCodeAgentSessionWithEndpoint,
 } from "#/shared/domain/code-agent/code-agent.server";
+import { approvalCommandTarget } from "#/shared/domain/code-agent/policy.server";
 import { streamCodeAgentEvents } from "#/shared/domain/code-agent/run.server";
-import { codeAgentModelSchema, codeAgentThreadIdSchema } from "#/shared/domain/code-agent/schemas";
+import {
+	codeAgentModelSchema,
+	codeAgentStreamForwardedPropsSchema,
+	codeAgentThreadIdSchema,
+} from "#/shared/domain/code-agent/schemas";
 import {
 	getCodeAgentWorkspaceRoot,
 	resolveContainedPath,
 } from "#/shared/domain/code-agent/workspace-path.server";
 import { endpointApiKey } from "#/shared/domain/endpoint/endpoint.server";
 import { asLLMProvider, detectProvider } from "#/shared/lib/llm/provider";
-import { readRunParams, streamRunResponse } from "#/shared/lib/llm/stream.server";
+import {
+	readRunParams,
+	resumeRunResponse,
+	streamRunResponse,
+} from "#/shared/lib/llm/stream.server";
 import { authedRequest } from "#/shared/lib/middleware";
 
 // Roomy enough for a full history; an agent transcript carries no image attachments.
 const MAX_BODY_BYTES = 16 * 1024 * 1024;
 
 /**
- * The code-agent stream. The session id *is* the AG-UI thread id, so the run needs no
- * forwarded props: `params.threadId` names the session, and owning it is the gate.
+ * The code-agent stream. The session id *is* the AG-UI thread id: `params.threadId` names
+ * the session and owning it is the gate, so the only forwarded props are the command
+ * approvals the user granted for this run.
  */
 export const Route = createFileRoute("/api/agent/stream")({
 	server: {
@@ -35,6 +44,14 @@ export const Route = createFileRoute("/api/agent/stream")({
 
 				const threadId = codeAgentThreadIdSchema.safeParse(params.threadId);
 				if (!threadId.success) return new Response("Bad request", { status: 400 });
+
+				const forwarded = codeAgentStreamForwardedPropsSchema.safeParse(params.forwardedProps);
+				if (!forwarded.success) return new Response("Bad request", { status: 400 });
+				// Widens this run's policy only. Ids naming anything but a command drop out,
+				// and the grant is gone with the run, so nothing carries into the next turn.
+				const approvedCommands = forwarded.data.approvedApprovalIds
+					.map(approvalCommandTarget)
+					.filter((command) => command !== null);
 
 				const session = await findCodeAgentSessionWithEndpoint({
 					id: threadId.data,
@@ -63,7 +80,8 @@ export const Route = createFileRoute("/api/agent/stream")({
 
 				return streamRunResponse({
 					request,
-					errorMessage: "Code agent run failed",
+					runId: params.runId,
+					runs: chatPersistence.stores.runs,
 					run: (abortController) =>
 						streamCodeAgentEvents({
 							workspacePath: session.workspacePath,
@@ -71,7 +89,7 @@ export const Route = createFileRoute("/api/agent/stream")({
 							apiKey: apiKey ?? "",
 							endpointUrl: session.endpoint.url,
 							endpointProvider,
-							approvedCommands: session.approvedCommands,
+							approvedCommands,
 							threadId: threadId.data,
 							runId: params.runId,
 							messages: params.messages,
@@ -86,7 +104,11 @@ export const Route = createFileRoute("/api/agent/stream")({
 						authorize: (threadId) => codeAgentSessionOwnedBy({ id: threadId, ownerId: userId }),
 					});
 				}
-				return resumeServerSentEventsResponse({ adapter: memoryStream(request) });
+				return resumeRunResponse({
+					request,
+					findThreadId: findRunThreadId,
+					authorize: (threadId) => codeAgentSessionOwnedBy({ id: threadId, ownerId: userId }),
+				});
 			},
 		},
 	},

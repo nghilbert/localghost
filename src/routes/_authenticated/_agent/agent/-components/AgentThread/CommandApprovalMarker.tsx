@@ -5,19 +5,21 @@ import type { CodeAgentApproval } from "#/shared/domain/code-agent/approval";
 
 type CommandApprovalMarkerProps = {
 	approval: CodeAgentApproval;
-	isPending: boolean;
+	/** True while the harness is streaming a turn: approving re-runs the turn, and a second
+	 * run before the first finishes shares the sandbox and clobbers its transcript. */
+	disabled: boolean;
 	onApprove: () => void;
 	onDeny: () => void;
 };
 
 /**
- * The command the agent wants to run, with the choice to allow it. Approving keeps it
- * allowed for the rest of the session; the harness has already refused it this turn,
- * so denying only clears the prompt.
+ * The command the agent wants to run, with the choice to allow it. Approving allows it for
+ * the re-run only, so the same command asks again next turn; the harness has already
+ * refused it this turn, so denying only clears the prompt.
  */
 export function CommandApprovalMarker({
 	approval,
-	isPending,
+	disabled,
 	onApprove,
 	onDeny,
 }: CommandApprovalMarkerProps) {
@@ -32,7 +34,7 @@ export function CommandApprovalMarker({
 				<Button
 					size="xs"
 					variant="outline"
-					disabled={isPending}
+					disabled={disabled}
 					data-testid="command-approval-approve"
 					onClick={onApprove}
 				>
@@ -42,7 +44,7 @@ export function CommandApprovalMarker({
 				<Button
 					size="xs"
 					variant="outline"
-					disabled={isPending}
+					disabled={disabled}
 					data-testid="command-approval-deny"
 					onClick={onDeny}
 				>

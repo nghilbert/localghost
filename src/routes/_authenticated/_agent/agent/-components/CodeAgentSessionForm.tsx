@@ -176,7 +176,9 @@ function WorkspaceBrowser({ onChange }: { onChange: (workspacePath: string) => v
 						{segments.length === 0 ? (
 							<BreadcrumbPage>Home</BreadcrumbPage>
 						) : (
-							<BreadcrumbLink onClick={() => selectFolder("")}>Home</BreadcrumbLink>
+							<BreadcrumbLink data-testid="workspace-crumb-home" onClick={() => selectFolder("")}>
+								Home
+							</BreadcrumbLink>
 						)}
 					</BreadcrumbItem>
 					{segments.map((segment, index) => {
@@ -188,7 +190,10 @@ function WorkspaceBrowser({ onChange }: { onChange: (workspacePath: string) => v
 									{index === segments.length - 1 ? (
 										<BreadcrumbPage>{segment}</BreadcrumbPage>
 									) : (
-										<BreadcrumbLink onClick={() => selectFolder(crumbSubpath)}>
+										<BreadcrumbLink
+											data-testid={`workspace-crumb-${crumbSubpath}`}
+											onClick={() => selectFolder(crumbSubpath)}
+										>
 											{segment}
 										</BreadcrumbLink>
 									)}
@@ -206,6 +211,7 @@ function WorkspaceBrowser({ onChange }: { onChange: (workspacePath: string) => v
 							<Item
 								key={entry}
 								size="sm"
+								data-testid={`workspace-entry-${entry}`}
 								render={<button type="button" />}
 								onClick={() => selectFolder(subpath ? `${subpath}/${entry}` : entry)}
 							>

@@ -38,9 +38,8 @@ export type LlamaModel = z.infer<typeof llamaModelSchema>;
 
 /**
  * Key for the bundled llama.cpp service, mirroring its `LLAMA_API_KEY` (compose.yaml).
- * llama.cpp enforces `--api-key` on `/models/sse` and `/models/unload` but not `/models`,
- * so an unset key breaks download progress and cancellation but not discovery. A server
- * without `--api-key` ignores the header.
+ * Every route but `/health` checks `--api-key`, so an endpoint configured without one still
+ * needs this to reach `/models` and `/props`. A server started without one ignores the header.
  */
 export const LOCAL_LLAMACPP_API_KEY = process.env.LLAMACPP_API_KEY || "local-llamacpp";
 
@@ -96,6 +95,47 @@ export async function listModels({
 	});
 	if (!response.ok) throw await responseError({ response, operation: "GET /models" });
 	return llamaModelListSchema.parse(await response.json()).data;
+}
+
+/**
+ * Both the caps object and each flag are optional: builds before `chat_template_caps`
+ * omit it, and an unknown capability must not read as a missing one.
+ */
+const llamaPropsSchema = z.object({
+	chat_template: z.string().optional(),
+	chat_template_caps: z
+		.object({
+			supports_tools: z.boolean().default(true),
+			supports_tool_calls: z.boolean().default(true),
+		})
+		.loose()
+		.optional(),
+});
+
+export type LlamaProps = z.infer<typeof llamaPropsSchema>;
+
+/**
+ * One model's own chat template and capabilities. In router mode `?model=` is required
+ * and the model is loaded on demand, so this blocks for as long as a load takes.
+ */
+export async function getProps({
+	url,
+	model,
+	apiKey,
+	timeoutMs = 120_000,
+}: {
+	url: string;
+	model: string;
+	apiKey?: string;
+	timeoutMs?: number;
+}): Promise<LlamaProps> {
+	const response = await timeoutFetch({
+		url: `${url}/props?model=${encodeURIComponent(model)}`,
+		init: { headers: authHeaders(apiKey) },
+		timeoutMs,
+	});
+	if (!response.ok) throw await responseError({ response, operation: "GET /props" });
+	return llamaPropsSchema.parse(await response.json());
 }
 
 // `bodyTimeout: 0` disables undici's 5-min between-chunks timeout for this long-lived stream.

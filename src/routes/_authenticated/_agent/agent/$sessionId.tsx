@@ -6,10 +6,9 @@ import { codeAgentSessionQueryOptions } from "#/shared/domain/code-agent/code-ag
 
 export const Route = createFileRoute("/_authenticated/_agent/agent/$sessionId")({
 	loader: async ({ params, context }) => {
-		const session = await context.queryClient.query({
-			...codeAgentSessionQueryOptions(params.sessionId),
-			staleTime: "static",
-		});
+		// No `staleTime: "static"` here: `hasRun` has to refetch, or the Generate
+		// affordance never appears once a session's first run has finished.
+		const session = await context.queryClient.query(codeAgentSessionQueryOptions(params.sessionId));
 		return { title: session.title };
 	},
 	head: ({ loaderData }) => ({

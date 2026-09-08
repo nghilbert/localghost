@@ -84,7 +84,17 @@ type ProviderConfig = {
 	 * Absent when the provider publishes no capability metadata: assume it can.
 	 */
 	parseToolSupport?: (args: { json: ModelsResponse; model: string }) => boolean;
+	/**
+	 * A provider-specific fallback for a missing key, applied before every authenticated
+	 * call. Absent for providers where no key means no key.
+	 */
+	resolveApiKey?: (apiKey?: string) => string | undefined;
 };
+
+/** Applies a provider's own key fallback, so chat and model-listing never disagree on it. */
+function resolveApiKey({ config, apiKey }: { config: ProviderConfig; apiKey?: string }) {
+	return config.resolveApiKey ? config.resolveApiKey(apiKey) : apiKey;
+}
 
 /** Clamps a temperature into Anthropic's accepted `[0, 1]` range. */
 function clampUnit(value: number): number {
@@ -112,7 +122,8 @@ function openaiAdapter({
 }
 
 /** Strips a trailing `/v1` segment, so callers that append their own `/v1/...` don't double it. */
-function stripTrailingV1(url: string): string {
+/** Normalizes to the server root, so a `/v1`-suffixed endpoint still reaches `/models`. */
+export function stripTrailingV1(url: string): string {
 	const trimmed = trimPathRight(url);
 	return trimmed.endsWith("/v1") ? trimmed.slice(0, -"/v1".length) : trimmed;
 }
@@ -185,11 +196,13 @@ const PROVIDERS: Record<LLMProvider, ProviderConfig> = {
 	},
 	llamacpp: {
 		...OPENAI_COMPATIBLE,
-		buildAdapter: (args) =>
-			openaiAdapter({ ...args, apiKey: args.apiKey || LOCAL_LLAMACPP_API_KEY }),
+		// The SDK requires a nonempty key even when the local server does not, and a
+		// bundled instance with no `--api-key` set still expects this exact
+		// placeholder (`compose.yaml`'s `LLAMA_API_KEY` default). A configured
+		// endpoint key always wins.
+		resolveApiKey: (apiKey) => apiKey || LOCAL_LLAMACPP_API_KEY,
 		// `GET /models` (router mode) also lists downloaded-but-unloaded models,
-		// which `/v1/models` may omit. The SDK requires a nonempty key even when
-		// the local server does not; a configured `--api-key` still takes precedence.
+		// which `/v1/models` may omit.
 		modelsUrl: ({ base }) => `${base}/models`,
 		parseModels: (json) => (json.data ?? []).map((m) => m.id),
 	},
@@ -225,7 +238,7 @@ function baseChatOptions(opts: StreamLLMOptions) {
 	const config = PROVIDERS[opts.provider ?? detectProvider(opts.url)];
 	const adapter = config.buildAdapter({
 		model: opts.model,
-		apiKey: opts.apiKey ?? "",
+		apiKey: resolveApiKey({ config, apiKey: opts.apiKey }) ?? "",
 		baseUrl: chatBaseUrl({ url: opts.url, provider: opts.provider }),
 	});
 	return {
@@ -271,7 +284,11 @@ export function buildModelsRequest({
 }): { url: string; headers: Record<string, string> } {
 	const config = PROVIDERS[provider ?? detectProvider(url)];
 	const base = stripTrailingV1(url);
-	return { url: config.modelsUrl({ base, apiKey }), headers: config.modelsHeaders(apiKey) };
+	const resolvedApiKey = resolveApiKey({ config, apiKey });
+	return {
+		url: config.modelsUrl({ base, apiKey: resolvedApiKey }),
+		headers: config.modelsHeaders(resolvedApiKey),
+	};
 }
 
 /**

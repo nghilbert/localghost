@@ -25,24 +25,27 @@ import { buildCodeAgentPolicy, renameApprovalChunks } from "./policy.server";
 const MAX_HARNESS_TURNS = 60;
 
 /**
- * The env a Claude Code run needs, from the session's endpoint. `ANTHROPIC_BASE_URL`
- * points the CLI at a non-Anthropic backend; llama.cpp serves the Messages API with
- * its jinja template engine on.
+ * The env a Claude Code run needs, from the session's endpoint.
+ * `ANTHROPIC_DEFAULT_HAIKU_MODEL` covers the CLI's own background calls (session-title
+ * generation), which otherwise default to an unresolvable Anthropic haiku id.
  */
 function harnessEnv({
 	apiKey,
 	endpointUrl,
 	endpointProvider,
+	model,
 }: {
 	apiKey: string;
 	endpointUrl: string;
 	endpointProvider: LLMProvider;
+	model: string;
 }): Record<string, string> {
 	const key = apiKey || (endpointProvider === "llamacpp" ? LOCAL_LLAMACPP_API_KEY : "");
 	if (endpointProvider === "anthropic") return { ANTHROPIC_API_KEY: key };
 	return {
 		ANTHROPIC_API_KEY: key,
 		ANTHROPIC_BASE_URL: chatBaseUrl({ url: endpointUrl, provider: "anthropic" }),
+		ANTHROPIC_DEFAULT_HAIKU_MODEL: model,
 	};
 }
 
@@ -175,6 +178,12 @@ export async function* streamCodeAgentEvents(
 				workspacePath: opts.workspacePath,
 				endpointProvider: opts.endpointProvider,
 			}),
+			// The adapter's `hostClaudeAuthEnv()` copies the host process's own Anthropic
+			// credentials into the spawn and this object is spread after it, so restating
+			// `injected` here is what keeps a user-controlled endpoint URL from receiving
+			// the host's real key or token instead of this session's own.
+			ANTHROPIC_API_KEY: injected.ANTHROPIC_API_KEY ?? "",
+			ANTHROPIC_AUTH_TOKEN: "",
 		},
 	});
 

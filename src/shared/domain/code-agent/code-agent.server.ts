@@ -1,13 +1,20 @@
 import { mkdir } from "node:fs/promises";
 import { deleteChatThreadRows } from "#/shared/domain/chat/persistence.server";
 import { deriveConversationTitle, threadMessagesFrom } from "#/shared/domain/conversation/messages";
-import { fetchEndpointModels } from "#/shared/domain/endpoint/endpoint.server";
+import { endpointApiKey, fetchEndpointModels } from "#/shared/domain/endpoint/endpoint.server";
 import { prisma } from "#/shared/lib/db.server";
+import { asLLMProvider, detectProvider } from "#/shared/lib/llm/provider";
+import { codeAgentModelBlocker } from "./compatibility.server";
 import { availableCodeAgentHarnessIds } from "./harness-availability.server";
 import { harnessAcceptsProvider } from "./harnesses";
+import { destroyCodeAgentSandbox } from "./run.server";
 import { codeAgentModelSchema } from "./schemas";
 import { type CodeAgentSessionListItem, sortSessionsByActivity } from "./session-activity";
-import { getCodeAgentWorkspaceRoot, resolveContainedPath } from "./workspace-path.server";
+import {
+	assertNotWorkspaceRoot,
+	getCodeAgentWorkspaceRoot,
+	resolveContainedPath,
+} from "./workspace-path.server";
 
 /** Session list, ordered by whichever is more recent: the last message or a metadata edit. */
 export async function findCodeAgentSessions({
@@ -88,7 +95,7 @@ export async function insertCodeAgentSession({
 }): Promise<{ id: string }> {
 	const endpoint = await prisma.endpoint.findFirst({
 		where: { id: endpointId, ownerId },
-		select: { provider: true },
+		select: { provider: true, url: true, apiKeyEncrypted: true },
 	});
 	if (!endpoint) throw new Error("That endpoint no longer exists.");
 	if (!harnessAcceptsProvider({ harness, provider: endpoint.provider })) {
@@ -109,8 +116,21 @@ export async function insertCodeAgentSession({
 		throw new Error(`${model} isn't served by that endpoint.`);
 	}
 
+	// Same reason, one step deeper: some models load fine but their chat template or
+	// capabilities can't support a coding harness at all.
+	const blocker = await codeAgentModelBlocker({
+		endpoint: {
+			url: endpoint.url,
+			provider: asLLMProvider(endpoint.provider) ?? detectProvider(endpoint.url),
+			...(endpointApiKey(endpoint) ? { apiKey: endpointApiKey(endpoint) } : {}),
+		},
+		model: parsedModel.data,
+	});
+	if (blocker) throw new Error(blocker);
+
 	const root = await getCodeAgentWorkspaceRoot();
 	const resolvedWorkspacePath = await resolveContainedPath({ root, target: workspacePath });
+	await assertNotWorkspaceRoot({ candidate: resolvedWorkspacePath, root });
 	await mkdir(resolvedWorkspacePath, { recursive: true });
 
 	return prisma.$transaction(async (tx) => {
@@ -122,7 +142,6 @@ export async function insertCodeAgentSession({
 				harness,
 				model: parsedModel.data,
 				title: deriveConversationTitle(firstMessage) ?? "New code session",
-				approvedCommands: [],
 			},
 			select: { id: true },
 		});
@@ -133,30 +152,9 @@ export async function insertCodeAgentSession({
 	});
 }
 
-/** Records a command the user approved, so the sandbox policy stops asking about it. */
-export async function recordApprovedCommand({
-	id,
-	ownerId,
-	command,
-}: {
-	id: string;
-	ownerId: string;
-	command: string;
-}): Promise<void> {
-	const session = await prisma.codeAgentSession.findFirst({
-		where: { id, ownerId },
-		select: { approvedCommands: true },
-	});
-	if (!session || session.approvedCommands.includes(command)) return;
-	await prisma.codeAgentSession.update({
-		where: { id },
-		data: { approvedCommands: { push: command } },
-	});
-}
-
 /**
- * Delete a code-agent session by id, plus its chat-persistence rows. The files it
- * edited are left alone. No-op when the id isn't owned.
+ * Delete a code-agent session by id, plus its chat-persistence rows and the sandbox it
+ * ran in. The files it edited are left alone. No-op when the id isn't owned.
  */
 export async function removeCodeAgentSession({
 	id,
@@ -167,11 +165,13 @@ export async function removeCodeAgentSession({
 }): Promise<void> {
 	const owned = await prisma.codeAgentSession.findFirst({
 		where: { id, ownerId },
-		select: { id: true },
+		select: { workspacePath: true },
 	});
 	if (!owned) return;
 	await prisma.$transaction([
 		...deleteChatThreadRows({ threadId: id }),
 		prisma.codeAgentSession.deleteMany({ where: { id, ownerId } }),
 	]);
+	// After the rows, so a teardown failure cannot leave an undeletable session behind.
+	await destroyCodeAgentSandbox({ threadId: id, workspacePath: owned.workspacePath });
 }
