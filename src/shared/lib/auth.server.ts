@@ -11,9 +11,18 @@ function getSecret(): string {
 	return secret;
 }
 
-/** Whether this deployment still accepts a sign-up, i.e. holds no account yet. */
+/**
+ * Whether this deployment still accepts a sign-up, i.e. holds no account that can
+ * sign in yet. Counting `user` rows alone would also close it on a half-finished
+ * sign-up: better-auth writes the user and its credential row separately, so a
+ * failure between the two leaves a user nobody can authenticate as, and sign-up
+ * would stay shut with no way back into a personal deployment.
+ */
 export async function isSignUpOpen(): Promise<boolean> {
-	return (await prisma.user.count()) === 0;
+	const usable = await prisma.user.count({
+		where: { accounts: { some: { password: { not: null } } } },
+	});
+	return usable === 0;
 }
 
 export const auth = betterAuth({
