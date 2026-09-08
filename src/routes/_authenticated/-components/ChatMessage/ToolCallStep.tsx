@@ -78,7 +78,7 @@ type ToolDisplay = {
 };
 
 /** Labels each call with what it actually did (query, host, action), not just the tool name. */
-export const TOOL_DISPLAY: Record<string, ToolDisplay> = {
+const TOOL_DISPLAY: Record<string, ToolDisplay> = {
 	web_search: {
 		icon: GlobeIcon,
 		running: (input) => {

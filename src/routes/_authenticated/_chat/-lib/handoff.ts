@@ -1,7 +1,7 @@
 import { z } from "zod/v4";
 
 /** Draft-page tool toggles carried to the new conversation. */
-export const chatHandoffSchema = z.object({
+const chatHandoffSchema = z.object({
 	enabledTools: z.array(z.string()),
 });
 

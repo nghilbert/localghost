@@ -26,7 +26,7 @@ export const Route = createFileRoute("/_authenticated")({
 });
 
 /** Renders inside the sidebar inset on mobile screens. */
-export function MobileSidebarTrigger() {
+function MobileSidebarTrigger() {
 	const isMobile = useIsMobile();
 	if (!isMobile) return null;
 
