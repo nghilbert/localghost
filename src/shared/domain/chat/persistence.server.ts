@@ -32,6 +32,20 @@ function toInterruptStatus(value: string): InterruptStatus {
 	return status;
 }
 
+function isJsonObject(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/** The three counts `TokenUsage` requires; every other field on it is optional. */
+function isTokenUsage(value: unknown): value is NonNullable<RunRecord["usage"]> {
+	return (
+		isJsonObject(value) &&
+		typeof value.promptTokens === "number" &&
+		typeof value.completionTokens === "number" &&
+		typeof value.totalTokens === "number"
+	);
+}
+
 function mapRun(row: {
 	runId: string;
 	threadId: string;
@@ -55,7 +69,7 @@ function mapRun(row: {
 		...(row.error != null
 			? { error: { message: row.error, ...(row.errorCode != null ? { code: row.errorCode } : {}) } }
 			: {}),
-		...(row.usage != null ? { usage: row.usage as RunRecord["usage"] } : {}),
+		...(isTokenUsage(row.usage) ? { usage: row.usage } : {}),
 		...(row.sandboxKey != null ? { sandboxKey: row.sandboxKey } : {}),
 		...(row.detachedSince != null ? { detachedSince: Number(row.detachedSince) } : {}),
 		...(row.cancelRequested != null ? { cancelRequested: row.cancelRequested } : {}),
@@ -79,7 +93,7 @@ function mapInterrupt(row: {
 		threadId: row.threadId,
 		status: toInterruptStatus(row.status),
 		requestedAt: Number(row.requestedAt),
-		payload: row.payload as Record<string, unknown>,
+		payload: isJsonObject(row.payload) ? row.payload : {},
 		...(row.resolvedAt != null ? { resolvedAt: Number(row.resolvedAt) } : {}),
 		...(row.response !== null && row.response !== undefined ? { response: row.response } : {}),
 	};
@@ -165,13 +179,6 @@ function createRunStore(): RunStore {
 			});
 			return rows.map(mapRun);
 		},
-		async listReclaimable({ now, ttlMs }) {
-			const cutoff = BigInt(now - ttlMs);
-			const rows = await prisma.chatRun.findMany({
-				where: { status: "running", detachedSince: { not: null, lte: cutoff } },
-			});
-			return rows.map(mapRun);
-		},
 	};
 }
 
@@ -240,6 +247,16 @@ export const chatPersistence: ChatWithInterruptsPersistence = defineAIPersistenc
 		interrupts: createInterruptStore(),
 	},
 });
+
+/**
+ * The thread a run belongs to, or `null` for an unknown run. A resumable-stream rejoin
+ * names its run by id alone, so this is what authorizing that request against its
+ * thread's owner requires.
+ */
+export async function findRunThreadId({ runId }: { runId: string }): Promise<string | null> {
+	const row = await prisma.chatRun.findUnique({ where: { runId }, select: { threadId: true } });
+	return row?.threadId ?? null;
+}
 
 /**
  * Every persistence row a thread owns, as deletes to compose into the caller's

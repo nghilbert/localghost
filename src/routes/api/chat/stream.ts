@@ -1,11 +1,10 @@
-import { memoryStream, resumeServerSentEventsResponse } from "@tanstack/ai";
 import { memoryMiddleware } from "@tanstack/ai-memory";
 import { reconstructChat, withPersistence } from "@tanstack/ai-persistence";
 import { createFileRoute } from "@tanstack/react-router";
 import { buildChatTools } from "#/shared/domain/chat/agent.server";
-import { chatPersistence } from "#/shared/domain/chat/persistence.server";
+import { chatPersistence, findRunThreadId } from "#/shared/domain/chat/persistence.server";
 import { resolveGenerationOptions } from "#/shared/domain/chat/resolve-generation-options";
-import { chatStreamForwardedPropsSchema } from "#/shared/domain/chat/schemas";
+import { chatStreamForwardedPropsSchema, chatThreadIdSchema } from "#/shared/domain/chat/schemas";
 import { buildChatSystemPrompt } from "#/shared/domain/chat/system-prompt";
 import {
 	conversationOwnedBy,
@@ -18,7 +17,11 @@ import { getModelSetting } from "#/shared/domain/model-setting/model-setting.ser
 import { findUserSettings } from "#/shared/domain/user-settings/user-settings.server";
 import { streamLLMEvents } from "#/shared/lib/llm/client.server";
 import { asLLMProvider } from "#/shared/lib/llm/provider";
-import { readRunParams, streamRunResponse } from "#/shared/lib/llm/stream.server";
+import {
+	readRunParams,
+	resumeRunResponse,
+	streamRunResponse,
+} from "#/shared/lib/llm/stream.server";
 import { authedRequest } from "#/shared/lib/middleware";
 
 // Roomy enough for a full history carrying image attachments as data URLs.
@@ -41,10 +44,15 @@ export const Route = createFileRoute("/api/chat/stream")({
 				const { params } = read;
 				const forwarded = chatStreamForwardedPropsSchema.safeParse(params.forwardedProps);
 				if (!forwarded.success) return new Response("Bad request", { status: 400 });
-				const { conversationId, enabledTools, timeZone } = forwarded.data;
+				const { enabledTools, timeZone } = forwarded.data;
+
+				// The run is keyed on `threadId`, so that is the id to authorize: anything
+				// else lets a caller pass an owned id here and a stranger's id to the run.
+				const threadId = chatThreadIdSchema.safeParse(params.threadId);
+				if (!threadId.success) return new Response("Bad request", { status: 400 });
 
 				const conversation = await findConversationWithEndpoint({
-					id: conversationId,
+					id: threadId.data,
 					ownerId: userId,
 				});
 				if (!conversation) return new Response("Conversation not found", { status: 404 });
@@ -72,7 +80,8 @@ export const Route = createFileRoute("/api/chat/stream")({
 
 				return streamRunResponse({
 					request,
-					errorMessage: "LLM request failed",
+					runId: params.runId,
+					runs: chatPersistence.stores.runs,
 					run: (abortController) =>
 						streamLLMEvents({
 							url: endpoint.url,
@@ -88,7 +97,7 @@ export const Route = createFileRoute("/api/chat/stream")({
 							}),
 							temperature: generationOptions.temperature,
 							options: generationOptions.options,
-							threadId: params.threadId,
+							threadId: threadId.data,
 							runId: params.runId,
 							tools,
 							abortController,
@@ -97,7 +106,7 @@ export const Route = createFileRoute("/api/chat/stream")({
 								withPersistence(chatPersistence),
 								memoryMiddleware({
 									adapter: memoryAdapter,
-									scope: { threadId: params.threadId, userId },
+									scope: { threadId: threadId.data, userId },
 								}),
 							],
 						}),
@@ -114,7 +123,11 @@ export const Route = createFileRoute("/api/chat/stream")({
 				// Lets a dropped connection or a page reload re-attach to an in-flight
 				// or just-finished run and replay it from the durability log instead of
 				// losing the partial reply; `fetchServerSentEvents` calls this automatically.
-				return resumeServerSentEventsResponse({ adapter: memoryStream(request) });
+				return resumeRunResponse({
+					request,
+					findThreadId: findRunThreadId,
+					authorize: (threadId) => conversationOwnedBy({ id: threadId, ownerId: userId }),
+				});
 			},
 		},
 	},

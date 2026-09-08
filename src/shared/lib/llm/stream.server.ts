@@ -1,10 +1,14 @@
 import {
 	chatParamsFromRequestBody,
 	memoryStream,
+	RUN_CANCEL_REASON,
+	type RunStore,
+	resolveResumeRunId,
+	resumeServerSentEventsResponse,
 	type StreamChunk,
 	toServerSentEventsResponse,
+	wasCancelRequested,
 } from "@tanstack/ai";
-import { EventType } from "@tanstack/ai/client";
 import { BodyTooLargeError, readJsonWithLimit } from "#/shared/lib/http.server";
 
 type RunParams = Awaited<ReturnType<typeof chatParamsFromRequestBody>>;
@@ -38,38 +42,56 @@ export async function readRunParams({
 }
 
 /**
- * Streams a run as SSE. One controller cancels everything when the client drops the
- * connection, so nothing keeps generating against a listener that has gone away, and
- * a thrown error arrives as a terminal `RUN_ERROR` chunk rather than a cut stream.
+ * Streams a run as SSE. With durability on, a disconnect alone never aborts the
+ * generation (it runs on for a `?offset` rejoin), so this only aborts once
+ * `wasCancelRequested` confirms the disconnect was a Stop, not a reload.
  */
 export function streamRunResponse({
 	request,
 	run,
-	errorMessage,
+	runId,
+	runs,
 }: {
 	request: Request;
 	run: (abortController: AbortController) => AsyncIterable<StreamChunk>;
-	errorMessage: string;
+	runId: string;
+	runs: RunStore;
 }): Response {
 	const abortController = new AbortController();
 	if (request.signal.aborted) abortController.abort();
-	else request.signal.addEventListener("abort", () => abortController.abort());
-
-	async function* withErrorHandling(): AsyncGenerator<StreamChunk> {
-		try {
-			for await (const chunk of run(abortController)) {
-				yield chunk;
-			}
-		} catch (err) {
-			yield {
-				type: EventType.RUN_ERROR,
-				message: err instanceof Error ? err.message : errorMessage,
-			};
-		}
+	else {
+		request.signal.addEventListener("abort", () => {
+			wasCancelRequested(runs, runId).then((cancelled) => {
+				if (cancelled) abortController.abort(RUN_CANCEL_REASON);
+			});
+		});
 	}
 
-	return toServerSentEventsResponse(withErrorHandling(), {
+	return toServerSentEventsResponse(run(abortController), {
 		abortController,
 		durability: { adapter: memoryStream(request) },
 	});
+}
+
+/**
+ * Serves a resumable-stream rejoin, authorizing the run it names against its thread's
+ * owner first: a rejoin carries only a run id, not the thread id `authorize` needs, and
+ * a leaked run id must not let another user replay a run's output.
+ */
+export async function resumeRunResponse({
+	request,
+	findThreadId,
+	authorize,
+}: {
+	request: Request;
+	findThreadId: (params: { runId: string }) => Promise<string | null>;
+	authorize: (threadId: string) => Promise<boolean>;
+}): Promise<Response> {
+	const runId = resolveResumeRunId(request);
+	if (runId) {
+		const threadId = await findThreadId({ runId });
+		if (!threadId || !(await authorize(threadId)))
+			return new Response("Forbidden", { status: 403 });
+	}
+	return resumeServerSentEventsResponse({ adapter: memoryStream(request) });
 }

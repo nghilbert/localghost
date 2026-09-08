@@ -20,6 +20,7 @@ import {
 	MessageScrollerProvider,
 	MessageScrollerViewport,
 } from "#/shared/components/ui/message-scroller";
+import { requestChatRunCancel } from "#/shared/domain/chat/chat.functions";
 import {
 	type ConversationDetail,
 	modelRunStateQueryOptions,
@@ -41,12 +42,12 @@ export function ChatThread({ conversation }: ChatThreadProps) {
 		conversationId: conversation.id,
 	});
 
-	// Ephemeral per-conversation tool selection, sent with each message via
-	// `forwardedProps` and never persisted. `useChat` re-reads `forwardedProps` on
-	// every send, so a fresh object here means the latest choice rides along.
-	// The timezone rides along so the server can state the user's local time.
+	// Ephemeral per-conversation tool selection, never persisted, plus the timezone
+	// the server states local time from. `useChat` re-reads `forwardedProps` on every
+	// send, so a fresh object here carries the latest choice. The conversation itself
+	// is identified by `threadId` below; a second id here would be one the route has
+	// to authorize separately.
 	const forwardedProps = {
-		conversationId: conversation.id,
 		enabledTools: toolsToSend,
 		timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
 	};
@@ -58,6 +59,7 @@ export function ChatThread({ conversation }: ChatThreadProps) {
 		cancelQueued,
 		sendMessage,
 		stop,
+		runId,
 		status,
 		isLoading,
 		error,
@@ -98,6 +100,19 @@ export function ChatThread({ conversation }: ChatThreadProps) {
 	function handleEditResend(id: string, content: string) {
 		setMessages(editUserMessage({ messages, id, content }));
 		void reload();
+	}
+
+	/**
+	 * Records the cancel before disconnecting: a dropped connection alone never aborts the
+	 * run, so the server tells Stop from a reload by this record, which has to land first.
+	 * A failed record still disconnects, so the run detaches instead of the button doing nothing.
+	 */
+	async function handleStop() {
+		try {
+			if (runId) await requestChatRunCancel({ data: runId });
+		} finally {
+			stop();
+		}
 	}
 
 	// Apply the draft page's tool-toggle handoff exactly once, client-side only.
@@ -199,7 +214,7 @@ export function ChatThread({ conversation }: ChatThreadProps) {
 					supportsImages={supportsImages}
 					supportsDocuments={supportsDocuments}
 					sendMessage={handleSend}
-					stop={stop}
+					stop={handleStop}
 				/>
 			</div>
 		</div>

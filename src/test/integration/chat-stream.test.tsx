@@ -37,7 +37,7 @@ function mountChat() {
 			connection: fetchServerSentEvents("/api/chat/stream"),
 			persistence: true,
 			threadId: "c1",
-			forwardedProps: { conversationId: "c1", enabledTools: [], timeZone: "UTC" },
+			forwardedProps: { enabledTools: [], timeZone: "UTC" },
 		}),
 	);
 }
@@ -84,13 +84,7 @@ describe("chat streaming over /api/chat/stream", () => {
 
 		await result.current.sendMessage({ content: "hi" });
 
-		await expect
-			.poll(() => body?.forwardedProps)
-			.toEqual({
-				conversationId: "c1",
-				enabledTools: [],
-				timeZone: "UTC",
-			});
+		await expect.poll(() => body?.forwardedProps).toEqual({ enabledTools: [], timeZone: "UTC" });
 	});
 
 	it("surfaces a terminal RUN_ERROR instead of hanging on a half-finished run", async () => {

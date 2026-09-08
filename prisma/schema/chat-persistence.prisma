@@ -39,7 +39,7 @@ model ChatRun {
 
   @@index([threadId, status])
   @@index([threadId, startedAt])
-  // Powers listReclaimable: status = 'running' AND detachedSince <= cutoff.
+  // Detached runs: status = 'running' AND detachedSince <= cutoff.
   @@index([status, detachedSince])
   @@map("chat_run")
 }
