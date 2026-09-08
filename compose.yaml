@@ -116,7 +116,7 @@ services:
   # LLAMA_ARG_PORT pins against a pending upstream default change. LLAMA_API_KEY
   # (no ARG_ prefix, per --help) mirrors llm.server.ts's fallback placeholder.
   llamacpp:
-    image: ghcr.io/ggml-org/llama.cpp:server-b10380
+    image: ghcr.io/ggml-org/llama.cpp:server-b10820
     profiles: [ llamacpp ]
     environment:
       LLAMA_CACHE: /models

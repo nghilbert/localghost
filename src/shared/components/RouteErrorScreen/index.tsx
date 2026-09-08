@@ -16,7 +16,9 @@ export function RouteErrorScreen({ error, reset }: ErrorComponentProps) {
 		<Empty className="h-full">
 			<EmptyHeader>
 				<EmptyTitle>Something went wrong</EmptyTitle>
-				<EmptyDescription>{error.message}</EmptyDescription>
+				<EmptyDescription>
+					{error instanceof Error ? error.message : String(error)}
+				</EmptyDescription>
 			</EmptyHeader>
 			<EmptyContent>
 				<Button
