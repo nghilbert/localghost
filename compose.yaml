@@ -116,12 +116,15 @@ services:
   # LLAMA_ARG_PORT pins against a pending upstream default change. LLAMA_API_KEY
   # (no ARG_ prefix, per --help) mirrors llm.server.ts's fallback placeholder.
   llamacpp:
-    image: ghcr.io/ggml-org/llama.cpp:server-b10820
+    image: ghcr.io/ggml-org/llama.cpp:server-b10920
     profiles: [ llamacpp ]
     environment:
       LLAMA_CACHE: /models
       HF_TOKEN: ${HF_TOKEN:-}
       LLAMA_ARG_PORT: 8080
+      # Router children inherit this, and it is what puts any layer on the GPU at all.
+      # Inert on the CPU image; worth little on an iGPU sharing system memory.
+      LLAMA_ARG_N_GPU_LAYERS: ${LLAMA_GPU_LAYERS:-99}
       LLAMA_API_KEY: ${LLAMACPP_API_KEY:-local-llamacpp}
       LLAMA_ARG_SLEEP_IDLE_SECONDS: ${LLAMA_SLEEP_IDLE_SECONDS:-300}
     volumes:
