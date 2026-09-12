@@ -73,9 +73,14 @@ async function responseError({
 	return new Error(`${operation} failed: ${response.status}`);
 }
 
-/** `Authorization` header for `--api-key`-protected llama-server instances; empty when unset. */
+/**
+ * `Authorization` header for `--api-key`-protected llama-server instances. Falls back to
+ * {@link LOCAL_LLAMACPP_API_KEY} so a discovered endpoint with no stored key still reaches the
+ * bundled server; a keyless llama.cpp of the user's own ignores the header regardless.
+ */
 function authHeaders(apiKey: string | undefined): Record<string, string> {
-	return apiKey ? { Authorization: `Bearer ${apiKey}` } : {};
+	const key = apiKey || LOCAL_LLAMACPP_API_KEY;
+	return key ? { Authorization: `Bearer ${key}` } : {};
 }
 
 /** Lists every model the router has discovered, with its load status. */
@@ -110,6 +115,7 @@ const llamaPropsSchema = z.object({
 		})
 		.loose()
 		.optional(),
+	default_generation_settings: z.object({ n_ctx: z.number().optional() }).loose().optional(),
 });
 
 export type LlamaProps = z.infer<typeof llamaPropsSchema>;

@@ -46,6 +46,26 @@ afterEach(() => {
 	vi.unstubAllGlobals();
 });
 
+describe("authHeaders", () => {
+	it("falls back to LOCAL_LLAMACPP_API_KEY when no key is supplied", async () => {
+		fetchMock.mockResolvedValue(new Response(JSON.stringify({ data: [] })));
+		await listModels({ url: "http://localhost:8080" });
+		expect(fetchMock).toHaveBeenCalledWith(
+			"http://localhost:8080/models",
+			expect.objectContaining({ headers: { Authorization: "Bearer local-llamacpp" } }),
+		);
+	});
+
+	it("prefers an explicit key over the fallback", async () => {
+		fetchMock.mockResolvedValue(new Response(JSON.stringify({ data: [] })));
+		await listModels({ url: "http://localhost:8080", apiKey: "sk-user" });
+		expect(fetchMock).toHaveBeenCalledWith(
+			"http://localhost:8080/models",
+			expect.objectContaining({ headers: { Authorization: "Bearer sk-user" } }),
+		);
+	});
+});
+
 describe("llama.cpp model status", () => {
 	it("parses installed, sleeping, and multi-file downloading states", async () => {
 		fetchMock.mockResolvedValue(
@@ -208,9 +228,10 @@ describe("llama.cpp model mutations", () => {
 		await expect(
 			deleteModel({ url: "http://localhost:8080", model: "org/model:Q4_K_M" }),
 		).rejects.toThrow("model is loaded");
+		// No key was passed, so this falls back to LOCAL_LLAMACPP_API_KEY.
 		expect(fetchMock).toHaveBeenLastCalledWith(
 			"http://localhost:8080/models?model=org%2Fmodel%3AQ4_K_M",
-			{ method: "DELETE", headers: {} },
+			{ method: "DELETE", headers: { Authorization: "Bearer local-llamacpp" } },
 		);
 	});
 });
