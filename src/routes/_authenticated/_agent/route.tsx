@@ -3,7 +3,7 @@ import { Container } from "#/shared/components/ui/container";
 
 export const Route = createFileRoute("/_authenticated/_agent")({
 	component: () => (
-		<Container size="4xl" className="grid min-h-0 flex-1">
+		<Container size="6xl" className="grid min-h-0 flex-1">
 			<Outlet />
 		</Container>
 	),

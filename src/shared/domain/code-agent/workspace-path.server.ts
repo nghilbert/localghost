@@ -85,20 +85,24 @@ export async function assertNotWorkspaceRoot({
 	}
 }
 
-/** Direct child directories under `root`/`subpath`, hidden ones excluded. */
+export type WorkspaceEntry = { name: string; kind: "directory" | "file" };
+
+/** Direct children under `root`/`subpath`, hidden ones excluded, sorted by name. */
 export async function listWorkspaceEntries({
 	root,
 	subpath,
 }: {
 	root: string;
 	subpath: string;
-}): Promise<string[]> {
+}): Promise<WorkspaceEntry[]> {
 	const dir = await resolveContainedPath({ root, target: subpath });
 	const entries = await readdir(dir, { withFileTypes: true }).catch(() => {
 		throw new Error("This folder no longer exists.");
 	});
 	return entries
-		.filter((entry) => entry.isDirectory() && !entry.name.startsWith("."))
-		.map((entry) => entry.name)
-		.sort();
+		.filter((entry) => (entry.isDirectory() || entry.isFile()) && !entry.name.startsWith("."))
+		.map(
+			(entry) => ({ name: entry.name, kind: entry.isDirectory() ? "directory" : "file" }) as const,
+		)
+		.sort((a, b) => a.name.localeCompare(b.name));
 }

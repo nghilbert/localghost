@@ -141,16 +141,17 @@ describe("listWorkspaceEntries", () => {
 		await mkdir(path.join(root, "project-b"));
 		await mkdir(path.join(root, "project-a"));
 		await mkdir(path.join(root, ".hidden"));
-		await writeFile(path.join(root, "not-a-folder.txt"), "");
+		await writeFile(path.join(root, "readme.txt"), "");
 	});
 	afterAll(async () => {
 		await rm(root, { recursive: true, force: true });
 	});
 
-	it("lists only visible subdirectories, sorted", async () => {
+	it("lists visible directories and files together, sorted by name", async () => {
 		await expect(listWorkspaceEntries({ root, subpath: "" })).resolves.toEqual([
-			"project-a",
-			"project-b",
+			{ name: "project-a", kind: "directory" },
+			{ name: "project-b", kind: "directory" },
+			{ name: "readme.txt", kind: "file" },
 		]);
 	});
 
