@@ -4,7 +4,7 @@ import type { CatalogCapability, HideableFit } from "#/shared/domain/model/schem
 /** The finite capability filter set, in menu order. */
 const CAPABILITY_OPTIONS: { value: CatalogCapability; label: string }[] = [
 	{ value: "vision", label: "Vision" },
-	{ value: "code", label: "Code" },
+	{ value: "code", label: "Code-focused" },
 	{ value: "fast", label: "Fast" },
 ];
 

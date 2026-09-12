@@ -1,5 +1,6 @@
 import { Trash2Icon } from "lucide-react";
 import { ModelSettingsForm } from "#/routes/_authenticated/library/-components/ModelList/ModelSettingsForm";
+import { AGENT_FIT_LABELS } from "#/routes/_authenticated/library/-lib/agent-fit";
 import type { ModelRow } from "#/routes/_authenticated/library/-lib/model-rows";
 import { Badge } from "#/shared/components/ui/badge";
 import { Button } from "#/shared/components/ui/button";
@@ -11,6 +12,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "#/shared/components/ui/card";
+import { classifyAgentContextFit } from "#/shared/domain/code-agent/headroom";
 import type { HardwareInfo, ModelVariantInfo, PullProgress } from "#/shared/domain/model/types";
 import { formatCount } from "#/shared/lib/format";
 import { ModelVariantCard } from "./ModelVariantCard";
@@ -86,6 +88,7 @@ function ModelOverviewCard({ row }: { row: ModelRow }) {
 			Boolean,
 		);
 	const facts = catalog ? buildOverviewFacts(catalog) : [];
+	const agentFit = classifyAgentContextFit({ contextK: catalog?.contextK ?? null });
 	const caption =
 		catalog?.description || (installed ? "Installed model metadata reported by llama.cpp." : null);
 
@@ -119,6 +122,11 @@ function ModelOverviewCard({ row }: { row: ModelRow }) {
 							</Badge>
 						))}
 					</div>
+				)}
+				{agentFit && (
+					<Badge variant="outline" className="text-destructive">
+						{AGENT_FIT_LABELS[agentFit]}
+					</Badge>
 				)}
 				{localFacts && localFacts.length > 0 && (
 					<p className="text-xs text-muted-foreground">{localFacts.join(" · ")}</p>

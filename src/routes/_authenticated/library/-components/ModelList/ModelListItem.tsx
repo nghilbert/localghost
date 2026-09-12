@@ -1,5 +1,6 @@
 import { CheckCircle2Icon, ChevronRightIcon, GaugeIcon, ImageIcon } from "lucide-react";
 import { ModelPullControls } from "#/routes/_authenticated/library/-components/ModelPullControls";
+import { AGENT_FIT_LABELS } from "#/routes/_authenticated/library/-lib/agent-fit";
 import { FIT_LABELS } from "#/routes/_authenticated/library/-lib/fit-filter";
 import type { ModelRow } from "#/routes/_authenticated/library/-lib/model-rows";
 import { Badge } from "#/shared/components/ui/badge";
@@ -12,6 +13,7 @@ import {
 	ItemTitle,
 } from "#/shared/components/ui/item";
 import { Skeleton } from "#/shared/components/ui/skeleton";
+import { classifyAgentContextFit } from "#/shared/domain/code-agent/headroom";
 import { classifyHardwareFit, type HardwareFit } from "#/shared/domain/model/hardware-fit";
 import type { HardwareInfo } from "#/shared/domain/model/types";
 import { formatBytes, formatCount } from "#/shared/lib/format";
@@ -63,6 +65,7 @@ export function ModelListItem(props: ModelListItemProps) {
 	const installed = loaded?.row.installed;
 	const fit =
 		loaded && catalog ? classifyHardwareFit({ model: catalog, hardware: loaded.hardware }) : null;
+	const agentFit = classifyAgentContextFit({ contextK: catalog?.contextK ?? null });
 	const isVision = catalog?.capabilities.includes("vision") ?? installed?.vision;
 
 	return (
@@ -120,6 +123,11 @@ export function ModelListItem(props: ModelListItemProps) {
 						{fit && !installed && (
 							<Badge variant="outline" className={FIT_BADGE_CLASS[fit]}>
 								{FIT_LABELS[fit]}
+							</Badge>
+						)}
+						{agentFit && !installed && (
+							<Badge variant="outline" className="text-destructive">
+								{AGENT_FIT_LABELS[agentFit]}
 							</Badge>
 						)}
 						{installed ? (
