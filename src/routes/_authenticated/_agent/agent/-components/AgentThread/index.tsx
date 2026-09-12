@@ -17,8 +17,10 @@ import {
 	type CodeAgentSessionDetail,
 	requestCodeAgentRunCancel,
 } from "#/shared/domain/code-agent/code-agent.functions";
+import { type CodeAgentDiff, isCodeAgentDiff } from "#/shared/domain/code-agent/diff";
 import { awaitingAssistantResponse } from "#/shared/domain/conversation/messages";
 import { CommandApprovalMarker } from "./CommandApprovalMarker";
+import { WorkspaceDiffMarker } from "./WorkspaceDiffMarker";
 
 type AgentThreadProps = { session: CodeAgentSessionDetail };
 
@@ -35,6 +37,10 @@ export function AgentThread({ session }: AgentThreadProps) {
 	// Approvals granted for the next run only. The harness denies an `ask` action and asks
 	// the client to re-run with a decision, so these ride the run and are never stored.
 	const [grantedApprovalIds, setGrantedApprovalIds] = useState<string[]>([]);
+	// One entry per run that touched the workspace. Like approvals, this is a custom event
+	// with no place in `useChat`'s own state, so it does not survive a reload either. The
+	// diff itself carries no id (`path` is always `"."`), so one is assigned on arrival.
+	const [diffs, setDiffs] = useState<{ id: string; diff: CodeAgentDiff }[]>([]);
 
 	const { messages, status, isLoading, error, reload, sendMessage, stop, runId } = useChat({
 		connection,
@@ -42,10 +48,13 @@ export function AgentThread({ session }: AgentThreadProps) {
 		threadId: session.id,
 		forwardedProps: { approvedApprovalIds: grantedApprovalIds },
 		onCustomEvent: (eventType, data) => {
-			if (!isCodeAgentApproval(eventType, data)) return;
-			setApprovals((prev) =>
-				prev.some((pending) => pending.approvalId === data.approvalId) ? prev : [...prev, data],
-			);
+			if (isCodeAgentApproval(eventType, data)) {
+				setApprovals((prev) =>
+					prev.some((pending) => pending.approvalId === data.approvalId) ? prev : [...prev, data],
+				);
+			} else if (isCodeAgentDiff(eventType, data)) {
+				setDiffs((prev) => [...prev, { id: crypto.randomUUID(), diff: data }]);
+			}
 		},
 	});
 	const isStreaming = isLoading || status === "submitted" || status === "streaming";
@@ -70,12 +79,10 @@ export function AgentThread({ session }: AgentThreadProps) {
 	 * run, so the server tells Stop from a reload by this record, which has to land first.
 	 * A failed record still disconnects, so the run detaches instead of the button doing nothing.
 	 */
-	async function handleStop() {
-		try {
-			if (runId) await requestCodeAgentRunCancel({ data: runId });
-		} finally {
-			stop();
-		}
+	function handleStop() {
+		const recorded = runId ? requestCodeAgentRunCancel({ data: runId }) : Promise.resolve();
+		// Swallowed so a failed record cannot escape the click as an unhandled rejection.
+		void recorded.catch(() => {}).finally(stop);
 	}
 
 	/** Allowing a command re-runs the turn the harness refused it on. */
@@ -125,6 +132,11 @@ export function AgentThread({ session }: AgentThreadProps) {
 										onApprove={() => handleApprove(approval)}
 										onDeny={() => dismissApproval(approval.approvalId)}
 									/>
+								</MessageScrollerItem>
+							))}
+							{diffs.map(({ id, diff }) => (
+								<MessageScrollerItem key={id}>
+									<WorkspaceDiffMarker diff={diff} />
 								</MessageScrollerItem>
 							))}
 							<MessageScrollerItem>

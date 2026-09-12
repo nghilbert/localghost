@@ -166,12 +166,13 @@ export async function* streamCodeAgentEvents(
 	});
 
 	// `permissionMode: "default"` instead of the adapter's `bypassPermissions`, so the
-	// sandbox policy is consulted at all. `emitDiff` off: nothing renders the diff, and
-	// it costs a `git diff` after every run.
+	// sandbox policy is consulted at all. `emitDiff` (the adapter's default) runs a
+	// `git diff` after the run and emits it as a `file.changed` custom event; see `diff.ts`.
 	const adapter = claudeCodeText(opts.model, {
 		permissionMode: "default",
-		emitDiff: false,
 		maxTurns: MAX_HARNESS_TURNS,
+		// Without `user` the settings.json written below is never read, leaving it inert.
+		settingSources: ["user", "project"],
 		env: {
 			CLAUDE_CONFIG_DIR: await ensureClaudeSessionConfig({
 				threadId: opts.threadId,
