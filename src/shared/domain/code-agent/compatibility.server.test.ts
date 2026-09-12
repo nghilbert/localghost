@@ -3,11 +3,16 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const { getProps } = vi.hoisted(() => ({ getProps: vi.fn() }));
 vi.mock("#/shared/lib/llamacpp/client.server", () => ({ getProps }));
 
-const { codeAgentModelBlocker, hasRigidMessageOrderTemplate } = await import(
+const { codeAgentModelBlocker, codeAgentModelWarning, hasRigidMessageOrderTemplate } = await import(
 	"./compatibility.server"
 );
 
 const llamacpp = { url: "http://localhost:8080", provider: "llamacpp" } as const;
+const anthropic = { url: "https://api.anthropic.com", provider: "anthropic" } as const;
+
+function hardware(freeRamGb: number) {
+	return { totalRamGb: 16, freeRamGb, cpuModel: "Test CPU", cpuCount: 4, gpus: null };
+}
 
 beforeEach(() => {
 	vi.clearAllMocks();
@@ -98,5 +103,66 @@ describe("codeAgentModelBlocker", () => {
 			model: "qwen/qwen3.5:7b",
 			apiKey: "sk-local",
 		});
+	});
+});
+
+describe("codeAgentModelWarning", () => {
+	it("never probes a provider that does not serve /props", async () => {
+		const warnings = await codeAgentModelWarning({
+			endpoint: anthropic,
+			model: "claude-sonnet-5",
+			hardware: hardware(8),
+		});
+
+		expect(warnings).toEqual([]);
+		expect(getProps).not.toHaveBeenCalled();
+	});
+
+	it("warns on a crowded context window reported by the probe", async () => {
+		getProps.mockResolvedValue({ default_generation_settings: { n_ctx: 32_768 } });
+
+		const warnings = await codeAgentModelWarning({
+			endpoint: llamacpp,
+			model: "qwen",
+			hardware: hardware(8),
+		});
+
+		expect(warnings).toEqual(["32K context, ~24K spent on the harness, ~8K left for your task."]);
+	});
+
+	it("says nothing about context when the probe fails, matching the blocker's leniency", async () => {
+		getProps.mockRejectedValue(new Error("connect ECONNREFUSED"));
+
+		const warnings = await codeAgentModelWarning({
+			endpoint: llamacpp,
+			model: "qwen",
+			hardware: hardware(8),
+		});
+
+		expect(warnings).toEqual([]);
+	});
+
+	it("warns on thin free memory regardless of provider", async () => {
+		const warnings = await codeAgentModelWarning({
+			endpoint: anthropic,
+			model: "claude-sonnet-5",
+			hardware: hardware(1.2),
+		});
+
+		expect(warnings).toEqual([
+			"Only 1.2 GB free. A slow or crashed run is likely competing with everything else running on this machine.",
+		]);
+	});
+
+	it("combines both warnings when both conditions hold", async () => {
+		getProps.mockResolvedValue({ default_generation_settings: { n_ctx: 32_768 } });
+
+		const warnings = await codeAgentModelWarning({
+			endpoint: llamacpp,
+			model: "qwen",
+			hardware: hardware(1.2),
+		});
+
+		expect(warnings).toHaveLength(2);
 	});
 });

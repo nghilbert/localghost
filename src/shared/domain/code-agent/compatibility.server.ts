@@ -1,6 +1,9 @@
+import { availableMemoryGb } from "#/shared/domain/model/hardware-fit";
+import type { HardwareInfo } from "#/shared/domain/model/types";
 import { getProps } from "#/shared/lib/llamacpp/client.server";
 import { stripTrailingV1 } from "#/shared/lib/llm/client.server";
 import type { LLMProvider } from "#/shared/lib/llm/provider";
+import { contextHeadroomWarning } from "./headroom";
 
 /**
  * Templates whose Jinja asserts the system message comes first. A coding harness injects
@@ -41,4 +44,45 @@ export async function codeAgentModelBlocker({
 		return `${model} can't call tools, so a coding agent has no way to read or edit files. Pick a different model.`;
 	}
 	return null;
+}
+
+/** Free memory below which loading a model risks starving the rest of the stack. Not measured. */
+const LOW_MEMORY_GB = 2;
+
+/**
+ * Warnings for a model that will run but may struggle, shown before the session starts.
+ * Unlike {@link codeAgentModelBlocker} this never withholds the model; it only informs.
+ */
+export async function codeAgentModelWarning({
+	endpoint,
+	model,
+	hardware,
+}: {
+	endpoint: { url: string; provider: LLMProvider; apiKey?: string };
+	model: string;
+	hardware: HardwareInfo;
+}): Promise<string[]> {
+	const warnings: string[] = [];
+
+	if (endpoint.provider === "llamacpp") {
+		const props = await getProps({
+			url: stripTrailingV1(endpoint.url),
+			model,
+			...(endpoint.apiKey ? { apiKey: endpoint.apiKey } : {}),
+		}).catch(() => null);
+		const nCtx = props?.default_generation_settings?.n_ctx;
+		if (nCtx) {
+			const warning = contextHeadroomWarning({ nCtx });
+			if (warning) warnings.push(warning);
+		}
+	}
+
+	const availableGb = availableMemoryGb(hardware);
+	if (availableGb < LOW_MEMORY_GB) {
+		warnings.push(
+			`Only ${availableGb.toFixed(1)} GB free. A slow or crashed run is likely competing with everything else running on this machine.`,
+		);
+	}
+
+	return warnings;
 }

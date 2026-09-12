@@ -2,9 +2,10 @@ import { mkdir } from "node:fs/promises";
 import { deleteChatThreadRows } from "#/shared/domain/chat/persistence.server";
 import { deriveConversationTitle, threadMessagesFrom } from "#/shared/domain/conversation/messages";
 import { endpointApiKey, fetchEndpointModels } from "#/shared/domain/endpoint/endpoint.server";
+import { getHardwareInfo } from "#/shared/domain/model/hardware.server";
 import { prisma } from "#/shared/lib/db.server";
 import { asLLMProvider, detectProvider } from "#/shared/lib/llm/provider";
-import { codeAgentModelBlocker } from "./compatibility.server";
+import { codeAgentModelBlocker, codeAgentModelWarning } from "./compatibility.server";
 import { availableCodeAgentHarnessIds } from "./harness-availability.server";
 import { harnessAcceptsProvider } from "./harnesses";
 import { destroyCodeAgentSandbox } from "./run.server";
@@ -174,4 +175,34 @@ export async function removeCodeAgentSession({
 	]);
 	// After the rows, so a teardown failure cannot leave an undeletable session behind.
 	await destroyCodeAgentSandbox({ threadId: id, workspacePath: owned.workspacePath });
+}
+
+/**
+ * Warnings for a model/endpoint pair the session form is considering, shown before a session
+ * is created. Permissive like {@link codeAgentModelBlocker}'s probe: an endpoint that can't
+ * be resolved or reached yields no warnings rather than an error the form would have to render.
+ */
+export async function findCodeAgentModelWarnings({
+	endpointId,
+	ownerId,
+	model,
+}: {
+	endpointId: string;
+	ownerId: string;
+	model: string;
+}): Promise<string[]> {
+	const endpoint = await prisma.endpoint.findFirst({
+		where: { id: endpointId, ownerId },
+		select: { provider: true, url: true, apiKeyEncrypted: true },
+	});
+	if (!endpoint) return [];
+	return codeAgentModelWarning({
+		endpoint: {
+			url: endpoint.url,
+			provider: asLLMProvider(endpoint.provider) ?? detectProvider(endpoint.url),
+			...(endpointApiKey(endpoint) ? { apiKey: endpointApiKey(endpoint) } : {}),
+		},
+		model,
+		hardware: await getHardwareInfo(),
+	});
 }

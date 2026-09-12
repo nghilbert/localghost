@@ -7,6 +7,7 @@ import { reviveMessageDates } from "#/shared/domain/conversation/messages";
 import { authedFn } from "#/shared/lib/middleware";
 import {
 	codeAgentSessionOwnedBy,
+	findCodeAgentModelWarnings,
 	findCodeAgentSession,
 	findCodeAgentSessions,
 	insertCodeAgentSession,
@@ -14,6 +15,7 @@ import {
 } from "./code-agent.server";
 import { availableCodeAgentHarnessIds } from "./harness-availability.server";
 import {
+	codeAgentModelWarningsSchema,
 	codeAgentSessionIdInput,
 	createCodeAgentSessionSchema,
 	listWorkspaceEntriesSchema,
@@ -91,6 +93,14 @@ export const listCodeAgentWorkspaceEntries = createServerFn({ method: "GET" })
 		return { root, subpath, entries };
 	});
 
+/** Non-blocking warnings for the endpoint/model pair a session form is considering. */
+export const getCodeAgentModelWarnings = createServerFn({ method: "GET" })
+	.middleware([authedFn])
+	.validator(codeAgentModelWarningsSchema)
+	.handler(({ data: { endpointId, model }, context }) =>
+		findCodeAgentModelWarnings({ endpointId, ownerId: context.userId, model }),
+	);
+
 // ── Query options (for TanStack Query) ───────────────────────
 
 export const codeAgentAvailabilityQueryOptions = () =>
@@ -122,4 +132,16 @@ export const codeAgentWorkspaceEntriesQueryOptions = (subpath: string) =>
 	queryOptions({
 		queryKey: ["code-agent-workspace-entries", subpath],
 		queryFn: () => listCodeAgentWorkspaceEntries({ data: { subpath } }),
+	});
+
+export const codeAgentModelWarningsQueryOptions = ({
+	endpointId,
+	model,
+}: {
+	endpointId: string;
+	model: string;
+}) =>
+	queryOptions({
+		queryKey: ["code-agent-model-warnings", endpointId, model],
+		queryFn: () => getCodeAgentModelWarnings({ data: { endpointId, model } }),
 	});

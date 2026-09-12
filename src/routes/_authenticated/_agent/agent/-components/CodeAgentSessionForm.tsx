@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
-import { FolderIcon } from "lucide-react";
+import { FolderIcon, TriangleAlertIcon } from "lucide-react";
 import { Fragment, useState } from "react";
 import { useEndpointModelGroups } from "#/routes/_authenticated/-hooks/use-endpoint-model-groups";
+import { Alert, AlertDescription } from "#/shared/components/ui/alert";
 import {
 	Breadcrumb,
 	BreadcrumbItem,
@@ -13,7 +14,10 @@ import {
 import { Empty, EmptyMedia, EmptyTitle } from "#/shared/components/ui/empty";
 import { Item, ItemContent, ItemGroup, ItemMedia, ItemTitle } from "#/shared/components/ui/item";
 import { Spinner } from "#/shared/components/ui/spinner";
-import { codeAgentWorkspaceEntriesQueryOptions } from "#/shared/domain/code-agent/code-agent.functions";
+import {
+	codeAgentModelWarningsQueryOptions,
+	codeAgentWorkspaceEntriesQueryOptions,
+} from "#/shared/domain/code-agent/code-agent.functions";
 import {
 	CODE_AGENT_HARNESSES,
 	type CodeAgentHarnessId,
@@ -138,6 +142,12 @@ function SessionFields({ harnessId, groups, onCreated, className }: SessionField
 					)}
 				</form.Subscribe>
 
+				<form.Subscribe
+					selector={(state) => ({ endpointId: state.values.endpointId, model: state.values.model })}
+				>
+					{({ endpointId, model }) => <ModelWarnings endpointId={endpointId} model={model} />}
+				</form.Subscribe>
+
 				<form.AppField name="firstMessage">
 					{(field) => (
 						<field.TextareaField
@@ -155,11 +165,38 @@ function SessionFields({ harnessId, groups, onCreated, className }: SessionField
 	);
 }
 
+/**
+ * Non-blocking heads-up on the chosen endpoint/model, e.g. a crowded context window or thin
+ * free memory. Never disables submit: the model may still work, just slowly or tightly.
+ */
+function ModelWarnings({ endpointId, model }: { endpointId: string; model: string }) {
+	const { data: warnings } = useQuery({
+		...codeAgentModelWarningsQueryOptions({ endpointId, model }),
+		enabled: Boolean(endpointId && model),
+	});
+
+	if (!warnings?.length) return null;
+	return (
+		<Alert data-testid="code-agent-model-warnings">
+			<TriangleAlertIcon />
+			<AlertDescription>
+				{warnings.map((warning) => (
+					<p key={warning}>{warning}</p>
+				))}
+			</AlertDescription>
+		</Alert>
+	);
+}
+
 /** Click-to-navigate folder browser standing in for a typed path: a few composed primitives, no path ever typed. */
 function WorkspaceBrowser({ onChange }: { onChange: (workspacePath: string) => void }) {
 	const [subpath, setSubpath] = useState("");
 	const { data } = useQuery(codeAgentWorkspaceEntriesQueryOptions(subpath));
 	const segments = subpath.split("/").filter(Boolean);
+	// This browser only ever selects a folder; the tree in the session view shows files too.
+	const directories = (data?.entries ?? [])
+		.filter((entry) => entry.kind === "directory")
+		.map((entry) => entry.name);
 
 	function selectFolder(nextSubpath: string) {
 		if (!data) return;
@@ -205,21 +242,21 @@ function WorkspaceBrowser({ onChange }: { onChange: (workspacePath: string) => v
 			</Breadcrumb>
 
 			<div className="max-h-40 overflow-y-auto">
-				{data?.entries.length ? (
+				{directories.length ? (
 					<ItemGroup className="gap-0.5">
-						{data.entries.map((entry) => (
+						{directories.map((name) => (
 							<Item
-								key={entry}
+								key={name}
 								size="sm"
-								data-testid={`workspace-entry-${entry}`}
+								data-testid={`workspace-entry-${name}`}
 								render={<button type="button" />}
-								onClick={() => selectFolder(subpath ? `${subpath}/${entry}` : entry)}
+								onClick={() => selectFolder(subpath ? `${subpath}/${name}` : name)}
 							>
 								<ItemMedia variant="icon">
 									<FolderIcon />
 								</ItemMedia>
 								<ItemContent>
-									<ItemTitle>{entry}</ItemTitle>
+									<ItemTitle>{name}</ItemTitle>
 								</ItemContent>
 							</Item>
 						))}

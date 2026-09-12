@@ -32,6 +32,12 @@ export const listWorkspaceEntriesSchema = z.object({
 	subpath: z.string().max(4096).default(""),
 });
 
+/** The endpoint/model pair a session form is considering, for a pre-flight compatibility check. */
+export const codeAgentModelWarningsSchema = z.object({
+	endpointId: z.uuid(),
+	model: codeAgentModelSchema,
+});
+
 export const codeAgentSessionIdInput = z.object({ id: uuid });
 
 /**

@@ -18,6 +18,16 @@ vi.mock("#/shared/domain/code-agent/code-agent.functions", () => ({
 		queryKey: ["code-agent-workspace-entries", subpath],
 		queryFn: () => ({ root: "", entries: [] }),
 	}),
+	codeAgentModelWarningsQueryOptions: ({
+		endpointId,
+		model,
+	}: {
+		endpointId: string;
+		model: string;
+	}) => ({
+		queryKey: ["code-agent-model-warnings", endpointId, model],
+		queryFn: () => [],
+	}),
 }));
 vi.mock("#/routes/_authenticated/-hooks/use-endpoint-model-groups", () => ({
 	useEndpointModelGroups,
@@ -47,7 +57,10 @@ const openai = {
 };
 
 /** A two-level workspace tree, answered off the subpath in the query key. */
-const TREE: Record<string, string[]> = { "": ["projects"], projects: ["localghost"] };
+const TREE: Record<string, { name: string; kind: "directory" | "file" }[]> = {
+	"": [{ name: "projects", kind: "directory" }],
+	projects: [{ name: "localghost", kind: "directory" }],
+};
 
 beforeEach(() => {
 	vi.clearAllMocks();
@@ -149,6 +162,23 @@ describe("CodeAgentSessionForm", () => {
 
 		await expect.poll(() => createMutateAsync.mock.calls.length).toBe(1);
 		expect(createMutateAsync.mock.calls[0]?.[0]).toMatchObject({ workspacePath: "/home/nate" });
+	});
+
+	it("shows a non-blocking warning for the selected endpoint/model without disabling submit", async () => {
+		useQuery.mockImplementation(({ queryKey }: { queryKey: readonly unknown[] }) =>
+			queryKey[0] === "code-agent-model-warnings"
+				? { data: ["32K context, ~24K spent on the harness, ~8K left for your task."] }
+				: { data: { root: "/home/nate", entries: TREE[queryKey[1] as string] ?? [] } },
+		);
+
+		const screen = await render(
+			<CodeAgentSessionForm harnessId="claude-code" onCreated={vi.fn()} />,
+		);
+
+		await expect
+			.element(screen.getByTestId("code-agent-model-warnings"))
+			.toHaveTextContent("32K context, ~24K spent on the harness, ~8K left for your task.");
+		await expect.element(screen.getByTestId("code-agent-session-submit")).not.toBeDisabled();
 	});
 
 	it("explains itself when no saved endpoint speaks the harness's protocol", async () => {
