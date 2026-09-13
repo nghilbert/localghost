@@ -32,16 +32,6 @@ export function buildCodeAgentPolicy({
 }
 
 /**
- * The command an approval id refers to. Ids are `provider:kind:target`, so anything
- * that isn't a command approval returns null and widens no rule.
- */
-export function approvalCommandTarget(approvalId: string): string | null {
-	const [, kind, ...target] = approvalId.split(":");
-	if (kind !== "command" || target.length === 0) return null;
-	return target.join(":");
-}
-
-/**
  * Re-emits the sandbox's approval requests under our own event name and passes every
  * other chunk through untouched.
  */

@@ -1,11 +1,11 @@
 import { reconstructChat } from "@tanstack/ai-persistence";
 import { createFileRoute } from "@tanstack/react-router";
 import { chatPersistence, findRunThreadId } from "#/shared/domain/chat/persistence.server";
+import { approvalCommandTarget } from "#/shared/domain/code-agent/approval";
 import {
 	codeAgentSessionOwnedBy,
 	findCodeAgentSessionWithEndpoint,
 } from "#/shared/domain/code-agent/code-agent.server";
-import { approvalCommandTarget } from "#/shared/domain/code-agent/policy.server";
 import { streamCodeAgentEvents } from "#/shared/domain/code-agent/run.server";
 import {
 	codeAgentModelSchema,

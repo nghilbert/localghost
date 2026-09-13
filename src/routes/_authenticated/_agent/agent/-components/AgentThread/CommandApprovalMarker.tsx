@@ -1,7 +1,7 @@
 import { CheckIcon, ShieldAlertIcon, XIcon } from "lucide-react";
 import { Button } from "#/shared/components/ui/button";
 import { Marker, MarkerContent, MarkerIcon } from "#/shared/components/ui/marker";
-import type { CodeAgentApproval } from "#/shared/domain/code-agent/approval";
+import { approvalCommandTarget, type CodeAgentApproval } from "#/shared/domain/code-agent/approval";
 
 type CommandApprovalMarkerProps = {
 	approval: CodeAgentApproval;
@@ -23,6 +23,9 @@ export function CommandApprovalMarker({
 	onApprove,
 	onDeny,
 }: CommandApprovalMarkerProps) {
+	// Only a `command`-kind id (and one whose target isn't itself a glob) has a grant path
+	// in `buildCodeAgentPolicy`; an "Allow" for anything else would silently do nothing.
+	const grantable = approvalCommandTarget(approval.approvalId) !== null;
 	return (
 		<Marker data-testid="command-approval-marker">
 			<MarkerIcon>
@@ -31,16 +34,20 @@ export function CommandApprovalMarker({
 			<MarkerContent className="flex flex-wrap items-center gap-2">
 				<span>The agent wants to run</span>
 				<code className="rounded bg-muted px-1.5 py-0.5 text-xs">{approval.title}</code>
-				<Button
-					size="xs"
-					variant="outline"
-					disabled={disabled}
-					data-testid="command-approval-approve"
-					onClick={onApprove}
-				>
-					<CheckIcon />
-					Allow
-				</Button>
+				{grantable ? (
+					<Button
+						size="xs"
+						variant="outline"
+						disabled={disabled}
+						data-testid="command-approval-approve"
+						onClick={onApprove}
+					>
+						<CheckIcon />
+						Allow
+					</Button>
+				) : (
+					<span className="text-muted-foreground text-xs">Can't be allowed from here</span>
+				)}
 				<Button
 					size="xs"
 					variant="outline"
