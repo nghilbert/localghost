@@ -65,7 +65,12 @@ function NewChatPage() {
 				conversationId: id,
 				handoff: { enabledTools: controls.enabledTools },
 			});
-			navigate({ to: "/chat/$conversationId", params: { conversationId: id } });
+			// No cross-fade: the transcript is already streaming on arrival.
+			navigate({
+				to: "/chat/$conversationId",
+				params: { conversationId: id },
+				viewTransition: false,
+			});
 		},
 		onError: (error) =>
 			toast.add({ title: "Failed to start the chat", type: "error", description: error.message }),

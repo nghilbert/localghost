@@ -151,4 +151,12 @@
 	html {
 		@apply font-sans;
 	}
+	/* Route cross-fades animate unless the pseudo-elements opt out. */
+	@media (prefers-reduced-motion: reduce) {
+		:root::view-transition-group(*),
+		:root::view-transition-old(*),
+		:root::view-transition-new(*) {
+			animation: none;
+		}
+	}
 }

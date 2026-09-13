@@ -22,6 +22,8 @@ export function getRouter() {
 		defaultErrorComponent: RouteErrorScreen,
 		// Preload a route's loader on link hover/focus, not just on click.
 		defaultPreload: "intent",
+		// Feature-detected by the router, so an unsupporting browser just navigates.
+		defaultViewTransition: true,
 	});
 	setupRouterSsrQueryIntegration({ router, queryClient });
 	return router;

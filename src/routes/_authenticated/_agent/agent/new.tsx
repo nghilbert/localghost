@@ -26,7 +26,10 @@ function NewCodeAgentSessionPage() {
 			{harnessId ? (
 				<CodeAgentSessionForm
 					harnessId={harnessId}
-					onCreated={(sessionId) => navigate({ to: "/agent/$sessionId", params: { sessionId } })}
+					// No cross-fade: the session is already streaming on arrival.
+					onCreated={(sessionId) =>
+						navigate({ to: "/agent/$sessionId", params: { sessionId }, viewTransition: false })
+					}
 				/>
 			) : (
 				<CodeAgentUnavailableNotice />
