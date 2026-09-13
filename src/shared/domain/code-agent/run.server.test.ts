@@ -11,7 +11,7 @@ vi.mock("@tanstack/ai", async (importOriginal) => ({
 }));
 vi.mock("@tanstack/ai-claude-code", () => ({ claudeCodeText }));
 
-const { streamCodeAgentEvents } = await import("./run.server");
+const { harnessEnv, streamCodeAgentEvents } = await import("./run.server");
 
 /** The `env` the adapter was built with on the last run. */
 function adapterEnv(): Record<string, string> {
@@ -62,5 +62,36 @@ describe("streamCodeAgentEvents", () => {
 
 		expect(adapterEnv().ANTHROPIC_AUTH_TOKEN).toBe("");
 		expect(adapterEnv().ANTHROPIC_API_KEY).not.toBe("sk-host-secret");
+	});
+});
+
+describe("harnessEnv", () => {
+	it("keeps a custom Anthropic endpoint's base URL for the anthropic provider", () => {
+		expect(
+			harnessEnv({
+				apiKey: "sk-session",
+				endpointUrl: "https://my-proxy.example.com",
+				endpointProvider: "anthropic",
+				model: "claude-x",
+			}),
+		).toEqual({
+			ANTHROPIC_API_KEY: "sk-session",
+			ANTHROPIC_BASE_URL: "https://my-proxy.example.com",
+		});
+	});
+
+	it("also sends the haiku override for a non-anthropic provider", () => {
+		expect(
+			harnessEnv({
+				apiKey: "sk-session",
+				endpointUrl: "http://llamacpp:8080",
+				endpointProvider: "llamacpp",
+				model: "qwen3.5",
+			}),
+		).toEqual({
+			ANTHROPIC_API_KEY: "sk-session",
+			ANTHROPIC_BASE_URL: "http://llamacpp:8080",
+			ANTHROPIC_DEFAULT_HAIKU_MODEL: "qwen3.5",
+		});
 	});
 });

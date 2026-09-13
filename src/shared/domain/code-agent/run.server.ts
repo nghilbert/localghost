@@ -29,7 +29,7 @@ const MAX_HARNESS_TURNS = 60;
  * `ANTHROPIC_DEFAULT_HAIKU_MODEL` covers the CLI's own background calls (session-title
  * generation), which otherwise default to an unresolvable Anthropic haiku id.
  */
-function harnessEnv({
+export function harnessEnv({
 	apiKey,
 	endpointUrl,
 	endpointProvider,
@@ -41,12 +41,14 @@ function harnessEnv({
 	model: string;
 }): Record<string, string> {
 	const key = apiKey || (endpointProvider === "llamacpp" ? LOCAL_LLAMACPP_API_KEY : "");
-	if (endpointProvider === "anthropic") return { ANTHROPIC_API_KEY: key };
-	return {
+	const base = {
 		ANTHROPIC_API_KEY: key,
 		ANTHROPIC_BASE_URL: chatBaseUrl({ url: endpointUrl, provider: "anthropic" }),
-		ANTHROPIC_DEFAULT_HAIKU_MODEL: model,
 	};
+	// A custom Anthropic-provider endpoint URL is a real, settable config; only the
+	// haiku override is specific to a non-Anthropic backend.
+	if (endpointProvider === "anthropic") return base;
+	return { ...base, ANTHROPIC_DEFAULT_HAIKU_MODEL: model };
 }
 
 /**
