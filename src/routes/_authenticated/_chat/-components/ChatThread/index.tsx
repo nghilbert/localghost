@@ -107,12 +107,10 @@ export function ChatThread({ conversation }: ChatThreadProps) {
 	 * run, so the server tells Stop from a reload by this record, which has to land first.
 	 * A failed record still disconnects, so the run detaches instead of the button doing nothing.
 	 */
-	async function handleStop() {
-		try {
-			if (runId) await requestChatRunCancel({ data: runId });
-		} finally {
-			stop();
-		}
+	function handleStop() {
+		const recorded = runId ? requestChatRunCancel({ data: runId }) : Promise.resolve();
+		// Swallowed so a failed record cannot escape the click as an unhandled rejection.
+		void recorded.catch(() => {}).finally(stop);
 	}
 
 	// Apply the draft page's tool-toggle handoff exactly once, client-side only.

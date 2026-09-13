@@ -95,9 +95,11 @@ export function toRuntimeModels(models: LlamaModel[]): {
 	const downloads: Record<string, PullProgress> = {};
 
 	for (const model of models) {
-		// A just-finished download still reports "downloaded" until the router reloads.
-		// Both states leave here, which also narrows `status.value` for `InstalledModel`.
-		if (model.status.value === "downloading" || model.status.value === "downloaded") {
+		// Only an active transfer belongs in `downloads`: its keys drive both the
+		// "still downloading" merge in use-models.ts and the fast-poll interval in
+		// model.functions.ts, so a finished download lingering here would falsely
+		// keep both going until the router happens to reload.
+		if (model.status.value === "downloading") {
 			downloads[model.id] = aggregatePullProgress(model.status.progress ?? {});
 			continue;
 		}

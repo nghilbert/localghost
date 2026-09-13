@@ -164,6 +164,33 @@ describe("toRuntimeModels", () => {
 			},
 		});
 	});
+
+	// "downloaded" is the router's transient state between a finished transfer and its
+	// next reload; leaving it in `downloads` would falsely keep the fast-poll interval
+	// and the client's "still downloading" set going until that reload happens.
+	it("treats a just-finished download as installed, not still in flight", () => {
+		const models: LlamaModel[] = [
+			{
+				id: "org/finished-GGUF:Q4_K_M",
+				path: "/models/finished.gguf",
+				status: { value: "downloaded" },
+			},
+		];
+
+		expect(toRuntimeModels(models)).toEqual({
+			installedModels: [
+				{
+					id: "org/finished-GGUF:Q4_K_M",
+					sizeBytes: null,
+					quant: "Q4_K_M",
+					paramB: null,
+					status: "downloaded",
+					vision: false,
+				},
+			],
+			downloads: {},
+		});
+	});
 });
 
 describe("buildRuntimeCandidateUrls", () => {

@@ -24,7 +24,8 @@ export type InstalledModel = {
 	quant: string | null;
 	/** Billions of parameters parsed from the id, when derivable. */
 	paramB: number | null;
-	status: "loaded" | "loading" | "unloaded" | "sleeping";
+	/** `"downloaded"`: the transfer just finished but the router hasn't reloaded it yet. */
+	status: "loaded" | "loading" | "unloaded" | "sleeping" | "downloaded";
 	vision: boolean;
 };
 
