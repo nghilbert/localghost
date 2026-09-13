@@ -42,6 +42,18 @@ export function AgentThread({ session }: AgentThreadProps) {
 	// diff itself carries no id (`path` is always `"."`), so one is assigned on arrival.
 	const [diffs, setDiffs] = useState<{ id: string; diff: CodeAgentDiff }[]>([]);
 
+	// `useChat` syncs `forwardedProps` in an effect, so a grant reaches the client one
+	// commit after it is made; re-running any sooner would send the run without it.
+	const grantsSent = useRef(0);
+
+	// A grant is scoped to the one run it was sent for; clearing it here (rather than on
+	// the next approval) is what keeps it from silently becoming a standing allow-list
+	// across every later run in the session.
+	function clearGrantedApprovals() {
+		setGrantedApprovalIds((prev) => (prev.length === 0 ? prev : []));
+		grantsSent.current = 0;
+	}
+
 	const { messages, status, isLoading, error, reload, sendMessage, stop, runId } = useChat({
 		connection,
 		persistence: true,
@@ -56,6 +68,8 @@ export function AgentThread({ session }: AgentThreadProps) {
 				setDiffs((prev) => [...prev, { id: crypto.randomUUID(), diff: data }]);
 			}
 		},
+		onFinish: clearGrantedApprovals,
+		onError: clearGrantedApprovals,
 	});
 	const isStreaming = isLoading || status === "submitted" || status === "streaming";
 
@@ -93,9 +107,6 @@ export function AgentThread({ session }: AgentThreadProps) {
 		dismissApproval(approval.approvalId);
 	}
 
-	// `useChat` syncs `forwardedProps` in an effect, so a grant reaches the client one
-	// commit after it is made; re-running any sooner would send the run without it.
-	const grantsSent = useRef(0);
 	useEffect(() => {
 		if (grantedApprovalIds.length === grantsSent.current) return;
 		grantsSent.current = grantedApprovalIds.length;
