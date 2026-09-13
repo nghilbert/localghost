@@ -14,6 +14,8 @@ const AGENT_ENV_KEEP = [
 	"LC_ALL",
 	"TZ",
 	"SSH_AUTH_SOCK",
+	// Ours is set per run; without it here a host-exported one is scrubbed after the merge.
+	"CLAUDE_CONFIG_DIR",
 ] as const;
 
 /**

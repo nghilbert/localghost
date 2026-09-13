@@ -21,4 +21,6 @@ beforeAll(async () => {
 
 runPersistenceConformance("chatPersistence", () => chatPersistence, {
 	skip: ["metadata", "generationRuns", "artifacts", "blobs"],
+	// Serves a reaper this app does not have; `withPersistence` never calls it.
+	skipMethods: ["runs.listReclaimable"],
 });
