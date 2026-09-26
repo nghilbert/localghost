@@ -1,6 +1,0 @@
-{
-	"mcpServers": {
-		"better-auth": { "type": "http", "url": "https://mcp.better-auth.com/mcp" },
-		"hf-mcp-server": { "type": "http", "url": "https://huggingface.co/mcp?login" }
-	}
-}
