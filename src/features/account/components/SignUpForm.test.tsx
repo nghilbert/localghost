@@ -45,7 +45,7 @@ describe("SignUpForm", () => {
 	});
 
 	it("keeps the typed values when sign-up is refused", async () => {
-		mocks.signUp.mutateAsync.mockRejectedValue(new Error("Sign-up is closed."));
+		mocks.signUp.mutateAsync.mockRejectedValue(new Error("Sam is signed in."));
 		const screen = await render(<SignUpForm />);
 
 		await screen.getByLabelText("Name", { exact: true }).fill("Odysseus");

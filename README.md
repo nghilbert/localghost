@@ -20,8 +20,10 @@ encrypted at rest.
 - **Backup.** Export everything (conversations, endpoints, memory, settings) to a
   file and import it back. Import merges non-destructively.
 - **Themes.** Light and dark modes with theme presets in Settings > Appearance.
-- **Accounts.** The first account to sign up owns the instance; sign-up is
-  disabled once that account exists.
+- **Accounts.** Anyone can create an account. Each account has its own chats,
+  memory, and settings, while installed models are shared. One person is signed
+  in at a time; anyone else is turned away until that person signs out or their
+  24-hour session ends.
 
 ## Requirements
 
@@ -59,6 +61,8 @@ Optional:
 | `BETTER_AUTH_URL` | the public origin behind a reverse proxy (default `http://localhost:3000`) |
 | `HF_TOKEN` | lifts Hugging Face's anonymous limits for the Library and bundled llama.cpp downloads |
 | `LLAMA_ARG_SLEEP_IDLE_SECONDS` | how long the bundled llama.cpp keeps an idle model loaded (default 300) |
+| `LLAMA_ARG_N_GPU_LAYERS` | GPU layers for the bundled llama.cpp (default `auto`, fitted to free VRAM; `0` is CPU-only) |
+| `LLAMA_ARG_CTX_SIZE` | context length (default `0`: the model's, shrunk to fit memory) |
 
 ## Develop
 
@@ -94,9 +98,10 @@ COMPOSE_FILE=compose.yaml:compose.amd.yaml      # AMD (ROCm)
 COMPOSE_FILE=compose.yaml:compose.vulkan.yaml   # Vulkan (Intel, or AMD without ROCm)
 ```
 
-The Vulkan overlay swaps in llama.cpp's Vulkan image and needs `/dev/dri`. The
-hardware panel has no Vulkan detection, so it shows "No GPU detected" under this
-overlay.
+The Vulkan overlay swaps in llama.cpp's Vulkan image and needs `/dev/dri`. It
+memory-maps model weights (`LLAMA_ARG_LOAD_MODE=mmap`), which integrated AMD GPUs
+need to load some models. The hardware panel has no Vulkan detection, so it shows
+"No GPU detected" under this overlay.
 
 ### Native fallback
 

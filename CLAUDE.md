@@ -113,7 +113,7 @@ Rules: query by role, label, or text (`getByTestId` is a last resort; `component
 
 ## Architecture
 
-- **Framework:** TanStack Start (Vite, nitro), file-based routing, alias `#/` = `src/`. Auth is better-auth (email/password, single account), session resolved in the root `beforeLoad`; `_authenticated.tsx` guards and renders the `AppSidebar` shell.
+- **Framework:** TanStack Start (Vite, nitro), file-based routing, alias `#/` = `src/`. Auth is better-auth (email/password, separate accounts with one signed in at a time and fixed 24-hour sessions; see `lib/auth.server.ts`), session resolved in the root `beforeLoad`; `_authenticated.tsx` guards and renders the `AppSidebar` shell.
 - **Tools:** `features/chat/server/tools.server.ts` builds the `ServerTool[]`. The client exposes one toggle, `web_search`, which enables `web_search` and `read_url` together (sent per request via `forwardedProps`, never saved; on by default when `SEARXNG_URL` is set). Memory's tools come from `memoryMiddleware`, since memory is always on.
 - **Chat persistence:** `@tanstack/ai-persistence`'s `withPersistence` is server-authoritative. The transcript lives in `ChatThread` (keyed by the conversation id as `threadId`), run lifecycle in `ChatRun` / `ChatInterrupt`. The client runs `useChat({ persistence: true })`; `/api/chat/stream` GET loads a thread by `?threadId=` or reconnects to a running stream.
 - **Backup:** `routes/api/backup/` export and non-destructive import.

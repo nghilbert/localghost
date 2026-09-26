@@ -2,6 +2,8 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { APIError, createAuthMiddleware } from "better-auth/api";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
+import { z } from "zod";
+import { findOtherSignedInUser } from "./active-session.server";
 import { prisma } from "./db.server";
 
 function getSecret(): string {
@@ -11,16 +13,9 @@ function getSecret(): string {
 	return secret;
 }
 
-/**
- * Whether sign-up is still open: no user has a password yet. A user row without a
- * credential cannot sign in, so it does not count.
- */
-export async function isSignUpOpen(): Promise<boolean> {
-	const usable = await prisma.user.count({
-		where: { accounts: { some: { password: { not: null } } } },
-	});
-	return usable === 0;
-}
+// Sign-in and sign-up both start a session, so both check who is signed in.
+const SESSION_STARTING_PATHS = new Set(["/sign-in/email", "/sign-up/email"]);
+const sessionStartBody = z.object({ email: z.string() });
 
 /** The better-auth server instance. */
 export const auth = betterAuth({
@@ -29,8 +24,13 @@ export const auth = betterAuth({
 	advanced: { database: { generateId: "uuid" } },
 	secret: getSecret(),
 	emailAndPassword: { enabled: true },
-	// A signed cookie caches the session, so most requests skip the database lookup.
-	session: { cookieCache: { enabled: true, maxAge: 5 * 60 } },
+	session: {
+		// A fixed day, so a person who forgets to sign out frees the app within 24 hours.
+		expiresIn: 60 * 60 * 24,
+		disableSessionRefresh: true,
+		// A signed cookie caches the session, so most requests skip the database lookup.
+		cookieCache: { enabled: true, maxAge: 5 * 60 },
+	},
 	rateLimit: {
 		enabled: true,
 		customRules: {
@@ -48,13 +48,16 @@ export const auth = betterAuth({
 		deleteUser: { enabled: true },
 	},
 	hooks: {
-		// Only the first account may sign up. The sign-up page redirects on the same rule,
-		// but this check is the one that enforces it.
+		// One person is signed in at a time. Everyone else waits for them to sign out or for
+		// their session to end.
 		before: createAuthMiddleware(async (ctx) => {
-			if (ctx.path !== "/sign-up/email") return;
-			if (!(await isSignUpOpen())) {
+			if (!SESSION_STARTING_PATHS.has(ctx.path)) return;
+			const body = sessionStartBody.safeParse(ctx.body);
+			if (!body.success) return;
+			const other = await findOtherSignedInUser({ email: body.data.email });
+			if (other) {
 				throw new APIError("FORBIDDEN", {
-					message: "Sign-up is closed: this app is already set up for one account.",
+					message: `${other.name} is signed in. They need to sign out, or you can sign in after their session ends.`,
 				});
 			}
 		}),

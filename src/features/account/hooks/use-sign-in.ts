@@ -11,7 +11,12 @@ export function useSignIn() {
 	return useMutation({
 		mutationFn: async (credentials: z.infer<typeof signInSchema>) => {
 			const { error } = await authClient.signIn.email(credentials);
-			if (error) throw new Error("Invalid credentials.");
+			if (!error) return;
+			// A refusal because someone else is signed in carries a message worth showing.
+			// Other failures stay vague, so the form does not reveal which emails exist.
+			throw new Error(
+				error.status === 403 && error.message ? error.message : "Invalid credentials.",
+			);
 		},
 		onSuccess: () => navigate({ to: "/" }),
 	});

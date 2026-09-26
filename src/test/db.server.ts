@@ -39,3 +39,16 @@ export function createConversation(
 ) {
 	return prisma.conversation.create({ data: { title: "Test chat", ...overrides } });
 }
+
+/** Creates a session for `userId` that is live for a day unless `expiresAt` says otherwise. */
+export function createSession(
+	overrides: Partial<Prisma.SessionUncheckedCreateInput> & { userId: string },
+) {
+	return prisma.session.create({
+		data: {
+			token: faker.string.alphanumeric(32),
+			expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+			...overrides,
+		},
+	});
+}

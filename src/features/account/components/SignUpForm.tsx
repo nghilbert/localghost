@@ -6,7 +6,7 @@ import { useAppForm } from "#/components/form/use-app-form";
 import { signUpDefaults, signUpFormSchema } from "#/features/account/account.schemas";
 import { useSignUp } from "#/features/account/hooks/use-sign-up";
 
-/** The form that creates the one account. */
+/** The form that creates an account. */
 export function SignUpForm() {
 	const signUp = useSignUp();
 

@@ -1,14 +1,8 @@
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { Card } from "#/components/ui/card";
-import { accountQueries } from "#/features/account/account.queries";
 import { SignUpForm } from "#/features/account/components/SignUpForm";
 
 export const Route = createFileRoute("/_public/sign-up")({
-	// Only one account can exist, so skip the form once it does.
-	beforeLoad: async ({ context }) => {
-		const { open } = await context.queryClient.query(accountQueries.signUpAvailability());
-		if (!open) throw redirect({ to: "/sign-in" });
-	},
 	component: SignUpPage,
 });
 
