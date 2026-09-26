@@ -4,7 +4,7 @@ import {
 	assertPublicUrl,
 	isPrivateAddress,
 	UnsafeUrlError,
-} from "#/shared/lib/ssrf-guard.server";
+} from "#/lib/ssrf-guard.server";
 
 describe("isPrivateAddress", () => {
 	it("flags loopback, private, and link-local IPv4 ranges", () => {

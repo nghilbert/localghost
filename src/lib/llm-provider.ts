@@ -1,4 +1,4 @@
-import { z } from "zod/v4";
+import { z } from "zod";
 
 /** Provider families supported by the LLM and endpoint layers. */
 export const llmProviderSchema = z.enum([
@@ -10,9 +10,10 @@ export const llmProviderSchema = z.enum([
 	"gemini",
 ]);
 
+/** A supported provider family. */
 export type LLMProvider = z.infer<typeof llmProviderSchema>;
 
-/** Narrows a stored provider string, returning undefined when it is unrecognized. */
+/** Narrows a stored provider string, or returns undefined when it is unknown. */
 export function asLLMProvider(value: string): LLMProvider | undefined {
 	const parsed = llmProviderSchema.safeParse(value);
 	return parsed.success ? parsed.data : undefined;
@@ -25,7 +26,6 @@ export function detectProvider(url: string): LLMProvider {
 	if (normalized.includes("generativelanguage.googleapis.com")) return "gemini";
 	if (normalized.includes("openrouter.ai")) return "openrouter";
 	if (normalized.includes("groq.com")) return "groq";
-	// Port 8080 is too common to identify llama.cpp reliably. Runtime discovery
-	// stores that provider explicitly; hand-added compatible endpoints use OpenAI.
+	// A llama.cpp URL looks like any OpenAI-compatible server, so discovery stores that provider explicitly.
 	return "openai";
 }

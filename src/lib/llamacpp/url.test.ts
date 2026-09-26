@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { llamacppUrlSchema } from "#/shared/lib/llamacpp/url";
+import { llamacppUrlSchema } from "#/lib/llamacpp/url";
 
 describe("llamacppUrlSchema", () => {
 	it("rejects a well-formed URL on a protocol llama-server doesn't speak", () => {

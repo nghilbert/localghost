@@ -6,10 +6,8 @@ export class BodyTooLargeError extends Error {
 }
 
 /**
- * Parses a request's JSON body while enforcing a byte cap, so an oversized
- * upload is rejected instead of buffered whole. Rejects early on a declared
- * `Content-Length` over the cap and enforces it again while streaming, since a
- * chunked body can omit the header.
+ * Parses a request's JSON body, stopping as soon as it exceeds `maxBytes`. The size is
+ * checked while streaming too, since a chunked body can omit `Content-Length`.
  * @throws {BodyTooLargeError} When the body exceeds `maxBytes`.
  * @throws {SyntaxError} When the body is not valid JSON.
  */

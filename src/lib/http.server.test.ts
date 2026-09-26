@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BodyTooLargeError, readJsonWithLimit } from "#/shared/lib/http.server";
+import { BodyTooLargeError, readJsonWithLimit } from "#/lib/http.server";
 
 function jsonRequest(body: string, headers: Record<string, string> = {}): Request {
 	return new Request("http://test.local/", { method: "POST", body, headers });

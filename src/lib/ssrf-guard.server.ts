@@ -3,10 +3,9 @@ import { lookup } from "node:dns";
 import { isIP } from "node:net";
 import { Agent } from "undici";
 
-/** Thrown when a URL resolves to a host the agent must not fetch. */
+/** Thrown when a URL points at a local or private network address. */
 export class UnsafeUrlError extends Error {}
 
-/** Whether a resolved IPv4 address is loopback, link-local, or a private range. */
 function isPrivateIPv4(address: string): boolean {
 	const octets = address.split(".").map(Number);
 	if (octets.length !== 4 || octets.some((n) => Number.isNaN(n))) return true;
@@ -19,7 +18,6 @@ function isPrivateIPv4(address: string): boolean {
 	return false;
 }
 
-/** Whether a resolved IPv6 address is loopback, link-local, or unique-local. */
 function isPrivateIPv6(address: string): boolean {
 	const lower = address.toLowerCase();
 	if (lower === "::1" || lower === "::") return true;
@@ -29,7 +27,7 @@ function isPrivateIPv6(address: string): boolean {
 	return false;
 }
 
-/** @returns Whether the resolved address is not routable on the public internet. */
+/** Whether an IP address is not reachable on the public internet. Non-IPs count as private. */
 export function isPrivateAddress(address: string): boolean {
 	const version = isIP(address);
 	if (version === 4) return isPrivateIPv4(address);
@@ -37,8 +35,9 @@ export function isPrivateAddress(address: string): boolean {
 	return true;
 }
 
-/** Rejects DNS results containing no addresses or any private address.
- * @throws {UnsafeUrlError} If the answer is empty or any address is private.
+/**
+ * Returns DNS results unchanged when all of them are public.
+ * @throws {UnsafeUrlError} If there are none or any is private.
  */
 export function assertPublicAddresses(addresses: LookupAddress[]): LookupAddress[] {
 	const [first] = addresses;
@@ -48,7 +47,7 @@ export function assertPublicAddresses(addresses: LookupAddress[]): LookupAddress
 	return addresses;
 }
 
-/** DNS lookup that validates the exact addresses passed to the connector. */
+/** A DNS lookup that checks the exact addresses the connection will use. */
 function publicOnlyLookup(
 	hostname: string,
 	options: LookupOptions,
@@ -79,23 +78,20 @@ function publicOnlyLookup(
 	});
 }
 
-/**
- * Fetch dispatcher whose connector re-validates DNS at connect time via
- * {@link publicOnlyLookup}. Pass as `dispatcher` to undici's `fetch` for any
- * model-supplied URL.
- */
+/** An undici `dispatcher` that refuses to connect to private addresses. Use it for any model-supplied URL. */
 export const publicOnlyDispatcher = new Agent({ connect: { lookup: publicOnlyLookup } });
 
-/** Rejects non-HTTP(S) URLs and private literal-IP hosts.
- * Hostnames are checked by {@link publicOnlyDispatcher} at connection time.
- * @throws {UnsafeUrlError} If the scheme is not http(s) or a literal IP host is private.
+/**
+ * Parses a URL, rejecting non-http(s) schemes and private IP hosts. Hostnames are
+ * checked later by {@link publicOnlyDispatcher}.
+ * @throws {UnsafeUrlError} If the URL is not allowed.
  */
 export function assertPublicUrl(input: string): URL {
 	const url = new URL(input);
 	if (url.protocol !== "http:" && url.protocol !== "https:") {
 		throw new UnsafeUrlError("Only http and https URLs are allowed.");
 	}
-	// WHATWG URL keeps IPv6 hosts bracketed; strip for isIP/isPrivateAddress.
+	// `URL` keeps IPv6 hosts in brackets.
 	const host =
 		url.hostname.startsWith("[") && url.hostname.endsWith("]")
 			? url.hostname.slice(1, -1)

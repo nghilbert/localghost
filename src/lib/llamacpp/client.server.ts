@@ -1,13 +1,15 @@
 import { Agent, type Response as UndiciResponse, fetch as undiciFetch } from "undici";
-import { z } from "zod/v4";
-import { llamaDownloadFileProgressSchema } from "#/shared/domain/model/schemas";
+import { z } from "zod";
+import { llamaDownloadFileProgressSchema } from "./schemas";
 
-/**
- * Thin `fetch` wrapper over `llama-server`'s router-mode HTTP API. There is no
- * official JS SDK for it (unlike Ollama); the surface is a few small REST calls.
- */
-const llamaModelStatusSchema = z.enum(["loaded", "loading", "unloaded", "sleeping", "downloading"]);
-export type LlamaModelStatus = z.infer<typeof llamaModelStatusSchema>;
+const llamaModelStatusSchema = z.enum([
+	"loaded",
+	"loading",
+	"unloaded",
+	"sleeping",
+	"downloading",
+	"downloaded",
+]);
 
 const llamaModelSchema = z.object({
 	id: z.string(),
@@ -27,15 +29,22 @@ const llamaModelSchema = z.object({
 });
 const llamaModelListSchema = z.object({ data: z.array(llamaModelSchema) });
 
+/** The router's `GET /models` body. */
+export type LlamaModelList = z.input<typeof llamaModelListSchema>;
+
+const llamaErrorSchema = z.object({ error: z.object({ message: z.string() }) });
+
+/** The OpenAI-style error body the router sends with a failed request. */
+export type LlamaError = z.input<typeof llamaErrorSchema>;
+
+/** A model entry from the llama.cpp router's `/models`. */
 export type LlamaModel = z.infer<typeof llamaModelSchema>;
 
 /**
- * Key for the bundled llama.cpp service, mirroring its `LLAMA_API_KEY` (compose.yaml).
- * llama.cpp enforces `--api-key` on `/models/sse` and `/models/unload` but not `/models`,
- * so an unset key breaks download progress and cancellation but not discovery. A server
- * without `--api-key` ignores the header.
+ * The bundled llama.cpp server's API key, from `LLAMA_API_KEY`, as in compose.yaml. A
+ * server started without a key ignores it.
  */
-export const LOCAL_LLAMACPP_API_KEY = process.env.LLAMACPP_API_KEY || "local-llamacpp";
+export const LOCAL_LLAMACPP_API_KEY = process.env.LLAMA_API_KEY || "local-llamacpp";
 
 async function timeoutFetch({
 	url,
@@ -56,20 +65,15 @@ async function responseError({
 	response: Response | UndiciResponse;
 	operation: string;
 }): Promise<Error> {
-	const body: unknown = await response.json().catch(() => null);
-	if (typeof body === "object" && body !== null && "error" in body) {
-		const error = body.error;
-		if (typeof error === "object" && error !== null && "message" in error) {
-			const message = error.message;
-			if (typeof message === "string") return new Error(message);
-		}
-	}
-	return new Error(`${operation} failed: ${response.status}`);
+	const body = llamaErrorSchema.safeParse(await response.json().catch(() => null));
+	return new Error(
+		body.success ? body.data.error.message : `${operation} failed: ${response.status}`,
+	);
 }
 
-/** `Authorization` header for `--api-key`-protected llama-server instances; empty when unset. */
+/** Uses {@link LOCAL_LLAMACPP_API_KEY} when the endpoint has no key of its own. */
 function authHeaders(apiKey: string | undefined): Record<string, string> {
-	return apiKey ? { Authorization: `Bearer ${apiKey}` } : {};
+	return { Authorization: `Bearer ${apiKey || LOCAL_LLAMACPP_API_KEY}` };
 }
 
 /** Lists every model the router has discovered, with its load status. */
@@ -91,13 +95,12 @@ export async function listModels({
 	return llamaModelListSchema.parse(await response.json()).data;
 }
 
-// `bodyTimeout: 0` disables undici's 5-min between-chunks timeout for this long-lived stream.
+// Disables undici's 5 minute idle timeout, since this stream stays open.
 const modelEventDispatcher = new Agent({ bodyTimeout: 0 });
 
-/** undici's response body stream; its element type diverges from the DOM `ReadableStream`. */
+/** undici's body stream type, which differs from the DOM `ReadableStream`. */
 type ModelEventStream = NonNullable<UndiciResponse["body"]>;
 
-/** A single connection attempt to llama.cpp's router model-event stream. */
 async function fetchModelEventStream({
 	url,
 	apiKey,
@@ -117,17 +120,12 @@ async function fetchModelEventStream({
 	return response.body;
 }
 
-/** Delay before retrying a dropped model-event stream: router recycles resolve in ~1-2s. */
 const RECONNECT_DELAY_MS = 1000;
 
 /**
- * Opens llama.cpp's long-lived router model-event stream. The router
- * recycles a model instance (a download finishing, a model
- * loading/unloading/sleeping) by dropping this connection; once connected,
- * a drop reopens a fresh stream and keeps piping instead of ending the
- * response, until `signal` aborts. Only the first connection attempt can
- * fail, so the caller still gets a real error when the endpoint itself is
- * unreachable.
+ * Opens llama.cpp's model event stream (`/models/sse`). The router drops the connection
+ * whenever a model changes state, so this reconnects until `signal` aborts. Only the first
+ * connection can throw, so an unreachable server still reports an error.
  */
 export async function openModelEventStream({
 	url,
@@ -165,7 +163,7 @@ export async function openModelEventStream({
 	});
 }
 
-/** Triggers a non-blocking download of `model` (a `repo:QUANT` id) from Hugging Face. */
+/** Starts downloading `model` (a `repo:QUANT` id) from Hugging Face without waiting for it. */
 export async function downloadModel({
 	url,
 	model,
@@ -200,7 +198,7 @@ export async function deleteModel({
 	if (!response.ok) throw await responseError({ response, operation: "DELETE /models" });
 }
 
-/** Unloads a model; also cancels an in-flight download for it. */
+/** Unloads a model, cancelling its download if one is running. */
 export async function unloadModel({
 	url,
 	model,

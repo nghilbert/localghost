@@ -1,11 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { LOCAL_LLAMACPP_API_KEY } from "#/lib/llamacpp/client.server";
 import {
 	buildModelsRequest,
 	chatBaseUrl,
+	type ModelsResponse,
 	modelSupportsTools,
 	streamLLMEvents,
-} from "#/shared/lib/llm.server";
-import { asLLMProvider, detectProvider } from "#/shared/lib/llm-provider";
+} from "#/lib/llm.server";
+import { asLLMProvider, detectProvider } from "#/lib/llm-provider";
 
 describe("llm.server", () => {
 	describe("asLLMProvider", () => {
@@ -75,18 +77,25 @@ describe("llm.server", () => {
 			expect(url).toContain("key=gm-key");
 		});
 
-		it("sends no auth header for llamacpp", () => {
+		it("falls back to the bundled placeholder key for llamacpp with no configured key", () => {
 			const { headers } = buildModelsRequest({
 				url: "http://localhost:8080",
 				provider: "llamacpp",
 			});
-			expect(headers.Authorization).toBeUndefined();
-			expect(Object.keys(headers)).toEqual(["Content-Type"]);
+			expect(headers.Authorization).toBe(`Bearer ${LOCAL_LLAMACPP_API_KEY}`);
 		});
 
-		it("prefers an explicit provider over URL sniffing on a custom domain", () => {
-			// An anthropic-compatible proxy: sniffing would land on openai and send
-			// a bearer token; the stored provider must win.
+		it("prefers a configured llamacpp key over the placeholder", () => {
+			const { headers } = buildModelsRequest({
+				url: "http://localhost:8080",
+				provider: "llamacpp",
+				apiKey: "sk-configured",
+			});
+			expect(headers.Authorization).toBe("Bearer sk-configured");
+		});
+
+		it("prefers the stored provider over the one its URL suggests", () => {
+			// An Anthropic-compatible proxy: the URL looks like OpenAI, but the stored provider wins.
 			const { url, headers } = buildModelsRequest({
 				url: "https://claude-proxy.example.com",
 				provider: "anthropic",
@@ -143,11 +152,15 @@ describe("llm.server", () => {
 			vi.unstubAllGlobals();
 		});
 
-		function stubModels(data: Array<{ id: string; supported_parameters?: string[] }>) {
+		function stubModels(data: NonNullable<ModelsResponse["data"]>) {
 			// A fresh Response per call: a body is single-read.
 			vi.stubGlobal(
 				"fetch",
-				vi.fn().mockImplementation(() => Promise.resolve(new Response(JSON.stringify({ data })))),
+				vi
+					.fn()
+					.mockImplementation(() =>
+						Promise.resolve(Response.json({ data } satisfies ModelsResponse)),
+					),
 			);
 		}
 
@@ -213,7 +226,7 @@ describe("llm.server", () => {
 		it("should default to OpenAI for unknown URLs, including a bare llama.cpp port", () => {
 			expect(detectProvider("https://api.openai.com/v1")).toBe("openai");
 			expect(detectProvider("https://my-custom-proxy.example.com/v1")).toBe("openai");
-			// Deliberate non-hijack: 8080 is too common a port to sniff as llamacpp.
+			// Port 8080 is too common to mean llama.cpp.
 			expect(detectProvider("http://localhost:8080")).toBe("openai");
 		});
 	});

@@ -13,85 +13,84 @@ import { createGeminiChat } from "@tanstack/ai-gemini";
 import { openaiCompatibleText } from "@tanstack/ai-openai/compatible";
 import { trimPathRight } from "@tanstack/react-router";
 import { LOCAL_LLAMACPP_API_KEY } from "./llamacpp/client.server";
-import { DEFAULT_MAX_TOKENS } from "./llm-constants";
+import { DEFAULT_MAX_TOKENS, DEFAULT_TEMPERATURE } from "./llm-constants";
 import { detectProvider, type LLMProvider } from "./llm-provider";
 
-export type StreamLLMOptions = {
+/** Options for {@link streamLLMEvents}. */
+type StreamLLMOptions = {
 	url: string;
-	/** The endpoint's stored provider; falls back to URL sniffing only when absent. */
+	/** The endpoint's stored provider. Detected from the URL when absent. */
 	provider?: LLMProvider;
 	apiKey?: string;
 	model: string;
-	/** Conversation history as wire messages; `chat()` converts internally (no system role). */
+	/** Conversation history without a system message; pass `systemPrompt` for that. */
 	messages: Array<UIMessage | ModelMessage>;
 	systemPrompt?: string;
 	temperature?: number;
 	maxTokens?: number;
-	/** Validated per-endpoint sampling options. Each present field overrides the default. */
+	/** Per-endpoint sampling options. Each present field overrides the default. */
 	options?: Record<string, unknown>;
-	/** AG-UI thread id from the wire, forwarded so run events stay correlated. */
+	/** The request's thread id, so run events stay correlated. */
 	threadId?: string;
-	/** AG-UI run id from the wire. */
 	runId?: string;
-	/** Server tools to auto-execute; when present the agent loop runs. */
+	/** Server tools to run automatically; when present the agent loop runs. */
 	tools?: AnyServerTool[];
-	/** Aborts the upstream provider request; fire it when the client disconnects. */
+	/** Aborts the provider request. */
 	abortController?: AbortController;
-	/** Chat middleware (e.g. `withPersistence`, `memoryMiddleware`), run in array order. */
+	/** Chat middleware, run in array order. */
 	middleware?: AnyChatMiddleware[];
-	/** AG-UI interrupt resume entries, forwarded when the client resolves a pending approval. */
+	/** Answers to pending interrupts, sent when the client resolves an approval. */
 	resume?: Array<RunAgentResumeItem>;
 };
 
 const OPENROUTER_REFERER = "https://localghost.app";
 const MAX_AGENT_ROUNDS = 10;
 
-/** Shape of the model-list responses across providers (OpenAI/llama.cpp `data`, Gemini `models`). */
-type ModelsResponse = {
+/** Model-list response: OpenAI and llama.cpp use `data`, Gemini uses `models`. */
+export type ModelsResponse = {
 	data?: Array<{ id: string; supported_parameters?: string[] }>;
 	models?: Array<{ name: string }>;
 };
 
-/**
- * Per-provider configuration driving every provider-specific decision: adapter
- * construction, base-URL normalization, `modelOptions` shape, and the model-list
- * endpoint. Keyed by {@link LLMProvider} so the rest of the file stays branch-free.
- */
+/** Everything that differs between providers, so the rest of the file has no provider branches. */
 type ProviderConfig = {
 	/** Normalizes a configured endpoint URL to the base the chat adapter expects. */
 	chatBaseUrl: (url: string) => string;
-	/** Builds the `@tanstack/ai` text adapter for a model against the normalized base URL. */
 	buildAdapter: (args: { model: string; apiKey: string; baseUrl: string }) => AnyTextAdapter;
-	/**
-	 * The provider-specific `modelOptions` payload for a `chat()` call. `options` carries the
-	 * validated per-endpoint native sampling settings; providers that support them spread them
-	 * over the defaults so a present field wins, and the rest ignore the blob.
-	 */
+	/** The `modelOptions` for a `chat()` call. Providers that ignore sampling `options` drop them. */
 	modelOptions: (args: {
 		model: string;
 		temperature: number;
 		maxTokens: number;
 		options: Record<string, unknown>;
 	}) => Record<string, unknown>;
-	/** Headers for the model-list fetch (auth lives here for header-auth providers). */
 	modelsHeaders: (apiKey?: string) => Record<string, string>;
-	/** The model-list endpoint URL, given a trailing-slash-stripped base. */
+	/** The model-list URL, given a base with no trailing slash. */
 	modelsUrl: (args: { base: string; apiKey?: string }) => string;
-	/** Extracts the advertised model ids from a model-list response. */
 	parseModels: (json: ModelsResponse) => string[];
-	/**
-	 * Reads whether `model` can call tools from the model-list response.
-	 * Absent when the provider publishes no capability metadata: assume it can.
-	 */
+	/** Whether `model` can call tools. Absent when the provider publishes no such data. */
 	parseToolSupport?: (args: { json: ModelsResponse; model: string }) => boolean;
+	/** The key to use when none is configured. */
+	resolveApiKey?: (apiKey?: string) => string | undefined;
 };
 
-/** Clamps a temperature into Anthropic's accepted `[0, 1]` range. */
+/** The key to send to a provider: the endpoint's own, or the provider's default when it has one. */
+export function providerApiKey({
+	provider,
+	apiKey,
+}: {
+	provider: LLMProvider;
+	apiKey?: string;
+}): string | undefined {
+	const resolve = PROVIDERS[provider].resolveApiKey;
+	return resolve ? resolve(apiKey) : apiKey;
+}
+
+/** Anthropic accepts temperatures in `[0, 1]` only. */
 function clampUnit(value: number): number {
 	return Math.min(Math.max(value, 0), 1);
 }
 
-/** Builds an OpenAI-compatible adapter, optionally with extra default headers. */
 function openaiAdapter({
 	model,
 	apiKey,
@@ -111,7 +110,7 @@ function openaiAdapter({
 	});
 }
 
-/** Strips a trailing `/v1` segment, so callers that append their own `/v1/...` don't double it. */
+/** Strips a trailing `/v1`, so callers that append `/v1/...` don't double it. */
 function stripTrailingV1(url: string): string {
 	const trimmed = trimPathRight(url);
 	return trimmed.endsWith("/v1") ? trimmed.slice(0, -"/v1".length) : trimmed;
@@ -141,11 +140,10 @@ const OPENAI_COMPATIBLE: ProviderConfig = {
 
 const PROVIDERS: Record<LLMProvider, ProviderConfig> = {
 	anthropic: {
-		// Strip a trailing slash and a redundant `/v1` so the SDK appends its own path.
+		// The SDK appends its own `/v1/...` path.
 		chatBaseUrl: (url) => stripTrailingV1(url),
 		buildAdapter: ({ model, apiKey, baseUrl }) => {
-			// `createAnthropicChat` type-constrains the model to a fixed list; widen it with a
-			// runtime model definition so any bring-your-own Claude model name is accepted.
+			// `createAnthropicChat` only types a fixed model list; register this one so any name is accepted.
 			const factory = extendAdapter(createAnthropicChat, [
 				createModel(model, ["text", "image", "document"]),
 			]);
@@ -166,8 +164,7 @@ const PROVIDERS: Record<LLMProvider, ProviderConfig> = {
 	gemini: {
 		chatBaseUrl: (url) => trimPathRight(url),
 		buildAdapter: ({ model, apiKey, baseUrl }) => {
-			// `createGeminiChat` type-constrains the model to a fixed list; widen it with a
-			// runtime model definition so any bring-your-own Gemini model name is accepted.
+			// `createGeminiChat` only types a fixed model list; register this one so any name is accepted.
 			const factory = extendAdapter(createGeminiChat, [
 				createModel(model, ["text", "image", "document"]),
 			]);
@@ -177,7 +174,7 @@ const PROVIDERS: Record<LLMProvider, ProviderConfig> = {
 			temperature,
 			maxOutputTokens: maxTokens,
 		}),
-		// Gemini authenticates via a `?key=` query parameter, not an Authorization header.
+		// Gemini takes the key as a `?key=` query parameter.
 		modelsHeaders: () => ({ "Content-Type": "application/json" }),
 		modelsUrl: ({ base, apiKey }) => `${base}/v1beta/models?key=${apiKey ?? ""}`,
 		parseModels: (json) =>
@@ -185,11 +182,10 @@ const PROVIDERS: Record<LLMProvider, ProviderConfig> = {
 	},
 	llamacpp: {
 		...OPENAI_COMPATIBLE,
-		buildAdapter: (args) =>
-			openaiAdapter({ ...args, apiKey: args.apiKey || LOCAL_LLAMACPP_API_KEY }),
-		// `GET /models` (router mode) also lists downloaded-but-unloaded models,
-		// which `/v1/models` may omit. The SDK requires a nonempty key even when
-		// the local server does not; a configured `--api-key` still takes precedence.
+		// The SDK requires a key, and the bundled server enforces `--api-key` on every route
+		// but `/health`. A configured endpoint key wins.
+		resolveApiKey: (apiKey) => apiKey || LOCAL_LLAMACPP_API_KEY,
+		// In router mode `/models` also lists downloaded but unloaded models; `/v1/models` may not.
 		modelsUrl: ({ base }) => `${base}/models`,
 		parseModels: (json) => (json.data ?? []).map((m) => m.id),
 	},
@@ -211,21 +207,17 @@ const PROVIDERS: Record<LLMProvider, ProviderConfig> = {
 	openai: OPENAI_COMPATIBLE,
 };
 
-/** The provider's normalized chat base URL, extracted from {@link baseChatOptions} for testing. */
+/** The chat base URL the provider's adapter expects for a configured endpoint URL. */
 export function chatBaseUrl({ url, provider }: { url: string; provider?: LLMProvider }): string {
 	return PROVIDERS[provider ?? detectProvider(url)].chatBaseUrl(url);
 }
 
-/**
- * Assembles the provider-resolved `chat()` options: adapter, base URL,
- * `modelOptions` shape, and the agent loop (server tools auto-execute up to
- * `MAX_AGENT_ROUNDS`).
- */
 function baseChatOptions(opts: StreamLLMOptions) {
-	const config = PROVIDERS[opts.provider ?? detectProvider(opts.url)];
+	const provider = opts.provider ?? detectProvider(opts.url);
+	const config = PROVIDERS[provider];
 	const adapter = config.buildAdapter({
 		model: opts.model,
-		apiKey: opts.apiKey ?? "",
+		apiKey: providerApiKey({ provider, apiKey: opts.apiKey }) ?? "",
 		baseUrl: chatBaseUrl({ url: opts.url, provider: opts.provider }),
 	});
 	return {
@@ -234,7 +226,7 @@ function baseChatOptions(opts: StreamLLMOptions) {
 		systemPrompts: opts.systemPrompt ? [opts.systemPrompt] : [],
 		modelOptions: config.modelOptions({
 			model: opts.model,
-			temperature: opts.temperature ?? 0.7,
+			temperature: opts.temperature ?? DEFAULT_TEMPERATURE,
 			maxTokens: opts.maxTokens ?? DEFAULT_MAX_TOKENS,
 			options: opts.options ?? {},
 		}),
@@ -249,17 +241,15 @@ function baseChatOptions(opts: StreamLLMOptions) {
 	};
 }
 
-/**
- * Streams a completion as the raw `@tanstack/ai` (AG-UI) event stream the
- * `@tanstack/ai-client` SSE adapter consumes natively, events verbatim.
- */
+/** Streams a completion as `@tanstack/ai` events, ready for an SSE response. */
 export function streamLLMEvents(opts: StreamLLMOptions): AsyncIterable<StreamChunk> {
 	return chat({ ...baseChatOptions(opts), stream: true });
 }
 
+/** The result of {@link probeEndpoint}: a model count, or why the request failed. */
 export type EndpointProbeResult = { ok: true; modelCount: number } | { ok: false; error: string };
 
-/** The model-list request for an endpoint, extracted from {@link listModels} for testing. */
+/** The URL and headers for an endpoint's model-list request. */
 export function buildModelsRequest({
 	url,
 	apiKey,
@@ -269,27 +259,29 @@ export function buildModelsRequest({
 	apiKey?: string;
 	provider?: LLMProvider;
 }): { url: string; headers: Record<string, string> } {
-	const config = PROVIDERS[provider ?? detectProvider(url)];
+	const resolvedProvider = provider ?? detectProvider(url);
+	const config = PROVIDERS[resolvedProvider];
 	const base = stripTrailingV1(url);
-	return { url: config.modelsUrl({ base, apiKey }), headers: config.modelsHeaders(apiKey) };
+	const resolvedApiKey = providerApiKey({ provider: resolvedProvider, apiKey });
+	return {
+		url: config.modelsUrl({ base, apiKey: resolvedApiKey }),
+		headers: config.modelsHeaders(resolvedApiKey),
+	};
 }
 
 /**
- * Lists the model ids advertised by an endpoint. An empty array means the
- * endpoint responded OK with no models.
- * @throws On transport or HTTP failure, naming the reason.
+ * Fetches an endpoint's model list.
+ * @throws On a network or HTTP failure, naming the reason.
  */
-export async function listModels({
+async function fetchModels({
 	url,
 	apiKey,
 	provider,
 }: {
 	url: string;
 	apiKey?: string;
-	/** The endpoint's stored provider; falls back to URL sniffing only when absent. */
 	provider?: LLMProvider;
-}): Promise<string[]> {
-	const config = PROVIDERS[provider ?? detectProvider(url)];
+}): Promise<ModelsResponse> {
 	const request = buildModelsRequest({ url, apiKey, provider });
 	const res = await fetch(request.url, {
 		headers: request.headers,
@@ -299,14 +291,29 @@ export async function listModels({
 		const reason = res.status === 401 || res.status === 403 ? "API key rejected" : res.statusText;
 		throw new Error(`${reason} (HTTP ${res.status})`);
 	}
-	const data: ModelsResponse = await res.json();
-	return config.parseModels(data);
+	return res.json();
 }
 
 /**
- * Whether a model can call tools, per the provider's model-list metadata.
- * Providers without such metadata, and any fetch failure, read as capable:
- * capability gating must never wrongly block a working model.
+ * Lists the model ids an endpoint advertises.
+ * @throws On a network or HTTP failure, naming the reason.
+ */
+export async function listModels({
+	url,
+	apiKey,
+	provider,
+}: {
+	url: string;
+	apiKey?: string;
+	provider?: LLMProvider;
+}): Promise<string[]> {
+	const json = await fetchModels({ url, apiKey, provider });
+	return PROVIDERS[provider ?? detectProvider(url)].parseModels(json);
+}
+
+/**
+ * Whether a model can call tools, per the provider's model list. Unknown means yes, so a
+ * failed lookup never blocks a working model.
  */
 export async function modelSupportsTools({
 	url,
@@ -322,13 +329,7 @@ export async function modelSupportsTools({
 	const config = PROVIDERS[provider ?? detectProvider(url)];
 	if (!config.parseToolSupport) return true;
 	try {
-		const request = buildModelsRequest({ url, apiKey, provider });
-		const res = await fetch(request.url, {
-			headers: request.headers,
-			signal: AbortSignal.timeout(8000),
-		});
-		if (!res.ok) return true;
-		const json: ModelsResponse = await res.json();
+		const json = await fetchModels({ url, apiKey, provider });
 		return config.parseToolSupport({ json, model });
 	} catch (error) {
 		console.warn("Tool-support probe failed; assuming the model is capable", {
@@ -340,10 +341,7 @@ export async function modelSupportsTools({
 	}
 }
 
-/**
- * Probes a provider's model-list endpoint with real auth so the test-connection
- * UI can report success with a model count or the precise failure reason.
- */
+/** Tests an endpoint's connection and key by listing its models. */
 export async function probeEndpoint({
 	url,
 	apiKey,
@@ -351,7 +349,6 @@ export async function probeEndpoint({
 }: {
 	url: string;
 	apiKey?: string;
-	/** The endpoint's stored provider; falls back to URL sniffing only when absent. */
 	provider?: LLMProvider;
 }): Promise<EndpointProbeResult> {
 	try {

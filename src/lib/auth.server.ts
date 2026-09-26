@@ -11,21 +11,25 @@ function getSecret(): string {
 	return secret;
 }
 
-/** Whether this deployment still accepts a sign-up, i.e. holds no account yet. */
+/**
+ * Whether sign-up is still open: no user has a password yet. A user row without a
+ * credential cannot sign in, so it does not count.
+ */
 export async function isSignUpOpen(): Promise<boolean> {
-	return (await prisma.user.count()) === 0;
+	const usable = await prisma.user.count({
+		where: { accounts: { some: { password: { not: null } } } },
+	});
+	return usable === 0;
 }
 
+/** The better-auth server instance. */
 export const auth = betterAuth({
 	database: prismaAdapter(prisma, { provider: "postgresql" }),
-	// On the Postgres adapter this makes better-auth omit `id` from its inserts rather
-	// than generating one itself, so the `uuidv7()` column default is what fills it.
+	// On Postgres this makes better-auth leave `id` to the `uuidv7()` column default.
 	advanced: { database: { generateId: "uuid" } },
 	secret: getSecret(),
 	emailAndPassword: { enabled: true },
-	// A signed, short-lived cookie carries the session so most requests skip the
-	// session + user table lookups entirely (root `beforeLoad` and every server
-	// fn's auth check both resolve through this).
+	// A signed cookie caches the session, so most requests skip the database lookup.
 	session: { cookieCache: { enabled: true, maxAge: 5 * 60 } },
 	rateLimit: {
 		enabled: true,
@@ -35,9 +39,8 @@ export const auth = betterAuth({
 		},
 	},
 	user: {
-		// Chat defaults live on the user row (better-auth's mechanism for per-user
-		// fields). `input: false` keeps them out of signup/update payloads; the
-		// settings server fns are the only write path.
+		// Chat defaults on the user row. `input: false` keeps them out of sign-up and
+		// update requests; only the settings server functions write them.
 		additionalFields: {
 			systemPrompt: { type: "string", required: false, input: false },
 			temperature: { type: "number", required: false, input: false },
@@ -45,9 +48,8 @@ export const auth = betterAuth({
 		deleteUser: { enabled: true },
 	},
 	hooks: {
-		// Personal deployment: only the first account may sign up; later attempts
-		// are rejected regardless of who is asking. The sign-up page reads the same
-		// rule to redirect, but this is the boundary.
+		// Only the first account may sign up. The sign-up page redirects on the same rule,
+		// but this check is the one that enforces it.
 		before: createAuthMiddleware(async (ctx) => {
 			if (ctx.path !== "/sign-up/email") return;
 			if (!(await isSignUpOpen())) {
