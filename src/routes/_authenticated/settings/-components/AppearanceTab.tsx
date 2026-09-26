@@ -1,29 +1,34 @@
-import { Field, FieldDescription, FieldLabel, FieldTitle } from "#/shared/components/ui/field";
-import { RadioGroup, RadioGroupItem } from "#/shared/components/ui/radio-group";
-import { useAppForm } from "#/shared/hooks/use-app-form";
-import { cn } from "#/shared/lib/utils";
-import { useTheme } from "#/shared/theme/ThemeContext";
-import { isTheme, MODE_OPTIONS, THEMES } from "#/shared/theme/theme";
+import { useAppForm } from "#/components/form/use-app-form";
+import { SettingsSection } from "#/components/layout/SettingsSection";
+import { Field } from "#/components/ui/field";
+import { Radio } from "#/components/ui/radio";
+import { RadioGroup } from "#/components/ui/radio-group";
+import { isTheme, isThemeMode, MODE_OPTIONS, THEMES } from "#/lib/theme/theme";
+import { useTheme } from "#/lib/theme/theme-provider";
 
+// Also the swatch's `data-theme`, which `tokens.css` pins to the default palette.
+const DEFAULT_THEME = "default";
+const THEME_OPTIONS = [{ id: DEFAULT_THEME, label: "Default" }, ...THEMES];
+
+/** The light or dark mode and color theme settings. */
 export function AppearanceTab() {
 	const { mode, setMode, theme, setTheme } = useTheme();
 
-	const form = useAppForm({ defaultValues: { mode, theme: theme ?? "none" } });
+	const form = useAppForm({ defaultValues: { mode, theme: theme ?? DEFAULT_THEME } });
 
 	return (
 		<form.AppForm>
-			<div className="space-y-6">
-				<form.AppField name="mode" listeners={{ onChange: ({ value }) => setMode(value) }}>
+			<SettingsSection title="Appearance">
+				<form.AppField
+					name="mode"
+					listeners={{ onChange: ({ value }) => isThemeMode(value) && setMode(value) }}
+				>
 					{(field) => (
 						<field.ToggleGroupField
 							label="Mode"
 							description="System follows your operating system's light/dark preference."
-							variant="outline"
-							options={MODE_OPTIONS.map(({ label, value, ModeIcon }) => ({
-								label,
-								value,
-								icon: ModeIcon,
-							}))}
+							variant="outlined"
+							options={MODE_OPTIONS.map(({ label, value, Icon }) => ({ label, value, icon: Icon }))}
 						/>
 					)}
 				</form.AppField>
@@ -33,46 +38,40 @@ export function AppearanceTab() {
 					listeners={{ onChange: ({ value }) => setTheme(isTheme(value) ? value : null) }}
 				>
 					{(field) => (
-						<Field>
-							<FieldLabel>Theme</FieldLabel>
-							<FieldDescription>
-								Full color presets; every preset adapts to light and dark mode.
-							</FieldDescription>
+						<field.CustomField
+							label="Theme"
+							description="Full color presets; every preset adapts to light and dark mode."
+							fieldOrientation="vertical"
+						>
 							<RadioGroup
 								value={field.state.value}
-								onValueChange={(value) => field.handleChange(isTheme(value) ? value : "none")}
+								onValueChange={(value) =>
+									field.handleChange(isTheme(value) ? value : DEFAULT_THEME)
+								}
 								className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3"
 							>
-								<FieldLabel htmlFor="theme-none">
-									<Field orientation="horizontal">
-										<FieldTitle className="flex-1">Default</FieldTitle>
-										<RadioGroupItem value="none" id="theme-none" />
-									</Field>
-								</FieldLabel>
-								{THEMES.map((theme) => (
-									<FieldLabel key={theme.id} htmlFor={`theme-${theme.id}`}>
-										<Field orientation="horizontal">
+								{THEME_OPTIONS.map((option) => (
+									<Field.Item key={option.id}>
+										<Field.Label className="w-full rounded-lg p-2.5 font-normal ring-1 ring-line has-data-checked:bg-primary-soft has-data-checked:ring-primary">
 											<div
 												aria-hidden
-												className={cn(
-													"h-8 w-14 shrink-0 overflow-hidden rounded border flex flex-col gap-0.5 p-1 bg-background",
-													`theme-${theme.id}`,
-												)}
+												data-theme={option.id}
+												className="flex h-8 w-14 shrink-0 flex-col gap-0.5 overflow-hidden rounded-sm bg-bg p-1 ring-1 ring-line"
 											>
-												<div className="h-1.5 w-8 rounded-full bg-foreground opacity-60" />
-												<div className="h-1.5 w-5 rounded-full bg-foreground opacity-30" />
+												<div className="h-1.5 w-8 rounded-full bg-fg opacity-60" />
+												<div className="h-1.5 w-5 rounded-full bg-fg opacity-30" />
 												<div className="mt-auto h-2 w-6 rounded-sm bg-primary" />
 											</div>
-											<FieldTitle className="flex-1">{theme.label}</FieldTitle>
-											<RadioGroupItem value={theme.id} id={`theme-${theme.id}`} />
-										</Field>
-									</FieldLabel>
+											<span className="flex-1">{option.label}</span>
+											<Radio value={option.id} />
+										</Field.Label>
+									</Field.Item>
 								))}
 							</RadioGroup>
-						</Field>
+						</field.CustomField>
 					)}
 				</form.AppField>
-			</div>
+			</SettingsSection>
 		</form.AppForm>
 	);
 }

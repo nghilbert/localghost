@@ -1,12 +1,6 @@
 import { Link, type LinkProps, useRouterState } from "@tanstack/react-router";
 import { LibraryIcon, type LucideIcon, MessageCirclePlusIcon } from "lucide-react";
-import {
-	SidebarGroup,
-	SidebarGroupContent,
-	SidebarMenu,
-	SidebarMenuButton,
-	SidebarMenuItem,
-} from "#/shared/components/ui/sidebar";
+import { Sidebar } from "#/components/ui/sidebar";
 
 type NavItem = {
 	label: string;
@@ -20,27 +14,28 @@ const NAV_ITEMS = [
 	{ label: "Library", to: "/library", NavIcon: LibraryIcon, matches: ["/library"] },
 ] as const satisfies NavItem[];
 
+/** Links to the app's main pages. */
 export function PageNav() {
 	const location = useRouterState({ select: (s) => s.location.pathname });
 
 	return (
-		<SidebarGroup>
-			<SidebarGroupContent>
-				<SidebarMenu>
+		<Sidebar.Group>
+			<Sidebar.GroupContent>
+				<Sidebar.Menu>
 					{NAV_ITEMS.map(({ to, label, NavIcon, matches }) => (
-						<SidebarMenuItem key={to}>
-							<SidebarMenuButton
+						<Sidebar.MenuItem key={to}>
+							<Sidebar.MenuButton
 								render={<Link to={to} />}
-								isActive={matches.some((prefix) => location.startsWith(prefix))}
+								active={matches.some((prefix) => location.startsWith(prefix))}
 								tooltip={label}
 							>
 								<NavIcon />
 								<span>{label}</span>
-							</SidebarMenuButton>
-						</SidebarMenuItem>
+							</Sidebar.MenuButton>
+						</Sidebar.MenuItem>
 					))}
-				</SidebarMenu>
-			</SidebarGroupContent>
-		</SidebarGroup>
+				</Sidebar.Menu>
+			</Sidebar.GroupContent>
+		</Sidebar.Group>
 	);
 }

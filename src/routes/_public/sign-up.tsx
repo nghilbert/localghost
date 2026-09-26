@@ -1,20 +1,12 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
-import { SignUpForm } from "#/routes/_public/-components/SignUpForm";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardFooter,
-	CardHeader,
-	CardTitle,
-} from "#/shared/components/ui/card";
-import { signUpAvailabilityQueryOptions } from "#/shared/domain/auth/auth.functions";
+import { Card } from "#/components/ui/card";
+import { accountQueries } from "#/features/account/account.queries";
+import { SignUpForm } from "#/features/account/components/SignUpForm";
 
 export const Route = createFileRoute("/_public/sign-up")({
-	// The account already exists, so this page has nothing to offer; better-auth
-	// would refuse the submit anyway, only after the form had been filled in.
+	// Only one account can exist, so skip the form once it does.
 	beforeLoad: async ({ context }) => {
-		const { open } = await context.queryClient.ensureQueryData(signUpAvailabilityQueryOptions());
+		const { open } = await context.queryClient.query(accountQueries.signUpAvailability());
 		if (!open) throw redirect({ to: "/sign-in" });
 	},
 	component: SignUpPage,
@@ -22,20 +14,20 @@ export const Route = createFileRoute("/_public/sign-up")({
 
 function SignUpPage() {
 	return (
-		<Card>
-			<CardHeader>
-				<CardTitle>Create an account</CardTitle>
-				<CardDescription>Enter your details to get started.</CardDescription>
-			</CardHeader>
-			<CardContent>
+		<Card.Root>
+			<Card.Header>
+				<Card.Title>Create an account</Card.Title>
+				<Card.Description>Enter your details to get started.</Card.Description>
+			</Card.Header>
+			<Card.Content>
 				<SignUpForm />
-			</CardContent>
-			<CardFooter className="justify-center gap-1 text-muted-foreground">
+			</Card.Content>
+			<Card.Footer className="justify-center gap-1 text-muted-fg">
 				Already have an account?
-				<Link to="/sign-in" className="font-medium text-foreground underline underline-offset-4">
+				<Link to="/sign-in" className="font-medium text-fg underline underline-offset-4">
 					Sign in
 				</Link>
-			</CardFooter>
-		</Card>
+			</Card.Footer>
+		</Card.Root>
 	);
 }

@@ -1,41 +1,34 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { SignInForm } from "#/routes/_public/-components/SignInForm";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardFooter,
-	CardHeader,
-	CardTitle,
-} from "#/shared/components/ui/card";
-import { signUpAvailabilityQueryOptions } from "#/shared/domain/auth/auth.functions";
+import { Card } from "#/components/ui/card";
+import { accountQueries } from "#/features/account/account.queries";
+import { SignInForm } from "#/features/account/components/SignInForm";
 
 export const Route = createFileRoute("/_public/sign-in")({
-	loader: ({ context }) => context.queryClient.ensureQueryData(signUpAvailabilityQueryOptions()),
+	loader: ({ context }) => context.queryClient.query(accountQueries.signUpAvailability()),
 	component: SignInPage,
 });
 
 function SignInPage() {
-	const { data: signUp } = useSuspenseQuery(signUpAvailabilityQueryOptions());
+	const { data: signUp } = useSuspenseQuery(accountQueries.signUpAvailability());
 
 	return (
-		<Card>
-			<CardHeader>
-				<CardTitle>Welcome back</CardTitle>
-				<CardDescription>Sign in to your account to continue.</CardDescription>
-			</CardHeader>
-			<CardContent>
+		<Card.Root>
+			<Card.Header>
+				<Card.Title>Welcome back</Card.Title>
+				<Card.Description>Sign in to your account to continue.</Card.Description>
+			</Card.Header>
+			<Card.Content>
 				<SignInForm />
-			</CardContent>
+			</Card.Content>
 			{signUp.open && (
-				<CardFooter className="justify-center gap-1 text-muted-foreground">
+				<Card.Footer className="justify-center gap-1 text-muted-fg">
 					No account?
-					<Link to="/sign-up" className="font-medium text-foreground underline underline-offset-4">
+					<Link to="/sign-up" className="font-medium text-fg underline underline-offset-4">
 						Create one
 					</Link>
-				</CardFooter>
+				</Card.Footer>
 			)}
-		</Card>
+		</Card.Root>
 	);
 }

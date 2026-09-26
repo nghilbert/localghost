@@ -1,41 +1,34 @@
-import {
-	Sidebar,
-	SidebarContent,
-	SidebarFooter,
-	SidebarHeader,
-	SidebarMenu,
-	SidebarMenuItem,
-	SidebarTrigger,
-} from "#/shared/components/ui/sidebar";
-import { APP_NAME } from "#/shared/lib/constants";
-import { AuthMenu } from "./AuthMenu";
-import { NotificationCenter } from "./NotificationCenter";
+import { Sidebar } from "#/components/ui/sidebar";
+import { AuthMenu } from "#/features/account/components/AuthMenu";
+import { RecentChatList } from "#/features/chat/components/RecentChatList";
+import { NotificationCenter } from "#/features/library/components/NotificationCenter";
+import { APP_NAME } from "#/lib/constants";
 import { PageNav } from "./PageNav";
-import { RecentChatList } from "./RecentChatList";
 
+/** The app's sidebar: navigation, chats, downloads, and the user menu. */
 export function AppSidebar() {
 	return (
-		<Sidebar variant="floating" collapsible="icon">
-			<SidebarHeader>
-				<SidebarMenu>
-					<SidebarMenuItem className="flex items-center group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
-						<span className="mr-auto font-semibold truncate group-data-[collapsible=icon]:hidden">
+		<Sidebar.Root variant="floating" collapsible="icon">
+			<Sidebar.Header>
+				<Sidebar.Menu>
+					<Sidebar.MenuItem className="flex items-center in-sidebar-icon:justify-center in-sidebar-icon:px-0">
+						<span className="mr-auto truncate font-semibold in-sidebar-icon:hidden">
 							{APP_NAME}
 						</span>
-						<SidebarTrigger variant="default" size="icon-lg" />
-					</SidebarMenuItem>
-				</SidebarMenu>
-			</SidebarHeader>
+						<Sidebar.Trigger color="primary" variant="solid" size="lg" />
+					</Sidebar.MenuItem>
+				</Sidebar.Menu>
+			</Sidebar.Header>
 
-			<SidebarContent>
+			<Sidebar.Content>
 				<PageNav />
 				<RecentChatList />
-			</SidebarContent>
+			</Sidebar.Content>
 
-			<SidebarFooter>
+			<Sidebar.Footer>
 				<NotificationCenter />
 				<AuthMenu />
-			</SidebarFooter>
-		</Sidebar>
+			</Sidebar.Footer>
+		</Sidebar.Root>
 	);
 }
