@@ -1,7 +1,7 @@
-import { useChangePassword } from "#/routes/_authenticated/settings/-hooks/use-change-password";
-import { changePasswordFormSchema } from "#/routes/_authenticated/settings/-lib/schemas";
-import { Card, CardContent, CardHeader, CardTitle } from "#/shared/components/ui/card";
-import { useAppForm } from "#/shared/hooks/use-app-form";
+import { useAppForm } from "#/components/form/use-app-form";
+import { Card } from "#/components/ui/card";
+import { changePasswordFormSchema } from "#/features/account/account.schemas";
+import { useChangePassword } from "#/features/account/hooks/use-change-password";
 
 /** Changes the user's password and clears the form after success. */
 export function ChangePasswordForm() {
@@ -17,13 +17,13 @@ export function ChangePasswordForm() {
 	});
 
 	return (
-		<Card>
-			<CardHeader>
-				<CardTitle>Security</CardTitle>
-			</CardHeader>
-			<CardContent>
+		<Card.Root>
+			<Card.Header>
+				<Card.Title>Security</Card.Title>
+			</Card.Header>
+			<Card.Content>
 				<form.AppForm>
-					<form.SubmitForm className="gap-3">
+					<form.Form className="gap-3">
 						<form.AppField name="currentPassword">
 							{(field) => <field.PasswordField label="Current password" />}
 						</form.AppField>
@@ -36,12 +36,10 @@ export function ChangePasswordForm() {
 							{(field) => <field.PasswordField label="Confirm new password" />}
 						</form.AppField>
 
-						<form.SubmitButton size="sm" data-testid="change-password-submit">
-							Change password
-						</form.SubmitButton>
-					</form.SubmitForm>
+						<form.SubmitButton size="sm">Change password</form.SubmitButton>
+					</form.Form>
 				</form.AppForm>
-			</CardContent>
-		</Card>
+			</Card.Content>
+		</Card.Root>
 	);
 }

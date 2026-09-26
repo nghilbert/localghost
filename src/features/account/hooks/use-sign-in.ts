@@ -1,13 +1,10 @@
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import type { z } from "zod/v4";
-import type { signInSchema } from "#/shared/domain/auth/schemas";
-import { authClient } from "#/shared/lib/auth-client";
+import type { z } from "zod";
+import type { signInSchema } from "#/features/account/account.schemas";
+import { authClient } from "#/lib/auth-client";
 
-/**
- * Signs the user in and sends them to the app. The rejection carries the message the
- * form renders inline, so a bad password lands next to the fields instead of in a toast.
- */
+/** Signs in and opens the app. The error message is shown inline by the form, not as a toast. */
 export function useSignIn() {
 	const navigate = useNavigate();
 

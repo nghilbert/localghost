@@ -1,21 +1,25 @@
-import { useSignUp } from "#/routes/_public/-hooks/use-sign-up";
-import { signUpDefaults, signUpFormSchema } from "#/shared/domain/auth/schemas";
-import { useAppForm } from "#/shared/hooks/use-app-form";
+import {
+	PasswordConfirmGroup,
+	passwordConfirmFields,
+} from "#/components/form/field-groups/PasswordConfirmGroup";
+import { useAppForm } from "#/components/form/use-app-form";
+import { signUpDefaults, signUpFormSchema } from "#/features/account/account.schemas";
+import { useSignUp } from "#/features/account/hooks/use-sign-up";
 
+/** The form that creates the one account. */
 export function SignUpForm() {
 	const signUp = useSignUp();
 
 	const form = useAppForm({
 		defaultValues: signUpDefaults,
 		validators: { onDynamic: signUpFormSchema },
-		// `confirmPassword` is a form-only field; better-auth takes the credentials alone.
 		onSubmit: ({ value: { name, email, password } }) =>
 			signUp.mutateAsync({ name, email, password }),
 	});
 
 	return (
 		<form.AppForm>
-			<form.SubmitForm>
+			<form.Form>
 				<form.AppField name="name">
 					{(field) => (
 						<field.InputField
@@ -38,17 +42,11 @@ export function SignUpForm() {
 					)}
 				</form.AppField>
 
-				<form.AppField name="password">
-					{(field) => <field.PasswordField label="Password" autoComplete="new-password" />}
-				</form.AppField>
+				<PasswordConfirmGroup form={form} fields={passwordConfirmFields} />
 
-				<form.AppField name="confirmPassword">
-					{(field) => <field.PasswordField label="Confirm password" autoComplete="new-password" />}
-				</form.AppField>
-
-				<form.SubmitButton data-testid="sign-up-submit">Sign up</form.SubmitButton>
+				<form.SubmitButton>Sign up</form.SubmitButton>
 				<form.FormError>{signUp.error?.message}</form.FormError>
-			</form.SubmitForm>
+			</form.Form>
 		</form.AppForm>
 	);
 }

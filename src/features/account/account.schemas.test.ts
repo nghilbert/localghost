@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { signUpFormSchema, signUpSchema } from "#/shared/domain/auth/schemas";
+import { signUpFormSchema, signUpSchema } from "./account.schemas";
 
 const credentials = {
 	name: "Odysseus",

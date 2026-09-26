@@ -1,7 +1,8 @@
-import { useSignIn } from "#/routes/_public/-hooks/use-sign-in";
-import { signInDefaults, signInSchema } from "#/shared/domain/auth/schemas";
-import { useAppForm } from "#/shared/hooks/use-app-form";
+import { useAppForm } from "#/components/form/use-app-form";
+import { signInDefaults, signInSchema } from "#/features/account/account.schemas";
+import { useSignIn } from "#/features/account/hooks/use-sign-in";
 
+/** The email and password sign-in form. */
 export function SignInForm() {
 	const signIn = useSignIn();
 
@@ -13,7 +14,7 @@ export function SignInForm() {
 
 	return (
 		<form.AppForm>
-			<form.SubmitForm>
+			<form.Form>
 				<form.AppField name="email">
 					{(field) => (
 						<field.InputField
@@ -29,9 +30,9 @@ export function SignInForm() {
 					{(field) => <field.PasswordField label="Password" autoComplete="current-password" />}
 				</form.AppField>
 
-				<form.SubmitButton data-testid="sign-in-submit">Sign in</form.SubmitButton>
+				<form.SubmitButton>Sign in</form.SubmitButton>
 				<form.FormError>{signIn.error?.message}</form.FormError>
-			</form.SubmitForm>
+			</form.Form>
 		</form.AppForm>
 	);
 }

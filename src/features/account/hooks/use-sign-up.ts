@@ -1,13 +1,10 @@
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import type { z } from "zod/v4";
-import type { signUpSchema } from "#/shared/domain/auth/schemas";
-import { authClient } from "#/shared/lib/auth-client";
+import type { z } from "zod";
+import type { signUpSchema } from "#/features/account/account.schemas";
+import { authClient } from "#/lib/auth-client";
 
-/**
- * Creates the account and sends the new user to the app. The rejection carries the
- * server's message, which is how the closed-sign-up refusal reaches the form.
- */
+/** Creates the account and opens the app. The server's error message is shown by the form. */
 export function useSignUp() {
 	const navigate = useNavigate();
 

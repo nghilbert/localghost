@@ -1,8 +1,8 @@
-import { useUpdateAccount } from "#/routes/_authenticated/settings/-hooks/use-update-account";
-import { accountFormSchema } from "#/routes/_authenticated/settings/-lib/schemas";
-import { Card, CardContent, CardHeader, CardTitle } from "#/shared/components/ui/card";
-import { Field, FieldLabel } from "#/shared/components/ui/field";
-import { useAppForm } from "#/shared/hooks/use-app-form";
+import { useAppForm } from "#/components/form/use-app-form";
+import { Card } from "#/components/ui/card";
+import { Field } from "#/components/ui/field";
+import { accountFormSchema } from "#/features/account/account.schemas";
+import { useUpdateAccount } from "#/features/account/hooks/use-update-account";
 
 type ProfileFormProps = {
 	name: string;
@@ -11,7 +11,7 @@ type ProfileFormProps = {
 	temperature: number;
 };
 
-/** Edits the user's profile and global generation defaults. */
+/** Edits the user's name and chat defaults. */
 export function ProfileForm({ name, email, systemPrompt, temperature }: ProfileFormProps) {
 	const updateAccount = useUpdateAccount();
 	const form = useAppForm({
@@ -26,13 +26,13 @@ export function ProfileForm({ name, email, systemPrompt, temperature }: ProfileF
 	});
 
 	return (
-		<Card>
-			<CardHeader>
-				<CardTitle>Profile</CardTitle>
-			</CardHeader>
-			<CardContent className="space-y-3">
+		<Card.Root>
+			<Card.Header>
+				<Card.Title>Profile</Card.Title>
+			</Card.Header>
+			<Card.Content className="space-y-3">
 				<form.AppForm>
-					<form.SubmitForm className="gap-3">
+					<form.Form className="gap-3">
 						<form.AppField name="name">
 							{(field) => <field.InputField label="Name" />}
 						</form.AppField>
@@ -42,7 +42,7 @@ export function ProfileForm({ name, email, systemPrompt, temperature }: ProfileF
 								<field.TextareaField
 									label="System prompt"
 									description="Instructions prepended to every chat."
-									placeholder="You are a helpful assistant…"
+									placeholder="You are a helpful assistant..."
 									rows={4}
 									fieldOrientation="vertical"
 								/>
@@ -63,16 +63,14 @@ export function ProfileForm({ name, email, systemPrompt, temperature }: ProfileF
 							)}
 						</form.AppField>
 
-						<form.SubmitButton size="sm" data-testid="profile-submit">
-							Save
-						</form.SubmitButton>
-					</form.SubmitForm>
+						<form.SubmitButton size="sm">Save</form.SubmitButton>
+					</form.Form>
 				</form.AppForm>
-				<Field>
-					<FieldLabel>Email</FieldLabel>
+				<Field.Root>
+					<Field.Label>Email</Field.Label>
 					<span className="text-sm">{email}</span>
-				</Field>
-			</CardContent>
-		</Card>
+				</Field.Root>
+			</Card.Content>
+		</Card.Root>
 	);
 }

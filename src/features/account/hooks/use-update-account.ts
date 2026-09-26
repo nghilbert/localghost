@@ -1,18 +1,19 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "@tanstack/react-router";
-import { toast } from "#/shared/components/ui/toast";
-import { updateUserSettings } from "#/shared/domain/user-settings/user-settings.functions";
-import { authClient } from "#/shared/lib/auth-client";
+import { toast } from "#/components/ui/toast";
+import { updateUserSettings } from "#/features/account/account.functions";
+import { accountQueries } from "#/features/account/account.queries";
+import { authClient } from "#/lib/auth-client";
 
 type UpdateAccount = {
 	name: string;
-	/** The user's global chat system prompt; empty clears it. */
+	/** Empty clears it. */
 	systemPrompt: string;
-	/** Carried through so saving the account doesn't reset the stored temperature. */
+	/** Sent unchanged, since the settings save replaces both fields. */
 	temperature: number;
 };
 
-/** Saves the account form: profile name (better-auth) plus the chat system prompt. */
+/** Saves the account form: the profile name and the chat system prompt. */
 export function useUpdateAccount() {
 	const queryClient = useQueryClient();
 	const router = useRouter();
@@ -25,10 +26,10 @@ export function useUpdateAccount() {
 			});
 		},
 		onSuccess: async () => {
-			// The session lives in router context (root `beforeLoad`), not react-query.
+			// The session name lives in router context, not the query cache.
 			await Promise.all([
 				router.invalidate(),
-				queryClient.invalidateQueries({ queryKey: ["user-settings"] }),
+				queryClient.invalidateQueries({ queryKey: accountQueries.all() }),
 			]);
 			toast.add({ title: "Account saved", type: "success" });
 		},

@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
-import { toast } from "#/shared/components/ui/toast";
-import { authClient } from "#/shared/lib/auth-client";
+import { toast } from "#/components/ui/toast";
+import { authClient } from "#/lib/auth-client";
 
 type ChangePassword = {
 	currentPassword: string;

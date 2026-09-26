@@ -1,7 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { toast } from "#/shared/components/ui/toast";
-import { authClient } from "#/shared/lib/auth-client";
+import { toast } from "#/components/ui/toast";
+import { authClient } from "#/lib/auth-client";
 
 /** Permanently deletes the account, then signs out to the sign-in screen. */
 export function useDeleteAccount() {

@@ -1,6 +1,6 @@
-import { prisma } from "#/shared/lib/db.server";
+import { prisma } from "#/lib/db.server";
 
-/** Global chat defaults stored on the user row; null means unset (provider default). */
+/** The user's chat defaults. Null means unset. */
 export async function findUserSettings({ ownerId }: { ownerId: string }) {
 	const user = await prisma.user.findUnique({
 		where: { id: ownerId },
@@ -12,6 +12,7 @@ export async function findUserSettings({ ownerId }: { ownerId: string }) {
 	};
 }
 
+/** Saves the user's chat defaults. */
 export async function saveUserSettings({
 	ownerId,
 	systemPrompt,
