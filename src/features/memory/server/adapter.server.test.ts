@@ -3,12 +3,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const { recallMemories } = vi.hoisted(() => ({ recallMemories: vi.fn() }));
 
-vi.mock("#/shared/domain/memory/memory.server", () => ({
+vi.mock("./memory.server", () => ({
 	recallMemories,
 	findMemories: vi.fn(),
 }));
 
-import { memoryAdapter } from "#/shared/domain/memory/memory-adapter.server";
+import { memoryAdapter } from "./adapter.server";
 
 const scope = { threadId: "t1", userId: "owner-1" };
 

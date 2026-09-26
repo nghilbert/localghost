@@ -6,15 +6,14 @@ const { createMemory, toastAdd } = vi.hoisted(() => ({
 	toastAdd: vi.fn(),
 }));
 
-vi.mock("#/shared/domain/memory/memory.functions", () => ({
+vi.mock("#/features/memory/memory.functions", () => ({
 	createMemory,
-	deleteMemory: vi.fn(),
-	updateMemory: vi.fn(),
+	listMemories: vi.fn(),
 }));
 
-vi.mock("#/shared/components/ui/toast", () => ({ toast: { add: toastAdd } }));
+vi.mock("#/components/ui/toast", () => ({ toast: { add: toastAdd } }));
 
-const { useCreateMemory } = await import("#/routes/_authenticated/settings/-hooks/use-memories");
+const { useCreateMemory } = await import("#/features/memory/hooks/use-create-memory");
 
 beforeEach(() => vi.clearAllMocks());
 

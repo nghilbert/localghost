@@ -1,12 +1,9 @@
 import type { AnyServerTool } from "@tanstack/ai";
 import { toolDefinition } from "@tanstack/ai";
 import type { MemoryAdapter, MemoryFact, MemoryScope, RecallResult } from "@tanstack/ai-memory";
-import { deleteMemoryToolDef } from "#/shared/domain/chat/tool-definitions";
-import { findMemories, recallMemories } from "#/shared/domain/memory/memory.server";
-import {
-	manageMemory,
-	manageMemoryToolArgsSchema,
-} from "#/shared/domain/memory/memory-tool.server";
+import { deleteMemoryToolDef } from "#/features/memory/memory.schemas";
+import { manageMemory, manageMemoryToolArgsSchema } from "./manage-memory.server";
+import { findMemories, recallMemories } from "./memory.server";
 
 const TOOL_GUIDANCE =
 	"Relevant saved memory for this conversation is included above, if any. Use manage_memory to " +
@@ -28,25 +25,20 @@ function manageMemoryTool(ownerId: string): AnyServerTool {
 			"or an explicit 'remember this'). Never save trivial or ephemeral conversation details. " +
 			"Use list or search to find a memory's id; to remove one, call delete_memory with that id.",
 		inputSchema: manageMemoryToolArgsSchema,
-		// `limit` is `z.coerce.number()`, so the pre-coercion input type (unknown)
-		// leaks into the handler's args; re-parsing recovers the coerced number.
+		// The handler's args are typed from the schema's input, where the coerced `limit` is unknown.
 	}).server(async (args) =>
 		manageMemory({ args: manageMemoryToolArgsSchema.parse(args), ownerId }),
 	);
 }
 
-/** Split out from `manage_memory` so deletion, the one destructive action, pauses for approval. */
+/** A separate tool so deletion, the one destructive action, waits for the user's approval. */
 function deleteMemoryTool(ownerId: string): AnyServerTool {
 	return deleteMemoryToolDef.server(async ({ id }) =>
 		manageMemory({ args: { action: "delete", id }, ownerId }),
 	);
 }
 
-/**
- * pgvector similarity search over the user's memories (keyword fallback when no
- * embedding endpoint is configured), rendered as a system-prompt block. Ranking
- * is entirely this adapter's concern per the `MemoryAdapter` contract.
- */
+/** Finds the memories most related to `query` and adds them to the system prompt. */
 async function recall(scope: MemoryScope, query: string): Promise<RecallResult> {
 	const ownerId = requireUserId(scope);
 	const trimmed = query.trim();
@@ -63,11 +55,7 @@ async function recall(scope: MemoryScope, query: string): Promise<RecallResult> 
 	};
 }
 
-/**
- * No automatic writes: extraction stays tool-driven (the model calls
- * `manage_memory`'s `add` action explicitly), matching the product's existing
- * behavior of only saving facts the model deliberately chose to keep.
- */
+/** Saves nothing automatically; the model saves facts with `manage_memory`. */
 async function save(): ReturnType<MemoryAdapter["save"]> {
 	return [];
 }
@@ -77,7 +65,7 @@ async function listFacts(scope: MemoryScope): Promise<Array<MemoryFact>> {
 	return memories.map((m) => ({ id: m.id, text: m.text, source: m.source }));
 }
 
-/** Backs `memoryMiddleware`: pgvector recall plus tool-driven save, over the `Memory` table. */
+/** The `MemoryAdapter` for `memoryMiddleware`, backed by the `Memory` table and pgvector. */
 export const memoryAdapter: MemoryAdapter = {
 	id: "pgvector",
 	name: "pgvector semantic memory",

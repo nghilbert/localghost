@@ -1,41 +1,30 @@
+import type { CreateEmbeddingResponse } from "openai/resources";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-
-const { decrypt, findMany } = vi.hoisted(() => ({ decrypt: vi.fn(), findMany: vi.fn() }));
-
-vi.mock("#/shared/lib/crypto.server", () => ({ decrypt, encrypt: vi.fn() }));
-vi.mock("#/shared/lib/db.server", () => ({ prisma: { endpoint: { findMany } } }));
-
-import {
-	embed,
-	embeddingConfigFor,
-	toVectorLiteral,
-} from "#/shared/domain/memory/embeddings.server";
+import { encrypt } from "#/lib/crypto.server";
+import { createEndpoint, createUser, resetDb } from "#/test/db.server";
+import { embed, embeddingConfigFor, toVectorLiteral } from "./embeddings.server";
 
 describe("embeddingConfigFor", () => {
-	it("picks a local embedding GGUF and the OpenAI path for llamacpp, not the chat model", () => {
+	it("picks a local embedding GGUF on the OpenAI path for llamacpp, not the chat model", () => {
 		const config = embeddingConfigFor("llamacpp");
 		expect(config?.model).toBe("ggml-org/embeddinggemma-300M-GGUF:Q8_0");
-		expect(config?.buildRequest({ url: "http://localhost:8080", text: "hi" }).url).toBe(
-			"http://localhost:8080/v1/embeddings",
-		);
+		expect(config?.baseUrl("http://localhost:8080")).toBe("http://localhost:8080/v1");
 	});
 
 	it("picks an OpenAI-compatible embedding model for openai/openrouter/groq", () => {
 		expect(embeddingConfigFor("openai")?.model).toBe("text-embedding-3-small");
 		expect(embeddingConfigFor("openrouter")?.model).toBe("text-embedding-3-small");
-		expect(embeddingConfigFor("groq")?.model).toBe("text-embedding-3-small");
+		expect(embeddingConfigFor("groq")?.baseUrl("https://api.groq.com/openai/v1")).toBe(
+			"https://api.groq.com/openai/v1",
+		);
 	});
 
-	it("embeds Gemini via its OpenAI-compatible surface with a Bearer key", () => {
+	it("embeds Gemini via its OpenAI-compatible surface", () => {
 		const config = embeddingConfigFor("gemini");
 		expect(config?.model).toBe("text-embedding-004");
-		const request = config?.buildRequest({
-			url: "https://generativelanguage.googleapis.com",
-			apiKey: "k",
-			text: "hi",
-		});
-		expect(request?.url).toBe("https://generativelanguage.googleapis.com/v1beta/openai/embeddings");
-		expect(request?.headers.Authorization).toBe("Bearer k");
+		expect(config?.baseUrl("https://generativelanguage.googleapis.com/v1beta")).toBe(
+			"https://generativelanguage.googleapis.com/v1beta/openai",
+		);
 	});
 
 	it("returns null for providers with no embeddings endpoint", () => {
@@ -45,15 +34,18 @@ describe("embeddingConfigFor", () => {
 });
 
 describe("embed", () => {
-	beforeEach(() => {
-		vi.clearAllMocks();
+	beforeEach(async () => {
+		await resetDb();
 		vi.spyOn(console, "error").mockImplementation(() => {});
 		vi.stubGlobal(
 			"fetch",
 			vi.fn().mockResolvedValue(
-				new Response(JSON.stringify({ data: [{ embedding: [0.1, 0.2] }] }), {
-					headers: { "Content-Type": "application/json" },
-				}),
+				Response.json({
+					object: "list",
+					data: [{ object: "embedding", index: 0, embedding: [0.1, 0.2] }],
+					model: "text-embedding-3-small",
+					usage: { prompt_tokens: 1, total_tokens: 1 },
+				} satisfies CreateEmbeddingResponse),
 			),
 		);
 	});
@@ -64,20 +56,27 @@ describe("embed", () => {
 	});
 
 	it("skips an endpoint whose key can't be decrypted and uses the next one", async () => {
-		findMany.mockResolvedValue([
-			{ id: "e1", url: "https://one.test", provider: "openai", apiKeyEncrypted: "corrupt" },
-			{ id: "e2", url: "https://two.test", provider: "openai", apiKeyEncrypted: "good" },
-		]);
-		decrypt.mockImplementation((ciphertext: string) => {
-			if (ciphertext === "corrupt") throw new Error("bad auth tag");
-			return "plain-key";
+		const user = await createUser();
+		// Not a valid `iv:tag:ciphertext` triple, so decrypt() throws and endpointApiKey
+		// wraps it in the "re-enter the key" error embed() catches and skips past.
+		await createEndpoint({
+			ownerId: user.id,
+			url: "https://one.test",
+			provider: "openai",
+			apiKeyEncrypted: "corrupt",
+		});
+		await createEndpoint({
+			ownerId: user.id,
+			url: "https://two.test",
+			provider: "openai",
+			apiKeyEncrypted: encrypt("plain-key"),
 		});
 
-		await expect(embed({ text: "hello", ownerId: "u1" })).resolves.toEqual([0.1, 0.2]);
+		await expect(embed({ text: "hello", ownerId: user.id })).resolves.toEqual([0.1, 0.2]);
 
 		const fetchMock = vi.mocked(fetch);
 		expect(fetchMock).toHaveBeenCalledOnce();
-		expect(fetchMock.mock.calls[0]?.[0]).toBe("https://two.test/v1/embeddings");
+		expect(String(fetchMock.mock.calls[0]?.[0])).toBe("https://two.test/v1/embeddings");
 	});
 });
 

@@ -1,7 +1,8 @@
-import { z } from "zod/v4";
+import { z } from "zod";
 import { findMemories, recallMemories, removeMemory, saveMemory } from "./memory.server";
 
-export const manageMemoryArgsSchema = z.object({
+/** Every memory action with its arguments. */
+const manageMemoryArgsSchema = z.object({
 	action: z.enum(["add", "search", "list", "delete"]),
 	text: z.string().optional(),
 	query: z.string().optional(),
@@ -10,21 +11,14 @@ export const manageMemoryArgsSchema = z.object({
 	limit: z.coerce.number().optional(),
 });
 
-/**
- * The `manage_memory` tool's public input shape: `delete` is deliberately
- * excluded, so removal only happens through the separate `needsApproval`
- * `delete_memory` tool (see `agent.server.ts`).
- */
+/** The `manage_memory` tool's arguments. Deletion goes through `delete_memory`, which needs approval. */
 export const manageMemoryToolArgsSchema = manageMemoryArgsSchema.omit({ id: true }).extend({
 	action: z.enum(["add", "search", "list"]),
 });
 
 type ManageMemoryArgs = z.infer<typeof manageMemoryArgsSchema>;
 
-/**
- * Tool handler for memory management. Called by the agent loop when the LLM
- * invokes the manage_memory tool.
- */
+/** Runs a memory action and returns the result as text for the model. */
 export async function manageMemory({
 	args,
 	ownerId,
@@ -41,8 +35,6 @@ export async function manageMemory({
 			return listMemories({ args, ownerId });
 		case "delete":
 			return deleteMemory({ args, ownerId });
-		default:
-			return `Unknown memory action: ${args.action}`;
 	}
 }
 
@@ -56,9 +48,9 @@ async function addMemory({
 	if (!args.text?.trim()) return "text is required to add a memory";
 
 	const result = await saveMemory({ ownerId, text: args.text, category: args.category });
-	const preview = `${args.text.slice(0, 80)}${args.text.length > 80 ? "…" : ""}`;
+	const preview = `${args.text.slice(0, 80)}${args.text.length > 80 ? "..." : ""}`;
 
-	// Say "already remembered" on a duplicate so the model doesn't retry with a rephrase.
+	// Tells the model it is already saved, so it doesn't retry with other wording.
 	return result.status === "duplicate"
 		? `Already remembered: "${preview}"`
 		: `Memory saved: "${preview}"`;

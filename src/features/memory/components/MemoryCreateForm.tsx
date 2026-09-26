@@ -1,8 +1,8 @@
-import { useCreateMemory } from "#/routes/_authenticated/settings/-hooks/use-memories";
-import { memoryTextInput } from "#/shared/domain/memory/schemas";
-import { useAppForm } from "#/shared/hooks/use-app-form";
+import { useAppForm } from "#/components/form/use-app-form";
+import { useCreateMemory } from "#/features/memory/hooks/use-create-memory";
+import { memoryTextInput } from "#/features/memory/memory.schemas";
 
-/** Creates a user-authored memory and clears the input after it is saved. */
+/** Adds a memory, clearing the input once saved. */
 export function MemoryCreateForm() {
 	const createMemory = useCreateMemory();
 	const form = useAppForm({
@@ -16,7 +16,7 @@ export function MemoryCreateForm() {
 
 	return (
 		<form.AppForm>
-			<form.SubmitForm className="gap-3">
+			<form.Form className="gap-3">
 				<form.AppField name="text">
 					{(field) => (
 						<field.InputField
@@ -26,10 +26,10 @@ export function MemoryCreateForm() {
 						/>
 					)}
 				</form.AppField>
-				<form.SubmitButton size="sm" className="self-start" data-testid="memory-create-submit">
+				<form.SubmitButton size="sm" className="self-start">
 					Add memory
 				</form.SubmitButton>
-			</form.SubmitForm>
+			</form.Form>
 		</form.AppForm>
 	);
 }

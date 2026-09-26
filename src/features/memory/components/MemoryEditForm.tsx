@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
-import { useUpdateMemory } from "#/routes/_authenticated/settings/-hooks/use-memories";
-import { Input } from "#/shared/components/ui/input";
-import { useAppForm } from "#/shared/hooks/use-app-form";
+import { useAppForm } from "#/components/form/use-app-form";
+import { Input } from "#/components/ui/input";
+import { useUpdateMemory } from "#/features/memory/hooks/use-update-memory";
 
 type MemoryEditFormProps = {
 	memory: { id: string; text: string };
@@ -30,27 +30,23 @@ export function MemoryEditForm({ memory, onDone }: MemoryEditFormProps) {
 	});
 
 	return (
-		<form
-			onSubmit={(event) => {
-				event.preventDefault();
-				form.handleSubmit().catch(() => undefined);
-			}}
-		>
-			<form.AppField name="text">
-				{(field) => (
-					<Input
-						ref={inputRef}
-						aria-label="Memory text"
-						data-testid="memory-edit-input"
-						value={field.state.value}
-						onChange={(event) => field.handleChange(event.target.value)}
-						onBlur={() => form.handleSubmit()}
-						onKeyDown={(event) => {
-							if (event.key === "Escape") onDone();
-						}}
-					/>
-				)}
-			</form.AppField>
-		</form>
+		<form.AppForm>
+			<form.Form>
+				<form.AppField name="text">
+					{(field) => (
+						<Input
+							ref={inputRef}
+							aria-label="Memory text"
+							value={field.state.value}
+							onValueChange={(value) => field.handleChange(value)}
+							onBlur={() => form.handleSubmit()}
+							onKeyDown={(event) => {
+								if (event.key === "Escape") onDone();
+							}}
+						/>
+					)}
+				</form.AppField>
+			</form.Form>
+		</form.AppForm>
 	);
 }

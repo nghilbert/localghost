@@ -7,14 +7,14 @@ const { saveMemory, recallMemories, findMemories, removeMemory } = vi.hoisted(()
 	removeMemory: vi.fn(),
 }));
 
-vi.mock("#/shared/domain/memory/memory.server", () => ({
+vi.mock("./memory.server", () => ({
 	saveMemory,
 	recallMemories,
 	findMemories,
 	removeMemory,
 }));
 
-import { manageMemory } from "#/shared/domain/memory/memory-tool.server";
+import { manageMemory } from "./manage-memory.server";
 
 const ownerId = "owner-1";
 
@@ -47,7 +47,7 @@ describe("manageMemory: add", () => {
 		const text = "a".repeat(81);
 		const result = await manageMemory({ args: { action: "add", text }, ownerId });
 
-		expect(result).toBe(`Memory saved: "${"a".repeat(80)}…"`);
+		expect(result).toBe(`Memory saved: "${"a".repeat(80)}..."`);
 	});
 
 	it("reports a duplicate instead of a fresh save so the model doesn't rephrase and retry", async () => {
