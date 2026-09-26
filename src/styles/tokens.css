@@ -1,0 +1,65 @@
+/*
+ * The only place a color is authored. The palette and status colors are written by
+ * hand; everything else is derived with `color-mix()`. A theme preset restates only
+ * the palette.
+ *
+ * `light-dark()` follows the `color-scheme` that `theme-provider.tsx` sets on `<html>`,
+ * so there is no separate `.dark` block.
+ */
+@layer base {
+	/* authored. `[data-theme="default"]` lets a preview show the default palette under a preset. */
+	:root,
+	[data-theme="default"] {
+		--bg: light-dark(oklch(0.99 0.005 290), oklch(0.17 0.02 288));
+		--fg: light-dark(oklch(0.24 0.03 290), oklch(0.94 0.01 290));
+		--surface: light-dark(oklch(0.995 0.004 290), oklch(0.21 0.025 289));
+		--line: light-dark(oklch(0.91 0.012 290), oklch(0.92 0.03 290 / 12%));
+		--primary: light-dark(oklch(0.55 0.22 293), oklch(0.72 0.19 293));
+		--danger: light-dark(oklch(0.58 0.22 25), oklch(0.7 0.19 22));
+	}
+
+	:root {
+		color-scheme: light;
+		--radius: 0.625rem;
+
+		/* Status colors, the same under every preset. */
+		--success: light-dark(oklch(0.6 0.14 156), oklch(0.7 0.16 156));
+		--warning: light-dark(oklch(0.7 0.16 70), oklch(0.82 0.15 80));
+
+		/* derived: never authored, never restated in a preset */
+
+		/* Neutral is the text color, so a solid neutral button is high contrast in both modes. */
+		--neutral: var(--fg);
+
+		/* `-fg` is text on the slot color. Mixing toward `--bg` works in both modes, since `--bg` flips. */
+		--primary-fg: color-mix(in oklch, var(--primary), var(--bg) 92%);
+		--danger-fg: color-mix(in oklch, var(--danger), var(--bg) 92%);
+		--neutral-fg: var(--bg);
+
+		/* `-soft` is the tint behind `soft` and the hover of `outlined` and `quiet`. Mixed with `transparent` so it works on any surface. */
+		--primary-soft: color-mix(in oklch, var(--primary) 12%, transparent);
+		--danger-soft: color-mix(in oklch, var(--danger) 12%, transparent);
+		--neutral-soft: color-mix(in oklch, var(--fg) 8%, transparent);
+
+		/* Opaque neutral surfaces. Less than 10% is hard to see against `--bg` in dark mode. */
+		--muted: color-mix(in oklch, var(--fg) 10%, var(--bg));
+		--muted-fg: color-mix(in oklch, var(--fg) 62%, var(--bg));
+		--surface-fg: var(--fg);
+
+		--ring: var(--primary);
+
+		/* Dims the page behind a modal: the dark end of the palette in either mode. */
+		--backdrop: light-dark(
+			color-mix(in oklch, var(--fg) 20%, transparent),
+			color-mix(in oklch, var(--bg) 60%, transparent)
+		);
+	}
+
+	.light {
+		color-scheme: light;
+	}
+
+	.dark {
+		color-scheme: dark;
+	}
+}

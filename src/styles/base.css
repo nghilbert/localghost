@@ -1,0 +1,136 @@
+/*
+ * Rules that apply across the whole component library. Add something here only when
+ * the alternative is repeating the same utility chain in several `ui/` modules.
+ */
+
+/*
+ * Named variants for Base UI attributes that carry a value (`data-side="bottom"`).
+ * Tailwind's `data-*` variants only test presence, and a named variant keeps class
+ * strings simple for tailwind-merge.
+ */
+@custom-variant data-horizontal (&:where([data-orientation="horizontal"]));
+@custom-variant data-vertical (&:where([data-orientation="vertical"]));
+
+@custom-variant side-top (&:where([data-side="top"]));
+@custom-variant side-bottom (&:where([data-side="bottom"]));
+@custom-variant side-left (&:where([data-side="left"], [data-side="inline-start"]));
+@custom-variant side-right (&:where([data-side="right"], [data-side="inline-end"]));
+@custom-variant side-none (&:where([data-side="none"]));
+
+@custom-variant align-start (&:where([data-align="start"]));
+@custom-variant align-center (&:where([data-align="center"]));
+@custom-variant align-end (&:where([data-align="end"]));
+@custom-variant in-align-end (&:where([data-align="end"] *));
+
+/*
+ * A Root-level variant reaching its child parts. Base UI parts are siblings, so
+ * `Tabs.Root` writes `data-layout` and `Tabs.Tab` reads it back from here.
+ */
+@custom-variant in-segmented (&:where([data-layout="segmented"] *));
+@custom-variant in-underline (&:where([data-layout="underline"] *));
+@custom-variant in-horizontal (&:where([data-orientation="horizontal"] *));
+@custom-variant in-vertical (&:where([data-orientation="vertical"] *));
+
+/*
+ * `Field.Root orientation="responsive"` stacks its parts until the nearest
+ * container is wide enough to put the label beside the control.
+ */
+@custom-variant data-responsive (&:where([data-orientation="responsive"]));
+
+/* `InputGroup.Root` stacks into a column when an addon sits above or below the control. */
+@custom-variant has-block-addon (&:has(> [data-align="block-start"], > [data-align="block-end"]));
+
+/*
+ * `Sidebar.Root` writes `data-collapsible="icon"` while it is collapsed to
+ * icons; its parts, and anything a caller renders inside, read it back here.
+ */
+@custom-variant in-sidebar-icon (&:where([data-collapsible="icon"] *));
+
+@layer base {
+	/*
+	 * Every lucide icon sizes itself from `--icon-size`. A component that wants smaller
+	 * icons sets the variable once (`[--icon-size:--spacing(3)]`) instead of reaching
+	 * into its children. `:where` keeps specificity at zero, so a `size-*` class on the
+	 * icon itself still wins.
+	 */
+	:where(svg.lucide) {
+		width: var(--icon-size, calc(var(--spacing) * 4));
+		height: var(--icon-size, calc(var(--spacing) * 4));
+		flex-shrink: 0;
+		pointer-events: none;
+	}
+}
+
+/*
+ * Fades the end edge of a Base UI `ScrollArea.Viewport`, using the remaining scroll
+ * distance it sets as `--scroll-area-overflow-y-end`.
+ */
+@utility scroll-fade-b {
+	--scroll-fade-b: clamp(
+		0px,
+		calc(var(--scroll-area-overflow-y-end, 0px) * 10 / 24),
+		calc(var(--spacing) * 10)
+	);
+	mask-image: linear-gradient(
+		to bottom,
+		#000 0,
+		#000 calc(100% - var(--scroll-fade-b)),
+		transparent 100%
+	);
+	mask-repeat: no-repeat;
+}
+
+@keyframes text-shimmer {
+	from {
+		background-position: 100% 0;
+	}
+	to {
+		background-position: 0 0;
+	}
+}
+
+/* A highlight that sweeps across text in its own color, for a label that is still working. */
+@utility shimmer {
+	--_shimmer-spread: calc(3ch + 40px);
+	--_shimmer-highlight: oklch(from currentColor l c h / calc(alpha * 0.2));
+	background-image: linear-gradient(
+		110deg,
+		currentColor calc(50% - var(--_shimmer-spread)),
+		color-mix(in oklch, var(--_shimmer-highlight), currentColor 50%)
+			calc(50% - var(--_shimmer-spread) * 0.5),
+		var(--_shimmer-highlight) 50%,
+		color-mix(in oklch, var(--_shimmer-highlight), currentColor 50%)
+			calc(50% + var(--_shimmer-spread) * 0.5),
+		currentColor calc(50% + var(--_shimmer-spread))
+	);
+	background-repeat: no-repeat;
+	background-size: calc(200% + var(--_shimmer-spread) * 2) 100%;
+	background-position: 0 0;
+	background-clip: text;
+	-webkit-background-clip: text;
+	-webkit-text-fill-color: transparent;
+	animation: text-shimmer 2s linear infinite;
+
+	@variant dark {
+		--_shimmer-highlight: oklch(from currentColor max(0.8, calc(l + 0.4)) c h / calc(alpha + 0.4));
+	}
+
+	&:where([dir="rtl"], [dir="rtl"] *) {
+		animation-direction: reverse;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		background-image: none;
+		-webkit-text-fill-color: currentColor;
+		animation: none;
+	}
+}
+
+/* Route cross-fades animate unless the reader asks for less motion. */
+@media (prefers-reduced-motion: reduce) {
+	:root::view-transition-group(*),
+	:root::view-transition-old(*),
+	:root::view-transition-new(*) {
+		animation: none;
+	}
+}

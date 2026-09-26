@@ -1,0 +1,8 @@
+[data-theme="bold-tech"] {
+	--bg: light-dark(#ffffff, #0f172a);
+	--fg: light-dark(#312e81, #e0e7ff);
+	--surface: light-dark(#ffffff, #1e1b4b);
+	--line: light-dark(#e0e7ff, #2e1065);
+	--primary: light-dark(#8b5cf6, #8b5cf6);
+	--danger: light-dark(#ef4444, #ef4444);
+}

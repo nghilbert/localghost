@@ -1,0 +1,8 @@
+[data-theme="northern-lights"] {
+	--bg: light-dark(#f9f9fa, #1a1d23);
+	--fg: light-dark(#333333, #e5e5e5);
+	--surface: light-dark(#ffffff, #2f3436);
+	--line: light-dark(#d4d4d4, #444444);
+	--primary: light-dark(#34a85a, #34a85a);
+	--danger: light-dark(#ef4444, #ef4444);
+}

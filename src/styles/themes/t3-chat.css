@@ -1,0 +1,8 @@
+[data-theme="t3-chat"] {
+	--bg: light-dark(#faf5fa, #221d27);
+	--fg: light-dark(#501854, #d2c4de);
+	--surface: light-dark(#faf5fa, #2c2632);
+	--line: light-dark(#efbdeb, #3b3237);
+	--primary: light-dark(#a84370, #a3004c);
+	--danger: light-dark(#ab4347, #301015);
+}
