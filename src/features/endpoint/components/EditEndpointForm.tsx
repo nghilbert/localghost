@@ -1,21 +1,21 @@
 import { SaveIcon } from "lucide-react";
+import type { ClientEndpoint } from "#/features/endpoint/endpoint.types";
+import { useUpdateEndpoint } from "#/features/endpoint/hooks/use-update-endpoint";
 import {
 	buildEndpointFormSchema,
 	dbProviderFor,
 	providerDefinitionFor,
-} from "#/routes/_authenticated/settings/-lib/providers";
-import type { listEndpoints } from "#/shared/domain/endpoint/endpoint.functions";
-import { useUpdateEndpoint } from "#/shared/domain/endpoint/use-endpoints";
+} from "#/features/endpoint/lib/providers";
 import { ProviderEndpointForm } from "./ProviderEndpointForm";
 
-type Endpoint = Awaited<ReturnType<typeof listEndpoints>>[number];
-
-/**
- * Inline editor for a saved endpoint's name, URL, and API key. A blank key
- * keeps the existing one; the provider (protocol) stays fixed. `onDone` fires
- * on save or cancel so the parent can collapse back to the read-only row.
- */
-export function EditEndpointForm({ endpoint, onDone }: { endpoint: Endpoint; onDone: () => void }) {
+/** Edits a saved endpoint's name, URL, and key. A blank key keeps the current one. */
+export function EditEndpointForm({
+	endpoint,
+	onDone,
+}: {
+	endpoint: ClientEndpoint;
+	onDone: () => void;
+}) {
 	const updateEndpoint = useUpdateEndpoint();
 	const definition = providerDefinitionFor(endpoint.provider);
 

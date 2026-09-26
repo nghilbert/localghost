@@ -1,44 +1,35 @@
-import { ChevronDownIcon } from "lucide-react";
 import type { ReactNode } from "react";
-import type { buildEndpointFormSchema } from "#/routes/_authenticated/settings/-lib/providers";
-import { Button } from "#/shared/components/ui/button";
-import {
-	Collapsible,
-	CollapsibleContent,
-	CollapsibleTrigger,
-} from "#/shared/components/ui/collapsible";
-import { Field } from "#/shared/components/ui/field";
-import { toast } from "#/shared/components/ui/toast";
-import { useTestEndpoint } from "#/shared/domain/endpoint/use-endpoints";
-import { useAppForm } from "#/shared/hooks/use-app-form";
-import type { LLMProvider } from "#/shared/lib/llm-provider";
+import { AdvancedSection } from "#/components/form/AdvancedSection";
+import { useAppForm } from "#/components/form/use-app-form";
+import { Button } from "#/components/ui/button";
+import { toast } from "#/components/ui/toast";
+import { useTestEndpoint } from "#/features/endpoint/hooks/use-test-endpoint";
+import type { buildEndpointFormSchema } from "#/features/endpoint/lib/providers";
+import type { LLMProvider } from "#/lib/llm-provider";
 
-/** The trimmed values a provider-endpoint submission produces. */
-export type EndpointFormValues = { name: string; url: string; apiKey: string };
+/** The trimmed values of a submitted endpoint form. */
+type EndpointFormValues = { name: string; url: string; apiKey: string };
 
 type ProviderEndpointFormProps = {
 	schema: ReturnType<typeof buildEndpointFormSchema>;
-	/** The provider family being configured, so "Test connection" probes with its auth scheme. */
+	/** The provider, so "Test connection" sends its kind of key. */
 	provider: LLMProvider;
 	defaultValues: EndpointFormValues;
 	keyLabel: string;
 	keyPlaceholder?: string;
 	keyDescription: string;
 	urlPlaceholder: string;
-	/** Hide the URL behind an "Advanced" collapsible; false keeps it always visible. */
+	/** Hides the URL under "Advanced". */
 	collapseUrl: boolean;
 	submitIcon: ReactNode;
 	submitLabel: string;
-	/** Renders a Cancel button in the action row when the form can be dismissed (edit). */
+	/** Shows a Cancel button. */
 	onCancel?: () => void;
-	/** `onSaved` resets the form and the test result; call it from the mutation's success. */
+	/** Call `onSaved` after saving, to reset the form and test result. */
 	onSubmit: (args: { value: EndpointFormValues; onSaved: () => void }) => Promise<unknown>;
 };
 
-/**
- * The shared name/URL/API-key form for a provider endpoint, with a "Test
- * connection" affordance. Composed by both the add flow and the inline edit.
- */
+/** An endpoint's name, URL, and key fields, with "Test connection". */
 export function ProviderEndpointForm({
 	schema,
 	provider,
@@ -101,59 +92,46 @@ export function ProviderEndpointForm({
 
 	return (
 		<form.AppForm>
-			<form.SubmitForm className="gap-3">
+			<form.Form className="gap-3">
 				<form.AppField name="name">{(field) => <field.InputField label="Name" />}</form.AppField>
 
 				<form.AppField name="apiKey">
 					{(field) => (
 						<field.PasswordField
 							label={keyLabel}
-							placeholder={keyPlaceholder ?? "sk-…"}
+							placeholder={keyPlaceholder ?? "sk-..."}
 							description={keyDescription}
 						/>
 					)}
 				</form.AppField>
 
-				{collapseUrl ? (
-					<Collapsible>
-						<CollapsibleTrigger
-							render={
-								<Button type="button" variant="ghost" size="sm" className="text-muted-foreground" />
-							}
-						>
-							<ChevronDownIcon />
-							Advanced
-						</CollapsibleTrigger>
-						<CollapsibleContent className="pt-2">{urlField}</CollapsibleContent>
-					</Collapsible>
-				) : (
-					urlField
-				)}
+				{collapseUrl ? <AdvancedSection>{urlField}</AdvancedSection> : urlField}
 
 				<form.FormError>
 					{testEndpoint.data && !testEndpoint.data.ok ? testEndpoint.data.error : undefined}
 				</form.FormError>
 
-				<Field orientation="horizontal">
+				<div className="flex items-center gap-3">
 					<form.SubmitButton>
 						{submitIcon}
 						{submitLabel}
 					</form.SubmitButton>
 					<Button
 						type="button"
-						variant="outline"
+						color="neutral"
+						variant="outlined"
 						disabled={testEndpoint.isPending}
 						onClick={handleTest}
 					>
 						Test connection
 					</Button>
 					{onCancel && (
-						<Button type="button" variant="ghost" onClick={onCancel}>
+						<Button type="button" color="neutral" variant="quiet" onClick={onCancel}>
 							Cancel
 						</Button>
 					)}
-				</Field>
-			</form.SubmitForm>
+				</div>
+			</form.Form>
 		</form.AppForm>
 	);
 }

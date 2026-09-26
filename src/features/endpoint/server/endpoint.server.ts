@@ -1,39 +1,24 @@
-import type { z } from "zod/v4";
+import { trimPathRight } from "@tanstack/react-router";
+import type { z } from "zod";
+import type {
+	createEndpointSchema,
+	updateEndpointSchema,
+} from "#/features/endpoint/endpoint.schemas";
 import type { Endpoint } from "#/generated/prisma/client";
-import { decrypt, encrypt } from "#/shared/lib/crypto.server";
-import { prisma } from "#/shared/lib/db.server";
-import { listModels as listLlamacppModels } from "#/shared/lib/llamacpp/client.server";
+import { encrypt, endpointApiKey } from "#/lib/crypto.server";
+import { prisma } from "#/lib/db.server";
+import { listModels as listLlamacppModels } from "#/lib/llamacpp/client.server";
 import {
 	type EndpointProbeResult,
 	listModels,
 	modelSupportsTools,
 	probeEndpoint,
-} from "#/shared/lib/llm.server";
-import { asLLMProvider } from "#/shared/lib/llm-provider";
-import type { createEndpointSchema, updateEndpointSchema } from "./schemas";
+} from "#/lib/llm.server";
+import { asLLMProvider } from "#/lib/llm-provider";
 
-/** Strips the encrypted key off an endpoint row, replacing it with a `hasApiKey` flag. */
+/** An endpoint row safe to send to the client: a `hasApiKey` flag replaces the encrypted key. */
 export function toClientEndpoint(endpoint: Endpoint) {
 	return { ...endpoint, apiKeyEncrypted: undefined, hasApiKey: !!endpoint.apiKeyEncrypted };
-}
-
-/**
- * The endpoint's decrypted API key, or undefined when none is stored.
- * @throws A user-readable error when the stored key cannot be decrypted
- * (typically after an `ENCRYPTION_KEY` rotation); the raw crypto failure is logged.
- */
-export function endpointApiKey(endpoint: Pick<Endpoint, "apiKeyEncrypted">) {
-	if (!endpoint.apiKeyEncrypted) return undefined;
-	try {
-		return decrypt(endpoint.apiKeyEncrypted);
-	} catch (error) {
-		console.error("Failed to decrypt a stored endpoint API key (was ENCRYPTION_KEY rotated?)", {
-			error,
-		});
-		throw new Error(
-			"This endpoint's stored API key can't be decrypted. Re-enter the key in Settings.",
-		);
-	}
 }
 
 /** The user's endpoints, keys stripped. */
@@ -45,6 +30,7 @@ export async function findEndpoints({ ownerId }: { ownerId: string }) {
 	return endpoints.map(toClientEndpoint);
 }
 
+/** Saves a new endpoint, encrypting its API key. */
 export async function insertEndpoint({
 	ownerId,
 	data,
@@ -66,8 +52,8 @@ export async function insertEndpoint({
 }
 
 /**
- * Patch an endpoint's fields; re-encrypts the key when `apiKey` is supplied.
- * @throws If no endpoint with that id is owned by the user.
+ * Updates an endpoint's given fields, encrypting a new `apiKey`.
+ * @throws If the user does not own the endpoint.
  */
 export async function patchEndpoint({
 	id,
@@ -95,11 +81,9 @@ export async function patchEndpoint({
 	return toClientEndpoint(endpoint);
 }
 
-/** Deletes an endpoint, clearing the model on its conversations first. */
+/** Deletes an endpoint. Its conversations stay, with no model selected. */
 export async function removeEndpoint({ id, ownerId }: { id: string; ownerId: string }) {
-	// Clear the model on conversations using this endpoint so the (endpointId, model)
-	// pair goes null together; the FK's SetNull only nulls endpointId. Keeps history,
-	// reopening the chat to a fresh model pick instead of an orphaned model string.
+	// The foreign key's SetNull clears only `endpointId`, so clear `model` with it.
 	await prisma.conversation.updateMany({
 		where: { endpointId: id, ownerId },
 		data: { model: null },
@@ -108,8 +92,8 @@ export async function removeEndpoint({ id, ownerId }: { id: string; ownerId: str
 }
 
 /**
- * The models the endpoint's provider reports.
- * @throws If no endpoint with that id is owned by the user.
+ * The models a saved endpoint reports.
+ * @throws If the user does not own the endpoint.
  */
 export async function fetchEndpointModels({
 	endpointId,
@@ -127,8 +111,9 @@ export async function fetchEndpointModels({
 	});
 }
 
-/** Probes a saved endpoint's model list after decrypting its API key.
- * @throws If no endpoint with that id is owned by the user.
+/**
+ * Tests a saved endpoint's connection and key.
+ * @throws If the user does not own the endpoint.
  */
 export async function probeSavedEndpoint({
 	endpointId,
@@ -146,8 +131,9 @@ export async function probeSavedEndpoint({
 	});
 }
 
-/** Reports model tool, image, and document capabilities.
- * llama.cpp reports image support from `/models`; cloud capabilities are permissive.
+/**
+ * Whether a model accepts tools, images, and documents. llama.cpp reports image support;
+ * other providers are assumed capable.
  */
 export async function probeModelCapabilities({
 	endpointId,
@@ -160,8 +146,7 @@ export async function probeModelCapabilities({
 }): Promise<{ supportsTools: boolean; supportsImages: boolean; supportsDocuments: boolean }> {
 	const endpoint = await prisma.endpoint.findFirst({ where: { id: endpointId, ownerId } });
 	if (!endpoint) return { supportsTools: true, supportsImages: false, supportsDocuments: false };
-	// Only the cloud providers whose adapters advertise document support get it;
-	// llama.cpp and unverified OpenAI-compatible endpoints stay images-only.
+	// Only these providers' adapters support documents.
 	const supportsDocuments = endpoint.provider === "anthropic" || endpoint.provider === "gemini";
 	if (endpoint.provider === "llamacpp") {
 		try {
@@ -188,8 +173,88 @@ export async function probeModelCapabilities({
 		});
 		return { supportsTools, supportsImages: true, supportsDocuments };
 	} catch {
-		// endpointApiKey throws on an undecryptable key; stay optimistic here and
-		// let model listing surface that error.
+		// An undecryptable key is reported by model listing instead.
 		return { supportsTools: true, supportsImages: true, supportsDocuments };
 	}
+}
+
+/** A saved llama.cpp endpoint's id and URL. */
+export type SavedLlamacppEndpoint = { id: string; url: string };
+
+/** The user's llama.cpp endpoints, oldest first. */
+export function findLlamacppEndpoints({ ownerId }: { ownerId: string }): Promise<Endpoint[]> {
+	return prisma.endpoint.findMany({
+		where: { ownerId, provider: "llamacpp" },
+		orderBy: { id: "asc" },
+	});
+}
+
+/** A llama.cpp endpoint the user owns, or null. */
+export function findLlamacppEndpoint({
+	id,
+	ownerId,
+}: {
+	id: string;
+	ownerId: string;
+}): Promise<Endpoint | null> {
+	return prisma.endpoint.findFirst({ where: { id, ownerId, provider: "llamacpp" } });
+}
+
+/** Whether the user owns the endpoint. */
+export async function endpointOwnedBy({
+	id,
+	ownerId,
+}: {
+	id: string;
+	ownerId: string;
+}): Promise<boolean> {
+	return (await prisma.endpoint.count({ where: { id, ownerId } })) > 0;
+}
+
+/**
+ * Saves where llama.cpp was found, creating the endpoint on first detection.
+ * Pass `existing` when known to skip the lookup.
+ */
+export async function upsertLlamacppEndpoint({
+	ownerId,
+	url,
+	existing,
+}: {
+	ownerId: string;
+	url: string;
+	existing?: SavedLlamacppEndpoint | null;
+}): Promise<string> {
+	const normalizedUrl = trimPathRight(url);
+	const resolved =
+		existing !== undefined
+			? existing
+			: await prisma.endpoint.findFirst({
+					where: { ownerId, provider: "llamacpp" },
+					orderBy: { id: "asc" },
+					select: { id: true, url: true },
+				});
+
+	if (!resolved) {
+		// Upsert on the (ownerId, discovered) unique, so two concurrent first scans create one row.
+		const endpoint = await prisma.endpoint.upsert({
+			where: { ownerId_discovered: { ownerId, discovered: true } },
+			create: {
+				name: "llama.cpp (local)",
+				url: normalizedUrl,
+				provider: "llamacpp",
+				ownerId,
+				discovered: true,
+			},
+			update: { url: normalizedUrl },
+			select: { id: true },
+		});
+		return endpoint.id;
+	}
+
+	if (resolved.url === normalizedUrl) return resolved.id;
+	await prisma.endpoint.update({
+		where: { id: resolved.id },
+		data: { url: normalizedUrl },
+	});
+	return resolved.id;
 }

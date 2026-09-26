@@ -1,6 +1,7 @@
-import { z } from "zod/v4";
-import type { LLMProvider } from "#/shared/lib/llm-provider";
+import { z } from "zod";
+import type { LLMProvider } from "#/lib/llm-provider";
 
+/** A provider a user can add. */
 export type ProviderId =
 	| "anthropic"
 	| "openai"
@@ -10,17 +11,14 @@ export type ProviderId =
 	| "llamacpp"
 	| "custom";
 
+/** What the add form needs to know about a provider. */
 export type ProviderDefinition = {
 	id: ProviderId;
 	label: string;
 	defaultName: string;
 	/** Prefilled base URL; null means the user must supply one. */
 	defaultBaseUrl: string | null;
-	/**
-	 * Seed value/placeholder for the URL field when `defaultBaseUrl` is null but a
-	 * sensible starting point exists (e.g. local llama.cpp). Unlike `defaultBaseUrl`
-	 * it carries no API-key requirement and the URL field stays directly visible.
-	 */
+	/** A starting URL to fill in when `defaultBaseUrl` is null. The URL field stays visible. */
 	prefillBaseUrl?: string;
 	requiresApiKey: boolean;
 	keyPlaceholder?: string;
@@ -29,9 +27,8 @@ export type ProviderDefinition = {
 };
 
 /**
- * Selectable providers for the guided add-endpoint picker. The built-in local
- * llama.cpp is deliberately absent; it is never "added". Default base URLs must
- * round-trip through detectProvider() in llm.server.ts; pinned by a unit test.
+ * The providers a user can add. Local llama.cpp is built in, so it is not listed. Each
+ * default URL must be detected as its own provider by `detectProvider`.
  */
 export const PROVIDERS: ProviderDefinition[] = [
 	{
@@ -40,7 +37,7 @@ export const PROVIDERS: ProviderDefinition[] = [
 		defaultName: "Anthropic",
 		defaultBaseUrl: "https://api.anthropic.com",
 		requiresApiKey: true,
-		keyPlaceholder: "sk-ant-…",
+		keyPlaceholder: "sk-ant-...",
 		keyConsoleUrl: "https://console.anthropic.com/settings/keys",
 		description: "Claude models: strong reasoning, coding, and long context.",
 	},
@@ -50,7 +47,7 @@ export const PROVIDERS: ProviderDefinition[] = [
 		defaultName: "OpenAI",
 		defaultBaseUrl: "https://api.openai.com",
 		requiresApiKey: true,
-		keyPlaceholder: "sk-…",
+		keyPlaceholder: "sk-...",
 		keyConsoleUrl: "https://platform.openai.com/api-keys",
 		description: "GPT models from OpenAI.",
 	},
@@ -60,7 +57,7 @@ export const PROVIDERS: ProviderDefinition[] = [
 		defaultName: "Google Gemini",
 		defaultBaseUrl: "https://generativelanguage.googleapis.com",
 		requiresApiKey: true,
-		keyPlaceholder: "AIza…",
+		keyPlaceholder: "AIza...",
 		keyConsoleUrl: "https://aistudio.google.com/apikey",
 		description: "Gemini models from Google: fast, multimodal, long context.",
 	},
@@ -70,7 +67,7 @@ export const PROVIDERS: ProviderDefinition[] = [
 		defaultName: "OpenRouter",
 		defaultBaseUrl: "https://openrouter.ai/api",
 		requiresApiKey: true,
-		keyPlaceholder: "sk-or-…",
+		keyPlaceholder: "sk-or-...",
 		keyConsoleUrl: "https://openrouter.ai/settings/keys",
 		description: "One key for hundreds of models across providers.",
 	},
@@ -80,7 +77,7 @@ export const PROVIDERS: ProviderDefinition[] = [
 		defaultName: "Groq",
 		defaultBaseUrl: "https://api.groq.com/openai",
 		requiresApiKey: true,
-		keyPlaceholder: "gsk_…",
+		keyPlaceholder: "gsk_...",
 		keyConsoleUrl: "https://console.groq.com/keys",
 		description: "Very fast inference for open models.",
 	},
@@ -94,16 +91,12 @@ export const PROVIDERS: ProviderDefinition[] = [
 	},
 ];
 
-/** Maps a picker choice onto the provider value stored on Endpoint. */
+/** The stored provider for a picker choice. */
 export function dbProviderFor(id: ProviderId): LLMProvider {
 	return id === "custom" ? "openai" : id;
 }
 
-/**
- * The picker definition backing a stored endpoint's provider, so the edit form
- * can reuse its key guidance and placeholders. Falls back to the custom
- * definition, which every OpenAI-compatible server (including plain `openai`) fits.
- */
+/** The picker definition for a stored provider, or the custom OpenAI-compatible one. */
 export function providerDefinitionFor(provider: string): ProviderDefinition {
 	const match = PROVIDERS.find((p) => p.id !== "custom" && dbProviderFor(p.id) === provider);
 	if (match) return match;
@@ -113,9 +106,9 @@ export function providerDefinitionFor(provider: string): ProviderDefinition {
 }
 
 /**
- * @param requireApiKey Whether the key field is mandatory. Defaults to the
- * provider's own requirement; the edit form passes `false` so a blank key means
- * "keep the existing one" rather than a validation error.
+ * The endpoint form's schema for a provider.
+ * @param requireApiKey Whether a key is required. Defaults to the provider's need; pass
+ * `false` when editing, where a blank key keeps the current one.
  */
 export function buildEndpointFormSchema({
 	definition,

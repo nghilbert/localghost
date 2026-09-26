@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
+import { detectProvider } from "#/lib/llm-provider";
 import {
 	buildEndpointFormSchema,
 	dbProviderFor,
 	PROVIDERS,
 	providerDefinitionFor,
-} from "#/routes/_authenticated/settings/-lib/providers";
-import { detectProvider } from "#/shared/lib/llm-provider";
+} from "./providers";
 
 describe("provider registry", () => {
 	it("default base urls round-trip through detectProvider", () => {
@@ -34,7 +34,7 @@ describe("provider registry", () => {
 		expect(PROVIDERS.some((p) => p.id === "llamacpp")).toBe(false);
 	});
 
-	it("does not hijack a bare :8080 URL as llamacpp (too common a port to sniff)", () => {
+	it("treats a bare :8080 URL as OpenAI, since the port is too common to mean llama.cpp", () => {
 		expect(detectProvider("http://localhost:8080")).toBe("openai");
 	});
 

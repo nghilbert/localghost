@@ -1,7 +1,14 @@
-import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
-import { probeEndpoint } from "#/shared/lib/llm.server";
-import { authedFn } from "#/shared/lib/middleware";
+import { probeEndpoint } from "#/lib/llm.server";
+import { modelSelectionSchema } from "#/lib/llm-schemas";
+import { authedFn } from "#/lib/middleware";
+import {
+	createEndpointSchema,
+	endpointIdInput,
+	listEndpointModelsInput,
+	testEndpointInput,
+	updateEndpointInput,
+} from "./endpoint.schemas";
 import {
 	fetchEndpointModels,
 	findEndpoints,
@@ -10,34 +17,22 @@ import {
 	probeModelCapabilities,
 	probeSavedEndpoint,
 	removeEndpoint,
-} from "./endpoint.server";
-import {
-	createEndpointSchema,
-	endpointIdInput,
-	listEndpointModelsInput,
-	modelCapabilitiesInput,
-	testEndpointInput,
-	updateEndpointInput,
-} from "./schemas";
-import type { ModelSelection } from "./types";
+} from "./server/endpoint.server";
 
-/**
- * The current user's configured endpoints.
- * @returns Each endpoint with its encrypted key stripped and a `hasApiKey` flag instead.
- */
+/** The user's endpoints, each with a `hasApiKey` flag in place of the encrypted key. */
 export const listEndpoints = createServerFn({ method: "GET" })
 	.middleware([authedFn])
 	.handler(async ({ context }) => findEndpoints({ ownerId: context.userId }));
 
+/** Saves a new endpoint, encrypting its API key. */
 export const createEndpoint = createServerFn({ method: "POST" })
 	.middleware([authedFn])
 	.validator(createEndpointSchema)
 	.handler(async ({ data, context }) => insertEndpoint({ ownerId: context.userId, data }));
 
 /**
- * Patch an endpoint's fields; re-encrypts the key when `apiKey` is supplied.
- * @returns The updated endpoint, key stripped, with a `hasApiKey` flag.
- * @throws If no endpoint with that id is owned by the current user.
+ * Updates an endpoint's given fields.
+ * @throws If the user does not own the endpoint.
  */
 export const updateEndpoint = createServerFn({ method: "POST" })
 	.middleware([authedFn])
@@ -46,6 +41,7 @@ export const updateEndpoint = createServerFn({ method: "POST" })
 		patchEndpoint({ id, ownerId: context.userId, patch }),
 	);
 
+/** Deletes an endpoint. */
 export const deleteEndpoint = createServerFn({ method: "POST" })
 	.middleware([authedFn])
 	.validator(endpointIdInput)
@@ -53,6 +49,7 @@ export const deleteEndpoint = createServerFn({ method: "POST" })
 		await removeEndpoint({ id, ownerId: context.userId });
 	});
 
+/** The models a saved endpoint reports. */
 export const listEndpointModels = createServerFn({ method: "POST" })
 	.middleware([authedFn])
 	.validator(listEndpointModelsInput)
@@ -60,6 +57,7 @@ export const listEndpointModels = createServerFn({ method: "POST" })
 		fetchEndpointModels({ endpointId, ownerId: context.userId }),
 	);
 
+/** Tests an unsaved endpoint's URL and key. */
 export const testEndpoint = createServerFn({ method: "POST" })
 	.middleware([authedFn])
 	.validator(testEndpointInput)
@@ -67,7 +65,7 @@ export const testEndpoint = createServerFn({ method: "POST" })
 		probeEndpoint({ url: data.url, apiKey: data.apiKey, provider: data.provider }),
 	);
 
-/** Reachability of a saved endpoint, for a status badge in Settings. */
+/** Whether a saved endpoint is reachable with its key. */
 export const checkEndpointHealth = createServerFn({ method: "POST" })
 	.middleware([authedFn])
 	.validator(endpointIdInput)
@@ -75,36 +73,10 @@ export const checkEndpointHealth = createServerFn({ method: "POST" })
 		probeSavedEndpoint({ endpointId: id, ownerId: context.userId }),
 	);
 
-/** Whether a model can use tools, so the chat UI can disable the tool picker. */
+/** Whether a model accepts tools, images, and documents. */
 export const getModelCapabilities = createServerFn({ method: "POST" })
 	.middleware([authedFn])
-	.validator(modelCapabilitiesInput)
+	.validator(modelSelectionSchema)
 	.handler(async ({ data: { endpointId, model }, context }) =>
 		probeModelCapabilities({ endpointId, ownerId: context.userId, model }),
 	);
-
-// ── Query options (for TanStack Query) ───────────────────────
-
-export const endpointsQueryOptions = () =>
-	queryOptions({ queryKey: ["endpoints"], queryFn: () => listEndpoints() });
-
-export const endpointModelsQueryOptions = (endpointId: string) =>
-	queryOptions({
-		queryKey: ["endpoint-models", endpointId],
-		queryFn: () => listEndpointModels({ data: { endpointId } }),
-		staleTime: 30_000,
-	});
-
-export const endpointHealthQueryOptions = (endpointId: string) =>
-	queryOptions({
-		queryKey: ["endpoint-health", endpointId],
-		queryFn: () => checkEndpointHealth({ data: { id: endpointId } }),
-		staleTime: 5 * 60_000,
-	});
-
-export const modelCapabilitiesQueryOptions = ({ endpointId, model }: ModelSelection) =>
-	queryOptions({
-		queryKey: ["model-capabilities", endpointId, model],
-		queryFn: () => getModelCapabilities({ data: { endpointId, model } }),
-		staleTime: 5 * 60_000,
-	});

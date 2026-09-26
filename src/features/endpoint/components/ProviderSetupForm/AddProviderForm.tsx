@@ -1,17 +1,18 @@
 import { PlusIcon } from "lucide-react";
-import { ProviderEndpointForm } from "#/routes/_authenticated/settings/-components/endpoints/ProviderEndpointForm";
+import { ProviderEndpointForm } from "#/features/endpoint/components/ProviderEndpointForm";
+import { useCreateEndpoint } from "#/features/endpoint/hooks/use-create-endpoint";
 import {
 	buildEndpointFormSchema,
 	dbProviderFor,
 	type ProviderDefinition,
-} from "#/routes/_authenticated/settings/-lib/providers";
-import { useCreateEndpoint } from "#/shared/domain/endpoint/use-endpoints";
+} from "#/features/endpoint/lib/providers";
 
 type AddProviderFormProps = {
 	definition: ProviderDefinition;
 	onCreated?: () => void;
 };
 
+/** The fields for adding one kind of provider. */
 export function AddProviderForm({ definition, onCreated }: AddProviderFormProps) {
 	const createEndpoint = useCreateEndpoint();
 
