@@ -1,20 +1,20 @@
-import { Input } from "#/shared/components/ui/input";
-import { useFieldContext } from "..";
+import { Input } from "#/components/ui/input";
+import { useFieldBinding } from "../use-field-binding";
 import { FieldShell } from "./FieldShell";
 import type { ComponentFieldProps } from "./types";
 
+/** A labeled text input bound to the enclosing form field. */
 export function InputField({
 	label,
 	description,
 	fieldOrientation,
 	...props
 }: ComponentFieldProps<typeof Input>) {
-	const field = useFieldContext<string>();
+	const { field } = useFieldBinding<string>();
 
 	return (
 		<FieldShell label={label} description={description} orientation={fieldOrientation}>
 			<Input
-				data-testid={`${field.name}-input`}
 				value={field.state.value}
 				onBlur={field.handleBlur}
 				onValueChange={field.handleChange}
