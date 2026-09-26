@@ -14,13 +14,13 @@ x-app: &app
     retries: 5
     start_period: 40s
   environment: &app-env
-    DATABASE_URL: "postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:-localghost}"
+    DATABASE_URL: "postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432"
     BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?set BETTER_AUTH_SECRET in .env}
     BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
     ENCRYPTION_KEY: ${ENCRYPTION_KEY:?set ENCRYPTION_KEY (64-char hex) in .env}
     SEARXNG_URL: ${SEARXNG_URL:-http://searxng:8080}
     HF_TOKEN: ${HF_TOKEN:-}
-    LLAMACPP_API_KEY: ${LLAMACPP_API_KEY:-local-llamacpp}
+    LLAMA_API_KEY: ${LLAMA_API_KEY:-local-llamacpp}
   extra_hosts:
     - "host.docker.internal:host-gateway"
   depends_on:
@@ -35,7 +35,6 @@ services:
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
-      POSTGRES_DB: ${POSTGRES_DB:-localghost}
     # Loopback-only: the native dev loop reaches it at localhost; web uses db:5432
     # over the compose network. Not exposed on external interfaces.
     ports:
@@ -44,7 +43,7 @@ services:
       - pg:/var/lib/postgresql
     restart: unless-stopped
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-localghost}" ]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -59,7 +58,7 @@ services:
     profiles: [ prod ]
     restart: "no"
     environment:
-      DATABASE_URL: "postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:-localghost}"
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432"
     depends_on:
       db:
         condition: service_healthy
@@ -106,17 +105,21 @@ services:
   # http://llamacpp:8080. Gated by the `llamacpp` profile; omitting it falls
   # back to a host-native llama-server. GPU overlays patch this service (see
   # compose.nvidia/amd/vulkan.yaml).
-  # LLAMA_ARG_PORT pins against a pending upstream default change. LLAMA_API_KEY
-  # (no ARG_ prefix, per --help) mirrors llm.server.ts's fallback placeholder.
+  # LLAMA_ARG_PORT is pinned in case the upstream default changes. LLAMA_API_KEY has
+  # no ARG_ prefix, per --help, and matches the app's default in llamacpp/client.server.ts.
   llamacpp:
-    image: ghcr.io/ggml-org/llama.cpp:server-b10380
+    image: ghcr.io/ggml-org/llama.cpp:server-b10920
     profiles: [ llamacpp ]
     environment:
       LLAMA_CACHE: /models
       HF_TOKEN: ${HF_TOKEN:-}
       LLAMA_ARG_PORT: 8080
-      LLAMA_API_KEY: ${LLAMACPP_API_KEY:-local-llamacpp}
-      LLAMA_ARG_SLEEP_IDLE_SECONDS: ${LLAMA_SLEEP_IDLE_SECONDS:-300}
+      LLAMA_API_KEY: ${LLAMA_API_KEY:-local-llamacpp}
+      LLAMA_ARG_SLEEP_IDLE_SECONDS: ${LLAMA_ARG_SLEEP_IDLE_SECONDS:-300}
+      # Router children inherit these. `auto` lets --fit (on by default) size the GPU
+      # layers and context to free device memory; a fixed number turns fitting off.
+      LLAMA_ARG_N_GPU_LAYERS: ${LLAMA_ARG_N_GPU_LAYERS:-auto}
+      LLAMA_ARG_CTX_SIZE: ${LLAMA_ARG_CTX_SIZE:-0}
     volumes:
       - llamacpp:/models
     restart: unless-stopped
