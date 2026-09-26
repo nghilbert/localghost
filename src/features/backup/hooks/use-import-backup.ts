@@ -1,11 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "#/shared/components/ui/toast";
-import { importBackupResultSchema } from "#/shared/domain/backup/schemas";
+import { toast } from "#/components/ui/toast";
+import { importBackupResultSchema } from "#/features/backup/backup.schemas";
 
-/**
- * Uploads a backup file to `/api/backup/import` (a raw API route, so no server
- * fn exists to call) and reports the merge counts the endpoint returns.
- */
+/** Uploads a backup file to `/api/backup/import` and toasts what was added. */
 export function useImportBackup() {
 	const queryClient = useQueryClient();
 	return useMutation({
@@ -19,10 +16,8 @@ export function useImportBackup() {
 			return importBackupResultSchema.parse(await res.json()).imported;
 		},
 		onSuccess: (imported) => {
-			queryClient.invalidateQueries({ queryKey: ["conversations"] });
-			queryClient.invalidateQueries({ queryKey: ["memories"] });
-			queryClient.invalidateQueries({ queryKey: ["user-settings"] });
-			queryClient.invalidateQueries({ queryKey: ["endpoints"] });
+			// A backup touches nearly every feature's data.
+			queryClient.invalidateQueries();
 			const skipped =
 				imported.skippedMemories +
 				imported.skippedConversations +

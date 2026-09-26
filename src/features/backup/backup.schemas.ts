@@ -1,11 +1,7 @@
-import { z } from "zod/v4";
+import { z } from "zod";
 
-/**
- * Per-kind merge counts a backup import returns. Shared by the server
- * (`importBackup`'s return) and the client (`useImportBackup`) so the wire
- * contract is declared once.
- */
-export const importBackupCountsSchema = z.object({
+/** How many rows of each kind a backup import added, skipped, or rejected. */
+const importBackupCountsSchema = z.object({
 	memories: z.number(),
 	conversations: z.number(),
 	endpoints: z.number(),
@@ -17,9 +13,10 @@ export const importBackupCountsSchema = z.object({
 	invalidConversations: z.number(),
 });
 
+/** How many rows of each kind a backup import added, skipped, or rejected. */
 export type ImportBackupCounts = z.infer<typeof importBackupCountsSchema>;
 
-/** What `POST /api/backup/import` answers with: the counts under `imported`. */
+/** The `POST /api/backup/import` response. */
 export const importBackupResultSchema = z.object({
 	imported: importBackupCountsSchema,
 });

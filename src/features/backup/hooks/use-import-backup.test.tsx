@@ -7,11 +7,9 @@ const { toastAdd } = vi.hoisted(() => ({
 	toastAdd: vi.fn(),
 }));
 
-vi.mock("#/shared/components/ui/toast", () => ({ toast: { add: toastAdd } }));
+vi.mock("#/components/ui/toast", () => ({ toast: { add: toastAdd } }));
 
-const { useImportBackup } = await import(
-	"#/routes/_authenticated/settings/-hooks/use-import-backup"
-);
+const { useImportBackup } = await import("#/features/backup/hooks/use-import-backup");
 
 function importedCounts(overrides: Record<string, number> = {}) {
 	return {
