@@ -2,16 +2,11 @@ import { setupWorker } from "msw/browser";
 import { afterAll, afterEach, beforeAll } from "vitest";
 
 /**
- * The network boundary for browser tests: handlers are registered per-test with
- * `worker.use(...)`, so the app's own `fetch` runs untouched and only the wire
- * response is faked.
- *
- * Started with no default handlers and `bypass`, since Vitest's browser runner
- * makes its own requests that must not be intercepted.
- *
- * No worker script is checked in: Vitest's browser plugin resolves
- * `/mockServiceWorker.js` straight out of the `msw` package, so `msw init` and a
- * copy under `public/` are both unnecessary here.
+ * Fakes network responses in browser tests. Importing this starts the worker for that test
+ * file only, since starting it costs every file that does not need it. Each test adds
+ * handlers with `worker.use(...)`; unhandled requests pass through, since Vitest makes its
+ * own. Vitest serves the worker script from the `msw` package, so none is copied into
+ * `public/`.
  */
 export const worker = setupWorker();
 

@@ -1,7 +1,15 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+	createMemoryHistory,
+	createRootRoute,
+	createRoute,
+	createRouter,
+	Outlet,
+	RouterProvider,
+} from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { render as baseRender, renderHook as baseRenderHook } from "vitest-browser-react";
-import { TooltipProvider } from "#/shared/components/ui/tooltip";
+import { Tooltip } from "#/components/ui/tooltip";
 
 /**
  * A client with retries off, so a rejected query settles immediately instead of
@@ -19,7 +27,7 @@ function testProviders(queryClient: QueryClient) {
 	return function Providers({ children }: { children: ReactNode }) {
 		return (
 			<QueryClientProvider client={queryClient}>
-				<TooltipProvider>{children}</TooltipProvider>
+				<Tooltip.Provider>{children}</Tooltip.Provider>
 			</QueryClientProvider>
 		);
 	};
@@ -28,6 +36,30 @@ function testProviders(queryClient: QueryClient) {
 /** Browser-mode render wrapped in the app-wide providers. */
 export function render(ui: ReactNode, { queryClient }: { queryClient?: QueryClient } = {}) {
 	return baseRender(ui, { wrapper: testProviders(queryClient ?? testQueryClient()) });
+}
+
+/** Like {@link render}, inside a memory router at `/test`, for components that render links. */
+export function renderWithRouter(
+	ui: ReactNode,
+	{ queryClient }: { queryClient?: QueryClient } = {},
+) {
+	const rootRoute = createRootRoute({ component: () => <Outlet /> });
+	const homeRoute = createRoute({
+		getParentRoute: () => rootRoute,
+		path: "/",
+		component: () => <p>home</p>,
+	});
+	const testRoute = createRoute({
+		getParentRoute: () => rootRoute,
+		path: "/test",
+		component: () => ui,
+	});
+	const router = createRouter({
+		routeTree: rootRoute.addChildren([homeRoute, testRoute]),
+		history: createMemoryHistory({ initialEntries: ["/test"] }),
+	});
+
+	return render(<RouterProvider router={router} />, { queryClient });
 }
 
 /** Browser-mode `renderHook` with the same providers, for hooks that run queries. */
