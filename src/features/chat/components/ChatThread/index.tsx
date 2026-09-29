@@ -17,7 +17,11 @@ import { useCancelChatRun } from "#/features/chat/hooks/use-cancel-chat-run";
 import { useConversation } from "#/features/chat/hooks/use-conversation";
 import { type Attachment, composeMessageContent } from "#/features/chat/lib/attachments";
 import { CHAT_TOOLS } from "#/features/chat/lib/chat-tools";
-import { awaitingAssistantResponse, editUserMessage } from "#/features/chat/lib/messages";
+import {
+	awaitingAssistantResponse,
+	editUserMessage,
+	mergeAssistantTurns,
+} from "#/features/chat/lib/messages";
 import { takeNewChat } from "#/features/chat/lib/new-chat";
 import { ChatStatus } from "./ChatStatus";
 import { QueuedMessageItem } from "./QueuedMessageItem";
@@ -139,14 +143,16 @@ export function ChatThread({ conversation }: ChatThreadProps) {
 	const canGenerate =
 		autoRespond === false && status === "ready" && awaitingAssistantResponse(messages);
 
+	const turns = mergeAssistantTurns(messages);
+
 	return (
 		<div className="flex min-h-0 flex-col">
 			<MessageScrollerProvider autoScroll defaultScrollPosition="last-anchor">
 				<MessageScroller className="flex-1">
 					<MessageScrollerViewport aria-label="Conversation" className="p-4">
 						<MessageScrollerContent aria-busy={isStreaming}>
-							{messages.map((msg, idx) => {
-								const isLast = idx === messages.length - 1;
+							{turns.map((msg, idx) => {
+								const isLast = idx === turns.length - 1;
 								const isLastAssistant = isLast && msg.role === "assistant";
 								return (
 									<MessageScrollerItem

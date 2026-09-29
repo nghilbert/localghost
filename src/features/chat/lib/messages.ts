@@ -168,6 +168,28 @@ export function turnSeconds(message: UIMessage): number | null {
 	return Math.round((finishedAt - startedAt) / 1000);
 }
 
+/**
+ * Joins each run of consecutive assistant messages into one, keeping the first one's id,
+ * so a turn that took several model calls reads as one reply. A reloaded thread stores
+ * each call as its own message.
+ */
+export function mergeAssistantTurns(messages: UIMessage[]): UIMessage[] {
+	const turns: UIMessage[] = [];
+	for (const message of messages) {
+		const previous = turns.at(-1);
+		if (message.role === "assistant" && previous?.role === "assistant") {
+			turns[turns.length - 1] = {
+				...message,
+				id: previous.id,
+				parts: [...previous.parts, ...message.parts],
+			};
+		} else {
+			turns.push(message);
+		}
+	}
+	return turns;
+}
+
 /** Whether the transcript ends on a user message that has no reply yet. */
 export function awaitingAssistantResponse(messages: Array<UIMessage>): boolean {
 	const last = messages.at(-1);

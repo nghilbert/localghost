@@ -6,6 +6,7 @@ import {
 	deriveConversationTitle,
 	documentMessageParts,
 	editUserMessage,
+	mergeAssistantTurns,
 	messageDocumentSources,
 	partsText,
 	reviveMessageDates,
@@ -218,6 +219,30 @@ describe("partsText", () => {
 			{ type: "text", content: " world" },
 		];
 		expect(partsText(parts)).toBe("Hello world");
+	});
+});
+
+describe("mergeAssistantTurns", () => {
+	it("joins consecutive assistant messages under the first one's id", () => {
+		const first: UIMessage = {
+			id: "a1",
+			role: "assistant",
+			parts: [{ type: "thinking", content: "hm" }],
+		};
+		const second: UIMessage = {
+			id: "a2",
+			role: "assistant",
+			parts: [{ type: "text", content: "hi" }],
+		};
+		expect(mergeAssistantTurns([userMessage("q"), first, second])).toEqual([
+			userMessage("q"),
+			{ ...second, id: "a1", parts: [...first.parts, ...second.parts] },
+		]);
+	});
+
+	it("keeps assistant messages apart when a user message sits between them", () => {
+		const messages = [assistantMessage("one"), userMessage("q"), assistantMessage("two")];
+		expect(mergeAssistantTurns(messages)).toEqual(messages);
 	});
 });
 
