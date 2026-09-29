@@ -14,7 +14,9 @@ const bubbleVariants = tv({
 			"[--bubble-pad-x:--spacing(3)] [--bubble-pad-y:--spacing(2)] [--bubble-ring:transparent]",
 		],
 		content: [
-			"w-fit max-w-full min-w-0 overflow-hidden rounded-xl text-sm leading-relaxed wrap-break-word in-align-end:self-end",
+			"w-fit max-w-full min-w-0 overflow-hidden text-sm leading-relaxed wrap-break-word in-align-end:self-end",
+			// The top corner on the speaker's side is squared, pointing at them.
+			"rounded-xl rounded-tl-none in-align-end:rounded-tl-xl in-align-end:rounded-tr-none",
 			"bg-(--bubble-bg) px-(--bubble-pad-x) py-(--bubble-pad-y) text-(--bubble-fg) ring-1 ring-(--bubble-ring)",
 		],
 	},
