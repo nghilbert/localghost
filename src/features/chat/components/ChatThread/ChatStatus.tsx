@@ -5,6 +5,7 @@ import { Alert } from "#/components/ui/alert";
 import { Button } from "#/components/ui/button";
 import { ButtonLink } from "#/components/ui/button-link";
 import { ActivityMarker } from "#/features/chat/components/ActivityMarker";
+import { SpinningBulbIcon } from "#/features/chat/components/BulbIcons";
 import { useElapsedSeconds } from "#/features/chat/hooks/use-elapsed-seconds";
 import { describeChatError } from "#/features/chat/lib/chat-errors";
 
@@ -67,7 +68,13 @@ export function ChatStatus({
 	const seconds = useElapsedSeconds(awaiting);
 
 	if (awaiting) {
-		return <ActivityMarker label={pendingLabel ?? "Thinking"} seconds={seconds} />;
+		return (
+			<ActivityMarker
+				label={pendingLabel ?? "Thinking"}
+				icon={<SpinningBulbIcon />}
+				seconds={seconds}
+			/>
+		);
 	}
 
 	if (status === "error" || (onGenerate && error !== undefined)) {

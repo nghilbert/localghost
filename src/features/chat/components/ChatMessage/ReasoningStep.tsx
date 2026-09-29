@@ -1,9 +1,10 @@
 import { ChevronRightIcon } from "lucide-react";
 import { useState } from "react";
-import { Button } from "#/components/ui/button";
+import { Collapsible } from "#/components/ui/collapsible";
 import { ActivityMarker } from "#/features/chat/components/ActivityMarker";
+import { LitBulbIcon, SpinningBulbIcon } from "#/features/chat/components/BulbIcons";
 import { ChatMarkdown } from "#/features/chat/components/ChatMarkdown";
-import { Marker, MarkerContent } from "#/features/chat/components/Marker";
+import { Marker, MarkerContent, MarkerIcon } from "#/features/chat/components/Marker";
 import { useStepDuration } from "#/features/chat/hooks/use-step-duration";
 
 type ReasoningStepProps = { content: string; isThinking: boolean };
@@ -26,38 +27,30 @@ export function ReasoningStep({ content, isThinking }: ReasoningStepProps) {
 	const label = duration ? `Thought for ${duration}s` : "Reasoning";
 
 	return (
-		<div className="flex flex-col gap-1.5">
+		<Collapsible.Root open={open} onOpenChange={setOpenOverride} className="flex flex-col gap-1.5">
 			{isThinking ? (
-				<ActivityMarker label="Thinking" seconds={seconds} />
+				<ActivityMarker label="Thinking" icon={<SpinningBulbIcon />} seconds={seconds} />
 			) : (
-				<Marker
-					layout="separator"
-					render={
-						<Button
-							color="neutral"
-							variant="quiet"
-							aria-expanded={open}
-							onClick={() => setOpenOverride(!open)}
-						/>
-					}
-				>
+				<Marker className="w-fit" render={<Collapsible.Trigger />}>
+					<MarkerIcon>
+						<LitBulbIcon />
+					</MarkerIcon>
 					<MarkerContent className="flex items-center gap-1 hover:text-fg">
 						{label}
-						<ChevronRightIcon
-							className="size-3 transition-transform data-open:rotate-90"
-							data-open={open ? "" : undefined}
-						/>
+						<ChevronRightIcon className="size-3 transition-transform in-data-panel-open:rotate-90" />
 					</MarkerContent>
 				</Marker>
 			)}
-			{open && content && (
-				<ChatMarkdown
-					isStreaming={isThinking}
-					className="ml-2 border-l border-line pl-3 text-xs leading-relaxed text-muted-fg"
-				>
-					{content}
-				</ChatMarkdown>
+			{content && (
+				<Collapsible.Panel>
+					<ChatMarkdown
+						isStreaming={isThinking}
+						className="ml-2 pl-3 text-xs leading-relaxed text-muted-fg"
+					>
+						{content}
+					</ChatMarkdown>
+				</Collapsible.Panel>
 			)}
-		</div>
+		</Collapsible.Root>
 	);
 }

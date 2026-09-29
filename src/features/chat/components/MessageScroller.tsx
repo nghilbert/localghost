@@ -19,7 +19,8 @@ const messageScrollerVariants = tv({
 		scrollbar: "opacity-0",
 		viewport: "size-full min-h-0 min-w-0 scroll-fade-b overscroll-contain contain-content",
 		content: "flex h-max min-h-full flex-col gap-6",
-		item: "min-w-0 shrink-0 [contain-intrinsic-size:auto_10rem] [content-visibility:auto]",
+		// `content-visibility` clips paint to the item; the margin spares icons drawn past their box.
+		item: "min-w-0 shrink-0 [contain-intrinsic-size:auto_10rem] [content-visibility:auto] [overflow-clip-margin:--spacing(2)]",
 		button: [
 			"pointer-events-none absolute left-1/2 -translate-x-1/2 scale-95 bg-bg opacity-0",
 			"transition-[translate,scale,opacity] duration-200 rtl:translate-x-1/2",

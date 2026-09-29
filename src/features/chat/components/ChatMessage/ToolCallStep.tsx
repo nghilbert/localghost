@@ -9,8 +9,8 @@ import {
 	TerminalIcon,
 	XIcon,
 } from "lucide-react";
-import { useState } from "react";
 import { Button } from "#/components/ui/button";
+import { Collapsible } from "#/components/ui/collapsible";
 import { ActivityMarker } from "#/features/chat/components/ActivityMarker";
 import { Marker, MarkerContent, MarkerIcon } from "#/features/chat/components/Marker";
 import { useStepDuration } from "#/features/chat/hooks/use-step-duration";
@@ -167,7 +167,6 @@ export function ToolCallStep({ toolCall, result, isStreaming, interrupt }: ToolC
 	const input = callInput(toolCall);
 	const active = Boolean(isStreaming) && toolCall.output === undefined && result === undefined;
 	const { seconds } = useStepDuration(active);
-	const [open, setOpen] = useState(false);
 
 	if (interrupt) {
 		return (
@@ -201,7 +200,7 @@ export function ToolCallStep({ toolCall, result, isStreaming, interrupt }: ToolC
 	}
 
 	if (active) {
-		return <ActivityMarker label={running(input)} icon={Icon} seconds={seconds} />;
+		return <ActivityMarker label={running(input)} icon={<Icon />} seconds={seconds} />;
 	}
 
 	const failed = result?.state === "error";
@@ -220,34 +219,21 @@ export function ToolCallStep({ toolCall, result, isStreaming, interrupt }: ToolC
 	}
 
 	return (
-		<div className="flex flex-col gap-1.5">
-			<Marker
-				className="w-fit"
-				render={
-					<Button
-						color="neutral"
-						variant="quiet"
-						aria-expanded={open}
-						onClick={() => setOpen(!open)}
-					/>
-				}
-			>
+		<Collapsible.Root className="flex flex-col gap-1.5">
+			<Marker className="w-fit" render={<Collapsible.Trigger />}>
 				<MarkerIcon>
 					<RowIcon />
 				</MarkerIcon>
 				<MarkerContent className="flex items-center gap-1 hover:text-fg">
 					{label}
-					<ChevronRightIcon
-						className="size-3 transition-transform data-open:rotate-90"
-						data-open={open ? "" : undefined}
-					/>
+					<ChevronRightIcon className="size-3 transition-transform in-data-panel-open:rotate-90" />
 				</MarkerContent>
 			</Marker>
-			{open && (
-				<pre className="ml-2 max-h-56 overflow-y-auto border-l border-line pl-3 whitespace-pre-wrap wrap-break-word font-mono text-xs leading-relaxed text-muted-fg">
+			<Collapsible.Panel>
+				<pre className="ml-2 max-h-56 overflow-y-auto pl-3 whitespace-pre-wrap wrap-break-word font-mono text-xs leading-relaxed text-muted-fg">
 					{output}
 				</pre>
-			)}
-		</div>
+			</Collapsible.Panel>
+		</Collapsible.Root>
 	);
 }

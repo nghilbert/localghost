@@ -1,5 +1,6 @@
 import type { UIMessage } from "@tanstack/ai-client";
 import { ActivityMarker } from "#/features/chat/components/ActivityMarker";
+import { SpinningBulbIcon } from "#/features/chat/components/BulbIcons";
 import { useElapsedSeconds } from "#/features/chat/hooks/use-elapsed-seconds";
 import type { ChatInterrupts } from "#/features/chat/lib/chat-tools";
 import { ReasoningStep } from "./ReasoningStep";
@@ -14,6 +15,14 @@ type ActivityTrailProps = {
 	/** Pending approvals for this message's tool calls. */
 	interrupts?: ChatInterrupts;
 };
+
+// One line joins each step's icon to the next, past any open output. It is the only line,
+// since `--line` is translucent and overlapping lines would show darker.
+const trailClassName = [
+	"flex flex-col gap-3 *:relative",
+	"*:after:absolute *:after:top-5 *:after:-bottom-3 *:after:left-2 *:after:w-px *:after:bg-line",
+	"*:last:after:bottom-0 *:last:not-data-open:after:hidden",
+].join(" ");
 
 /**
  * An assistant message's reasoning and tool steps in order, ending in a live "Thinking"
@@ -70,9 +79,15 @@ export function ActivityTrail({
 	if (steps.length === 0 && !showHead) return null;
 
 	return (
-		<div className="flex flex-col gap-2">
+		<div className={trailClassName}>
 			{steps}
-			{showHead && <ActivityMarker label={pendingLabel ?? "Thinking"} seconds={headSeconds} />}
+			{showHead && (
+				<ActivityMarker
+					label={pendingLabel ?? "Thinking"}
+					icon={<SpinningBulbIcon />}
+					seconds={headSeconds}
+				/>
+			)}
 		</div>
 	);
 }
