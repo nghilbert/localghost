@@ -153,6 +153,56 @@ describe("ChatMessage", () => {
 
 			await expect.element(screen.getByRole("status")).toHaveTextContent("Searching the web");
 		});
+
+		it("says a denied call was denied instead of done", async () => {
+			const message: UIMessage = {
+				id: "a1",
+				role: "assistant",
+				parts: [
+					{
+						type: "tool-call",
+						id: "c1",
+						name: "delete_memory",
+						arguments: "{}",
+						state: "complete",
+					},
+					{
+						type: "tool-result",
+						toolCallId: "c1",
+						content: "",
+						state: "error",
+						outcome: "denied",
+					},
+				],
+			};
+
+			const screen = await render(<ChatMessage message={message} />);
+
+			await expect.element(screen.getByText("Memory deletion denied")).toBeInTheDocument();
+			await expect.element(screen.getByText("Deleted a memory")).not.toBeInTheDocument();
+		});
+
+		it("shows a failed call's error on click", async () => {
+			const message: UIMessage = {
+				id: "a1",
+				role: "assistant",
+				parts: [
+					{ type: "tool-call", id: "c1", name: "web_search", arguments: "{}", state: "complete" },
+					{
+						type: "tool-result",
+						toolCallId: "c1",
+						content: "",
+						state: "error",
+						error: "SearXNG is unreachable",
+					},
+				],
+			};
+
+			const screen = await render(<ChatMessage message={message} />);
+			await screen.getByRole("button", { name: "Web search failed" }).click();
+
+			await expect.element(screen.getByText("SearXNG is unreachable")).toBeInTheDocument();
+		});
 	});
 
 	describe("reasoning", () => {

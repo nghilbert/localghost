@@ -22,6 +22,9 @@ export type ToolApprovalInterrupt = Extract<ChatInterrupts[number], { kind: "too
 /** A tool call part of a message. */
 type ToolCall = Extract<UIMessage["parts"][number], { type: "tool-call" }>;
 
+/** A tool result part of a message, matched to its call by `toolCallId`. */
+export type ToolResult = Extract<UIMessage["parts"][number], { type: "tool-result" }>;
+
 /** The call's parsed arguments, or the raw string while they are still streaming. */
 function callInput(tc: ToolCall): unknown {
 	if (tc.input !== undefined) return tc.input;
@@ -75,6 +78,8 @@ const MEMORY_LABELS: Record<string, { running: string; done: string }> = {
 
 type ToolDisplay = {
 	icon: LucideIcon;
+	/** Names the call in a row for one that did not succeed, e.g. "Web search failed". */
+	title: string;
 	running: (input: unknown) => string;
 	done: (input: unknown) => string;
 };
@@ -83,6 +88,7 @@ type ToolDisplay = {
 const TOOL_DISPLAY: Record<string, ToolDisplay> = {
 	web_search: {
 		icon: GlobeIcon,
+		title: "Web search",
 		running: (input) => {
 			const query = searchQuery(input);
 			return query ? `Searching the web for "${query}"...` : "Searching the web...";
@@ -94,6 +100,7 @@ const TOOL_DISPLAY: Record<string, ToolDisplay> = {
 	},
 	read_url: {
 		icon: LinkIcon,
+		title: "Page read",
 		running: (input) => {
 			const host = urlHost(input);
 			return host ? `Reading ${host}...` : "Reading page...";
@@ -105,11 +112,13 @@ const TOOL_DISPLAY: Record<string, ToolDisplay> = {
 	},
 	manage_memory: {
 		icon: BrainIcon,
+		title: "Memory update",
 		running: (input) => MEMORY_LABELS[memoryAction(input) ?? ""]?.running ?? "Updating memory...",
 		done: (input) => MEMORY_LABELS[memoryAction(input) ?? ""]?.done ?? "Memory",
 	},
 	delete_memory: {
 		icon: BrainIcon,
+		title: "Memory deletion",
 		running: () => "Delete a memory?",
 		done: () => "Deleted a memory",
 	},
@@ -118,8 +127,20 @@ const TOOL_DISPLAY: Record<string, ToolDisplay> = {
 /** How to label a tool's calls, with a generic label for unknown tools. */
 export function display(name: string): ToolDisplay {
 	return (
-		TOOL_DISPLAY[name] ?? { icon: TerminalIcon, running: () => `${name}...`, done: () => name }
+		TOOL_DISPLAY[name] ?? {
+			icon: TerminalIcon,
+			title: name,
+			running: () => `${name}...`,
+			done: () => name,
+		}
 	);
+}
+
+/** The word after a tool's title for a call that did not succeed. */
+function failureWord(outcome: ToolResult["outcome"]): string {
+	if (outcome === "denied") return "denied";
+	if (outcome === "cancelled") return "stopped";
+	return "failed";
 }
 
 function outputText(output: ToolCall["output"]): string {
@@ -129,6 +150,8 @@ function outputText(output: ToolCall["output"]): string {
 
 type ToolCallStepProps = {
 	toolCall: ToolCall;
+	/** The call's result, which tells a denied, stopped or failed call apart from a finished one. */
+	result?: ToolResult;
 	isStreaming?: boolean;
 	/** The call's pending approval, if any. */
 	interrupt?: ToolApprovalInterrupt;
@@ -136,12 +159,13 @@ type ToolCallStepProps = {
 
 /**
  * A tool call: a timer while it runs, then a row that shows its output on click. A call
- * waiting for approval shows Approve and Deny instead.
+ * waiting for approval shows Approve and Deny instead, and one that did not succeed says
+ * so, with the error on click.
  */
-export function ToolCallStep({ toolCall, isStreaming, interrupt }: ToolCallStepProps) {
-	const { icon: Icon, running, done } = display(toolCall.name);
+export function ToolCallStep({ toolCall, result, isStreaming, interrupt }: ToolCallStepProps) {
+	const { icon: Icon, title, running, done } = display(toolCall.name);
 	const input = callInput(toolCall);
-	const active = Boolean(isStreaming) && toolCall.output === undefined;
+	const active = Boolean(isStreaming) && toolCall.output === undefined && result === undefined;
 	const { seconds } = useStepDuration(active);
 	const [open, setOpen] = useState(false);
 
@@ -180,14 +204,17 @@ export function ToolCallStep({ toolCall, isStreaming, interrupt }: ToolCallStepP
 		return <ActivityMarker label={running(input)} icon={Icon} seconds={seconds} />;
 	}
 
-	const output = outputText(toolCall.output);
+	const failed = result?.state === "error";
+	const RowIcon = failed ? XIcon : Icon;
+	const label = failed ? `${title} ${failureWord(result.outcome)}` : done(input);
+	const output = failed ? (result.error ?? "") : outputText(toolCall.output);
 	if (!output) {
 		return (
 			<Marker>
 				<MarkerIcon>
-					<Icon />
+					<RowIcon />
 				</MarkerIcon>
-				<MarkerContent>{done(input)}</MarkerContent>
+				<MarkerContent>{label}</MarkerContent>
 			</Marker>
 		);
 	}
@@ -206,10 +233,10 @@ export function ToolCallStep({ toolCall, isStreaming, interrupt }: ToolCallStepP
 				}
 			>
 				<MarkerIcon>
-					<Icon />
+					<RowIcon />
 				</MarkerIcon>
 				<MarkerContent className="flex items-center gap-1 hover:text-fg">
-					{done(input)}
+					{label}
 					<ChevronRightIcon
 						className="size-3 transition-transform data-open:rotate-90"
 						data-open={open ? "" : undefined}

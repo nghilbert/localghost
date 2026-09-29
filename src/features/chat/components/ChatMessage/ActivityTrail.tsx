@@ -3,7 +3,7 @@ import { ActivityMarker } from "#/features/chat/components/ActivityMarker";
 import { useElapsedSeconds } from "#/features/chat/hooks/use-elapsed-seconds";
 import type { ChatInterrupts } from "#/features/chat/lib/chat-tools";
 import { ReasoningStep } from "./ReasoningStep";
-import { type ToolApprovalInterrupt, ToolCallStep } from "./ToolCallStep";
+import { type ToolApprovalInterrupt, ToolCallStep, type ToolResult } from "./ToolCallStep";
 
 type ActivityTrailProps = {
 	message: UIMessage;
@@ -50,10 +50,15 @@ export function ActivityTrail({
 				(candidate): candidate is ToolApprovalInterrupt =>
 					candidate.kind === "tool-approval" && candidate.toolCallId === part.id,
 			);
+			const result = parts.find(
+				(candidate): candidate is ToolResult =>
+					candidate.type === "tool-result" && candidate.toolCallId === part.id,
+			);
 			return [
 				<ToolCallStep
 					key={part.id}
 					toolCall={part}
+					result={result}
 					isStreaming={isStreaming}
 					interrupt={interrupt}
 				/>,
