@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { formatByteProgress, formatBytes, formatCount, GIB, MIB } from "#/lib/format";
+import {
+	formatByteProgress,
+	formatBytes,
+	formatCount,
+	formatSeconds,
+	GIB,
+	MIB,
+} from "#/lib/format";
 
 describe("formatBytes", () => {
 	it("formats sub-kilobyte values as bytes", () => {
@@ -47,5 +54,16 @@ describe("formatCount", () => {
 		expect(formatCount(8 * 1e9)).toBe("8B");
 		expect(formatCount(1800 * 1e9)).toBe("1.8T");
 		expect(formatCount(0.6 * 1e9)).toBe("600M");
+	});
+});
+
+describe("formatSeconds", () => {
+	it("shows seconds under a minute", () => {
+		expect(formatSeconds(42)).toBe("42s");
+	});
+
+	it("adds minutes from a minute up", () => {
+		expect(formatSeconds(60)).toBe("1m 0s");
+		expect(formatSeconds(185)).toBe("3m 5s");
 	});
 });

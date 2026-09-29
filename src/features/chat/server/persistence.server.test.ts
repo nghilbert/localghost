@@ -11,4 +11,5 @@ beforeAll(resetDb);
 
 runPersistenceConformance("chatPersistence", () => chatPersistence, {
 	skip: ["metadata", "generationRuns", "artifacts", "blobs"],
+	checks: ["messages.metadata", "runs.listByThread.state"],
 });

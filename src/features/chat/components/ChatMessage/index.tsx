@@ -7,14 +7,17 @@ import { InputGroup } from "#/components/ui/input-group";
 import { Bubble, BubbleContent } from "#/features/chat/components/Bubble";
 import { ChatMarkdown } from "#/features/chat/components/ChatMarkdown";
 import { Message, MessageContent, MessageFooter } from "#/features/chat/components/Message";
+import { useStepDuration } from "#/features/chat/hooks/use-step-duration";
 import type { ChatInterrupts } from "#/features/chat/lib/chat-tools";
 import {
 	messageDocumentSources,
 	messageImageSources,
 	partsText,
 	strandedToolCall,
+	turnSeconds,
 } from "#/features/chat/lib/messages";
 import { copyToClipboard } from "#/lib/clipboard";
+import { formatSeconds } from "#/lib/format";
 import { ActionButton } from "./ActionButton";
 import { ActivityTrail } from "./ActivityTrail";
 import { DocumentList } from "./DocumentList";
@@ -46,6 +49,9 @@ export function ChatMessage({
 	const documentSources = messageDocumentSources(message.parts);
 	const [isEditing, setIsEditing] = useState(false);
 	const [draft, setDraft] = useState(content);
+	// The server's run timings arrive only on load, so a live reply times itself.
+	const { duration: liveSeconds } = useStepDuration(Boolean(isStreaming));
+	const workedSeconds = turnSeconds(message) ?? liveSeconds;
 
 	if (message.role === "user") {
 		function handleKeyDown(event: KeyboardEvent<HTMLElement>) {
@@ -173,6 +179,11 @@ export function ChatMessage({
 
 				{!isStreaming && content && (
 					<MessageFooter className="gap-1">
+						{workedSeconds > 0 && (
+							<span className="text-xs tabular-nums text-muted-fg">
+								Worked for {formatSeconds(workedSeconds)}
+							</span>
+						)}
 						<div className="ml-auto flex items-center gap-1 opacity-0 transition-opacity pointer-coarse:opacity-100 focus-within:opacity-100 group-hover/message:opacity-100">
 							<ActionButton
 								icon={<CopyIcon />}

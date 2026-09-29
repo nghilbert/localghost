@@ -136,6 +136,23 @@ export function editUserMessage({
 	return [...messages.slice(0, messages.indexOf(target)), edited];
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null;
+}
+
+/**
+ * How long the run that produced a message took, in whole seconds, from the timings
+ * `reconstructChat` adds with `includeRuns`.
+ * @returns The seconds, or `null` when the message has no finished run.
+ */
+export function turnSeconds(message: UIMessage): number | null {
+	const tanstack: unknown = message.metadata?.tanstack;
+	if (!isRecord(tanstack) || !isRecord(tanstack.run)) return null;
+	const { startedAt, finishedAt } = tanstack.run;
+	if (typeof startedAt !== "number" || typeof finishedAt !== "number") return null;
+	return Math.round((finishedAt - startedAt) / 1000);
+}
+
 /** Whether the transcript ends on a user message that has no reply yet. */
 export function awaitingAssistantResponse(messages: Array<UIMessage>): boolean {
 	const last = messages.at(-1);

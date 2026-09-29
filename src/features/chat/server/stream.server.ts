@@ -111,7 +111,7 @@ export function getChatStream({
 }): Promise<Response> {
 	const authorize = (threadId: string) => conversationOwnedBy({ id: threadId, ownerId: userId });
 	if (new URL(request.url).searchParams.has("threadId")) {
-		return reconstructChat(chatPersistence, request, { authorize });
+		return reconstructChat(chatPersistence, request, { authorize, includeRuns: true });
 	}
 	return resumeRunResponse({ request, findThreadId: findRunThreadId, authorize });
 }

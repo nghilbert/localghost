@@ -10,6 +10,7 @@ import {
 	partsText,
 	reviveMessageDates,
 	strandedToolCall,
+	turnSeconds,
 } from "./messages";
 
 function userMessage(content: string): UIMessage {
@@ -19,6 +20,31 @@ function userMessage(content: string): UIMessage {
 function assistantMessage(content: string): UIMessage {
 	return { id: "a1", role: "assistant", parts: [{ type: "text", content }] };
 }
+
+describe("turnSeconds", () => {
+	it("rounds the run's timings to seconds", () => {
+		const message: UIMessage = {
+			...assistantMessage("hi"),
+			metadata: { tanstack: { run: { id: "r1", startedAt: 1_000, finishedAt: 13_600 } } },
+		};
+		expect(turnSeconds(message)).toBe(13);
+	});
+
+	it("is null without run timings", () => {
+		expect(turnSeconds(assistantMessage("hi"))).toBeNull();
+		expect(
+			turnSeconds({ ...assistantMessage("hi"), metadata: { tanstack: { run: { id: "r1" } } } }),
+		).toBeNull();
+	});
+
+	it("is null for a run that has not finished", () => {
+		const message: UIMessage = {
+			...assistantMessage("hi"),
+			metadata: { tanstack: { run: { id: "r1", startedAt: 1_000 } } },
+		};
+		expect(turnSeconds(message)).toBeNull();
+	});
+});
 
 describe("buildFirstUserMessage", () => {
 	it("creates a user message with a single text part", () => {

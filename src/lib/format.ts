@@ -49,3 +49,9 @@ export function formatCount(value: number): string {
 	if (value >= 1e3) return `${round1(value / 1e3)}K`;
 	return String(value);
 }
+
+/** Formats whole seconds as "42s", or "3m 5s" from a minute up. */
+export function formatSeconds(seconds: number): string {
+	if (seconds < 60) return `${seconds}s`;
+	return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
+}

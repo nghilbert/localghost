@@ -205,6 +205,25 @@ describe("ChatMessage", () => {
 		});
 	});
 
+	describe("turn duration", () => {
+		it("shows how long the run took from its timings", async () => {
+			const message: UIMessage = {
+				...assistantMessage("answer"),
+				metadata: { tanstack: { run: { id: "r1", startedAt: 0, finishedAt: 72_000 } } },
+			};
+
+			const screen = await render(<ChatMessage message={message} />);
+
+			await expect.element(screen.getByText("Worked for 1m 12s")).toBeInTheDocument();
+		});
+
+		it("shows nothing without timings", async () => {
+			const screen = await render(<ChatMessage message={assistantMessage("answer")} />);
+
+			await expect.element(screen.getByText(/Worked for/)).not.toBeInTheDocument();
+		});
+	});
+
 	describe("reasoning", () => {
 		const message: UIMessage = {
 			id: "a1",
