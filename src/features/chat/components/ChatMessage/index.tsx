@@ -13,6 +13,7 @@ import {
 	messageDocumentSources,
 	messageImageSources,
 	partsText,
+	splitReply,
 	strandedToolCall,
 	turnSeconds,
 } from "#/features/chat/lib/messages";
@@ -141,14 +142,18 @@ export function ChatMessage({
 		);
 	}
 
+	// A streaming reply's trailing thinking is still reasoning, not yet an answer.
+	const { steps, answer } = isStreaming
+		? { steps: message.parts, answer: content }
+		: splitReply(message.parts);
 	// Explains a tool call the model wrote as text instead of showing the JSON.
-	const strandedTool = !isStreaming && content ? strandedToolCall(content) : null;
+	const strandedTool = !isStreaming && answer ? strandedToolCall(answer) : null;
 
 	return (
 		<Message role="article" aria-label="Assistant message">
 			<MessageContent>
 				<ActivityTrail
-					message={message}
+					parts={steps}
 					isStreaming={isStreaming}
 					pendingLabel={pendingLabel}
 					interrupts={interrupts}
@@ -167,17 +172,17 @@ export function ChatMessage({
 					</Alert.Root>
 				)}
 
-				{content && !strandedTool && (
+				{answer && !strandedTool && (
 					<Bubble variant="quiet">
 						<BubbleContent>
 							<ChatMarkdown isStreaming={isStreaming} caret={isStreaming}>
-								{content}
+								{answer}
 							</ChatMarkdown>
 						</BubbleContent>
 					</Bubble>
 				)}
 
-				{!isStreaming && content && (
+				{!isStreaming && answer && (
 					<MessageFooter className="gap-1">
 						{workedSeconds > 0 && (
 							<span className="text-xs tabular-nums text-muted-fg">
@@ -189,7 +194,7 @@ export function ChatMessage({
 								icon={<CopyIcon />}
 								ariaLabel="Copy message"
 								tooltip="Copy"
-								onClick={() => copyToClipboard(content)}
+								onClick={() => copyToClipboard(answer)}
 							/>
 							{onRegenerate && (
 								<ActionButton

@@ -6,7 +6,8 @@ import { ReasoningStep } from "./ReasoningStep";
 import { type ToolApprovalInterrupt, ToolCallStep, type ToolResult } from "./ToolCallStep";
 
 type ActivityTrailProps = {
-	message: UIMessage;
+	/** The reply's parts before its answer. */
+	parts: UIMessage["parts"];
 	isStreaming?: boolean;
 	/** Replaces the "Thinking" label, e.g. while the model loads. */
 	pendingLabel?: string;
@@ -19,12 +20,11 @@ type ActivityTrailProps = {
  * row while the model works between steps. The answer text is rendered by the caller.
  */
 export function ActivityTrail({
-	message,
+	parts,
 	isStreaming,
 	pendingLabel,
 	interrupts,
 }: ActivityTrailProps) {
-	const { parts } = message;
 	const lastPart = parts.at(-1);
 	// A running step shows its own spinner, so the "Thinking" row stays hidden.
 	const tailActive =

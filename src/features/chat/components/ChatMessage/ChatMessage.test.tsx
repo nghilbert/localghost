@@ -252,6 +252,45 @@ describe("ChatMessage", () => {
 		});
 	});
 
+	describe("answer written into reasoning", () => {
+		const message: UIMessage = {
+			id: "a1",
+			role: "assistant",
+			parts: [
+				{
+					type: "tool-call",
+					id: "c1",
+					name: "web_search",
+					arguments: "{}",
+					state: "complete",
+					output: "results",
+				},
+				{ type: "thinking", content: "The answer is 42" },
+			],
+		};
+
+		it("shows a finished reply's last thinking as its answer", async () => {
+			const screen = await render(<ChatMessage message={message} />);
+
+			await expect.element(screen.getByText("The answer is 42")).toBeVisible();
+			await expect
+				.element(screen.getByRole("button", { name: "Copy message" }))
+				.toBeInTheDocument();
+			await expect
+				.element(screen.getByRole("button", { name: "Reasoning" }))
+				.not.toBeInTheDocument();
+		});
+
+		it("keeps it as thinking while the reply streams", async () => {
+			const screen = await render(<ChatMessage message={message} isStreaming />);
+
+			await expect.element(screen.getByRole("status")).toHaveTextContent("Thinking");
+			await expect
+				.element(screen.getByRole("button", { name: "Copy message" }))
+				.not.toBeInTheDocument();
+		});
+	});
+
 	describe("tool call output", () => {
 		it("reveals the tool output on click and collapses again on a second click", async () => {
 			const message: UIMessage = {

@@ -34,6 +34,21 @@ export function partsText(parts: UIMessage["parts"]): string {
 	return parts.flatMap((part) => (part.type === "text" ? [part.content] : [])).join("");
 }
 
+/**
+ * Splits a finished reply into the steps before its answer and the answer text. Small
+ * models sometimes never close their reasoning, so a reply with no text has its answer
+ * in its last thinking part.
+ */
+export function splitReply(parts: UIMessage["parts"]): {
+	steps: UIMessage["parts"];
+	answer: string;
+} {
+	const text = partsText(parts);
+	const last = parts.at(-1);
+	if (text || last?.type !== "thinking") return { steps: parts, answer: text };
+	return { steps: parts.slice(0, -1), answer: last.content };
+}
+
 /** Image message parts for attachments, each with a data URL source. */
 export function imageMessageParts(images: Array<{ dataUrl: string }>): ImagePart[] {
 	return images.map(

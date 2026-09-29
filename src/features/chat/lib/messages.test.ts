@@ -9,6 +9,7 @@ import {
 	messageDocumentSources,
 	partsText,
 	reviveMessageDates,
+	splitReply,
 	strandedToolCall,
 	turnSeconds,
 } from "./messages";
@@ -217,6 +218,34 @@ describe("partsText", () => {
 			{ type: "text", content: " world" },
 		];
 		expect(partsText(parts)).toBe("Hello world");
+	});
+});
+
+describe("splitReply", () => {
+	const toolCall: UIMessage["parts"][number] = {
+		type: "tool-call",
+		id: "c1",
+		name: "web_search",
+		arguments: "{}",
+		state: "complete",
+	};
+
+	it("keeps every part as a step when the reply has text", () => {
+		const parts: UIMessage["parts"] = [
+			{ type: "thinking", content: "pondering" },
+			{ type: "text", content: "Hello" },
+		];
+		expect(splitReply(parts)).toEqual({ steps: parts, answer: "Hello" });
+	});
+
+	it("takes the answer from the last thinking part when there is no text", () => {
+		const parts: UIMessage["parts"] = [toolCall, { type: "thinking", content: "The answer" }];
+		expect(splitReply(parts)).toEqual({ steps: [toolCall], answer: "The answer" });
+	});
+
+	it("has no answer when a reply without text ends in a tool call", () => {
+		const parts: UIMessage["parts"] = [{ type: "thinking", content: "pondering" }, toolCall];
+		expect(splitReply(parts)).toEqual({ steps: parts, answer: "" });
 	});
 });
 
