@@ -109,7 +109,8 @@ describe("webSearch", () => {
 	});
 
 	it("returns actionable guidance when both ranged attempts are empty", async () => {
-		const fetchMock = vi.fn().mockResolvedValue(searxng({ results: [] }));
+		// A fresh Response per call, since a body can be read only once.
+		const fetchMock = vi.fn(async () => searxng({ results: [] }));
 		vi.stubGlobal("fetch", fetchMock);
 
 		const result = await webSearch({ query: "nothing", timeRange: "month" });
