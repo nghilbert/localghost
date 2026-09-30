@@ -1,5 +1,6 @@
 import type { ContentPart } from "@tanstack/ai/client";
 import type { MultimodalContent } from "@tanstack/ai-client";
+import { MIB } from "#/lib/format";
 import { documentMessageParts, imageMessageParts } from "./messages";
 
 /** Whether an attachment is an image or a document. */
@@ -16,7 +17,7 @@ export type Attachment = {
 };
 
 /** The largest attachment allowed, well under the chat request's 64 MB limit. */
-export const MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024;
+export const MAX_ATTACHMENT_BYTES = 20 * MIB;
 
 /** The document types accepted when the model supports documents. */
 const DOCUMENT_MIME_TYPES = ["application/pdf", "text/plain", "text/markdown"];

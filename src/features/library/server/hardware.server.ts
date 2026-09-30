@@ -3,6 +3,7 @@ import os from "node:os";
 import { promisify } from "node:util";
 import { z } from "zod";
 import type { GpuInfo, HardwareInfo } from "#/features/library/library.types";
+import { GIB, MIB } from "#/lib/format";
 
 const execFileAsync = promisify(execFile);
 
@@ -40,8 +41,8 @@ export function parseRocmSmi(output: string): GpuInfo[] | null {
 		return {
 			name,
 			vendor: "amd",
-			totalVramMb: Math.round(total / 1024 / 1024),
-			freeVramMb: Math.round((total - used) / 1024 / 1024),
+			totalVramMb: Math.round(total / MIB),
+			freeVramMb: Math.round((total - used) / MIB),
 		};
 	});
 }
@@ -81,8 +82,8 @@ async function detectAmdGpus(): Promise<GpuInfo[] | null> {
 export async function getHardwareInfo(): Promise<HardwareInfo> {
 	const cpus = os.cpus();
 	return {
-		totalRamGb: os.totalmem() / 1024 ** 3,
-		freeRamGb: os.freemem() / 1024 ** 3,
+		totalRamGb: os.totalmem() / GIB,
+		freeRamGb: os.freemem() / GIB,
 		cpuModel: cpus[0]?.model ?? "Unknown CPU",
 		cpuCount: cpus.length,
 		gpus: (await detectNvidiaGpus()) ?? (await detectAmdGpus()),
