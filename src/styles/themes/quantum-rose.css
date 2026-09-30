@@ -1,0 +1,8 @@
+[data-theme="quantum-rose"] {
+	--bg: light-dark(oklch(0.9692 0.0192 343.9344), oklch(0.1808 0.0535 313.7159));
+	--fg: light-dark(oklch(0.4426 0.1653 352.3762), oklch(0.8624 0.1307 326.6356));
+	--surface: light-dark(oklch(0.9837 0.0107 339.3288), oklch(0.2398 0.0661 313.2337));
+	--line: light-dark(oklch(0.8881 0.0747 344.3866), oklch(0.328 0.1202 313.5393));
+	--primary: light-dark(oklch(0.6002 0.2414 0.1348), oklch(0.7543 0.2319 332.0212));
+	--danger: light-dark(oklch(0.5831 0.1911 6.341), oklch(0.6539 0.2441 7.174));
+}

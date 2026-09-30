@@ -3,34 +3,19 @@ import { TanStackDevtools } from "@tanstack/react-devtools";
 import { formDevtoolsPlugin } from "@tanstack/react-form-devtools";
 import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtoolsPanel } from "@tanstack/react-query-devtools";
-import {
-	createRootRouteWithContext,
-	HeadContent,
-	Link,
-	Outlet,
-	Scripts,
-} from "@tanstack/react-router";
+import { createRootRouteWithContext, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
-import { RouteErrorScreen } from "#/shared/components/RouteErrorScreen";
-import { Button } from "#/shared/components/ui/button";
-import {
-	Empty,
-	EmptyContent,
-	EmptyDescription,
-	EmptyHeader,
-	EmptyTitle,
-} from "#/shared/components/ui/empty";
-import { Toaster } from "#/shared/components/ui/toast";
-import { TooltipProvider } from "#/shared/components/ui/tooltip";
-import { getAuthSession } from "#/shared/domain/auth/auth.functions";
-import globalCss from "#/shared/lib/globals.css?url";
-import { ThemeProvider } from "#/shared/theme/ThemeContext";
+import { NotFoundScreen } from "#/components/layout/NotFoundScreen";
+import { Toaster } from "#/components/ui/toast";
+import { Tooltip } from "#/components/ui/tooltip";
+import { getAuthSession } from "#/features/account/account.functions";
+import { ThemeProvider } from "#/lib/theme/theme-provider";
+import globalCss from "#/styles/globals.css?url";
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
 	beforeLoad: async () => ({ auth: await getAuthSession() }),
 	component: RootDocument,
-	errorComponent: RouteErrorScreen,
-	notFoundComponent: NotFound,
+	notFoundComponent: NotFoundScreen,
 	head: () => ({
 		meta: [{ title: "localghost" }, { name: "description", content: "Self-hosted AI workspace" }],
 		links: [
@@ -52,10 +37,10 @@ function RootDocument() {
 				<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 			</head>
 
-			<body className="h-dvh overflow-hidden flex flex-col bg-background text-foreground">
+			<body className="h-dvh overflow-hidden flex flex-col bg-bg text-fg">
 				<QueryClientProvider client={queryClient}>
 					<ThemeProvider defaultMode="system">
-						<TooltipProvider>
+						<Tooltip.Provider>
 							<Outlet />
 							<Toaster />
 							<TanStackDevtools
@@ -67,28 +52,12 @@ function RootDocument() {
 								]}
 								eventBusConfig={{ connectToServerBus: true }}
 							/>
-						</TooltipProvider>
+						</Tooltip.Provider>
 					</ThemeProvider>
 				</QueryClientProvider>
 
 				<Scripts />
 			</body>
 		</html>
-	);
-}
-
-function NotFound() {
-	return (
-		<Empty className="h-full">
-			<EmptyHeader>
-				<EmptyTitle>404: Not found</EmptyTitle>
-				<EmptyDescription>The page you're looking for does not exist.</EmptyDescription>
-			</EmptyHeader>
-			<EmptyContent>
-				<Button variant="ghost" render={<Link to="/" />}>
-					Go home
-				</Button>
-			</EmptyContent>
-		</Empty>
 	);
 }

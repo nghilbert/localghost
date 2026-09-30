@@ -1,0 +1,8 @@
+[data-theme="amber-minimal"] {
+	--bg: light-dark(#ffffff, #171717);
+	--fg: light-dark(#262626, #e5e5e5);
+	--surface: light-dark(#ffffff, #262626);
+	--line: light-dark(#e5e7eb, #404040);
+	--primary: light-dark(#f59e0b, #f59e0b);
+	--danger: light-dark(#ef4444, #ef4444);
+}

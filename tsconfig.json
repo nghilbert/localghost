@@ -1,5 +1,5 @@
 {
-	"include": ["**/*.ts", "**/*.tsx", ".claude/**/*.ts"],
+	"include": ["**/*.ts", "**/*.tsx"],
 	"compilerOptions": {
 		/* Language target and environment */
 		"target": "ES2024",
@@ -10,10 +10,7 @@
 
 		/* Bundler mode: Vite transpiles, TypeScript only type-checks */
 		"module": "preserve",
-		"moduleResolution": "bundler",
-		"moduleDetection": "force",
 		"noEmit": true,
-		"esModuleInterop": true,
 		"resolveJsonModule": true,
 		"verbatimModuleSyntax": true,
 		"isolatedModules": true,

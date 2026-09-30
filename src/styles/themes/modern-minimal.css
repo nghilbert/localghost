@@ -1,0 +1,8 @@
+[data-theme="modern-minimal"] {
+	--bg: light-dark(#ffffff, #171717);
+	--fg: light-dark(#333333, #e5e5e5);
+	--surface: light-dark(#ffffff, #262626);
+	--line: light-dark(#e5e7eb, #404040);
+	--primary: light-dark(#3b82f6, #3b82f6);
+	--danger: light-dark(#ef4444, #ef4444);
+}

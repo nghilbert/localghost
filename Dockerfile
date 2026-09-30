@@ -1,4 +1,4 @@
-FROM node:24-bookworm-slim AS build
+FROM node:26-trixie-slim AS build
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates && rm -rf /var/lib/apt/lists/*
 RUN chown node:node /app
@@ -18,7 +18,7 @@ CMD ["npm", "run", "prisma", "--", "migrate", "deploy"]
 # client are supplied by a bind mount at runtime (see web-dev in compose.yaml).
 # Startup regenerates the prisma client, applies pending migrations via the
 # `predev` hook, then serves Vite with HMR bound to all interfaces.
-FROM node:24-bookworm-slim AS dev
+FROM node:26-trixie-slim AS dev
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates \
   && rm -rf /var/lib/apt/lists/*
@@ -31,7 +31,7 @@ COPY --chown=node:node package.json package-lock.json ./
 RUN npm ci
 CMD ["sh", "-c", "npm run prisma -- generate && npm run dev -- --host"]
 
-FROM node:24-bookworm-slim
+FROM node:26-trixie-slim
 WORKDIR /app
 ENV NODE_ENV=production
 RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates \

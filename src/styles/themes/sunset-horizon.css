@@ -1,0 +1,8 @@
+[data-theme="sunset-horizon"] {
+	--bg: light-dark(#fff9f5, #2a2024);
+	--fg: light-dark(#3d3436, #f2e9e4);
+	--surface: light-dark(#ffffff, #392f35);
+	--line: light-dark(#ffe0d6, #463a41);
+	--primary: light-dark(#ff7e5f, #ff7e5f);
+	--danger: light-dark(#e63946, #e63946);
+}

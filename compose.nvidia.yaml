@@ -1,11 +1,11 @@
 # Overlay (merged via COMPOSE_FILE) for NVIDIA hosts. Requires the NVIDIA
 # Container Toolkit. Gives the bundled llama.cpp full GPU access for inference
 # and grants the app container nvidia-smi/NVML visibility (the `utility`
-# capability, without the CUDA compute runtime) for the cookbook hardware
+# capability, without the CUDA compute runtime) for the Library hardware
 # panel. Omit on CPU-only hosts.
 services:
   llamacpp:
-    image: ghcr.io/ggml-org/llama.cpp:server-cuda-b10380
+    image: ghcr.io/ggml-org/llama.cpp:server-cuda-b10920
     gpus: all
   web: &gpu
     deploy:

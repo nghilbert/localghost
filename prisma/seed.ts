@@ -1,10 +1,9 @@
 import { faker } from "@faker-js/faker";
-import { auth } from "#/shared/lib/auth.server";
-import { prisma } from "#/shared/lib/db.server";
+import { auth } from "#/lib/auth.server";
+import { prisma } from "#/lib/db.server";
 
 /**
- * Dev-only seed: provisions a known login plus a spread of realistic chat
- * sessions so the app has something to render on a fresh database. Never run against production.
+ * Development seed: a known login and a few chats, so a fresh database has something to show.
  *
  * Login: dev@example.com / password123
  */
@@ -26,20 +25,15 @@ async function main() {
 
 	for (let i = 0; i < 5; i++) {
 		const messageCount = faker.number.int({ min: 2, max: 6 });
-		// One conversation row holds the whole transcript as a `@tanstack/ai`
-		// UIMessage[] blob — the framework's native persistence shape.
 		const messages = Array.from({ length: messageCount }, (_, index) => ({
-			id: faker.string.uuid(),
 			role: index % 2 === 0 ? "user" : "assistant",
-			parts: [{ type: "text", content: faker.lorem.paragraph() }],
+			content: faker.lorem.paragraph(),
 		}));
-		await prisma.conversation.create({
-			data: {
-				ownerId: user.id,
-				title: faker.lorem.sentence({ min: 2, max: 4 }),
-				messages,
-			},
+		const conversation = await prisma.conversation.create({
+			data: { ownerId: user.id, title: faker.lorem.sentence({ min: 2, max: 4 }) },
+			select: { id: true },
 		});
+		await prisma.chatThread.create({ data: { threadId: conversation.id, messages } });
 	}
 
 	console.log(`Seeded ${DEV_EMAIL} with chats.`);

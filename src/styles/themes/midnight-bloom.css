@@ -1,0 +1,8 @@
+[data-theme="midnight-bloom"] {
+	--bg: light-dark(oklch(0.9821 0 0), oklch(0.2303 0.0125 264.2926));
+	--fg: light-dark(oklch(0.3211 0 0), oklch(0.9219 0 0));
+	--surface: light-dark(oklch(1 0 0), oklch(0.321 0.0078 223.6661));
+	--line: light-dark(oklch(0.8699 0 0), oklch(0.3867 0 0));
+	--primary: light-dark(oklch(0.5676 0.2021 283.0838), oklch(0.5676 0.2021 283.0838));
+	--danger: light-dark(oklch(0.6368 0.2078 25.3313), oklch(0.6368 0.2078 25.3313));
+}

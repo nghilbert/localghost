@@ -8,24 +8,26 @@ encrypted at rest.
 
 ## Features
 
-Capabilities are inline in chat or in Settings, never separate tabs.
-
 - **Models.** Browse and install local GGUF models from the Library (backed by
   Hugging Face, downloaded and served by llama.cpp), or add a bring-your-own
   cloud endpoint: Anthropic, OpenAI, Google Gemini, OpenRouter, Groq, or any
   other OpenAI-compatible server (vLLM, LM Studio). Endpoint keys are encrypted
-  at rest with `ENCRYPTION_KEY`.
+  at rest with `ENCRYPTION_KEY`. Tune sampling per model in Settings > Models.
 - **Web search.** Toggle it per message. In Docker the bundled SearXNG is wired
   automatically; running natively, set `SEARXNG_URL` or the tool stays off.
-- **Memory.** A long-term memory the model reads and writes, opt-in per message.
+- **Memory.** A long-term memory the model reads and writes in every chat.
   Browse and edit entries in Settings.
 - **Backup.** Export everything (conversations, endpoints, memory, settings) to a
   file and import it back. Import merges non-destructively.
-- **Themes.** Light and dark with accent theming in Settings > Appearance.
+- **Themes.** Light and dark modes with theme presets in Settings > Appearance.
+- **Accounts.** Anyone can create an account. Each account has its own chats,
+  memory, and settings, while installed models are shared. One person is signed
+  in at a time; anyone else is turned away until that person signs out or their
+  24-hour session ends.
 
 ## Requirements
 
-- **Node 24+** and npm, to run the app natively.
+- **Node 26** and npm, to run the app natively.
 - **Docker** with Compose v2. Postgres runs in a container even in the native loop.
 - **A GPU runtime**, only for GPU inference: NVIDIA Container Toolkit, ROCm, or
   Vulkan via `/dev/dri`. CPU-only needs none of them.
@@ -46,42 +48,38 @@ Then fill in the required secrets in `.env`:
 | `ENCRYPTION_KEY` | encrypts stored endpoint API keys (64-char hex) | `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
 | `SEARXNG_SECRET` | required by the bundled SearXNG (Docker web search) | `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
 
-The app throws on startup if any of the first three is missing or too weak, so set
-real values before running. `SEARXNG_SECRET` only matters for the Docker profiles,
-but Compose won't start without it. `DATABASE_URL` is interpolated from the
-`POSTGRES_*` vars automatically; override it (or any `POSTGRES_*`) with a plain
-`KEY=` line.
+The app throws on startup if any of the first three is missing or too weak.
+`SEARXNG_SECRET` only matters for the Docker profiles, but Compose won't start
+without it. `DATABASE_URL` is built from the `POSTGRES_*` variables; override it
+(or any `POSTGRES_*`) with a plain `KEY=` line.
 
-Optional: `SEARXNG_URL` enables the web-search tool when running natively (Docker
-wires this for you, see below), `BETTER_AUTH_URL` sets the public origin behind a
-reverse proxy, `HF_TOKEN` lifts Hugging Face's anonymous limits for the Library
-catalog and bundled llama.cpp downloads, and `LLAMA_SLEEP_IDLE_SECONDS` (default
-300) controls how long the bundled llama.cpp keeps an idle model loaded before
-freeing its memory.
+Optional:
 
-The **first account to sign up owns the instance**; sign-up is disabled once that
-account exists.
+| Variable | Purpose |
+|----------|---------|
+| `SEARXNG_URL` | enables web search when running natively (Docker sets it for you) |
+| `BETTER_AUTH_URL` | the public origin behind a reverse proxy (default `http://localhost:3000`) |
+| `HF_TOKEN` | lifts Hugging Face's anonymous limits for the Library and bundled llama.cpp downloads |
+| `LLAMA_ARG_SLEEP_IDLE_SECONDS` | how long the bundled llama.cpp keeps an idle model loaded (default 300) |
+| `LLAMA_ARG_N_GPU_LAYERS` | GPU layers for the bundled llama.cpp (default `auto`, fitted to free VRAM; `0` is CPU-only) |
+| `LLAMA_ARG_CTX_SIZE` | context length (default `0`: the model's, shrunk to fit memory) |
 
 ## Develop
 
 Everything runs in Docker Compose. `docker compose up --build` reads
 `COMPOSE_PROFILES` and `COMPOSE_FILE` from `.env`, so you switch environments by
-editing `.env` rather than by changing the command.
+editing `.env` rather than the command.
 
-Develop with the `dev` profile: Vite with HMR over a bind mount, plus the llama.cpp
-container (the `llamacpp` profile) and a bundled, keyless SearXNG so web search
-works out of the box. In `.env`:
+The `dev` profile runs Vite with HMR over a bind mount, and the `llamacpp` profile
+adds the bundled llama.cpp. A keyless SearXNG runs in every profile. In `.env`:
 
 ```bash
 COMPOSE_PROFILES=llamacpp,dev
 ```
 
 Then `docker compose up --build`. Pending migrations apply on start and the app is
-on `http://localhost:3000`. The `dev` and `prod` profiles are mutually exclusive:
-both bind port 3000.
-
-Both app images run as the unprivileged `node` user, uid 1000, so whatever the
-container writes through the bind mount stays owned by the usual host account.
+on `http://localhost:3000`. The `dev` and `prod` profiles both bind port 3000, so
+use one at a time.
 
 npm commands run inside the `web-dev` container. Author new migrations with:
 
@@ -91,9 +89,8 @@ docker compose exec web-dev npm run prisma -- migrate dev --name <name>
 
 ### GPU access
 
-On a GPU host, add the matching hardware overlay via `COMPOSE_FILE` in `.env` to
-give both llama.cpp and the Library hardware panel GPU access (needs the matching
-host GPU runtime). CPU hosts leave it unset.
+On a GPU host, add the matching overlay via `COMPOSE_FILE` in `.env` to give
+llama.cpp and the Library hardware panel GPU access. CPU hosts leave it unset.
 
 ```bash
 COMPOSE_FILE=compose.yaml:compose.nvidia.yaml   # NVIDIA (NVIDIA Container Toolkit)
@@ -101,10 +98,10 @@ COMPOSE_FILE=compose.yaml:compose.amd.yaml      # AMD (ROCm)
 COMPOSE_FILE=compose.yaml:compose.vulkan.yaml   # Vulkan (Intel, or AMD without ROCm)
 ```
 
-Vulkan is the cross-vendor fallback (Intel Arc/iGPU, or AMD without ROCm): it
-swaps in llama.cpp's Vulkan-enabled image and works once the container can reach
-`/dev/dri`. The hardware panel has no Vulkan detection, so it still shows "No GPU
-detected" under this overlay.
+The Vulkan overlay swaps in llama.cpp's Vulkan image and needs `/dev/dri`. It
+memory-maps model weights (`LLAMA_ARG_LOAD_MODE=mmap`), which integrated AMD GPUs
+need to load some models. The hardware panel has no Vulkan detection, so it shows
+"No GPU detected" under this overlay.
 
 ### Native fallback
 
@@ -115,28 +112,32 @@ docker compose up db -d   # start Postgres
 npm run dev               # applies pending migrations, then app on http://localhost:3000
 ```
 
-Only the app moves to the host, so migrations here are
-`npm run prisma -- migrate dev --name <name>`.
+Migrations here are `npm run prisma -- migrate dev --name <name>`. For LLM
+features, run `llama-server` in router mode on `localhost:8080` and the app picks
+it up. Web search stays off until `SEARXNG_URL` points at a SearXNG instance.
 
-For LLM features, run `llama-server` (router mode) on the host (`localhost:8080`)
-and the app picks it up automatically. Add `--sleep-idle-seconds 300` (or your
-own value) so an idle model frees its RAM/VRAM instead of sitting loaded after
-you've moved on to another chat. Web search stays disabled until you set
-`SEARXNG_URL` to a reachable SearXNG instance (the in-app tool explains this when
-it is off).
+### Tests
+
+```bash
+npm run test -- run
+```
+
+The `server` project runs against a real Postgres at `TEST_DATABASE_URL` (see
+`.env.example`), starting the Compose `db` service first if nothing is listening
+there. It resets that database on every run and copies it to one
+`<name>_<n>` database per test worker, so keep it separate from `DATABASE_URL`.
 
 ## Deploy
 
 The `prod` profile builds the production image (the `web` service) and serves it
-on port 3000. It is mutually exclusive with the `dev` profile. In `.env`:
+on port 3000. In `.env`:
 
 ```bash
 COMPOSE_PROFILES=prod        # prod,llamacpp to bundle llama.cpp too
 ```
 
-Behind a reverse proxy, also set `BETTER_AUTH_URL` to the public origin the app is
-served from so auth cookies and callbacks use the right host (it defaults to
-`http://localhost:3000`):
+Behind a reverse proxy, also set `BETTER_AUTH_URL` to the public origin so auth
+cookies and callbacks use the right host:
 
 ```bash
 BETTER_AUTH_URL="https://chat.example.com"
@@ -148,10 +149,10 @@ the bundled llama.cpp in `llamacpp`.
 
 ## Contributing
 
-Bugs and pull requests go to
-[GitHub issues](https://github.com/nghilbert/localghost/issues). No formal process:
-open an issue first if the change is large, and run `npm run check` and
-`npm run build` before you send a PR.
+Report bugs and send pull requests on
+[GitHub](https://github.com/nghilbert/localghost/issues). Open an issue first for
+large changes, and run `npm run biome check`, `npm run build`, and
+`npm run test -- run` before sending a PR.
 
 ## License
 

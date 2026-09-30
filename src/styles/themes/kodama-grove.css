@@ -1,0 +1,8 @@
+[data-theme="kodama-grove"] {
+	--bg: light-dark(#e4d7b0, #3a3529);
+	--fg: light-dark(#5c4b3e, #ede4d4);
+	--surface: light-dark(#e7dbbf, #413c33);
+	--line: light-dark(#b19681, #5a5345);
+	--primary: light-dark(#8d9d4f, #8a9f7b);
+	--danger: light-dark(#d98b7e, #b5766a);
+}

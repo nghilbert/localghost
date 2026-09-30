@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
-import { SidebarInset, SidebarProvider } from "#/shared/components/ui/sidebar";
-import { toolAvailabilityQueryOptions } from "#/shared/domain/chat/tools.functions";
+import { Sidebar } from "#/components/ui/sidebar";
+import { chatQueries } from "#/features/chat/chat.queries";
 import { AppSidebar } from "./_authenticated/-components/AppSidebar";
 
 export const Route = createFileRoute("/_authenticated")({
@@ -8,17 +8,26 @@ export const Route = createFileRoute("/_authenticated")({
 		if (!context.auth) throw redirect({ to: "/sign-in" });
 		return { auth: context.auth };
 	},
-	// Warm the cache so the chat surfaces can seed their default toggles synchronously.
+	// Loaded up front so chat pages know the default tools on first render.
 	loader: async ({ context }) => {
-		await context.queryClient.ensureQueryData(toolAvailabilityQueryOptions());
+		await context.queryClient.query({ ...chatQueries.toolAvailability(), staleTime: "static" });
 	},
 	component: () => (
-		<SidebarProvider className="bg-background">
+		<Sidebar.Provider>
 			<AppSidebar />
-			{/* SidebarInset renders a <main /> element */}
-			<SidebarInset>
+
+			<Sidebar.Inset>
+				<MobileSidebarTrigger />
 				<Outlet />
-			</SidebarInset>
-		</SidebarProvider>
+			</Sidebar.Inset>
+		</Sidebar.Provider>
 	),
 });
+
+/** On a narrow screen the sidebar is a closed sheet, so the page needs its own way to open it. */
+function MobileSidebarTrigger() {
+	const { isMobile } = Sidebar.useSidebar();
+	if (!isMobile) return null;
+
+	return <Sidebar.Trigger size="lg" className="m-2" />;
+}

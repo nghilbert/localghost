@@ -1,0 +1,8 @@
+[data-theme="ocean-breeze"] {
+	--bg: light-dark(oklch(0.9751 0.0127 244.2507), oklch(0.2077 0.0398 265.7549));
+	--fg: light-dark(oklch(0.3729 0.0306 259.7328), oklch(0.8717 0.0093 258.3382));
+	--surface: light-dark(oklch(1 0 0), oklch(0.2795 0.0368 260.031));
+	--line: light-dark(oklch(0.9276 0.0058 264.5313), oklch(0.4461 0.0263 256.8018));
+	--primary: light-dark(oklch(0.7227 0.192 149.5793), oklch(0.7729 0.1535 163.2231));
+	--danger: light-dark(oklch(0.6368 0.2078 25.3313), oklch(0.6368 0.2078 25.3313));
+}

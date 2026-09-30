@@ -1,0 +1,8 @@
+[data-theme="clean-slate"] {
+	--bg: light-dark(#f8fafc, #0f172a);
+	--fg: light-dark(#1e293b, #e2e8f0);
+	--surface: light-dark(#ffffff, #1e293b);
+	--line: light-dark(#d1d5db, #4b5563);
+	--primary: light-dark(#6366f1, #818cf8);
+	--danger: light-dark(#ef4444, #ef4444);
+}

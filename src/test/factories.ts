@@ -1,11 +1,10 @@
 import { faker } from "@faker-js/faker";
-import type { ModelMessage } from "@tanstack/ai";
 import type {
 	CatalogModel,
 	GpuInfo,
 	HardwareInfo,
 	InstalledModel,
-} from "#/shared/domain/model/types";
+} from "#/features/library/library.types";
 
 /**
  * Test data factories. Each builder fills irrelevant fields with faker noise,
@@ -13,6 +12,7 @@ import type {
  * `overrides` last, so tests declare only the fields they assert on.
  */
 
+/** A catalog model with a random name. */
 export function makeCatalogModel(overrides: Partial<CatalogModel> = {}): CatalogModel {
 	const name = faker.commerce.productName();
 	return {
@@ -35,6 +35,7 @@ export function makeCatalogModel(overrides: Partial<CatalogModel> = {}): Catalog
 	};
 }
 
+/** A host with 32 GB of RAM, 16 threads, and no GPU. */
 export function makeHardware(overrides: Partial<HardwareInfo> = {}): HardwareInfo {
 	return {
 		totalRamGb: 32,
@@ -46,6 +47,7 @@ export function makeHardware(overrides: Partial<HardwareInfo> = {}): HardwareInf
 	};
 }
 
+/** An NVIDIA GPU with 8 GB of VRAM, all of it in use. */
 export function makeGpu(overrides: Partial<GpuInfo> = {}): GpuInfo {
 	return {
 		name: faker.commerce.productName(),
@@ -56,6 +58,7 @@ export function makeGpu(overrides: Partial<GpuInfo> = {}): GpuInfo {
 	};
 }
 
+/** A loaded Q4_K_M model on the local runtime. */
 export function makeInstalledModel(overrides: Partial<InstalledModel> = {}): InstalledModel {
 	return {
 		id: `${faker.system.fileName()}:Q4_K_M`,
@@ -64,14 +67,6 @@ export function makeInstalledModel(overrides: Partial<InstalledModel> = {}): Ins
 		paramB: faker.number.int({ min: 1, max: 70 }),
 		status: "loaded",
 		vision: false,
-		...overrides,
-	};
-}
-
-export function makeModelMessage(overrides: Partial<ModelMessage> = {}): ModelMessage {
-	return {
-		role: "user",
-		content: faker.lorem.sentence(),
 		...overrides,
 	};
 }

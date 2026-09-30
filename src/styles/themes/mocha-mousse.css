@@ -1,0 +1,8 @@
+[data-theme="mocha-mousse"] {
+	--bg: light-dark(#f1f0e5, #2d2521);
+	--fg: light-dark(#56453f, #f1f0e5);
+	--surface: light-dark(#f1f0e5, #3c332e);
+	--line: light-dark(#baab92, #56453f);
+	--primary: light-dark(#a37764, #c39e88);
+	--danger: light-dark(#1f1a17, #e57373);
+}

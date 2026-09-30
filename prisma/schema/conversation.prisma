@@ -1,6 +1,4 @@
-/// A chat conversation: the business record (owner, model, title). The
-/// transcript itself lives in `ChatThread`, keyed by this row's `id` as
-/// `threadId` — see that model's comment for why it's a separate table.
+/// A chat's owner, model, and title. Its transcript is the `ChatThread` whose `threadId` is this `id`.
 model Conversation {
   id         String    @id @default(dbgenerated("uuidv7()")) @db.Uuid
   ownerId    String    @map("owner_id") @db.Uuid
