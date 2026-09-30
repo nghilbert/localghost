@@ -26,6 +26,7 @@ The dev loop is Docker Compose: `docker compose up --build`. `.env` selects the 
 - When permitted to commit, split the work into logical chunks. Each message is one concise imperative line. **Never** add co-author, signature, or generated-with lines.
 - Without commit permission, end with one section per logical change: a fenced `git add <paths>`, then that one-line message.
 - Delegate mechanical or narrow tasks to a smaller model (`haiku`); keep design work on the default model.
+- For anything this repo does not define (libraries, frameworks, tools), check their current official docs instead of relying on memory. Prefer a project's LLM docs (`llms.txt`) when it publishes them.
 
 ## Rules
 
@@ -38,7 +39,6 @@ The dev loop is Docker Compose: `docker compose up --build`. `.env` selects the 
 - **Comments** explain non-obvious code only: a reason, a constraint, or a library quirk being worked around. Delete any comment that restates the code. Keep them short.
 - **JSDoc** on every export, concise (one line where possible), saying what it is or how to use it so the IDE shows it. No types in JSDoc; TypeScript does the typing. Framework entry points (a route file's `Route`, `getRouter`) are exempt.
 - Comments describe the code as it is now. No history or before/after notes, no fix, issue, or PR references, no bug or attack stories (state the invariant instead: "endpointId comes from the client, so ownership is checked here"), no defending rejected alternatives, no counts that go stale. Rationale goes in the commit message.
-- **Test complex work** (parsers, transforms, non-trivial UI) with Vitest, asserting real behavior with tiny inline inputs.
 
 ## Folder layout
 
@@ -105,15 +105,14 @@ Completion-dependent forms return `mutation.mutateAsync(value, { onSuccess })` f
 
 Tests sit beside their subject, named for it (`chat.server.ts` -> `chat.server.test.ts`; a folder component `ChatInput/index.tsx` -> `ChatInput/ChatInput.test.tsx`). Three projects:
 
-- `unit`: `*.test.ts` in node. Extract pure logic and test it plain.
-- `browser`: `*.test.tsx` in headless Chromium. `render` / `renderHook` from `#/test/utils` (async); interact with `userEvent` from `vitest/browser` (never `fireEvent` or `@testing-library/user-event`); assert with `await expect.element(...)` / `expect.poll`. Setup files disable Base UI's transition wait and load the real CSS.
+- `unit`: `*.test.ts` in node.
+- `browser`: `*.test.tsx` in headless Chromium, with `render` / `renderHook` from `#/test/utils` (async). Setup files disable Base UI's transition wait and load the real CSS.
 - `server`: `*.server.test.ts` against a real Postgres at `TEST_DATABASE_URL` (the Compose `db` service is started if unreachable, then reset before the run and copied to one `<name>_<n>` database per worker, so files run in parallel).
 
-Rules: query by role, label, or text (`getByTestId` is a last resort; `components/ui/` emits no test ids); never assert class names; no casts or non-null `!` in tests; guard `getAll...()[n]`. `components/ui/ui.test.tsx` is one table of library-wide invariants; a new module adds a row.
+`components/ui/ui.test.tsx` is one table of library-wide invariants; a new module adds a row.
 
 ## Architecture
 
-- **Framework:** TanStack Start (Vite, nitro), file-based routing, alias `#/` = `src/`. Auth is better-auth (email/password, separate accounts with one signed in at a time and fixed 24-hour sessions; see `lib/auth.server.ts`), session resolved in the root `beforeLoad`; `_authenticated.tsx` guards and renders the `AppSidebar` shell.
+- **Auth:** better-auth with email/password. Each account has its own chats, memory and settings; installed models are shared. One account is signed in at a time, and sessions last a fixed 24 hours (`lib/auth.server.ts`).
 - **Tools:** `features/chat/server/tools.server.ts` builds the `ServerTool[]`. The client exposes one toggle, `web_search`, which enables `web_search` and `read_url` together (sent per request via `forwardedProps`, never saved; on by default when `SEARXNG_URL` is set). Memory's tools come from `memoryMiddleware`, since memory is always on.
 - **Chat persistence:** `@tanstack/ai-persistence`'s `withPersistence` is server-authoritative. The transcript lives in `ChatThread` (keyed by the conversation id as `threadId`), run lifecycle in `ChatRun` / `ChatInterrupt`. The client runs `useChat({ persistence: true })`; `/api/chat/stream` GET loads a thread by `?threadId=` or reconnects to a running stream.
-- **Backup:** `routes/api/backup/` export and non-destructive import.
