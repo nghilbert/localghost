@@ -3,6 +3,7 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { APIError, createAuthMiddleware } from "better-auth/api";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
 import { z } from "zod";
+import { SECONDS_PER_DAY, SECONDS_PER_MINUTE } from "#/lib/format";
 import { findOtherSignedInUser } from "./active-session.server";
 import { prisma } from "./db.server";
 
@@ -26,10 +27,10 @@ export const auth = betterAuth({
 	emailAndPassword: { enabled: true },
 	session: {
 		// A fixed day, so a person who forgets to sign out frees the app within 24 hours.
-		expiresIn: 60 * 60 * 24,
+		expiresIn: SECONDS_PER_DAY,
 		disableSessionRefresh: true,
 		// A signed cookie caches the session, so most requests skip the database lookup.
-		cookieCache: { enabled: true, maxAge: 5 * 60 },
+		cookieCache: { enabled: true, maxAge: 5 * SECONDS_PER_MINUTE },
 	},
 	rateLimit: {
 		enabled: true,

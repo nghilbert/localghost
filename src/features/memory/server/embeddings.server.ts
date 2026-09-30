@@ -3,6 +3,7 @@ import { createOpenaiEmbedding } from "@tanstack/ai-openai";
 import { trimPathRight } from "@tanstack/react-router";
 import { endpointApiKey } from "#/lib/crypto.server";
 import { prisma } from "#/lib/db.server";
+import { MS_PER_SECOND } from "#/lib/format";
 import { chatBaseUrl, providerApiKey } from "#/lib/llm.server";
 import { asLLMProvider, type LLMProvider } from "#/lib/llm-provider";
 
@@ -73,7 +74,7 @@ export async function embed({
 		]);
 		const adapter = createAdapter(config.model, apiKey ?? "", {
 			baseURL: config.baseUrl(ep.url),
-			timeout: 10_000,
+			timeout: 10 * MS_PER_SECOND,
 			// A failing endpoint falls through to the next one instead of retrying.
 			maxRetries: 0,
 		});

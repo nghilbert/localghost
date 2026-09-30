@@ -16,6 +16,7 @@ import {
 import { parseParamB } from "#/features/library/lib/model-id";
 import type { CatalogQuery } from "#/features/library/library.schemas";
 import type { CatalogModel, ModelVariantInfo } from "#/features/library/library.types";
+import { MS_PER_HOUR } from "#/lib/format";
 import { getHardwareInfo } from "./hardware.server";
 import {
 	getGgufChatModel,
@@ -28,7 +29,7 @@ const CATALOG_TARGET = 300;
 /** Repos read from the Hub's GGUF index, 100 per request. */
 const SCAN_LIMIT = 600;
 const TREE_CONCURRENCY = 8;
-const CACHE_TTL_MS = 6 * 60 * 60_000;
+const CACHE_TTL_MS = 6 * MS_PER_HOUR;
 /** The most related repos `listGroupVariants` queries. */
 const MAX_SIBLING_REPOS = 24;
 

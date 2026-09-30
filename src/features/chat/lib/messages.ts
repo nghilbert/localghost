@@ -1,6 +1,7 @@
 import type { ModelMessage } from "@tanstack/ai";
 import type { DocumentPart, ImagePart } from "@tanstack/ai/client";
 import type { UIMessage } from "@tanstack/ai-client";
+import { MS_PER_SECOND } from "#/lib/format";
 
 /** Turns `createdAt` back into a `Date` after JSON serialization made it a string. */
 export function reviveMessageDates(messages: Array<ModelMessage>): Array<ModelMessage> {
@@ -165,7 +166,7 @@ export function turnSeconds(message: UIMessage): number | null {
 	if (!isRecord(tanstack) || !isRecord(tanstack.run)) return null;
 	const { startedAt, finishedAt } = tanstack.run;
 	if (typeof startedAt !== "number" || typeof finishedAt !== "number") return null;
-	return Math.round((finishedAt - startedAt) / 1000);
+	return Math.round((finishedAt - startedAt) / MS_PER_SECOND);
 }
 
 /**

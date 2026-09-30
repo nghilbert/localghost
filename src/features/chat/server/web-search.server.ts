@@ -1,6 +1,7 @@
 import { z } from "zod";
+import { MS_PER_SECOND } from "#/lib/format";
 
-const SEARCH_TIMEOUT_MS = 15_000;
+const SEARCH_TIMEOUT_MS = 15 * MS_PER_SECOND;
 
 const timeRangeSchema = z.enum(["day", "month", "year"]);
 

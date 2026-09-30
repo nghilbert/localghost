@@ -1,6 +1,7 @@
 import { faker } from "@faker-js/faker";
 import type { Prisma } from "#/generated/prisma/client";
 import { prisma } from "#/lib/db.server";
+import { MS_PER_DAY } from "#/lib/format";
 
 /** Empties every table, reading their names from `pg_tables` so new models are included. */
 export async function resetDb(): Promise<void> {
@@ -47,7 +48,7 @@ export function createSession(
 	return prisma.session.create({
 		data: {
 			token: faker.string.alphanumeric(32),
-			expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+			expiresAt: new Date(Date.now() + MS_PER_DAY),
 			...overrides,
 		},
 	});

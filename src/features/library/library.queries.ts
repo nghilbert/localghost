@@ -4,6 +4,7 @@ import {
 	queryOptions,
 	skipToken,
 } from "@tanstack/react-query";
+import { MS_PER_HOUR, MS_PER_MINUTE, MS_PER_SECOND } from "#/lib/format";
 import type { LlamaModelDownloadEvent } from "#/lib/llamacpp/schemas";
 import type { ModelSelection } from "#/lib/llm-schemas";
 import { reduceDownloadEvent, streamModelEvents } from "./lib/download-stream";
@@ -20,12 +21,12 @@ import type { CatalogQuery } from "./library.schemas";
 import type { PullProgress, RuntimeStatus } from "./library.types";
 
 /** Matches the server's Hugging Face cache time. */
-const CATALOG_STALE_TIME = 6 * 60 * 60_000;
+const CATALOG_STALE_TIME = 6 * MS_PER_HOUR;
 
 /** How often to rescan the runtime: often until one is found and while a download runs. */
 export function libraryStatusPollInterval(status: RuntimeStatus | undefined): number {
-	if (!status?.found) return 5_000;
-	return Object.keys(status.downloads).length > 0 ? 2_000 : 30_000;
+	if (!status?.found) return 5 * MS_PER_SECOND;
+	return Object.keys(status.downloads).length > 0 ? 2 * MS_PER_SECOND : 30 * MS_PER_SECOND;
 }
 
 /** Query options for the local runtime, hardware, catalog, and per-model settings. */
@@ -72,9 +73,9 @@ export const libraryQueries = {
 		queryOptions({
 			queryKey: [...libraryQueries.all(), "hardware"],
 			queryFn: () => getHardware(),
-			staleTime: 60_000,
+			staleTime: MS_PER_MINUTE,
 			// Free memory changes as llama.cpp loads and unloads models.
-			refetchInterval: 15_000,
+			refetchInterval: 15 * MS_PER_SECOND,
 		}),
 	catalog: (query: CatalogQuery) =>
 		queryOptions({
