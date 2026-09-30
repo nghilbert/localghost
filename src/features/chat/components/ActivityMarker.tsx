@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { formatSeconds } from "#/lib/format";
 import { Marker, MarkerContent, MarkerIcon } from "./Marker";
 
 type ActivityMarkerProps = {
@@ -15,7 +16,9 @@ export function ActivityMarker({ label, icon, seconds }: ActivityMarkerProps) {
 			<MarkerIcon>{icon}</MarkerIcon>
 			<MarkerContent className="shimmer">
 				{label}
-				{seconds ? <span className="tabular-nums opacity-70"> · {seconds}s</span> : null}
+				{seconds ? (
+					<span className="tabular-nums opacity-70"> · {formatSeconds(seconds)}</span>
+				) : null}
 			</MarkerContent>
 		</Marker>
 	);

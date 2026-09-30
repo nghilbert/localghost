@@ -10,7 +10,7 @@ import type {
 	ModelVariantInfo,
 	PullProgress,
 } from "#/features/library/library.types";
-import { formatCount } from "#/lib/format";
+import { BILLION, formatCount, formatDate } from "#/lib/format";
 import { ModelVariantCard } from "./ModelVariantCard";
 
 type ModelDetailPanelProps = {
@@ -66,7 +66,7 @@ function ModelOverviewCard({ row }: { row: ModelRow }) {
 	const { catalog, installed, id } = row;
 	const localFacts =
 		installed &&
-		[installed.quant, installed.paramB ? formatCount(installed.paramB * 1e9) : null].filter(
+		[installed.quant, installed.paramB ? formatCount(installed.paramB * BILLION) : null].filter(
 			Boolean,
 		);
 	const facts = catalog ? buildOverviewFacts(catalog) : [];
@@ -118,12 +118,8 @@ function buildOverviewFacts(catalog: NonNullable<ModelRow["catalog"]>): Overview
 		catalog.contextK ? { label: "Context", value: `${catalog.contextK}K tokens` } : null,
 		{ label: "Pulls", value: formatCount(catalog.pullCount) },
 		catalog.likes > 0 ? { label: "Likes", value: formatCount(catalog.likes) } : null,
-		catalog.createdAt
-			? { label: "Created", value: new Date(catalog.createdAt).toLocaleDateString() }
-			: null,
-		catalog.updatedAt
-			? { label: "Updated", value: new Date(catalog.updatedAt).toLocaleDateString() }
-			: null,
+		catalog.createdAt ? { label: "Created", value: formatDate(new Date(catalog.createdAt)) } : null,
+		catalog.updatedAt ? { label: "Updated", value: formatDate(new Date(catalog.updatedAt)) } : null,
 	];
 	return facts.filter((fact): fact is OverviewFact => fact !== null);
 }

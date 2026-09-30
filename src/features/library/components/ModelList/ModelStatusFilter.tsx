@@ -1,5 +1,6 @@
 import { Menu } from "#/components/ui/menu";
 import type { ModelStatus } from "#/features/library/library.types";
+import { formatNumber } from "#/lib/format";
 
 const MODEL_STATUSES = ["all", "installed", "available"] as const satisfies ModelStatus[];
 
@@ -35,7 +36,7 @@ export function ModelStatusFilter({ value, counts, onValueChange }: ModelStatusF
 					<Menu.RadioItem key={status} value={status}>
 						{STATUS_LABELS[status]}
 						<span className="ml-auto text-muted-fg tabular-nums">
-							{counts[status].toLocaleString()}
+							{formatNumber(counts[status])}
 						</span>
 					</Menu.RadioItem>
 				))}

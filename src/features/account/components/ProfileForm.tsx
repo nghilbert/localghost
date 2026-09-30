@@ -3,6 +3,7 @@ import { Card } from "#/components/ui/card";
 import { Field } from "#/components/ui/field";
 import { accountFormSchema } from "#/features/account/account.schemas";
 import { useUpdateAccount } from "#/features/account/hooks/use-update-account";
+import { formatDecimal } from "#/lib/format";
 
 type ProfileFormProps = {
 	name: string;
@@ -52,7 +53,7 @@ export function ProfileForm({ name, email, systemPrompt, temperature }: ProfileF
 						<form.AppField name="temperature">
 							{(field) => (
 								<field.SliderField
-									label={`Temperature (${field.state.value.toFixed(1)})`}
+									label={`Temperature (${formatDecimal(field.state.value)})`}
 									description="Higher values make replies more random; lower values more focused."
 									fieldOrientation="vertical"
 									className="min-w-xs"
