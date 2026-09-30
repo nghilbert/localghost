@@ -1,5 +1,6 @@
 import { findNearestQuantType, GGMLFileQuantizationType } from "@huggingface/gguf";
 import type { CatalogModel, ModelVariantInfo } from "#/features/library/library.types";
+import { BILLION, roundToTenth } from "#/lib/format";
 
 /** Capability and search tags for a catalog model. */
 export function deriveTags({
@@ -101,8 +102,8 @@ export function groupKey({
 /** Billions of parameters from the Hub's `gguf.total`, rounded for display. */
 export function paramBFromTotal(total: number | undefined): number | null {
 	if (total === undefined || total <= 0) return null;
-	const billions = total / 1e9;
-	return billions >= 10 ? Math.round(billions) : Math.round(billions * 10) / 10;
+	const billions = total / BILLION;
+	return billions >= 10 ? Math.round(billions) : roundToTenth(billions);
 }
 
 /** Context window in thousands of tokens from the Hub's `gguf.context_length`. */
