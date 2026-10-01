@@ -1,5 +1,6 @@
 import { modelEventsQuerySchema } from "#/features/library/library.schemas";
 import { openModelEventStream } from "#/lib/llamacpp/client.server";
+import { log } from "#/lib/log.server";
 import { getRuntimeEndpointById } from "./discovery.server";
 
 /** Relays llama.cpp's model events (download progress, loads) for a runtime the user owns. */
@@ -36,7 +37,12 @@ export async function getModelEvents({
 			},
 		});
 	} catch (error) {
-		console.error("Failed to open the llama.cpp model-event stream", { error });
+		if (!request.signal.aborted) {
+			log.error(
+				{ err: error, userId, endpointId: query.data.endpointId, url: endpoint.url },
+				"Failed to open the llama.cpp model-event stream",
+			);
+		}
 		return new Response("Unable to connect to llama.cpp model events", { status: 502 });
 	}
 }

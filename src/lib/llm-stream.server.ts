@@ -89,7 +89,8 @@ export function streamRunResponse({
 
 	return toServerSentEventsResponse(run(abortController), {
 		abortController,
-		durability: { adapter: durability },
+		// The default batch holds back 32 chunks per append, so text would arrive in bursts.
+		durability: { adapter: durability, batch: 1 },
 	});
 }
 

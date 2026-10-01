@@ -1,5 +1,4 @@
-# Config for an app-only (unpublished) SearXNG reached at searxng:8080. The
-# JSON API and the limiter can't be set via environment variables.
+# The JSON API and limiter can only be set here, not via env vars.
 use_default_settings:
   engines:
     remove:
@@ -8,15 +7,13 @@ use_default_settings:
       - wikidata # Needs a live call to query.wikidata.org on init; often 403s
 
 server:
-  # App-only, no reverse proxy: disable the limiter/bot detection. The two
-  # one-time startup lines this leaves behind ("missing config file:
-  # limiter.toml" and "X-Forwarded-For nor X-Real-IP header is set!") are
-  # expected here, not bugs.
+  # No reverse proxy, so no limiter. Its startup warnings about limiter.toml and
+  # X-Forwarded-For are expected.
   limiter: false
   public_instance: false
 
 search:
-  # The stock image serves HTML only; the app calls the JSON API.
+  # The app uses the JSON API.
   formats:
     - html
     - json

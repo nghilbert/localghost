@@ -25,7 +25,7 @@ The dev loop is Docker Compose: `docker compose up --build`. `.env` selects the 
 - Before finishing: `npm run biome check` and `npm run build`; run the tests you touched.
 - When permitted to commit, split the work into logical chunks. Each message is one concise imperative line. **Never** add co-author, signature, or generated-with lines.
 - Without commit permission, end with one section per logical change: a fenced `git add <paths>`, then that one-line message.
-- Delegate mechanical or narrow tasks to a smaller model (`haiku`); keep design work on the default model.
+- Delegate mechanical or narrow tasks to a Sonnet 5.5 subagent (`sonnet`); keep design work on Opus 5.5 (`opus`).
 - For anything this repo does not define (libraries, frameworks, tools), check their current official docs instead of relying on memory. Prefer a project's LLM docs (`llms.txt`) when it publishes them.
 
 ## Rules
@@ -35,6 +35,7 @@ The dev loop is Docker Compose: `docker compose up --build`. `.env` selects the 
 - **No `biome-ignore`** and no Biome overrides. Fix the real issue.
 - **No dead code**, no re-exports, no `// removed` comments. No barrels except a ui module's own `index.ts`.
 - **Server-only:** never import `*.server.ts` from client code.
+- **Logging:** server code logs through `log` from `lib/log.server.ts` (pino), never `console`. Context goes first: `log.warn({ err, userId }, "message")`.
 - **Prisma:** every model ID is `@id @default(dbgenerated("uuidv7()")) @db.Uuid` (better-auth's `generateId: "uuid"` relies on it); FKs are `@db.Uuid`; camelCase fields `@map("snake_case")`.
 - **Comments** explain non-obvious code only: a reason, a constraint, or a library quirk being worked around. Delete any comment that restates the code. Keep them short.
 - **JSDoc** on every export, concise (one line where possible), saying what it is or how to use it so the IDE shows it. No types in JSDoc; TypeScript does the typing. Framework entry points (a route file's `Route`, `getRouter`) are exempt.

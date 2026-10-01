@@ -15,6 +15,7 @@ import {
 	probeEndpoint,
 } from "#/lib/llm.server";
 import { asLLMProvider } from "#/lib/llm-provider";
+import { log } from "#/lib/log.server";
 
 /** An endpoint row safe to send to the client: a `hasApiKey` flag replaces the encrypted key. */
 export function toClientEndpoint(endpoint: Endpoint) {
@@ -156,11 +157,10 @@ export async function probeModelCapabilities({
 				false;
 			return { supportsTools: true, supportsImages, supportsDocuments: false };
 		} catch (error) {
-			console.warn("llama.cpp capability probe failed; assuming tool support", {
-				url: endpoint.url,
-				model,
-				error,
-			});
+			log.warn(
+				{ err: error, userId: ownerId, endpointId, url: endpoint.url, model },
+				"llama.cpp capability probe failed; assuming tool support",
+			);
 			return { supportsTools: true, supportsImages: false, supportsDocuments: false };
 		}
 	}

@@ -1,6 +1,7 @@
 import type { CreateEmbeddingResponse } from "openai/resources";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { encrypt } from "#/lib/crypto.server";
+import { log } from "#/lib/log.server";
 import { createEndpoint, createUser, resetDb } from "#/test/db.server";
 import { embed, embeddingConfigFor, toVectorLiteral } from "./embeddings.server";
 
@@ -36,7 +37,7 @@ describe("embeddingConfigFor", () => {
 describe("embed", () => {
 	beforeEach(async () => {
 		await resetDb();
-		vi.spyOn(console, "error").mockImplementation(() => {});
+		vi.spyOn(log, "error").mockImplementation(() => {});
 		vi.stubGlobal(
 			"fetch",
 			vi.fn().mockResolvedValue(

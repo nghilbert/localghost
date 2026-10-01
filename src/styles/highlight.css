@@ -1,53 +1,73 @@
 /*
  * Syntax highlighting: the `th-*` token and line classes `@tanstack/highlight` emits
- * inside a code block, drawn from the palette in `tokens.css`.
+ * inside a code block, colored with the `--syntax-*` tokens.
  */
+@layer base {
+	:root {
+		--syntax-keyword: light-dark(#0000ff, #569cd6);
+		--syntax-tag: light-dark(#800000, #569cd6);
+		--syntax-selector: light-dark(#800000, #d7ba7d);
+		--syntax-function: light-dark(#795e26, #dcdcaa);
+		--syntax-variable: light-dark(#001080, #9cdcfe);
+		--syntax-attr: light-dark(#e50000, #9cdcfe);
+		--syntax-string: light-dark(#a31515, #ce9178);
+		--syntax-code-inline: light-dark(#800000, #ce9178);
+		--syntax-number: light-dark(#098658, #b5cea8);
+		--syntax-type: light-dark(#267f99, #4ec9b0);
+		--syntax-comment: light-dark(#008000, #6a9955);
+		--syntax-operator: light-dark(#000000, #d4d4d4);
+	}
+}
+
 @layer components {
 	.th-keyword,
-	.th-tag,
-	.th-selector,
-	.th-command {
-		color: var(--primary);
+	.th-literal,
+	.th-meta {
+		color: var(--syntax-keyword);
+	}
+	.th-tag {
+		color: var(--syntax-tag);
+	}
+	.th-heading {
+		color: var(--syntax-tag);
+		font-weight: bold;
+	}
+	.th-selector {
+		color: var(--syntax-selector);
 	}
 	.th-function,
-	.th-heading,
-	.th-property,
-	.th-attr {
-		color: color-mix(in oklch, var(--primary) 55%, var(--fg));
+	.th-command {
+		color: var(--syntax-function);
 	}
-	.th-string {
-		color: var(--success);
+	.th-property,
+	.th-variable {
+		color: var(--syntax-variable);
+	}
+	.th-attr {
+		color: var(--syntax-attr);
+	}
+	.th-string,
+	.th-deleted {
+		color: var(--syntax-string);
+	}
+	.th-code-inline {
+		color: var(--syntax-code-inline);
 	}
 	.th-number,
-	.th-literal {
-		color: var(--danger);
+	.th-inserted {
+		color: var(--syntax-number);
 	}
 	.th-type {
-		color: var(--warning);
-	}
-	.th-comment,
-	.th-meta {
-		color: var(--muted-fg);
+		color: var(--syntax-type);
 	}
 	.th-comment {
-		font-style: italic;
+		color: var(--syntax-comment);
 	}
 	.th-operator {
-		color: var(--muted-fg);
-	}
-	.th-variable,
-	.th-code-inline {
-		color: var(--fg);
+		color: var(--syntax-operator);
 	}
 	.th-link {
-		color: var(--primary);
 		text-decoration: underline;
-	}
-	.th-inserted {
-		color: var(--success);
-	}
-	.th-deleted {
-		color: var(--danger);
 	}
 	.th-inserted,
 	.th-line--inserted {

@@ -1,4 +1,5 @@
-@import "tailwindcss";
+/* Scan src/ only: the Docker build has no .gitignore to exclude build output. */
+@import "tailwindcss" source("..");
 @import "@fontsource-variable/geist";
 @import "./tokens.css";
 @import "./themes/index.css";
