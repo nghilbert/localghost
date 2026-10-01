@@ -1,44 +1,33 @@
-FROM node:26-trixie-slim AS build
+# syntax=docker/dockerfile:1
+
+FROM node:26-trixie-slim AS base
 WORKDIR /app
-RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates && rm -rf /var/lib/apt/lists/*
+# The Prisma CLI needs OpenSSL.
+RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
+# WORKDIR creates /app as root; node must own it to install and build.
 RUN chown node:node /app
 USER node
 COPY --chown=node:node package.json package-lock.json ./
-RUN npm ci
+RUN --mount=type=cache,target=/home/node/.npm,uid=1000,gid=1000 npm ci
+
+FROM base AS build
 COPY --chown=node:node . .
 RUN npm run prisma -- generate && npm run build
 
-# Pre-deploy step: applies pending migrations before the server starts (see the
-# migrate service in compose.yaml). The prisma CLI needs the dependency tree and
-# prisma/, neither of which the runtime image carries; this stage already has both.
+# Runs from the build stage because the runtime image has no Prisma CLI.
 FROM build AS migrate
 CMD ["npm", "run", "prisma", "--", "migrate", "deploy"]
 
-# Dev image: dependencies only. Source, the prisma schema, and the generated
-# client are supplied by a bind mount at runtime (see web-dev in compose.yaml).
-# Startup regenerates the prisma client, applies pending migrations via the
-# `predev` hook, then serves Vite with HMR bound to all interfaces.
-FROM node:26-trixie-slim AS dev
-WORKDIR /app
-RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates \
-  && rm -rf /var/lib/apt/lists/*
-# Unprivileged, like the final stage. `node` is uid 1000, so what the container
-# writes through the bind mount stays owned by the usual host account; npm runs
-# as `node` so the anonymous node_modules volume seeds from a dir it owns.
-RUN chown node:node /app
-USER node
-COPY --chown=node:node package.json package-lock.json ./
-RUN npm ci
+# Source comes from the web-dev bind mount; the predev hook applies migrations.
+FROM base AS dev
 CMD ["sh", "-c", "npm run prisma -- generate && npm run dev -- --host"]
 
-FROM node:26-trixie-slim
+# No OpenSSL here: Prisma's runtime client doesn't need it.
+FROM node:26-trixie-slim AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
-RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates \
-  && rm -rf /var/lib/apt/lists/*
 COPY --from=build /app/.output ./.output
-# Run unprivileged. Migrations run beforehand in the migrate service (see
-# compose.yaml), so this stage carries only .output.
 USER node
 EXPOSE 3000
 CMD ["node", ".output/server/index.mjs"]

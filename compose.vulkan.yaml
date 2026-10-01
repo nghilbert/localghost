@@ -1,12 +1,9 @@
-# Vulkan overlay (Intel, or AMD without ROCm). Swaps the bundled llama.cpp to
-# the Vulkan image, which uses the GPU once /dev/dri is reachable, integrated GPUs
-# included. Pick devices with GGML_VK_VISIBLE_DEVICES=<ids>.
+# Intel, or AMD without ROCm.
 services:
   llamacpp:
     image: ghcr.io/ggml-org/llama.cpp:server-vulkan-b10920
     devices:
       - /dev/dri
     environment:
-      # RADV integrated GPUs lose the device loading some models under the default
-      # `auto` load mode; memory-mapping the weights avoids it.
+      # Under the default auto mode, RADV integrated GPUs lose the device on some models.
       LLAMA_ARG_LOAD_MODE: ${LLAMA_ARG_LOAD_MODE:-mmap}

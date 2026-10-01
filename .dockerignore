@@ -1,25 +1,19 @@
-node_modules
-dist
-.output
-.git
-.gitignore
-.env
-.env.*
+# Ignore everything, then allow only the build inputs.
+*
+!package.json
+!package-lock.json
+!prisma
+!prisma.config.ts
+!public
+!src
+!tsconfig.json
+!vite.config.ts
+
+# Excludes from the allowed folders. They must come last: the last matching line wins.
 src/generated
-public/uploads
-
-# Local editor state, never part of a build.
-.vscode
-.idea
-.DS_Store
-
-# CI and docs, which the runtime never reads.
-.github
-*.md
-LICENSE
-
-# Test artifacts and logs.
-coverage
-test-results
-playwright-report
-*.log
+src/test
+**/*.test.ts
+**/*.test.tsx
+**/__screenshots__
+**/.*
+**/Thumbs.db

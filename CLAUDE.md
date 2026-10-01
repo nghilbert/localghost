@@ -25,7 +25,7 @@ The dev loop is Docker Compose: `docker compose up --build`. `.env` selects the 
 - Before finishing: `npm run biome check` and `npm run build`; run the tests you touched.
 - When permitted to commit, split the work into logical chunks. Each message is one concise imperative line. **Never** add co-author, signature, or generated-with lines.
 - Without commit permission, end with one section per logical change: a fenced `git add <paths>`, then that one-line message.
-- Delegate mechanical or narrow tasks to a smaller model (`haiku`); keep design work on the default model.
+- Delegate mechanical or narrow tasks to a Sonnet 5.5 subagent (`sonnet`); keep design work on Opus 5.5 (`opus`).
 - For anything this repo does not define (libraries, frameworks, tools), check their current official docs instead of relying on memory. Prefer a project's LLM docs (`llms.txt`) when it publishes them.
 
 ## Rules

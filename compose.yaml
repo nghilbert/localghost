@@ -1,12 +1,14 @@
-# Shared config for the prod (web) and dev (web-dev) app services. They are
-# mutually exclusive on port 3000; COMPOSE_PROFILES picks one.
+# Rotates logs; Docker's default json-file driver never does.
+x-logging: &logging
+  driver: local
+
 x-app: &app
   init: true
+  logging: *logging
   restart: unless-stopped
   ports:
     - "3000:3000"
-  # node has global fetch; the slim image has no curl. start_period covers the
-  # dev Vite cold start.
+  # The slim image has no curl.
   healthcheck:
     test: [ "CMD", "node", "-e", "fetch('http://localhost:3000/').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))" ]
     interval: 15s
@@ -28,15 +30,18 @@ x-app: &app
       condition: service_healthy
     searxng:
       condition: service_healthy
+    llamacpp:
+      condition: service_started
+      required: false
 
 services:
   db:
     image: pgvector/pgvector:pg18
+    logging: *logging
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
-    # Loopback-only: the native dev loop reaches it at localhost; web uses db:5432
-    # over the compose network. Not exposed on external interfaces.
+    # For the native dev loop.
     ports:
       - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     volumes:
@@ -48,13 +53,12 @@ services:
       timeout: 5s
       retries: 5
 
-  # Pre-deploy step: applies pending migrations, then exits. web waits on it, so a
-  # `docker compose up` on a fresh volume still comes up migrated. Its image is the
-  # build stage, which carries the prisma CLI the lean runtime image drops.
+  # Applies pending migrations, then exits.
   migrate:
     build:
       context: .
       target: migrate
+    logging: *logging
     profiles: [ prod ]
     restart: "no"
     environment:
@@ -63,10 +67,11 @@ services:
       db:
         condition: service_healthy
 
-  # Production: the built image. COMPOSE_PROFILES selects prod or dev (web-dev).
   web:
     <<: *app
-    build: .
+    build:
+      context: .
+      target: runtime
     profiles: [ prod ]
     depends_on:
       db:
@@ -75,9 +80,10 @@ services:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
+      llamacpp:
+        condition: service_started
+        required: false
 
-  # Development: serves Vite with HMR over a bind mount instead of the built
-  # bundle. Mutually exclusive with web (both bind 3000); pick one via profile.
   web-dev:
     <<: *app
     build:
@@ -86,38 +92,31 @@ services:
     profiles: [ dev ]
     ports:
       - "3000:3000"
-      - "4206:4206" # TanStack devtools event bus; unpublished it spams ws errors in the browser
+      - "4206:4206" # TanStack devtools event bus
     volumes:
-      - .:/app # live source for HMR
-      - /app/node_modules # anonymous volume: keep the image's deps, don't shadow with host's
+      - .:/app
+      - /app/node_modules # keeps the image's node_modules over the host's
     environment:
       <<: *app-env
 
-  # Bundled keyless web search, reachable by the app at http://searxng:8080.
-  # See searxng/Dockerfile: config, base URL, and healthcheck are all baked in.
   searxng:
     build: ./searxng
+    logging: *logging
     environment:
       SEARXNG_SECRET: ${SEARXNG_SECRET:?set SEARXNG_SECRET in .env}
     restart: unless-stopped
 
-  # Bundled llama.cpp (llama-server, router mode), reachable by the app at
-  # http://llamacpp:8080. Gated by the `llamacpp` profile; omitting it falls
-  # back to a host-native llama-server. GPU overlays patch this service (see
-  # compose.nvidia/amd/vulkan.yaml).
-  # LLAMA_ARG_PORT is pinned in case the upstream default changes. LLAMA_API_KEY has
-  # no ARG_ prefix, per --help, and matches the app's default in llamacpp/client.server.ts.
   llamacpp:
     image: ghcr.io/ggml-org/llama.cpp:server-b10920
+    logging: *logging
     profiles: [ llamacpp ]
     environment:
       LLAMA_CACHE: /models
       HF_TOKEN: ${HF_TOKEN:-}
       LLAMA_ARG_PORT: 8080
-      LLAMA_API_KEY: ${LLAMA_API_KEY:-local-llamacpp}
+      LLAMA_API_KEY: ${LLAMA_API_KEY:-local-llamacpp} # llama-server reads this name without the ARG_ prefix
       LLAMA_ARG_SLEEP_IDLE_SECONDS: ${LLAMA_ARG_SLEEP_IDLE_SECONDS:-300}
-      # Router children inherit these. `auto` lets --fit (on by default) size the GPU
-      # layers and context to free device memory; a fixed number turns fitting off.
+      # Applies to every model the router loads; see .env.example.
       LLAMA_ARG_N_GPU_LAYERS: ${LLAMA_ARG_N_GPU_LAYERS:-auto}
       LLAMA_ARG_CTX_SIZE: ${LLAMA_ARG_CTX_SIZE:-0}
     volumes:
