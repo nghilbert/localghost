@@ -1,5 +1,5 @@
 import { ScriptOnce } from "@tanstack/react-router";
-import { createContext, type ReactNode, use, useEffect, useState } from "react";
+import { createContext, type ReactNode, use, useEffect, useSyncExternalStore } from "react";
 import { isTheme, isThemeMode, THEMES, type Theme, type ThemeMode } from "./theme";
 
 type ThemeContextValue = {
@@ -45,6 +45,29 @@ function applyTheme(theme: Theme | null) {
 	else delete root.dataset.theme;
 }
 
+// The setters notify through this; the `storage` event only fires in other tabs.
+const storageChanges = new EventTarget();
+
+function subscribe(onChange: () => void) {
+	storageChanges.addEventListener("change", onChange);
+	return () => storageChanges.removeEventListener("change", onChange);
+}
+
+function getStoredMode(): ThemeMode | null {
+	const stored = localStorage.getItem(MODE_STORAGE_KEY);
+	return isThemeMode(stored) ? stored : null;
+}
+
+function getStoredTheme(): Theme | null {
+	const stored = localStorage.getItem(THEME_STORAGE_KEY);
+	return isTheme(stored) ? stored : null;
+}
+
+// Server and hydration render the defaults; `getThemeScript` already painted the stored ones.
+function getServerValue() {
+	return null;
+}
+
 type ThemeProviderProps = {
 	children: ReactNode;
 	defaultMode?: ThemeMode;
@@ -52,48 +75,29 @@ type ThemeProviderProps = {
 
 /** Applies and stores the light/dark mode and color preset for the app. */
 export function ThemeProvider({ children, defaultMode = "system" }: ThemeProviderProps) {
-	const [mode, setModeState] = useState<ThemeMode>(defaultMode);
-	const [theme, setThemeState] = useState<Theme | null>(null);
-	const [mounted, setMounted] = useState(false);
+	const mode = useSyncExternalStore(subscribe, getStoredMode, getServerValue) ?? defaultMode;
+	const theme = useSyncExternalStore(subscribe, getStoredTheme, getServerValue);
 
 	useEffect(() => {
-		const storedMode = localStorage.getItem(MODE_STORAGE_KEY);
-		if (isThemeMode(storedMode)) setModeState(storedMode);
-
-		const storedTheme = localStorage.getItem(THEME_STORAGE_KEY);
-		if (isTheme(storedTheme)) setThemeState(storedTheme);
-
-		setMounted(true);
-	}, []);
-
-	useEffect(() => {
-		if (!mounted) return;
-		applyMode(mode);
-	}, [mode, mounted]);
-
-	useEffect(() => {
-		if (!mounted) return;
-		applyTheme(theme);
-	}, [theme, mounted]);
-
-	useEffect(() => {
-		if (!mounted || mode !== "system") return;
+		if (mode !== "system") return;
 
 		const media = window.matchMedia("(prefers-color-scheme: dark)");
 		const onChange = () => applyMode("system");
 		media.addEventListener("change", onChange);
 		return () => media.removeEventListener("change", onChange);
-	}, [mode, mounted]);
+	}, [mode]);
 
 	const setMode = (next: ThemeMode) => {
 		localStorage.setItem(MODE_STORAGE_KEY, next);
-		setModeState(next);
+		applyMode(next);
+		storageChanges.dispatchEvent(new Event("change"));
 	};
 
 	const setTheme = (next: Theme | null) => {
 		if (next) localStorage.setItem(THEME_STORAGE_KEY, next);
 		else localStorage.removeItem(THEME_STORAGE_KEY);
-		setThemeState(next);
+		applyTheme(next);
+		storageChanges.dispatchEvent(new Event("change"));
 	};
 
 	return (
