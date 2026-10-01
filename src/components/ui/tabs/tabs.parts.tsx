@@ -9,7 +9,7 @@ import { DISABLED, FOCUS_RING } from "#/components/ui/variants/focus";
  *
  * Only `Root` takes it. It writes `data-layout`, and the classes below read it
  * back. Parts are siblings, so `Tab` never sees what `Root` was given; the
- * attribute is how it crosses. `base.css` defines the variants used here.
+ * attribute is how it crosses. `variants.css` defines the variants used here.
  */
 const tabsVariants = tv({
 	slots: {

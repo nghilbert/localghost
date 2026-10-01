@@ -1,0 +1,49 @@
+@import "tailwindcss";
+@import "@fontsource-variable/geist";
+@import "./tokens.css";
+@import "./themes/index.css";
+@import "./variants.css";
+@import "./base.css";
+@import "./utilities.css";
+@import "./animations.css";
+@import "./highlight.css";
+
+/*
+ * `inline` substitutes each value into the utility instead of emitting another
+ * `var()` hop, so `color-mix()` and `light-dark()` resolve against the element
+ * that uses the utility.
+ */
+@theme inline {
+	--font-sans: "Geist Variable", sans-serif;
+	--font-heading: var(--font-sans);
+
+	--color-bg: var(--bg);
+	--color-fg: var(--fg);
+	--color-surface: var(--surface);
+	--color-surface-fg: var(--surface-fg);
+	--color-muted: var(--muted);
+	--color-muted-fg: var(--muted-fg);
+	--color-line: var(--line);
+	--color-ring: var(--ring);
+	--color-backdrop: var(--backdrop);
+
+	--color-primary: var(--primary);
+	--color-primary-fg: var(--primary-fg);
+	--color-primary-soft: var(--primary-soft);
+	--color-neutral: var(--neutral);
+	--color-neutral-fg: var(--neutral-fg);
+	--color-neutral-soft: var(--neutral-soft);
+	--color-danger: var(--danger);
+	--color-danger-fg: var(--danger-fg);
+	--color-danger-soft: var(--danger-soft);
+	--color-success: var(--success);
+	--color-warning: var(--warning);
+
+	--radius-sm: calc(var(--radius) * 0.6);
+	--radius-md: calc(var(--radius) * 0.8);
+	--radius-lg: var(--radius);
+	--radius-xl: calc(var(--radius) * 1.4);
+	--radius-2xl: calc(var(--radius) * 1.8);
+	--radius-3xl: calc(var(--radius) * 2.2);
+	--radius-4xl: calc(var(--radius) * 2.6);
+}

@@ -30,7 +30,7 @@ const SIDEBAR_KEYBOARD_SHORTCUT = "b";
  * `Root` draws the panel from its own props and the open state, so its slots
  * take variants directly. Parts inside it read the collapsed state back from
  * the `data-collapsible` attribute `Root` writes (`in-sidebar-icon` in
- * `base.css`), which callers can use too.
+ * `variants.css`), which callers can use too.
  */
 const sidebarVariants = tv({
 	slots: {

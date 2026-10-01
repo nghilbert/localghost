@@ -9,7 +9,7 @@ import { textVariants } from "#/components/ui/variants/text";
 /*
  * `Root` writes `data-orientation`, and the classes below read it back. Parts
  * are siblings, so `Label` never sees the prop `Root` was given; the attribute
- * is how it crosses. `base.css` defines the variants used here.
+ * is how it crosses. `variants.css` defines the variants used here.
  */
 const fieldVariants = tv({
 	extend: textVariants,

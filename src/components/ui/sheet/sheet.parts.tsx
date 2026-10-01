@@ -11,7 +11,7 @@ const text = textVariants();
 
 /*
  * A sheet is a dialog pinned to one edge of the screen. `Content` writes the
- * edge as `data-side`, and the `side-*` variants in `base.css` read it back.
+ * edge as `data-side`, and the `side-*` variants in `variants.css` read it back.
  */
 const sheetVariants = tv({
 	slots: {
