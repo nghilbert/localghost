@@ -22,6 +22,7 @@ x-app: &app
     ENCRYPTION_KEY: ${ENCRYPTION_KEY:?set ENCRYPTION_KEY (64-char hex) in .env}
     SEARXNG_URL: ${SEARXNG_URL:-http://searxng:8080}
     HF_TOKEN: ${HF_TOKEN:-}
+    LOG_LEVEL: ${LOG_LEVEL:-info}
     LLAMA_API_KEY: ${LLAMA_API_KEY:-local-llamacpp}
   extra_hosts:
     - "host.docker.internal:host-gateway"

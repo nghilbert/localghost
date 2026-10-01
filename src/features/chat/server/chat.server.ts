@@ -3,6 +3,7 @@ import { buildFirstUserMessage, deriveConversationTitle } from "#/features/chat/
 import { prisma } from "#/lib/db.server";
 import { MS_PER_SECOND } from "#/lib/format";
 import { listModels } from "#/lib/llamacpp/client.server";
+import { log } from "#/lib/log.server";
 import { chatPersistence, findRunThreadId } from "./persistence.server";
 
 /** A conversation in the sidebar list. */
@@ -227,11 +228,16 @@ export async function probeModelRunState({
 		const found = models.find((m) => m.id === conversation.model);
 		return found?.status.value === "loading" ? "warming" : "ready";
 	} catch (error) {
-		console.warn("Model run-state probe failed; reporting the host unreachable", {
-			url: conversation.endpoint.url,
-			model: conversation.model,
-			error,
-		});
+		log.warn(
+			{
+				err: error,
+				userId: ownerId,
+				conversationId: id,
+				url: conversation.endpoint.url,
+				model: conversation.model,
+			},
+			"Model run-state probe failed; reporting the host unreachable",
+		);
 		return "unreachable";
 	}
 }

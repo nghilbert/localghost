@@ -1,4 +1,5 @@
 import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
+import { log } from "#/lib/log.server";
 
 const ALGORITHM = "aes-256-gcm";
 const IV_LENGTH = 12;
@@ -49,9 +50,10 @@ export function endpointApiKey(endpoint: { apiKeyEncrypted: string | null }): st
 	try {
 		return decrypt(endpoint.apiKeyEncrypted);
 	} catch (error) {
-		console.error("Failed to decrypt a stored endpoint API key (was ENCRYPTION_KEY rotated?)", {
-			error,
-		});
+		log.error(
+			{ err: error },
+			"Failed to decrypt a stored endpoint API key (was ENCRYPTION_KEY rotated?)",
+		);
 		throw new Error(
 			"This endpoint's stored API key can't be decrypted. Re-enter the key in Settings.",
 			{ cause: error },

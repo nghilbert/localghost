@@ -1,5 +1,6 @@
 import type { Prisma } from "#/generated/prisma/client";
 import { prisma } from "#/lib/db.server";
+import { log } from "#/lib/log.server";
 import { embed, toVectorLiteral } from "./embeddings.server";
 
 /** A memory returned by {@link recallMemories}. */
@@ -132,7 +133,10 @@ export async function recallMemories({
 				LIMIT ${capped}`;
 		} catch (error) {
 			// Embeddings from a different model have another dimension, which makes `<=>` throw.
-			console.warn("Vector recall failed; falling back to keyword search", { error });
+			log.warn(
+				{ err: error, userId: ownerId },
+				"Vector recall failed; falling back to keyword search",
+			);
 		}
 	}
 	return keywordRecall({ ownerId, query: trimmed, limit: capped });

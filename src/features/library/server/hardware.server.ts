@@ -4,6 +4,7 @@ import { promisify } from "node:util";
 import { z } from "zod";
 import type { GpuInfo, HardwareInfo } from "#/features/library/library.types";
 import { GIB, MIB } from "#/lib/format";
+import { log } from "#/lib/log.server";
 
 const execFileAsync = promisify(execFile);
 
@@ -61,7 +62,7 @@ async function detectNvidiaGpus(): Promise<GpuInfo[] | null> {
 		);
 		return parseNvidiaSmi(stdout);
 	} catch (error) {
-		if (!isMissingCommand(error)) console.warn("nvidia-smi probe failed", { error });
+		if (!isMissingCommand(error)) log.warn({ err: error }, "nvidia-smi probe failed");
 		return null;
 	}
 }
@@ -73,7 +74,7 @@ async function detectAmdGpus(): Promise<GpuInfo[] | null> {
 		});
 		return parseRocmSmi(stdout);
 	} catch (error) {
-		if (!isMissingCommand(error)) console.warn("rocm-smi probe failed", { error });
+		if (!isMissingCommand(error)) log.warn({ err: error }, "rocm-smi probe failed");
 		return null;
 	}
 }

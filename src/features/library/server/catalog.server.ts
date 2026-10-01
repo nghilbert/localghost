@@ -17,6 +17,7 @@ import { parseParamB } from "#/features/library/lib/model-id";
 import type { CatalogQuery } from "#/features/library/library.schemas";
 import type { CatalogModel, ModelVariantInfo } from "#/features/library/library.types";
 import { MS_PER_HOUR } from "#/lib/format";
+import { log } from "#/lib/log.server";
 import { getHardwareInfo } from "./hardware.server";
 import {
 	getGgufChatModel,
@@ -123,7 +124,7 @@ async function fetchHfCatalog(): Promise<CatalogModel[]> {
 				const variants = await listGgufVariants({ repoId: candidate.name, accessToken });
 				if (variants.length > 0) enriched.push({ ...candidate, variants });
 			} catch (error) {
-				console.warn("Failed to list a repo's GGUF files", { repo: candidate.name, error });
+				log.warn({ err: error, repo: candidate.name }, "Failed to list a repo's GGUF files");
 			}
 		},
 	});
@@ -144,7 +145,7 @@ export async function getCatalog(): Promise<CatalogModel[]> {
 			return data;
 		})
 		.catch((error) => {
-			console.error("Hugging Face catalog fetch failed", { error });
+			log.error({ err: error }, "Hugging Face catalog fetch failed");
 			throw error;
 		})
 		.finally(() => {
@@ -264,7 +265,7 @@ export async function listGroupVariants({
 			try {
 				byRepo.set(repo, await listGgufVariants({ repoId: repo, accessToken }));
 			} catch (error) {
-				console.warn("Failed to list a sibling repo's GGUF files", { repo, error });
+				log.warn({ err: error, repo }, "Failed to list a sibling repo's GGUF files");
 			}
 		},
 	});

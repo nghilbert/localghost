@@ -2,16 +2,10 @@ import { createMiddleware } from "@tanstack/react-start";
 import { auth } from "#/lib/auth.server";
 import { getCurrentUserId } from "#/lib/session.server";
 
-/** Server function middleware: puts the signed-in `userId` in context and logs thrown errors. */
+/** Server function middleware: puts the signed-in `userId` in context. */
 export const authedFn = createMiddleware({ type: "function" }).server(async ({ next }) => {
 	const userId = await getCurrentUserId();
-	try {
-		return await next({ context: { userId } });
-	} catch (error) {
-		// Start sends only `error.message` to the client, so log the stack here.
-		console.error(error);
-		throw error;
-	}
+	return next({ context: { userId } });
 });
 
 /** API route middleware: puts the signed-in user in context, or responds 401. */

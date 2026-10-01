@@ -78,11 +78,12 @@ describe("crypto.server", () => {
 		it("logs and rethrows a readable error when the key can't be decrypted", async () => {
 			process.env.ENCRYPTION_KEY = VALID_KEY;
 			const { endpointApiKey } = await import("#/lib/crypto.server");
-			const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+			const { log } = await import("#/lib/log.server");
+			const logError = vi.spyOn(log, "error").mockImplementation(() => {});
 
 			expect(() => endpointApiKey({ apiKeyEncrypted: "a:b:c" })).toThrow(/re-enter the key/i);
-			expect(consoleError).toHaveBeenCalledOnce();
-			consoleError.mockRestore();
+			expect(logError).toHaveBeenCalledOnce();
+			logError.mockRestore();
 		});
 	});
 });

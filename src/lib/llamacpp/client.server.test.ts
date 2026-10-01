@@ -9,6 +9,7 @@ import {
 	openModelEventStream,
 	unloadModel,
 } from "#/lib/llamacpp/client.server";
+import { log } from "#/lib/log.server";
 
 /**
  * A `ReadableStream<Uint8Array>` that emits `chunk` then errors instead of closing cleanly.
@@ -158,7 +159,7 @@ describe("llama.cpp model status", () => {
 			.mockResolvedValueOnce(
 				new Response(secondBody, { headers: { "Content-Type": "text/event-stream" } }),
 			);
-		const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+		const debug = vi.spyOn(log, "debug").mockImplementation(() => {});
 		const controller = new AbortController();
 
 		const body = await openModelEventStream({
@@ -171,17 +172,17 @@ describe("llama.cpp model status", () => {
 		expect(decoder.decode((await reader.read()).value)).toBe("first");
 		expect(decoder.decode((await reader.read()).value)).toBe("second");
 		expect(undiciFetchMock).toHaveBeenCalledTimes(2);
-		expect(warn).toHaveBeenCalledOnce();
+		expect(debug).toHaveBeenCalledOnce();
 
 		controller.abort();
-		warn.mockRestore();
+		debug.mockRestore();
 	});
 
 	it("stops reconnecting once the caller aborts", async () => {
 		undiciFetchMock.mockResolvedValueOnce(
 			new Response(droppedStream("first"), { headers: { "Content-Type": "text/event-stream" } }),
 		);
-		const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+		const debug = vi.spyOn(log, "debug").mockImplementation(() => {});
 		const controller = new AbortController();
 
 		const body = await openModelEventStream({
@@ -196,7 +197,7 @@ describe("llama.cpp model status", () => {
 
 		expect(done).toBe(true);
 		expect(undiciFetchMock).toHaveBeenCalledTimes(1);
-		warn.mockRestore();
+		debug.mockRestore();
 	});
 });
 

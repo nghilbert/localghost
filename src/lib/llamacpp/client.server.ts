@@ -1,6 +1,7 @@
 import { Agent, type Response as UndiciResponse, fetch as undiciFetch } from "undici";
 import { z } from "zod";
 import { MS_PER_SECOND } from "#/lib/format";
+import { log } from "#/lib/log.server";
 import { llamaDownloadFileProgressSchema } from "./schemas";
 
 const llamaModelStatusSchema = z.enum([
@@ -154,7 +155,7 @@ export async function openModelEventStream({
 					}
 				} catch (error) {
 					if (signal.aborted) break;
-					console.warn("llama.cpp model-events stream dropped; reconnecting", error);
+					log.debug({ err: error, url }, "llama.cpp model-events stream dropped; reconnecting");
 				}
 				if (signal.aborted) break;
 				await new Promise((resolve) => setTimeout(resolve, RECONNECT_DELAY_MS));

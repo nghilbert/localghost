@@ -35,6 +35,7 @@ The dev loop is Docker Compose: `docker compose up --build`. `.env` selects the 
 - **No `biome-ignore`** and no Biome overrides. Fix the real issue.
 - **No dead code**, no re-exports, no `// removed` comments. No barrels except a ui module's own `index.ts`.
 - **Server-only:** never import `*.server.ts` from client code.
+- **Logging:** server code logs through `log` from `lib/log.server.ts` (pino), never `console`. Context goes first: `log.warn({ err, userId }, "message")`.
 - **Prisma:** every model ID is `@id @default(dbgenerated("uuidv7()")) @db.Uuid` (better-auth's `generateId: "uuid"` relies on it); FKs are `@db.Uuid`; camelCase fields `@map("snake_case")`.
 - **Comments** explain non-obvious code only: a reason, a constraint, or a library quirk being worked around. Delete any comment that restates the code. Keep them short.
 - **JSDoc** on every export, concise (one line where possible), saying what it is or how to use it so the IDE shows it. No types in JSDoc; TypeScript does the typing. Framework entry points (a route file's `Route`, `getRouter`) are exempt.

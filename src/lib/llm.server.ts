@@ -12,6 +12,7 @@ import { createAnthropicChat } from "@tanstack/ai-anthropic";
 import { createGeminiChat } from "@tanstack/ai-gemini";
 import { openaiCompatibleText } from "@tanstack/ai-openai/compatible";
 import { trimPathRight } from "@tanstack/react-router";
+import { log } from "#/lib/log.server";
 import { LOCAL_LLAMACPP_API_KEY } from "./llamacpp/client.server";
 import { DEFAULT_MAX_TOKENS, DEFAULT_TEMPERATURE } from "./llm-constants";
 import { detectProvider, type LLMProvider } from "./llm-provider";
@@ -332,11 +333,10 @@ export async function modelSupportsTools({
 		const json = await fetchModels({ url, apiKey, provider });
 		return config.parseToolSupport({ json, model });
 	} catch (error) {
-		console.warn("Tool-support probe failed; assuming the model is capable", {
-			url,
-			model,
-			error,
-		});
+		log.warn(
+			{ err: error, url, model },
+			"Tool-support probe failed; assuming the model is capable",
+		);
 		return true;
 	}
 }
