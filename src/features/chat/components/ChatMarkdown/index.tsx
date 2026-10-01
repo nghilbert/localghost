@@ -52,15 +52,16 @@ function ChatLink({ href, children, ...props }: MarkdownComponentProps<"a">) {
 function CodeBlock({
 	children,
 	"data-lang": lang,
+	"data-code-title": title,
 	...props
-}: MarkdownComponentProps<"pre"> & { "data-lang"?: string }) {
+}: MarkdownComponentProps<"pre"> & { "data-lang"?: string; "data-code-title"?: string }) {
 	const preRef = useRef<HTMLPreElement>(null);
 
 	return (
 		<div className="overflow-hidden rounded-lg border border-line bg-surface">
 			<div className="flex items-center justify-between border-b border-line bg-muted py-1 pr-1 pl-3">
 				<span className="font-mono text-xs text-muted-fg">
-					{!lang || lang === "plaintext" ? "text" : lang}
+					{title ?? (!lang || lang === "plaintext" ? "text" : lang)}
 				</span>
 				<Button
 					color="neutral"
@@ -106,6 +107,8 @@ function Table(props: MarkdownComponentProps<"table">) {
 const components = {
 	a: ChatLink,
 	pre: CodeBlock,
+	// A titled fence wraps its `pre` in a figure; CodeBlock shows the title in its header instead.
+	figcaption: () => null,
 	code: Code,
 	table: Table,
 	h1: styled({ tag: "h1", className: "text-xl font-semibold" }),
@@ -152,6 +155,7 @@ export function ChatMarkdown({ children, isStreaming, caret, className }: ChatMa
 			<Markdown
 				components={components}
 				highlighter={markdownHighlighter}
+				codeLineNumbers
 				extensions={isStreaming ? streamingExtensions : undefined}
 			>
 				{children}
