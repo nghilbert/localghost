@@ -10,7 +10,7 @@ export default defineConfig({
 	resolve: { tsconfigPaths: true },
 	plugins: [
 		devtools(),
-		nitro({ rollupConfig: { external: [/^@sentry\//] } }),
+		nitro(),
 		tailwindcss(),
 		tanstackStart(),
 		babel({ presets: [reactCompilerPreset({ target: "19" })] }),
