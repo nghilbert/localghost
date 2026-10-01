@@ -23,6 +23,7 @@ import {
 	mergeAssistantTurns,
 } from "#/features/chat/lib/messages";
 import { takeNewChat } from "#/features/chat/lib/new-chat";
+import { MS_PER_SECOND } from "#/lib/format";
 import { ChatStatus } from "./ChatStatus";
 import { QueuedMessageItem } from "./QueuedMessageItem";
 
@@ -76,7 +77,7 @@ export function ChatThread({ conversation }: ChatThreadProps) {
 	const { data: runState } = useQuery({
 		...chatQueries.runState(conversation.id),
 		enabled: isStreaming,
-		refetchInterval: (query) => (query.state.data === "ready" ? false : 2_000),
+		refetchInterval: (query) => (query.state.data === "ready" ? false : 2 * MS_PER_SECOND),
 	});
 	const pendingLabel =
 		runState === "warming"

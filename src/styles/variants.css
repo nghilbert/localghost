@@ -1,0 +1,47 @@
+/*
+ * Custom variants. `dark` follows the `.dark` class `theme-provider.tsx` sets on `<html>`.
+ */
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Named variants for Base UI attributes that carry a value (`data-side="bottom"`).
+ * Tailwind's `data-*` variants only test presence, and a named variant keeps class
+ * strings simple for tailwind-merge.
+ */
+@custom-variant data-horizontal (&:where([data-orientation="horizontal"]));
+@custom-variant data-vertical (&:where([data-orientation="vertical"]));
+
+@custom-variant side-top (&:where([data-side="top"]));
+@custom-variant side-bottom (&:where([data-side="bottom"]));
+@custom-variant side-left (&:where([data-side="left"], [data-side="inline-start"]));
+@custom-variant side-right (&:where([data-side="right"], [data-side="inline-end"]));
+@custom-variant side-none (&:where([data-side="none"]));
+
+@custom-variant align-start (&:where([data-align="start"]));
+@custom-variant align-center (&:where([data-align="center"]));
+@custom-variant align-end (&:where([data-align="end"]));
+@custom-variant in-align-end (&:where([data-align="end"] *));
+
+/*
+ * A Root-level variant reaching its child parts. Base UI parts are siblings, so
+ * `Tabs.Root` writes `data-layout` and `Tabs.Tab` reads it back from here.
+ */
+@custom-variant in-segmented (&:where([data-layout="segmented"] *));
+@custom-variant in-underline (&:where([data-layout="underline"] *));
+@custom-variant in-horizontal (&:where([data-orientation="horizontal"] *));
+@custom-variant in-vertical (&:where([data-orientation="vertical"] *));
+
+/*
+ * `Field.Root orientation="responsive"` stacks its parts until the nearest
+ * container is wide enough to put the label beside the control.
+ */
+@custom-variant data-responsive (&:where([data-orientation="responsive"]));
+
+/* `InputGroup.Root` stacks into a column when an addon sits above or below the control. */
+@custom-variant has-block-addon (&:has(> [data-align="block-start"], > [data-align="block-end"]));
+
+/*
+ * `Sidebar.Root` writes `data-collapsible="icon"` while it is collapsed to
+ * icons; its parts, and anything a caller renders inside, read it back here.
+ */
+@custom-variant in-sidebar-icon (&:where([data-collapsible="icon"] *));

@@ -5,6 +5,7 @@ import { listModelSettings } from "#/features/library/server/model-setting.serve
 import { embed } from "#/features/memory/server/embeddings.server";
 import { insertMemory } from "#/features/memory/server/memory.server";
 import { prisma } from "#/lib/db.server";
+import { MIB } from "#/lib/format";
 import { BodyTooLargeError, readJsonWithLimit } from "#/lib/http.server";
 import { llmProviderSchema } from "#/lib/llm-provider";
 import { samplingOptionsSchema } from "#/lib/llm-schemas";
@@ -343,7 +344,7 @@ export async function importBackup({
 }
 
 // Large, since backups include image attachments as data URLs.
-const MAX_IMPORT_BYTES = 256 * 1024 * 1024;
+const MAX_IMPORT_BYTES = 256 * MIB;
 
 /** The user's backup as a JSON file download. */
 export async function getBackupExport({

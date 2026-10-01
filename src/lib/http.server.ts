@@ -1,7 +1,9 @@
+import { formatBytes } from "#/lib/format";
+
 /** Thrown when a request body exceeds the caller's byte limit. */
 export class BodyTooLargeError extends Error {
 	constructor(maxBytes: number) {
-		super(`Request body exceeds the ${Math.round(maxBytes / (1024 * 1024))} MB limit.`);
+		super(`Request body exceeds the ${formatBytes(maxBytes)} limit.`);
 	}
 }
 

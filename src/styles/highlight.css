@@ -1,0 +1,78 @@
+/*
+ * Syntax highlighting: the `th-*` token and line classes `@tanstack/highlight` emits
+ * inside a code block, drawn from the palette in `tokens.css`.
+ */
+@layer components {
+	.th-keyword,
+	.th-tag,
+	.th-selector,
+	.th-command {
+		color: var(--primary);
+	}
+	.th-function,
+	.th-heading,
+	.th-property,
+	.th-attr {
+		color: color-mix(in oklch, var(--primary) 55%, var(--fg));
+	}
+	.th-string {
+		color: var(--success);
+	}
+	.th-number,
+	.th-literal {
+		color: var(--danger);
+	}
+	.th-type {
+		color: var(--warning);
+	}
+	.th-comment,
+	.th-meta {
+		color: var(--muted-fg);
+	}
+	.th-comment {
+		font-style: italic;
+	}
+	.th-operator {
+		color: var(--muted-fg);
+	}
+	.th-variable,
+	.th-code-inline {
+		color: var(--fg);
+	}
+	.th-link {
+		color: var(--primary);
+		text-decoration: underline;
+	}
+	.th-inserted {
+		color: var(--success);
+	}
+	.th-deleted {
+		color: var(--danger);
+	}
+	.th-inserted,
+	.th-line--inserted {
+		background: color-mix(in oklch, var(--success) 12%, transparent);
+	}
+	.th-deleted,
+	.th-line--deleted {
+		background: var(--danger-soft);
+	}
+	.th-line--highlighted {
+		background: color-mix(in oklch, var(--primary) 10%, transparent);
+	}
+	/* Full-width rows, so a line's background spans the block. */
+	.th-line {
+		display: inline-block;
+		min-inline-size: 100%;
+	}
+	/* `textContent` skips generated content, so copying a block leaves the numbers out. */
+	.th-line::before {
+		content: attr(data-line);
+		display: inline-block;
+		inline-size: 2.5em;
+		padding-inline-end: 1em;
+		text-align: end;
+		color: var(--muted-fg);
+		user-select: none;
+	}
+}

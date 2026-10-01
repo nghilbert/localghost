@@ -2,6 +2,7 @@ import { parseGGUFQuantLabel, parseGgufShardFilename, RE_GGUF_FILE } from "@hugg
 import { HubApiError, listFiles, listModels, modelInfo } from "@huggingface/hub";
 import { z } from "zod";
 import type { ModelVariantInfo } from "#/features/library/library.types";
+import { GIB, roundToTenth } from "#/lib/format";
 
 /** Filename parts llama.cpp's `gguf_filename_is_model` skips, so sizes count model weights only. */
 const AUXILIARY_GGUF_SUBSTRINGS = ["mmproj", "imatrix", "mtp-", "eagle3-", "dflash-", "dspark-"];
@@ -241,7 +242,7 @@ export async function listGgufVariants({
 		const bytes = shard ? (shardTotals.get(shard.prefix) ?? 0) : file.bytes;
 		variants.push({
 			quant,
-			sizeGb: bytes ? Math.round((bytes / 1024 ** 3) * 10) / 10 : null,
+			sizeGb: bytes ? roundToTenth(bytes / GIB) : null,
 			fileName: file.path,
 			repoId,
 		});

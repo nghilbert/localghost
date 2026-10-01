@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, onTestFinished } from "vitest";
 import { userEvent } from "vitest/browser";
 import { ThemeProvider } from "#/lib/theme/theme-provider";
 import { renderWithRouter } from "#/test/utils";
@@ -11,6 +11,23 @@ function swatchBackground(radio: Element) {
 }
 
 describe("AppearanceTab", () => {
+	it("starts on the stored mode and preset", async () => {
+		localStorage.setItem("theme-mode", "dark");
+		localStorage.setItem("theme-preset", "nature");
+		onTestFinished(() => localStorage.clear());
+
+		const screen = await renderWithRouter(
+			<ThemeProvider>
+				<AppearanceTab />
+			</ThemeProvider>,
+		);
+
+		await expect.element(screen.getByRole("radio", { name: "Nature" })).toBeChecked();
+		await expect
+			.element(screen.getByRole("button", { name: "Dark" }))
+			.toHaveAttribute("aria-pressed", "true");
+	});
+
 	it("keeps the Default preview on the default palette while a preset is applied", async () => {
 		const screen = await renderWithRouter(
 			<ThemeProvider>

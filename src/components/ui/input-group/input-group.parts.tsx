@@ -11,7 +11,7 @@ import { controlVariants } from "#/components/ui/variants/control";
 /*
  * The control box is drawn once, on `Root`, and the input or textarea inside it
  * draws nothing of its own. An addon above or below the control turns the box
- * into a column (`has-block-addon` in `base.css`).
+ * into a column (`has-block-addon` in `variants.css`).
  */
 const inputGroupVariants = tv({
 	slots: {

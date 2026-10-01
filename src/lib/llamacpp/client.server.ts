@@ -1,5 +1,6 @@
 import { Agent, type Response as UndiciResponse, fetch as undiciFetch } from "undici";
 import { z } from "zod";
+import { MS_PER_SECOND } from "#/lib/format";
 import { llamaDownloadFileProgressSchema } from "./schemas";
 
 const llamaModelStatusSchema = z.enum([
@@ -120,7 +121,7 @@ async function fetchModelEventStream({
 	return response.body;
 }
 
-const RECONNECT_DELAY_MS = 1000;
+const RECONNECT_DELAY_MS = MS_PER_SECOND;
 
 /**
  * Opens llama.cpp's model event stream (`/models/sse`). The router drops the connection

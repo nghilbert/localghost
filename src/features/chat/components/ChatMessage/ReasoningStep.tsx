@@ -6,6 +6,7 @@ import { LitBulbIcon, SpinningBulbIcon } from "#/features/chat/components/BulbIc
 import { ChatMarkdown } from "#/features/chat/components/ChatMarkdown";
 import { Marker, MarkerContent, MarkerIcon } from "#/features/chat/components/Marker";
 import { useStepDuration } from "#/features/chat/hooks/use-step-duration";
+import { formatSeconds } from "#/lib/format";
 
 type ReasoningStepProps = { content: string; isThinking: boolean };
 
@@ -24,7 +25,7 @@ export function ReasoningStep({ content, isThinking }: ReasoningStepProps) {
 	}
 
 	const open = openOverride ?? isThinking;
-	const label = duration ? `Thought for ${duration}s` : "Reasoning";
+	const label = duration ? `Thought for ${formatSeconds(duration)}` : "Reasoning";
 
 	return (
 		<Collapsible.Root open={open} onOpenChange={setOpenOverride} className="flex flex-col gap-1.5">

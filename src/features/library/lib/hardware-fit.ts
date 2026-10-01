@@ -1,7 +1,7 @@
 import type { StatusTone } from "#/components/layout/StatusBadge";
 import { type HideableFit, hideableFitSchema } from "#/features/library/library.schemas";
 import type { CatalogModel, GpuInfo, HardwareInfo } from "#/features/library/library.types";
-import { round1 } from "#/lib/format";
+import { GIB, MIB, roundToTenth } from "#/lib/format";
 
 /** GB per billion parameters, used when a variant has no file size. */
 const Q4_GB_PER_B_ESTIMATE = 0.6;
@@ -33,9 +33,10 @@ export function requiredMemoryGb({
 	sizeGb,
 	paramB,
 }: Pick<CatalogModel, "sizeGb" | "paramB">): number | null {
-	const weightsGb = sizeGb ?? (paramB !== null ? round1(paramB * Q4_GB_PER_B_ESTIMATE) : null);
+	const weightsGb =
+		sizeGb ?? (paramB !== null ? roundToTenth(paramB * Q4_GB_PER_B_ESTIMATE) : null);
 	if (weightsGb === null) return null;
-	return round1(weightsGb * 1.15 + 1);
+	return roundToTenth(weightsGb * 1.15 + 1);
 }
 
 /** The GPU with the most free or total VRAM, or null without one. */
@@ -55,13 +56,13 @@ export function bestGpu({
 /** Free GB to load a model into: the best GPU's free VRAM, or free RAM without a GPU. */
 export function availableMemoryGb(hardware: HardwareInfo): number {
 	const gpu = bestGpu({ hardware, key: "freeVramMb" });
-	return gpu ? gpu.freeVramMb / 1024 : hardware.freeRamGb;
+	return gpu ? (gpu.freeVramMb * MIB) / GIB : hardware.freeRamGb;
 }
 
 /** Total GB a model could ever use here: the best GPU's VRAM, or RAM without a GPU. */
 export function totalMemoryGb(hardware: HardwareInfo): number {
 	const gpu = bestGpu({ hardware, key: "totalVramMb" });
-	return gpu ? gpu.totalVramMb / 1024 : hardware.totalRamGb;
+	return gpu ? (gpu.totalVramMb * MIB) / GIB : hardware.totalRamGb;
 }
 
 /**

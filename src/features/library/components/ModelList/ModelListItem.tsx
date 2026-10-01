@@ -13,14 +13,14 @@ import {
 } from "#/features/library/lib/hardware-fit";
 import type { ModelRow } from "#/features/library/lib/model-rows";
 import type { HardwareInfo } from "#/features/library/library.types";
-import { formatBytes, formatCount, GIB } from "#/lib/format";
+import { BILLION, formatBytes, formatCount, GIB } from "#/lib/format";
 
 /** A one-line summary from what the catalog knows. */
 function specLine(row: ModelRow): string {
 	const { catalog, installed } = row;
 	const parts: string[] = [];
 	const paramB = catalog?.paramB ?? installed?.paramB;
-	if (paramB != null) parts.push(`${formatCount(paramB * 1e9)} params`);
+	if (paramB != null) parts.push(`${formatCount(paramB * BILLION)} params`);
 	if (catalog?.contextK) parts.push(`${catalog.contextK}K context`);
 	if (catalog?.license) parts.push(catalog.license);
 	const sizeBytes = installed?.sizeBytes ?? (catalog?.sizeGb != null ? catalog.sizeGb * GIB : null);

@@ -1,0 +1,23 @@
+/*
+ * Custom utilities. Add one only when the alternative is repeating the same utility
+ * chain in several `ui/` modules.
+ */
+
+/*
+ * Fades the end edge of a Base UI `ScrollArea.Viewport`, using the remaining scroll
+ * distance it sets as `--scroll-area-overflow-y-end`.
+ */
+@utility scroll-fade-b {
+	--scroll-fade-b: clamp(
+		0px,
+		calc(var(--scroll-area-overflow-y-end, 0px) * 10 / 24),
+		calc(var(--spacing) * 10)
+	);
+	mask-image: linear-gradient(
+		to bottom,
+		#000 0,
+		#000 calc(100% - var(--scroll-fade-b)),
+		transparent 100%
+	);
+	mask-repeat: no-repeat;
+}

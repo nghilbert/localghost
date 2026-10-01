@@ -2,6 +2,7 @@ import { Defuddle } from "defuddle/node";
 import { parseHTML } from "linkedom";
 import { fetch } from "undici";
 import { z } from "zod";
+import { MS_PER_SECOND } from "#/lib/format";
 import { assertPublicUrl, publicOnlyDispatcher, UnsafeUrlError } from "#/lib/ssrf-guard.server";
 
 /** The `read_url` tool's arguments. */
@@ -22,7 +23,7 @@ async function fetchFollowingSafeRedirects(input: string) {
 			dispatcher: publicOnlyDispatcher,
 			headers: { "User-Agent": "Mozilla/5.0 (compatible; localghost/1.0)" },
 			redirect: "manual",
-			signal: AbortSignal.timeout(15_000),
+			signal: AbortSignal.timeout(15 * MS_PER_SECOND),
 		});
 		const location = res.headers.get("location");
 		if (res.status < 300 || res.status >= 400 || !location) return res;

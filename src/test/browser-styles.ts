@@ -3,4 +3,4 @@
  * on CSS for layout (an empty Checkbox/Switch `<span>` sized only by a `size-*`
  * utility) have a real, clickable size in browser tests.
  */
-import "#/styles/globals.css";
+import "#/styles/index.css";

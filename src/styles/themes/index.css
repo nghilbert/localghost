@@ -1,0 +1,15 @@
+/* Color presets. Each one is listed in `THEMES` in `lib/theme/theme.ts`. */
+@import "./amber-minimal.css";
+@import "./bold-tech.css";
+@import "./clean-slate.css";
+@import "./elegant-luxury.css";
+@import "./kodama-grove.css";
+@import "./midnight-bloom.css";
+@import "./mocha-mousse.css";
+@import "./modern-minimal.css";
+@import "./nature.css";
+@import "./northern-lights.css";
+@import "./ocean-breeze.css";
+@import "./quantum-rose.css";
+@import "./sunset-horizon.css";
+@import "./t3-chat.css";

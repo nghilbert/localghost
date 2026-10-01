@@ -10,7 +10,7 @@ import { Toaster } from "#/components/ui/toast";
 import { Tooltip } from "#/components/ui/tooltip";
 import { getAuthSession } from "#/features/account/account.functions";
 import { ThemeProvider } from "#/lib/theme/theme-provider";
-import globalCss from "#/styles/globals.css?url";
+import stylesCss from "#/styles/index.css?url";
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
 	beforeLoad: async () => ({ auth: await getAuthSession() }),
@@ -21,7 +21,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 		links: [
 			{ rel: "icon", href: "/favicon.svg" },
 			{ rel: "manifest", href: "/manifest.json" },
-			{ rel: "stylesheet", href: globalCss },
+			{ rel: "stylesheet", href: stylesCss },
 		],
 	}),
 });

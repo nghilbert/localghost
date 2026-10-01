@@ -3,7 +3,7 @@ import { type LucideIcon, MonitorIcon, MoonIcon, SunIcon } from "lucide-react";
 /**
  * Color presets. Each id matches `[data-theme="<id>"]` in `src/styles/themes/<id>.css`,
  * which restates only the authored tokens. To add one, write that file, import it from
- * `globals.css`, and list it here.
+ * `themes/index.css`, and list it here.
  */
 export const THEMES = [
 	{ id: "modern-minimal", label: "Modern Minimal" },

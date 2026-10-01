@@ -29,7 +29,7 @@ import type {
 	PullProgress,
 } from "#/features/library/library.types";
 import { useDebouncedValue } from "#/hooks/use-debounced-value";
-import { GIB, round1 } from "#/lib/format";
+import { GIB, roundToTenth } from "#/lib/format";
 
 /** Models per catalog page. */
 export const CATALOG_PAGE_SIZE = 24;
@@ -51,7 +51,8 @@ function sortableRow(row: ModelRow): SortableModel {
 		displayName: catalog?.displayName ?? row.name,
 		paramB: catalog?.paramB ?? installed?.paramB ?? null,
 		sizeGb:
-			catalog?.sizeGb ?? (installed?.sizeBytes != null ? round1(installed.sizeBytes / GIB) : null),
+			catalog?.sizeGb ??
+			(installed?.sizeBytes != null ? roundToTenth(installed.sizeBytes / GIB) : null),
 		pullCount: catalog?.pullCount ?? 0,
 		likes: catalog?.likes ?? 0,
 		updatedAt: catalog?.updatedAt,

@@ -1,6 +1,7 @@
 import { requestRunCancel, uiMessageToModelMessages } from "@tanstack/ai";
 import { buildFirstUserMessage, deriveConversationTitle } from "#/features/chat/lib/messages";
 import { prisma } from "#/lib/db.server";
+import { MS_PER_SECOND } from "#/lib/format";
 import { listModels } from "#/lib/llamacpp/client.server";
 import { chatPersistence, findRunThreadId } from "./persistence.server";
 
@@ -219,7 +220,10 @@ export async function probeModelRunState({
 	});
 	if (!conversation?.model || conversation.endpoint?.provider !== "llamacpp") return "ready";
 	try {
-		const models = await listModels({ url: conversation.endpoint.url, timeoutMs: 3_000 });
+		const models = await listModels({
+			url: conversation.endpoint.url,
+			timeoutMs: 3 * MS_PER_SECOND,
+		});
 		const found = models.find((m) => m.id === conversation.model);
 		return found?.status.value === "loading" ? "warming" : "ready";
 	} catch (error) {

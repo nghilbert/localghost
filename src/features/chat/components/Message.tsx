@@ -4,7 +4,7 @@ import { tv } from "tailwind-variants";
 
 /*
  * `Message` writes `align` as `data-align`; the parts inside read it back with
- * the `in-align-end` variant from `base.css`.
+ * the `in-align-end` variant from `variants.css`.
  */
 const messageVariants = tv({
 	slots: {

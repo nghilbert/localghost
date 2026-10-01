@@ -1,4 +1,5 @@
 import { queryOptions } from "@tanstack/react-query";
+import { MS_PER_MINUTE, MS_PER_SECOND } from "#/lib/format";
 import type { ModelSelection } from "#/lib/llm-schemas";
 import {
 	checkEndpointHealth,
@@ -19,18 +20,18 @@ export const endpointQueries = {
 		queryOptions({
 			queryKey: [...endpointQueries.all(), "models", endpointId],
 			queryFn: () => listEndpointModels({ data: { endpointId } }),
-			staleTime: 30_000,
+			staleTime: 30 * MS_PER_SECOND,
 		}),
 	health: (endpointId: string) =>
 		queryOptions({
 			queryKey: [...endpointQueries.all(), "health", endpointId],
 			queryFn: () => checkEndpointHealth({ data: { id: endpointId } }),
-			staleTime: 5 * 60_000,
+			staleTime: 5 * MS_PER_MINUTE,
 		}),
 	capabilities: ({ endpointId, model }: ModelSelection) =>
 		queryOptions({
 			queryKey: [...endpointQueries.all(), "capabilities", endpointId, model],
 			queryFn: () => getModelCapabilities({ data: { endpointId, model } }),
-			staleTime: 5 * 60_000,
+			staleTime: 5 * MS_PER_MINUTE,
 		}),
 };

@@ -81,14 +81,14 @@ Code with no domain lives in `src/components/`, `src/hooks/` and `src/lib/`.
 - In a slot recipe an empty variant value is `{}`, never `""`: a string there drops the slot classes a recipe that extends it adds for the same key. When extending a recipe, turn off any parent default the child does not use (`size: undefined`).
 - Axes (from Joy UI): `color` (`primary | neutral | danger`), `variant` (`solid | soft | outlined | quiet`), `size` (`sm | md | lg`). Narrow per component with `ActionVariants<...>`.
 - Shared class sets live in `ui/variants/`; everything else is a private const in its module.
-- Style state with `data-*` variants; value attributes (`data-side`, `data-orientation`) get a `@custom-variant` in `styles/base.css`. Animate with `data-starting-style` / `data-ending-style` transitions, not keyframe utilities.
+- Style state with `data-*` variants; value attributes (`data-side`, `data-orientation`) get a `@custom-variant` in `styles/variants.css`. Animate with `data-starting-style` / `data-ending-style` transitions, not keyframe utilities.
 - **Components own their styling**: an ad-hoc surface is a `<Card>`, not a styled `<div>`. `className` is for layout the component cannot do itself.
 - **Layout-agnostic components** never set their own width, margins, or outer placement; the parent owns the space. A second element that needs its own classes gets a distinctly named prop (`groupClassName`).
 - Gotcha: `InputGroup` greys the whole group when any descendant is `disabled`. For a control blocked by fixable state use `aria-disabled`; a disabled control that needs a tooltip needs a span `render` trigger.
 
 ## Styling and theme
 
-- Tailwind v4, `src/styles/globals.css` is the single entry. Colors are authored only in `styles/tokens.css` (`--bg --fg --surface --line --primary --danger --success --warning --radius`) with `light-dark()`; everything else is derived with `color-mix()`. Never hardcode a color.
+- Tailwind v4, `src/styles/index.css` is the single entry. Colors are authored only in `styles/tokens.css` (`--bg --fg --surface --line --primary --danger --success --warning --radius`) with `light-dark()`; everything else is derived with `color-mix()`. Never hardcode a color.
 - Mode is `.light` / `.dark` plus `color-scheme`; a preset is `[data-theme="<id>"]` in `styles/themes/`, restating only authored values. The provider is `lib/theme/theme-provider.tsx`.
 
 ## React
