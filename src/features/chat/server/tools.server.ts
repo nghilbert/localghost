@@ -27,7 +27,7 @@ function readUrlTool(): AnyServerTool {
 			"Fetch a web page and return its main content as clean text. " +
 			"Use after web_search to read a result in full.",
 		inputSchema: readUrlArgsSchema,
-	}).server(async ({ url }) => readUrl(url));
+	}).server(async ({ url }, context) => readUrl(url, context?.abortSignal));
 }
 
 /**

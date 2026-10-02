@@ -55,6 +55,14 @@ describe("readUrl", () => {
 		expect(result).toContain("boom");
 	});
 
+	it("aborts the fetch when the caller's signal aborts", async () => {
+		fetchMock.mockResolvedValue(mockResponse({ ok: false, status: 404 }));
+		const controller = new AbortController();
+		controller.abort();
+		await readUrl("https://example.com", controller.signal);
+		expect(fetchMock.mock.calls[0]?.[1]?.signal.aborted).toBe(true);
+	});
+
 	it("rejects a private literal IP without fetching", async () => {
 		const result = await readUrl("http://127.0.0.1/admin");
 		expect(result).toBe("Refusing to fetch a local or private network address.");

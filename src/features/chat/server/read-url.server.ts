@@ -15,7 +15,9 @@ const MAX_CHARS = 8000;
 const MAX_REDIRECTS = 5;
 
 /** Follows redirects one at a time, checking each target with {@link assertPublicUrl}. */
-async function fetchFollowingSafeRedirects(input: string) {
+async function fetchFollowingSafeRedirects(input: string, signal?: AbortSignal) {
+	const timeoutSignal = AbortSignal.timeout(15 * MS_PER_SECOND);
+	const fetchSignal = signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal;
 	let target = input;
 	for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
 		const url = assertPublicUrl(target);
@@ -23,7 +25,7 @@ async function fetchFollowingSafeRedirects(input: string) {
 			dispatcher: publicOnlyDispatcher,
 			headers: { "User-Agent": "Mozilla/5.0 (compatible; localghost/1.0)" },
 			redirect: "manual",
-			signal: AbortSignal.timeout(15 * MS_PER_SECOND),
+			signal: fetchSignal,
 		});
 		const location = res.headers.get("location");
 		if (res.status < 300 || res.status >= 400 || !location) return res;
@@ -41,9 +43,9 @@ function findUnsafeUrlError(err: unknown): UnsafeUrlError | undefined {
 }
 
 /** Fetches a web page as Markdown, with navigation and boilerplate removed. Errors come back as text for the model. */
-export async function readUrl(url: string): Promise<string> {
+export async function readUrl(url: string, signal?: AbortSignal): Promise<string> {
 	try {
-		const res = await fetchFollowingSafeRedirects(url);
+		const res = await fetchFollowingSafeRedirects(url, signal);
 		if (!res.ok) return `Failed to fetch page: HTTP ${res.status}`;
 
 		const { document } = parseHTML(await res.text());
