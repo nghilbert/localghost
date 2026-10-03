@@ -6,10 +6,11 @@ import { textVariants } from "#/components/ui/variants/text";
 const emptyVariants = tv({
 	extend: textVariants,
 	slots: {
-		root: "flex w-full min-w-0 flex-1 flex-col items-center justify-center gap-4 p-6 text-center text-balance",
+		root: "flex w-full min-w-0 flex-1 flex-col items-center justify-center gap-4 p-6 text-center",
+		title: "text-balance",
 		media:
 			"mb-2 flex size-10 items-center justify-center rounded-md bg-muted text-fg [--icon-size:--spacing(5)]",
-		description: "max-w-sm text-sm/relaxed",
+		description: "max-w-sm text-sm/relaxed text-balance",
 		actions: "flex flex-wrap items-center justify-center gap-2",
 	},
 });
