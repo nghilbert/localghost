@@ -1,16 +1,10 @@
 import type { AnyServerTool } from "@tanstack/ai";
-import { toolDefinition } from "@tanstack/ai";
-import { readUrl, readUrlArgsSchema } from "#/features/chat/server/read-url.server";
-import { webSearch, webSearchArgsSchema } from "#/features/chat/server/web-search.server";
+import { readUrlToolDef, webSearchToolDef } from "#/features/chat/chat.schemas";
+import { readUrl } from "#/features/chat/server/read-url.server";
+import { webSearch } from "#/features/chat/server/web-search.server";
 
 function webSearchTool(): AnyServerTool {
-	return toolDefinition({
-		name: "web_search",
-		description:
-			"Search the web for external or current information. Add `time_range` only when the user " +
-			"explicitly needs results from the last day, month, or year.",
-		inputSchema: webSearchArgsSchema,
-	}).server(async ({ query, time_range }, context) => {
+	return webSearchToolDef.server(async ({ query, time_range }, context) => {
 		return webSearch({
 			query,
 			limit: 5,
@@ -21,13 +15,7 @@ function webSearchTool(): AnyServerTool {
 }
 
 function readUrlTool(): AnyServerTool {
-	return toolDefinition({
-		name: "read_url",
-		description:
-			"Fetch a web page and return its main content as clean text. " +
-			"Use after web_search to read a result in full.",
-		inputSchema: readUrlArgsSchema,
-	}).server(async ({ url }, context) => readUrl(url, context?.abortSignal));
+	return readUrlToolDef.server(async ({ url }, context) => readUrl(url, context?.abortSignal));
 }
 
 /**

@@ -1,8 +1,11 @@
 import type { AnyServerTool } from "@tanstack/ai";
-import { toolDefinition } from "@tanstack/ai";
 import type { MemoryAdapter, MemoryFact, MemoryScope, RecallResult } from "@tanstack/ai-memory";
-import { deleteMemoryToolDef } from "#/features/memory/memory.schemas";
-import { manageMemory, manageMemoryToolArgsSchema } from "./manage-memory.server";
+import {
+	deleteMemoryToolDef,
+	manageMemoryToolArgsSchema,
+	manageMemoryToolDef,
+} from "#/features/memory/memory.schemas";
+import { manageMemory } from "./manage-memory.server";
 import { findMemories, recallMemories } from "./memory.server";
 
 const TOOL_GUIDANCE =
@@ -15,18 +18,8 @@ function requireUserId(scope: MemoryScope): string {
 }
 
 function manageMemoryTool(ownerId: string): AnyServerTool {
-	return toolDefinition({
-		name: "manage_memory",
-		description:
-			"Persistent long-term memory about the user. " +
-			"Use search to recall saved context when the user refers to something from a past " +
-			"conversation or asks what you remember. Use add ONLY when the user shares a durable fact " +
-			"worth remembering across sessions (a stable preference, personal detail, ongoing project, " +
-			"or an explicit 'remember this'). Never save trivial or ephemeral conversation details. " +
-			"Use list or search to find a memory's id; to remove one, call delete_memory with that id.",
-		inputSchema: manageMemoryToolArgsSchema,
-		// The handler's args are typed from the schema's input, where the coerced `limit` is unknown.
-	}).server(async (args) =>
+	// The handler's args are typed from the schema's input, where the coerced `limit` is unknown.
+	return manageMemoryToolDef.server(async (args) =>
 		manageMemory({ args: manageMemoryToolArgsSchema.parse(args), ownerId }),
 	);
 }

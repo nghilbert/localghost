@@ -1,14 +1,8 @@
 import { Defuddle } from "defuddle/node";
 import { parseHTML } from "linkedom";
 import { fetch } from "undici";
-import { z } from "zod";
 import { MS_PER_SECOND } from "#/lib/format";
 import { assertPublicUrl, publicOnlyDispatcher, UnsafeUrlError } from "#/lib/ssrf-guard.server";
-
-/** The `read_url` tool's arguments. */
-export const readUrlArgsSchema = z.object({
-	url: z.string(),
-});
 
 /** Caps the page text so one read can't fill the model's context. */
 const MAX_CHARS = 8000;
