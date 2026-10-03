@@ -213,7 +213,7 @@ export async function patchConversation({
 /** Whether a conversation's model can answer now. */
 type ModelRunState = "warming" | "ready" | "unreachable";
 
-/** Whether a llama.cpp model is still loading. Other providers are always ready. */
+/** Whether a llama.cpp model is loading or about to. Other providers are always ready. */
 export async function probeModelRunState({
 	id,
 	ownerId,
@@ -232,7 +232,8 @@ export async function probeModelRunState({
 			timeoutMs: 3 * MS_PER_SECOND,
 		});
 		const found = models.find((m) => m.id === conversation.model);
-		return found?.status.value === "loading" ? "warming" : "ready";
+		// The router loads a model on its first request, so an unloaded one is about to load.
+		return found && found.status.value !== "loaded" ? "warming" : "ready";
 	} catch (error) {
 		log.warn(
 			{
