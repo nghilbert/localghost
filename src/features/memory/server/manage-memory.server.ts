@@ -1,20 +1,6 @@
-import { z } from "zod";
+import type { z } from "zod";
+import type { manageMemoryArgsSchema } from "#/features/memory/memory.schemas";
 import { findMemories, recallMemories, removeMemory, saveMemory } from "./memory.server";
-
-/** Every memory action with its arguments. */
-const manageMemoryArgsSchema = z.object({
-	action: z.enum(["add", "search", "list", "delete"]),
-	text: z.string().optional(),
-	query: z.string().optional(),
-	id: z.uuid().optional(),
-	category: z.string().optional(),
-	limit: z.coerce.number().optional(),
-});
-
-/** The `manage_memory` tool's arguments. Deletion goes through `delete_memory`, which needs approval. */
-export const manageMemoryToolArgsSchema = manageMemoryArgsSchema.omit({ id: true }).extend({
-	action: z.enum(["add", "search", "list"]),
-});
 
 type ManageMemoryArgs = z.infer<typeof manageMemoryArgsSchema>;
 

@@ -1,13 +1,15 @@
 import type { UIMessage } from "@tanstack/ai-client";
 import { describe, expect, it, vi } from "vitest";
+import { ACTIVITY_STATUS } from "#/features/chat/components/activity-status";
+import type { ChatUIMessage } from "#/features/chat/lib/chat-tools";
 import { render } from "#/test/utils";
 import { ChatMessage } from ".";
 
-function userMessage(content: string): UIMessage {
+function userMessage(content: string): ChatUIMessage {
 	return { id: "u1", role: "user", parts: [{ type: "text", content }] };
 }
 
-function assistantMessage(content: string): UIMessage {
+function assistantMessage(content: string): ChatUIMessage {
 	return { id: "a1", role: "assistant", parts: [{ type: "text", content }] };
 }
 
@@ -120,7 +122,7 @@ describe("ChatMessage", () => {
 
 	describe("tool calls", () => {
 		it("renders a completed call with a friendly label", async () => {
-			const message: UIMessage = {
+			const message: ChatUIMessage = {
 				id: "a1",
 				role: "assistant",
 				parts: [
@@ -134,8 +136,109 @@ describe("ChatMessage", () => {
 			await expect.element(screen.getByText("Searched the web")).toBeInTheDocument();
 		});
 
-		it("shows a running indicator for an in-flight tool call while streaming", async () => {
+		it("says the model is choosing while it writes the call", async () => {
+			const message: ChatUIMessage = {
+				id: "a1",
+				role: "assistant",
+				parts: [
+					{
+						type: "tool-call",
+						id: "c1",
+						name: "read_url",
+						arguments: '{"url": "https://exa',
+						state: "input-streaming",
+					},
+				],
+			};
+
+			const screen = await render(<ChatMessage message={message} isStreaming />);
+
+			await expect.element(screen.getByRole("status")).toHaveTextContent("Choosing a page to open");
+		});
+
+		it("says a call cut off by Stop was stopped, not done", async () => {
+			const message: ChatUIMessage = {
+				id: "a1",
+				role: "assistant",
+				parts: [
+					{
+						type: "tool-call",
+						id: "c1",
+						name: "read_url",
+						arguments: '{"url":"https://example.com/jobs"}',
+						input: { url: "https://example.com/jobs" },
+						state: "input-complete",
+					},
+				],
+			};
+
+			const screen = await render(<ChatMessage message={message} />);
+
+			await expect
+				.element(screen.getByText("Stopped while opening example.com/jobs"))
+				.toBeInTheDocument();
+		});
+
+		it("names the page read from its title", async () => {
+			const message: ChatUIMessage = {
+				id: "a1",
+				role: "assistant",
+				parts: [
+					{
+						type: "tool-call",
+						id: "c1",
+						name: "read_url",
+						arguments: '{"url":"https://example.com/jobs"}',
+						input: { url: "https://example.com/jobs" },
+						state: "input-complete",
+						output: "# Job Outlook\n\nHiring is up.",
+					},
+				],
+			};
+
+			const screen = await render(<ChatMessage message={message} />);
+
+			await expect.element(screen.getByText('Read "Job Outlook"')).toBeInTheDocument();
+		});
+
+		it("says the model is reading a page it just opened", async () => {
+			const message: ChatUIMessage = {
+				id: "a1",
+				role: "assistant",
+				parts: [
+					{
+						type: "tool-call",
+						id: "c1",
+						name: "read_url",
+						arguments: "{}",
+						state: "input-complete",
+						output: "# Job Outlook\n\nHiring is up.",
+					},
+				],
+			};
+
+			const screen = await render(<ChatMessage message={message} isStreaming />);
+
+			await expect.element(screen.getByRole("status")).toHaveTextContent("Reading the page");
+		});
+
+		it("labels a tool the app doesn't define by its name", async () => {
+			// Untyped, since the model can call a tool outside the typed set.
 			const message: UIMessage = {
+				id: "a1",
+				role: "assistant",
+				parts: [
+					{ type: "tool-call", id: "c1", name: "do_a_thing", arguments: "{}", state: "complete" },
+				],
+			};
+
+			const screen = await render(<ChatMessage message={message} />);
+
+			await expect.element(screen.getByText("Ran do_a_thing")).toBeInTheDocument();
+		});
+
+		it("shows a running indicator for an in-flight tool call while streaming", async () => {
+			const message: ChatUIMessage = {
 				id: "a1",
 				role: "assistant",
 				parts: [
@@ -155,7 +258,7 @@ describe("ChatMessage", () => {
 		});
 
 		it("says a denied call was denied instead of done", async () => {
-			const message: UIMessage = {
+			const message: ChatUIMessage = {
 				id: "a1",
 				role: "assistant",
 				parts: [
@@ -178,12 +281,14 @@ describe("ChatMessage", () => {
 
 			const screen = await render(<ChatMessage message={message} />);
 
-			await expect.element(screen.getByText("Memory deletion denied")).toBeInTheDocument();
+			await expect
+				.element(screen.getByText("You chose to keep the memory, so it wasn't deleted"))
+				.toBeInTheDocument();
 			await expect.element(screen.getByText("Deleted a memory")).not.toBeInTheDocument();
 		});
 
 		it("shows a failed call's error on click", async () => {
-			const message: UIMessage = {
+			const message: ChatUIMessage = {
 				id: "a1",
 				role: "assistant",
 				parts: [
@@ -199,7 +304,7 @@ describe("ChatMessage", () => {
 			};
 
 			const screen = await render(<ChatMessage message={message} />);
-			await screen.getByRole("button", { name: "Web search failed" }).click();
+			await screen.getByRole("button", { name: "Couldn't search the web" }).click();
 
 			await expect.element(screen.getByText("SearXNG is unreachable")).toBeInTheDocument();
 		});
@@ -207,7 +312,7 @@ describe("ChatMessage", () => {
 
 	describe("turn duration", () => {
 		it("shows how long the run took from its timings", async () => {
-			const message: UIMessage = {
+			const message: ChatUIMessage = {
 				...assistantMessage("answer"),
 				metadata: { tanstack: { run: { id: "r1", startedAt: 0, finishedAt: 72_000 } } },
 			};
@@ -222,10 +327,29 @@ describe("ChatMessage", () => {
 
 			await expect.element(screen.getByText(/Worked for/)).not.toBeInTheDocument();
 		});
+
+		it("says a stopped reply was stopped", async () => {
+			const message: ChatUIMessage = {
+				...assistantMessage("partial"),
+				metadata: { tanstack: { run: { id: "r1", startedAt: 0, finishedAt: 9_000 } } },
+			};
+
+			const screen = await render(<ChatMessage message={message} stopped />);
+
+			await expect.element(screen.getByText("Stopped after 9s")).toBeInTheDocument();
+		});
+
+		it("says so for a reply stopped before any answer", async () => {
+			const message: ChatUIMessage = { id: "a1", role: "assistant", parts: [] };
+
+			const screen = await render(<ChatMessage message={message} stopped />);
+
+			await expect.element(screen.getByText("Stopped")).toBeInTheDocument();
+		});
 	});
 
 	describe("reasoning", () => {
-		const message: UIMessage = {
+		const message: ChatUIMessage = {
 			id: "a1",
 			role: "assistant",
 			parts: [
@@ -253,7 +377,7 @@ describe("ChatMessage", () => {
 	});
 
 	describe("answer written into reasoning", () => {
-		const message: UIMessage = {
+		const message: ChatUIMessage = {
 			id: "a1",
 			role: "assistant",
 			parts: [
@@ -293,7 +417,7 @@ describe("ChatMessage", () => {
 
 	describe("tool call output", () => {
 		it("reveals the tool output on click and collapses again on a second click", async () => {
-			const message: UIMessage = {
+			const message: ChatUIMessage = {
 				id: "a1",
 				role: "assistant",
 				parts: [
@@ -321,7 +445,7 @@ describe("ChatMessage", () => {
 
 	describe("activity trail ordering", () => {
 		it("renders interleaved reasoning and tool steps in document order", async () => {
-			const message: UIMessage = {
+			const message: ChatUIMessage = {
 				id: "a1",
 				role: "assistant",
 				parts: [
@@ -351,14 +475,24 @@ describe("ChatMessage", () => {
 	});
 
 	describe("pending head label", () => {
-		it("shows the pending label instead of 'Thinking' while the local model loads", async () => {
-			const message: UIMessage = { id: "a1", role: "assistant", parts: [] };
+		it("says the model is reading the message before its first output", async () => {
+			const message: ChatUIMessage = { id: "a1", role: "assistant", parts: [] };
+
+			const screen = await render(<ChatMessage message={message} isStreaming />);
+
+			await expect.element(screen.getByRole("status")).toHaveTextContent("Reading your message");
+		});
+
+		it("shows the pending label while the local model loads", async () => {
+			const message: ChatUIMessage = { id: "a1", role: "assistant", parts: [] };
 
 			const screen = await render(
-				<ChatMessage message={message} isStreaming pendingLabel="Warming up the model" />,
+				<ChatMessage message={message} isStreaming pendingStatus={ACTIVITY_STATUS.loadingModel} />,
 			);
 
-			await expect.element(screen.getByRole("status")).toHaveTextContent("Warming up the model");
+			await expect
+				.element(screen.getByRole("status"))
+				.toHaveTextContent("Loading the model into memory");
 		});
 	});
 });

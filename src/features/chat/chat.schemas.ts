@@ -1,3 +1,4 @@
+import { toolDefinition } from "@tanstack/ai";
 import { z } from "zod";
 import { modelSelectionSchema } from "#/lib/llm-schemas";
 
@@ -51,3 +52,35 @@ export const chatThreadIdSchema = z.uuid();
 
 /** A run id from `chat()`. */
 export const chatRunIdSchema = z.string().min(1).max(200);
+
+/** The `web_search` tool's arguments. */
+export const webSearchArgsSchema = z.object({
+	query: z
+		.string()
+		.trim()
+		.min(1)
+		.describe("Short, plain search terms. Supports operators such as site:example.com."),
+	time_range: z
+		.enum(["day", "month", "year"])
+		.optional()
+		.catch(undefined)
+		.describe("Use only when the user explicitly needs results from the last day, month, or year."),
+});
+
+/** The `web_search` tool definition. The server adds its handler. */
+export const webSearchToolDef = toolDefinition({
+	name: "web_search",
+	description:
+		"Search the web for external or current information. Add `time_range` only when the user " +
+		"explicitly needs results from the last day, month, or year.",
+	inputSchema: webSearchArgsSchema,
+});
+
+/** The `read_url` tool definition. The server adds its handler. */
+export const readUrlToolDef = toolDefinition({
+	name: "read_url",
+	description:
+		"Fetch a web page and return its main content as clean text. " +
+		"Use after web_search to read a result in full.",
+	inputSchema: z.object({ url: z.string() }),
+});

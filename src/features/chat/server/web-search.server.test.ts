@@ -1,9 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import {
-	type SearxngResponse,
-	webSearch,
-	webSearchArgsSchema,
-} from "#/features/chat/server/web-search.server";
+import { webSearchArgsSchema } from "#/features/chat/chat.schemas";
+import { type SearxngResponse, webSearch } from "#/features/chat/server/web-search.server";
 
 type FetchMock = ReturnType<typeof vi.fn>;
 

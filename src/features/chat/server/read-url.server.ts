@@ -1,21 +1,17 @@
 import { Defuddle } from "defuddle/node";
 import { parseHTML } from "linkedom";
 import { fetch } from "undici";
-import { z } from "zod";
 import { MS_PER_SECOND } from "#/lib/format";
 import { assertPublicUrl, publicOnlyDispatcher, UnsafeUrlError } from "#/lib/ssrf-guard.server";
-
-/** The `read_url` tool's arguments. */
-export const readUrlArgsSchema = z.object({
-	url: z.string(),
-});
 
 /** Caps the page text so one read can't fill the model's context. */
 const MAX_CHARS = 8000;
 const MAX_REDIRECTS = 5;
 
 /** Follows redirects one at a time, checking each target with {@link assertPublicUrl}. */
-async function fetchFollowingSafeRedirects(input: string) {
+async function fetchFollowingSafeRedirects(input: string, signal?: AbortSignal) {
+	const timeoutSignal = AbortSignal.timeout(15 * MS_PER_SECOND);
+	const fetchSignal = signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal;
 	let target = input;
 	for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
 		const url = assertPublicUrl(target);
@@ -23,7 +19,7 @@ async function fetchFollowingSafeRedirects(input: string) {
 			dispatcher: publicOnlyDispatcher,
 			headers: { "User-Agent": "Mozilla/5.0 (compatible; localghost/1.0)" },
 			redirect: "manual",
-			signal: AbortSignal.timeout(15 * MS_PER_SECOND),
+			signal: fetchSignal,
 		});
 		const location = res.headers.get("location");
 		if (res.status < 300 || res.status >= 400 || !location) return res;
@@ -40,11 +36,14 @@ function findUnsafeUrlError(err: unknown): UnsafeUrlError | undefined {
 	return undefined;
 }
 
-/** Fetches a web page as Markdown, with navigation and boilerplate removed. Errors come back as text for the model. */
-export async function readUrl(url: string): Promise<string> {
+/**
+ * Fetches a web page as Markdown, with navigation and boilerplate removed.
+ * @throws When the page can't be fetched, with a message the model can act on.
+ */
+export async function readUrl(url: string, signal?: AbortSignal): Promise<string> {
 	try {
-		const res = await fetchFollowingSafeRedirects(url);
-		if (!res.ok) return `Failed to fetch page: HTTP ${res.status}`;
+		const res = await fetchFollowingSafeRedirects(url, signal);
+		if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
 		const { document } = parseHTML(await res.text());
 		const { title, content } = await Defuddle(document, url, { markdown: true });
@@ -53,8 +52,11 @@ export async function readUrl(url: string): Promise<string> {
 		if (!body) return "No readable content found at that URL.";
 		return `# ${title ?? url}\n\n${body}`.slice(0, MAX_CHARS);
 	} catch (err) {
-		const unsafe = findUnsafeUrlError(err);
-		if (unsafe) return unsafe.message;
-		return `Failed to read page: ${err instanceof Error ? err.message : "Unknown error"}`;
+		throw (
+			findUnsafeUrlError(err) ??
+			new Error(`Failed to read page: ${err instanceof Error ? err.message : "Unknown error"}`, {
+				cause: err,
+			})
+		);
 	}
 }

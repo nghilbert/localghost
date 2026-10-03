@@ -99,7 +99,7 @@ describe("probeModelRunState", () => {
 		expect(await probeModelRunState({ id: conversation.id, ownerId: user.id })).toBe("ready");
 	});
 
-	it("reports ready when the model is unloaded (the router autoloads on request)", async () => {
+	it("reports warming when the model is unloaded, since the request loads it", async () => {
 		const user = await createUser();
 		const endpoint = await createEndpoint({
 			ownerId: user.id,
@@ -115,7 +115,7 @@ describe("probeModelRunState", () => {
 			{ id: "org/llama3-GGUF:Q4_K_M", path: "/models/x.gguf", status: { value: "unloaded" } },
 		]);
 
-		expect(await probeModelRunState({ id: conversation.id, ownerId: user.id })).toBe("ready");
+		expect(await probeModelRunState({ id: conversation.id, ownerId: user.id })).toBe("warming");
 	});
 
 	it("reports warming when the model is loading", async () => {

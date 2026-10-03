@@ -1,17 +1,22 @@
-import type { UIMessage } from "@tanstack/ai-client";
 import { ActivityMarker } from "#/features/chat/components/ActivityMarker";
-import { SpinningBulbIcon } from "#/features/chat/components/BulbIcons";
+import { ACTIVITY_STATUS, type ActivityStatus } from "#/features/chat/components/activity-status";
 import { useElapsedSeconds } from "#/features/chat/hooks/use-elapsed-seconds";
-import type { ChatInterrupts } from "#/features/chat/lib/chat-tools";
+import type {
+	ChatInterrupts,
+	ChatToolCall,
+	ChatToolResult,
+	ChatUIMessage,
+} from "#/features/chat/lib/chat-tools";
+import { isPending, toolPhase } from "#/features/chat/lib/tool-phase";
 import { ReasoningStep } from "./ReasoningStep";
-import { type ToolApprovalInterrupt, ToolCallStep, type ToolResult } from "./ToolCallStep";
+import { type ToolApprovalInterrupt, ToolCallStep } from "./ToolCallStep";
 
 type ActivityTrailProps = {
 	/** The reply's parts before its answer. */
-	parts: UIMessage["parts"];
+	parts: ChatUIMessage["parts"];
 	isStreaming?: boolean;
-	/** Replaces the "Thinking" label, e.g. while the model loads. */
-	pendingLabel?: string;
+	/** Replaces the head row's status, e.g. while the model loads. */
+	pendingStatus?: ActivityStatus;
 	/** Pending approvals for this message's tool calls. */
 	interrupts?: ChatInterrupts;
 };
@@ -25,23 +30,61 @@ const trailClassName = [
 ].join(" ");
 
 /**
- * An assistant message's reasoning and tool steps in order, ending in a live "Thinking"
- * row while the model works between steps. The answer text is rendered by the caller.
+ * What the model is doing between steps: reading the user's message before its first
+ * output, reading the results of the tools it just called, or thinking.
+ */
+function waitingStatus(parts: ChatUIMessage["parts"]): ActivityStatus {
+	if (parts.length === 0) return ACTIVITY_STATUS.readingMessage;
+	const trailing: string[] = [];
+	for (const part of parts.toReversed()) {
+		if (part.type === "tool-result" || (part.type === "text" && !part.content)) continue;
+		if (part.type !== "tool-call") break;
+		trailing.push(part.name);
+	}
+	if (trailing.length === 0) return ACTIVITY_STATUS.thinking;
+	if (trailing.every((name) => name === "read_url")) {
+		return trailing.length > 1 ? ACTIVITY_STATUS.readingPages : ACTIVITY_STATUS.readingPage;
+	}
+	if (trailing.every((name) => name === "web_search")) return ACTIVITY_STATUS.readingSearchResults;
+	return ACTIVITY_STATUS.readingResults;
+}
+
+/**
+ * An assistant message's reasoning and tool steps in order, ending in a live row that says
+ * what the model is doing while it works between steps. The answer text is rendered by the
+ * caller.
  */
 export function ActivityTrail({
 	parts,
 	isStreaming,
-	pendingLabel,
+	pendingStatus,
 	interrupts,
 }: ActivityTrailProps) {
 	const lastPart = parts.at(-1);
-	// A running step shows its own spinner, so the "Thinking" row stays hidden.
-	const tailActive =
+	const toolCalls = parts
+		.filter((part): part is ChatToolCall => part.type === "tool-call")
+		.map((call) => {
+			const result = parts.find(
+				(part): part is ChatToolResult =>
+					part.type === "tool-result" && part.toolCallId === call.id,
+			);
+			const interrupt = interrupts?.find(
+				(candidate): candidate is ToolApprovalInterrupt =>
+					candidate.kind === "tool-approval" && candidate.toolCallId === call.id,
+			);
+			const pending =
+				Boolean(interrupt) || isPending(toolPhase(call, result, Boolean(isStreaming)));
+			return { call, result, interrupt, pending };
+		});
+	// A running step shows its own spinner, so the head row stays hidden. Tools can run in
+	// parallel, so any of them may still be running.
+	const stepActive =
 		lastPart?.type === "thinking" ||
-		(lastPart?.type === "tool-call" && lastPart.output === undefined) ||
-		(lastPart?.type === "text" && lastPart.content.length > 0);
-	const showHead = Boolean(isStreaming) && !tailActive;
+		(lastPart?.type === "text" && lastPart.content.length > 0) ||
+		toolCalls.some(({ pending }) => pending);
+	const showHead = Boolean(isStreaming) && !stepActive;
 	const headSeconds = useElapsedSeconds(showHead);
+	const head = showHead ? (pendingStatus ?? waitingStatus(parts)) : null;
 
 	const steps = parts.flatMap((part, idx) => {
 		if (part.type === "thinking") {
@@ -54,26 +97,17 @@ export function ActivityTrail({
 				/>,
 			];
 		}
-		if (part.type === "tool-call") {
-			const interrupt = interrupts?.find(
-				(candidate): candidate is ToolApprovalInterrupt =>
-					candidate.kind === "tool-approval" && candidate.toolCallId === part.id,
-			);
-			const result = parts.find(
-				(candidate): candidate is ToolResult =>
-					candidate.type === "tool-result" && candidate.toolCallId === part.id,
-			);
-			return [
-				<ToolCallStep
-					key={part.id}
-					toolCall={part}
-					result={result}
-					isStreaming={isStreaming}
-					interrupt={interrupt}
-				/>,
-			];
-		}
-		return [];
+		const tool = toolCalls.find(({ call }) => call === part);
+		if (!tool) return [];
+		return [
+			<ToolCallStep
+				key={tool.call.id}
+				toolCall={tool.call}
+				result={tool.result}
+				isStreaming={isStreaming}
+				interrupt={tool.interrupt}
+			/>,
+		];
 	});
 
 	if (steps.length === 0 && !showHead) return null;
@@ -81,13 +115,7 @@ export function ActivityTrail({
 	return (
 		<div className={trailClassName}>
 			{steps}
-			{showHead && (
-				<ActivityMarker
-					label={pendingLabel ?? "Thinking"}
-					icon={<SpinningBulbIcon />}
-					seconds={headSeconds}
-				/>
-			)}
+			{head && <ActivityMarker label={head.label} icon={<head.icon />} seconds={headSeconds} />}
 		</div>
 	);
 }

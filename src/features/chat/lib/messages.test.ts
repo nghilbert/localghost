@@ -12,6 +12,7 @@ import {
 	reviveMessageDates,
 	splitReply,
 	strandedToolCall,
+	turnRunId,
 	turnSeconds,
 } from "./messages";
 
@@ -302,5 +303,17 @@ describe("strandedToolCall", () => {
 		expect(strandedToolCall('{"name": 3, "parameters": {}}')).toBeNull();
 		expect(strandedToolCall('{"name": "x", "parameters": "y"}')).toBeNull();
 		expect(strandedToolCall("{not json}")).toBeNull();
+	});
+});
+
+describe("turnRunId", () => {
+	it("reads the run id from the run metadata", () => {
+		expect(
+			turnRunId({ ...assistantMessage("hi"), metadata: { tanstack: { run: { id: "r1" } } } }),
+		).toBe("r1");
+	});
+
+	it("is null before the run metadata arrives", () => {
+		expect(turnRunId(assistantMessage("hi"))).toBeNull();
 	});
 });

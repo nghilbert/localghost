@@ -1,22 +1,8 @@
 import { z } from "zod";
+import type { webSearchArgsSchema } from "#/features/chat/chat.schemas";
 import { MS_PER_SECOND } from "#/lib/format";
 
 const SEARCH_TIMEOUT_MS = 15 * MS_PER_SECOND;
-
-const timeRangeSchema = z.enum(["day", "month", "year"]);
-
-/** The `web_search` tool's arguments. */
-export const webSearchArgsSchema = z.object({
-	query: z
-		.string()
-		.trim()
-		.min(1)
-		.describe("Short, plain search terms. Supports operators such as site:example.com."),
-	time_range: timeRangeSchema
-		.optional()
-		.catch(undefined)
-		.describe("Use only when the user explicitly needs results from the last day, month, or year."),
-});
 
 const searxResultSchema = z.object({
 	title: z
@@ -44,7 +30,7 @@ const searxResponseSchema = z.object({
 /** A SearXNG JSON search response, as the server sends it. */
 export type SearxngResponse = z.input<typeof searxResponseSchema>;
 
-type SearchTimeRange = z.infer<typeof timeRangeSchema>;
+type SearchTimeRange = z.infer<typeof webSearchArgsSchema>["time_range"];
 type SearXNGSearchResponse = z.infer<typeof searxResponseSchema>;
 
 type WebSearchParams = {
