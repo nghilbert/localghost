@@ -36,11 +36,14 @@ function findUnsafeUrlError(err: unknown): UnsafeUrlError | undefined {
 	return undefined;
 }
 
-/** Fetches a web page as Markdown, with navigation and boilerplate removed. Errors come back as text for the model. */
+/**
+ * Fetches a web page as Markdown, with navigation and boilerplate removed.
+ * @throws When the page can't be fetched, with a message the model can act on.
+ */
 export async function readUrl(url: string, signal?: AbortSignal): Promise<string> {
 	try {
 		const res = await fetchFollowingSafeRedirects(url, signal);
-		if (!res.ok) return `Failed to fetch page: HTTP ${res.status}`;
+		if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
 		const { document } = parseHTML(await res.text());
 		const { title, content } = await Defuddle(document, url, { markdown: true });
@@ -49,8 +52,11 @@ export async function readUrl(url: string, signal?: AbortSignal): Promise<string
 		if (!body) return "No readable content found at that URL.";
 		return `# ${title ?? url}\n\n${body}`.slice(0, MAX_CHARS);
 	} catch (err) {
-		const unsafe = findUnsafeUrlError(err);
-		if (unsafe) return unsafe.message;
-		return `Failed to read page: ${err instanceof Error ? err.message : "Unknown error"}`;
+		throw (
+			findUnsafeUrlError(err) ??
+			new Error(`Failed to read page: ${err instanceof Error ? err.message : "Unknown error"}`, {
+				cause: err,
+			})
+		);
 	}
 }

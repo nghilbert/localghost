@@ -42,30 +42,30 @@ describe("readUrl", () => {
 		expect(result).toContain("second paragraph");
 	});
 
-	it("returns a friendly message on HTTP error", async () => {
+	it("throws with the status on HTTP error", async () => {
 		fetchMock.mockResolvedValue(mockResponse({ ok: false, status: 404 }));
-		const result = await readUrl("https://example.com/missing");
-		expect(result).toBe("Failed to fetch page: HTTP 404");
+		await expect(readUrl("https://example.com/missing")).rejects.toThrow(
+			"Failed to read page: HTTP 404",
+		);
 	});
 
-	it("returns a friendly message when fetch throws", async () => {
+	it("throws with the cause when fetch throws", async () => {
 		fetchMock.mockRejectedValue(new Error("boom"));
-		const result = await readUrl("https://example.com");
-		expect(result).toContain("Failed to read page");
-		expect(result).toContain("boom");
+		await expect(readUrl("https://example.com")).rejects.toThrow("Failed to read page: boom");
 	});
 
 	it("aborts the fetch when the caller's signal aborts", async () => {
 		fetchMock.mockResolvedValue(mockResponse({ ok: false, status: 404 }));
 		const controller = new AbortController();
 		controller.abort();
-		await readUrl("https://example.com", controller.signal);
+		await expect(readUrl("https://example.com", controller.signal)).rejects.toThrow();
 		expect(fetchMock.mock.calls[0]?.[1]?.signal.aborted).toBe(true);
 	});
 
 	it("rejects a private literal IP without fetching", async () => {
-		const result = await readUrl("http://127.0.0.1/admin");
-		expect(result).toBe("Refusing to fetch a local or private network address.");
+		await expect(readUrl("http://127.0.0.1/admin")).rejects.toThrow(
+			"Refusing to fetch a local or private network address.",
+		);
 		expect(fetchMock).not.toHaveBeenCalled();
 	});
 
@@ -73,7 +73,8 @@ describe("readUrl", () => {
 		// undici wraps connect-time errors: the guard's error sits in the cause chain.
 		const unsafe = new UnsafeUrlError("Refusing to fetch a local or private network address.");
 		fetchMock.mockRejectedValue(new TypeError("fetch failed", { cause: unsafe }));
-		const result = await readUrl("https://rebinder.example.com/");
-		expect(result).toBe("Refusing to fetch a local or private network address.");
+		await expect(readUrl("https://rebinder.example.com/")).rejects.toThrow(
+			"Refusing to fetch a local or private network address.",
+		);
 	});
 });
