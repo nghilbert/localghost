@@ -1,56 +1,70 @@
 import { describe, expect, it } from "vitest";
-import { display } from "./ToolCallStep";
+import { pageTitle, toolLabels, urlLabel } from "./ToolCallStep";
 
-describe("display", () => {
-	describe("web_search", () => {
-		it("names the query in both running and done labels", () => {
-			const d = display("web_search");
-			expect(d.running({ query: "otter facts" })).toBe('Searching the web for "otter facts"...');
-			expect(d.done({ query: "otter facts" })).toBe('Searched the web for "otter facts"');
-		});
+const base = { type: "tool-call", id: "c1", arguments: "{}", state: "input-complete" } as const;
 
-		it("falls back to a generic label without a query", () => {
-			const d = display("web_search");
-			expect(d.running({})).toBe("Searching the web...");
-			expect(d.done(null)).toBe("Searched the web");
-		});
+describe("toolLabels", () => {
+	it("names the query for web_search", () => {
+		const labels = toolLabels({ ...base, name: "web_search", input: { query: "otter facts" } }, "");
+		for (const phase of ["running", "done", "failed"] as const) {
+			expect(labels[phase]).toContain('"otter facts"');
+		}
 	});
 
-	describe("read_url", () => {
-		it("shows the host of a valid url", () => {
-			const d = display("read_url");
-			expect(d.running({ url: "https://example.com/a/b" })).toBe("Reading example.com...");
-			expect(d.done({ url: "https://example.com/a/b" })).toBe("Read example.com");
-		});
-
-		it("falls back when the url is missing or malformed", () => {
-			const d = display("read_url");
-			expect(d.running({ url: "not a url" })).toBe("Reading page...");
-			expect(d.done({})).toBe("Read page");
-		});
+	it("falls back without a query", () => {
+		const labels = toolLabels({ ...base, name: "web_search" }, "");
+		expect(labels.running).not.toContain('"');
 	});
 
-	describe("manage_memory", () => {
-		it("labels each action", () => {
-			const d = display("manage_memory");
-			expect(d.running({ action: "add" })).toBe("Saving a memory...");
-			expect(d.done({ action: "add" })).toBe("Saved a memory");
-			expect(d.running({ action: "search" })).toBe("Searching memories...");
-			expect(d.done({ action: "delete" })).toBe("Deleted a memory");
-		});
-
-		it("falls back for an unknown action", () => {
-			const d = display("manage_memory");
-			expect(d.running({ action: "frobnicate" })).toBe("Updating memory...");
-			expect(d.done({})).toBe("Memory");
-		});
+	it("names the page for read_url, and its title once read", () => {
+		const input = { url: "https://www.example.com/a/b/" };
+		expect(toolLabels({ ...base, name: "read_url", input }, "").running).toContain(
+			"example.com/a/b",
+		);
+		expect(toolLabels({ ...base, name: "read_url", input }, "# Otters\n\nText").done).toContain(
+			'"Otters"',
+		);
 	});
 
-	describe("unknown tool", () => {
-		it("echoes the raw tool name", () => {
-			const d = display("do_a_thing");
-			expect(d.running({})).toBe("do_a_thing...");
-			expect(d.done({})).toBe("do_a_thing");
-		});
+	it("labels each memory action differently", () => {
+		const running = (["add", "search", "list"] as const).map(
+			(action) => toolLabels({ ...base, name: "manage_memory", input: { action } }, "").running,
+		);
+		expect(new Set(running).size).toBe(running.length);
+	});
+
+	it("asks for approval only before deleting a memory", () => {
+		expect(
+			toolLabels({ ...base, name: "delete_memory", input: { id: "m1" } }, "").approval,
+		).toBeDefined();
+		expect(toolLabels({ ...base, name: "web_search" }, "").approval).toBeUndefined();
+	});
+});
+
+describe("urlLabel", () => {
+	it("drops www. and a trailing slash", () => {
+		expect(urlLabel("https://www.example.com/")).toBe("example.com");
+	});
+
+	it("cuts a long path", () => {
+		const label = urlLabel(`https://example.com/${"a".repeat(80)}`);
+		expect(label).toHaveLength(40);
+		expect(label?.endsWith("…")).toBe(true);
+	});
+
+	it("is null for a missing or malformed URL", () => {
+		expect(urlLabel(undefined)).toBeNull();
+		expect(urlLabel("not a url")).toBeNull();
+	});
+});
+
+describe("pageTitle", () => {
+	it("reads the first heading", () => {
+		expect(pageTitle("# Job Outlook 2026\n\nBody")).toBe("Job Outlook 2026");
+	});
+
+	it("is null when the heading is only the URL, or there is none", () => {
+		expect(pageTitle("# https://example.com\n\nBody")).toBeNull();
+		expect(pageTitle("No readable content found at that URL.")).toBeNull();
 	});
 });

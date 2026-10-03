@@ -5,15 +5,15 @@ import { Alert } from "#/components/ui/alert";
 import { Button } from "#/components/ui/button";
 import { ButtonLink } from "#/components/ui/button-link";
 import { ActivityMarker } from "#/features/chat/components/ActivityMarker";
-import { SpinningBulbIcon } from "#/features/chat/components/BulbIcons";
+import { ACTIVITY_STATUS, type ActivityStatus } from "#/features/chat/components/activity-status";
 import { useElapsedSeconds } from "#/features/chat/hooks/use-elapsed-seconds";
 import { describeChatError } from "#/features/chat/lib/chat-errors";
 
 type ChatStatusProps = {
 	status: ChatClientState;
 	messages: Array<UIMessage>;
-	/** Replaces the "Thinking" label, e.g. while the model loads. */
-	pendingLabel?: string;
+	/** Replaces the waiting row's status, e.g. while the model loads. */
+	pendingStatus?: ActivityStatus;
 	/** The live run's error, or the last saved run's after a reload. */
 	error: string | undefined;
 	onRetry: () => void;
@@ -54,11 +54,11 @@ function FailureAlert({ message, onRetry }: FailureAlertProps) {
 	);
 }
 
-/** The "Thinking" row before the reply appears, or an error with a retry. */
+/** The live row before the reply appears, or an error with a retry. */
 export function ChatStatus({
 	status,
 	messages,
-	pendingLabel,
+	pendingStatus,
 	error,
 	onRetry,
 	onGenerate,
@@ -68,13 +68,8 @@ export function ChatStatus({
 	const seconds = useElapsedSeconds(awaiting);
 
 	if (awaiting) {
-		return (
-			<ActivityMarker
-				label={pendingLabel ?? "Thinking"}
-				icon={<SpinningBulbIcon />}
-				seconds={seconds}
-			/>
-		);
+		const { label, icon: Icon } = pendingStatus ?? ACTIVITY_STATUS.readingMessage;
+		return <ActivityMarker label={label} icon={<Icon />} seconds={seconds} />;
 	}
 
 	if (status === "error" || (onGenerate && error !== undefined)) {

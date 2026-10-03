@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { chatQueries } from "#/features/chat/chat.queries";
 import type { ConversationDetail } from "#/features/chat/chat.types";
+import { ACTIVITY_STATUS } from "#/features/chat/components/activity-status";
 import { ChatInput } from "#/features/chat/components/ChatInput";
 import { ChatMessage } from "#/features/chat/components/ChatMessage";
 import {
@@ -21,6 +22,7 @@ import {
 	awaitingAssistantResponse,
 	editUserMessage,
 	mergeAssistantTurns,
+	turnRunId,
 } from "#/features/chat/lib/messages";
 import { takeNewChat } from "#/features/chat/lib/new-chat";
 import { MS_PER_SECOND } from "#/lib/format";
@@ -72,18 +74,17 @@ export function ChatThread({ conversation }: ChatThreadProps) {
 	});
 	const isStreaming = isLoading || status === "submitted" || status === "streaming";
 
-	// While a reply is running, poll whether the local model is still loading, to show
-	// "Warming up" instead of "Thinking".
+	// While a reply is running, poll whether the local model is still loading.
 	const { data: runState } = useQuery({
 		...chatQueries.runState(conversation.id),
 		enabled: isStreaming,
 		refetchInterval: (query) => (query.state.data === "ready" ? false : 2 * MS_PER_SECOND),
 	});
-	const pendingLabel =
+	const pendingStatus =
 		runState === "warming"
-			? "Warming up the model"
+			? ACTIVITY_STATUS.loadingModel
 			: runState === "unreachable"
-				? "Waiting for the model server, which isn't responding"
+				? ACTIVITY_STATUS.serverUnreachable
 				: undefined;
 
 	/** Sends, then resets the tool switches, so a change lasts one message. */
@@ -99,12 +100,18 @@ export function ChatThread({ conversation }: ChatThreadProps) {
 	}
 
 	const cancelRun = useCancelChatRun();
+	// Turns stopped in this session, before a reload brings their run ids.
+	const [stoppedTurnIds, setStoppedTurnIds] = useState<ReadonlySet<string>>(new Set());
 
 	/**
 	 * Marks the run cancelled, then disconnects. The server stops a run only when it was
 	 * marked, so a reload keeps it going. Disconnects even if marking fails.
 	 */
 	function handleStop() {
+		const lastTurn = turns.at(-1);
+		if (lastTurn?.role === "assistant") {
+			setStoppedTurnIds((ids) => new Set(ids).add(lastTurn.id));
+		}
 		if (runId) cancelRun.mutate(runId, { onSettled: stop });
 		else stop();
 	}
@@ -164,7 +171,12 @@ export function ChatThread({ conversation }: ChatThreadProps) {
 										<ChatMessage
 											message={msg}
 											isStreaming={isStreaming && isLastAssistant}
-											pendingLabel={isLastAssistant ? pendingLabel : undefined}
+											pendingStatus={isLastAssistant ? pendingStatus : undefined}
+											stopped={
+												!(isStreaming && isLastAssistant) &&
+												(stoppedTurnIds.has(msg.id) ||
+													conversation.stoppedRunIds.includes(turnRunId(msg) ?? ""))
+											}
 											onRegenerate={
 												isLastAssistant && !isStreaming ? () => void reload() : undefined
 											}
@@ -182,7 +194,7 @@ export function ChatThread({ conversation }: ChatThreadProps) {
 								<ChatStatus
 									status={status}
 									messages={messages}
-									pendingLabel={pendingLabel}
+									pendingStatus={pendingStatus}
 									error={error?.message ?? conversation.lastRunError ?? undefined}
 									onRetry={reload}
 									onGenerate={canGenerate ? () => void reload() : undefined}

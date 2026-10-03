@@ -89,12 +89,16 @@ export async function findConversation({ id, ownerId }: { id: string; ownerId: s
 		include: { endpoint: { select: { id: true, name: true, url: true, provider: true } } },
 	});
 	if (!conversation) return null;
-	const [thread, lastRun] = await Promise.all([
+	const [thread, lastRun, stoppedRuns] = await Promise.all([
 		prisma.chatThread.findUnique({ where: { threadId: id }, select: { messages: true } }),
 		prisma.chatRun.findFirst({
 			where: { threadId: id },
 			orderBy: { startedAt: "desc" },
 			select: { status: true, error: true },
+		}),
+		prisma.chatRun.findMany({
+			where: { threadId: id, status: "aborted" },
+			select: { runId: true },
 		}),
 	]);
 	return {
@@ -102,6 +106,8 @@ export async function findConversation({ id, ownerId }: { id: string; ownerId: s
 		messages: thread?.messages ?? [],
 		// The client keeps a failed run's error only until a reload, so the last one is sent along.
 		lastRunError: lastRun?.status === "failed" ? (lastRun.error ?? "") : null,
+		// The runs the user stopped, so a reloaded reply still says it was stopped.
+		stoppedRunIds: stoppedRuns.map((run) => run.runId),
 	};
 }
 

@@ -40,8 +40,10 @@ export function partsText(parts: UIMessage["parts"]): string {
  * models sometimes never close their reasoning, so a reply with no text has its answer
  * in its last thinking part.
  */
-export function splitReply(parts: UIMessage["parts"]): {
-	steps: UIMessage["parts"];
+export function splitReply<TPart extends UIMessage["parts"][number]>(
+	parts: TPart[],
+): {
+	steps: TPart[];
 	answer: string;
 } {
 	const text = partsText(parts);
@@ -156,15 +158,27 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null;
 }
 
+/** The run metadata `reconstructChat` adds to a message with `includeRuns`. */
+function turnRun(message: UIMessage): Record<string, unknown> | null {
+	const tanstack: unknown = message.metadata?.tanstack;
+	return isRecord(tanstack) && isRecord(tanstack.run) ? tanstack.run : null;
+}
+
+/** The id of the run that produced a message, or `null` before the thread is reloaded. */
+export function turnRunId(message: UIMessage): string | null {
+	const id = turnRun(message)?.id;
+	return typeof id === "string" ? id : null;
+}
+
 /**
  * How long the run that produced a message took, in whole seconds, from the timings
  * `reconstructChat` adds with `includeRuns`.
  * @returns The seconds, or `null` when the message has no finished run.
  */
 export function turnSeconds(message: UIMessage): number | null {
-	const tanstack: unknown = message.metadata?.tanstack;
-	if (!isRecord(tanstack) || !isRecord(tanstack.run)) return null;
-	const { startedAt, finishedAt } = tanstack.run;
+	const run = turnRun(message);
+	if (!run) return null;
+	const { startedAt, finishedAt } = run;
 	if (typeof startedAt !== "number" || typeof finishedAt !== "number") return null;
 	return Math.round((finishedAt - startedAt) / MS_PER_SECOND);
 }
@@ -174,8 +188,8 @@ export function turnSeconds(message: UIMessage): number | null {
  * so a turn that took several model calls reads as one reply. A reloaded thread stores
  * each call as its own message.
  */
-export function mergeAssistantTurns(messages: UIMessage[]): UIMessage[] {
-	const turns: UIMessage[] = [];
+export function mergeAssistantTurns<TMessage extends UIMessage>(messages: TMessage[]): TMessage[] {
+	const turns: TMessage[] = [];
 	for (const message of messages) {
 		const previous = turns.at(-1);
 		if (message.role === "assistant" && previous?.role === "assistant") {
