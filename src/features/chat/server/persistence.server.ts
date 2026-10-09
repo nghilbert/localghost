@@ -1,4 +1,4 @@
-import type { ModelMessage, RunRecord, RunStatus, RunStore } from "@tanstack/ai";
+import type { RunRecord, RunStatus, RunStore } from "@tanstack/ai";
 import type {
 	ChatWithInterruptsPersistence,
 	InterruptRecord,
@@ -8,16 +8,17 @@ import type {
 } from "@tanstack/ai-persistence";
 import { defineAIPersistence } from "@tanstack/ai-persistence";
 import { reviveMessageDates } from "#/features/chat/lib/messages";
+import type { ChatInterrupt, ChatRun } from "#/generated/prisma/client";
 import { prisma } from "#/lib/db.server";
 
-const RUN_STATUSES: ReadonlyArray<RunStatus> = [
+const RUN_STATUSES: readonly RunStatus[] = [
 	"running",
 	"interrupted",
 	"completed",
 	"failed",
 	"aborted",
 ];
-const INTERRUPT_STATUSES: ReadonlyArray<InterruptStatus> = ["pending", "resolved", "cancelled"];
+const INTERRUPT_STATUSES: readonly InterruptStatus[] = ["pending", "resolved", "cancelled"];
 
 /** Narrows the stored string, throwing on an unknown value. */
 function toRunStatus(value: string): RunStatus {
@@ -46,20 +47,7 @@ function isTokenUsage(value: unknown): value is NonNullable<RunRecord["usage"]> 
 	);
 }
 
-function mapRun(row: {
-	runId: string;
-	threadId: string;
-	status: string;
-	startedAt: bigint;
-	finishedAt: bigint | null;
-	error: string | null;
-	errorCode: string | null;
-	usage: unknown;
-	sandboxKey: string | null;
-	detachedSince: bigint | null;
-	cancelRequested: boolean | null;
-	driverEpoch: number | null;
-}): RunRecord {
+function mapRun(row: ChatRun): RunRecord {
 	return {
 		runId: row.runId,
 		threadId: row.threadId,
@@ -77,23 +65,14 @@ function mapRun(row: {
 	};
 }
 
-function mapInterrupt(row: {
-	interruptId: string;
-	runId: string;
-	threadId: string;
-	status: string;
-	requestedAt: bigint;
-	resolvedAt: bigint | null;
-	payload: unknown;
-	response: unknown;
-}): InterruptRecord {
+function mapInterrupt(row: ChatInterrupt): InterruptRecord {
 	return {
 		interruptId: row.interruptId,
 		runId: row.runId,
 		threadId: row.threadId,
 		status: toInterruptStatus(row.status),
 		requestedAt: Number(row.requestedAt),
-		payload: isJsonObject(row.payload) ? row.payload : {},
+		payload: row.payload,
 		...(row.resolvedAt != null ? { resolvedAt: Number(row.resolvedAt) } : {}),
 		...(row.response !== null && row.response !== undefined ? { response: row.response } : {}),
 	};
@@ -108,17 +87,15 @@ function createMessageStore(): MessageStore {
 			});
 			// The store contract returns [] for an unknown thread.
 			if (!row) return [];
-			const stored: Array<ModelMessage> = JSON.parse(JSON.stringify(row.messages));
-			return reviveMessageDates(stored);
+			return reviveMessageDates(row.messages);
 		},
 		// `messages` is the whole transcript. The store must be able to create a thread,
 		// which is why this table has no owner column.
 		async saveThread(threadId, messages) {
-			const data = { messages: JSON.parse(JSON.stringify(messages)) };
 			await prisma.chatThread.upsert({
 				where: { threadId },
-				create: { threadId, ...data },
-				update: data,
+				create: { threadId, messages },
+				update: { messages },
 			});
 		},
 	};
@@ -201,10 +178,8 @@ function createInterruptStore(): InterruptStore {
 					threadId: record.threadId,
 					status: "pending",
 					requestedAt: BigInt(record.requestedAt),
-					payload: JSON.parse(JSON.stringify(record.payload)),
-					...(record.response !== undefined
-						? { response: JSON.parse(JSON.stringify(record.response)) }
-						: {}),
+					payload: record.payload,
+					...(record.response !== undefined ? { response: record.response } : {}),
 				},
 				update: {},
 			});
@@ -215,7 +190,7 @@ function createInterruptStore(): InterruptStore {
 				data: {
 					status: "resolved",
 					resolvedAt: BigInt(Date.now()),
-					...(response !== undefined ? { response: JSON.parse(JSON.stringify(response)) } : {}),
+					...(response !== undefined ? { response } : {}),
 				},
 			});
 		},

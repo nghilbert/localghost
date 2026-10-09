@@ -1,10 +1,7 @@
-import type { ModelMessage } from "@tanstack/ai";
 import type { getConversation } from "./chat.functions";
 
-/** A conversation as the query cache holds it: the row with `messages` typed. */
-export type ConversationDetail = Omit<Awaited<ReturnType<typeof getConversation>>, "messages"> & {
-	messages: ModelMessage[];
-};
+/** A conversation as the query cache holds it. */
+export type ConversationDetail = Awaited<ReturnType<typeof getConversation>>;
 
 /** The tool switches and whether the model can use them. */
 export type ToolControls = {

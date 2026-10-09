@@ -3,6 +3,7 @@
 /// so there is no owner and no foreign key.
 model ChatThread {
   threadId  String   @id @map("thread_id")
+  /// [ChatTranscript]
   messages  Json
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -42,7 +43,9 @@ model ChatInterrupt {
   status      String
   requestedAt BigInt  @map("requested_at")
   resolvedAt  BigInt? @map("resolved_at")
+  /// [InterruptPayload]
   payload     Json
+  /// [InterruptResponse]
   response    Json?
 
   @@index([threadId, requestedAt])

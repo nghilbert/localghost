@@ -1,32 +1,13 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { toast } from "#/components/ui/toast";
-import { chatQueries } from "#/features/chat/chat.queries";
-import {
-	conversationExportFilename,
-	conversationToJson,
-	conversationToMarkdown,
-} from "#/features/chat/lib/chat-export";
+import { exportConversation } from "#/features/chat/chat.functions";
 import { downloadTextFile } from "#/lib/download";
 
 /** Downloads a chat as a Markdown or JSON file. */
 export function useExportConversation() {
-	const queryClient = useQueryClient();
-
 	return useMutation({
-		mutationFn: async ({ id, format }: { id: string; format: "markdown" | "json" }) => {
-			const conversation = await queryClient.query({
-				...chatQueries.detail(id),
-				staleTime: "static",
-			});
-			const extension = format === "markdown" ? "md" : "json";
-			downloadTextFile({
-				filename: conversationExportFilename({ title: conversation.title, extension }),
-				text:
-					format === "markdown"
-						? conversationToMarkdown(conversation)
-						: conversationToJson(conversation),
-				type: format === "markdown" ? "text/markdown" : "application/json",
-			});
+		mutationFn: async (data: { id: string; format: "markdown" | "json" }) => {
+			downloadTextFile(await exportConversation({ data }));
 		},
 		onSuccess: () => toast.add({ title: "Chat exported", type: "success" }),
 		onError: (error) =>

@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import type { ModelMessage } from "@tanstack/ai";
 import { beforeEach, describe, expect, it } from "vitest";
 import { encrypt } from "#/lib/crypto.server";
 import { prisma } from "#/lib/db.server";
@@ -19,7 +20,7 @@ describe("exportBackup", () => {
 			model: "llama3",
 		});
 		await prisma.chatThread.create({
-			data: { threadId: conversation.id, messages: [{ role: "user" }] },
+			data: { threadId: conversation.id, messages: [{ role: "user", content: "hi" }] },
 		});
 		const endpoint = await createEndpoint({
 			ownerId: user.id,
@@ -36,15 +37,17 @@ describe("exportBackup", () => {
 			},
 		});
 
-		const backup = await exportBackup({ userId: user.id, email: "a@b.com" });
+		const { exportedAt, ...backup } = await exportBackup({ userId: user.id, email: "a@b.com" });
 
+		expect(Date.parse(exportedAt)).not.toBeNaN();
 		expect(backup).toEqual({
 			version: 4,
-			exportedAt: expect.any(String),
 			exportedBy: "a@b.com",
 			userSettings: { systemPrompt: "be terse", temperature: 0.5 },
 			memories: [{ text: "remember this", category: "fact", source: "chat" }],
-			conversations: [{ title: "Trip planning", model: "llama3", messages: [{ role: "user" }] }],
+			conversations: [
+				{ title: "Trip planning", model: "llama3", messages: [{ role: "user", content: "hi" }] },
+			],
 			endpoints: [
 				{ name: "OpenAI", url: "https://api.openai.com", provider: "openai", options: null },
 			],
@@ -219,8 +222,8 @@ describe("importBackup: conversations", () => {
 
 	it("skips conversations already present by title and message content", async () => {
 		const user = await createUser();
-		const trip = [{ role: "user", content: "hi" }];
-		const fresh = [{ role: "user", content: "yo" }];
+		const trip: ModelMessage[] = [{ role: "user", content: "hi" }];
+		const fresh: ModelMessage[] = [{ role: "user", content: "yo" }];
 		const existing = await createConversation({ ownerId: user.id, title: "Trip" });
 		await prisma.chatThread.create({ data: { threadId: existing.id, messages: trip } });
 

@@ -1,4 +1,3 @@
-import type { ModelMessage } from "@tanstack/ai";
 import { queryOptions } from "@tanstack/react-query";
 import {
 	getConversation,
@@ -8,8 +7,6 @@ import {
 	listConversations,
 	searchConversationsFn,
 } from "./chat.functions";
-import type { ConversationDetail } from "./chat.types";
-import { reviveMessageDates } from "./lib/messages";
 
 /** Query options for conversations. Search keys sit under `list`, so invalidating the list refreshes them. */
 export const chatQueries = {
@@ -27,12 +24,7 @@ export const chatQueries = {
 	detail: (id: string) =>
 		queryOptions({
 			queryKey: [...chatQueries.all(), "detail", id],
-			// The server function returns `messages` as untyped JSON, so it is typed here.
-			queryFn: async (): Promise<ConversationDetail> => {
-				const conversation = await getConversation({ data: { id } });
-				const messages: Array<ModelMessage> = JSON.parse(JSON.stringify(conversation.messages));
-				return { ...conversation, messages: reviveMessageDates(messages) };
-			},
+			queryFn: () => getConversation({ data: { id } }),
 		}),
 	runState: (id: string) =>
 		queryOptions({

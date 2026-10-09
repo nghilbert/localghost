@@ -74,7 +74,7 @@ function createExtrasCollector(): { hookedFetch: typeof fetch; extras: Map<strin
 		const response = await fetch(url, init);
 		if (!response.ok) return response;
 
-		const payload = await response.clone().json();
+		const payload: unknown = await response.clone().json();
 		const parsed = z
 			.array(indexExtrasSchema)
 			.safeParse(Array.isArray(payload) ? payload : [payload]);
@@ -115,7 +115,7 @@ function toHfChatModel({
 	extra: IndexExtras | undefined;
 	isVision: boolean;
 }): HfChatModel {
-	const tags = model.tags ?? [];
+	const { tags } = model;
 	const cardLicense = model.cardData?.license;
 	const baseModel = model.cardData?.base_model;
 
@@ -126,7 +126,7 @@ function toHfChatModel({
 		likes: model.likes,
 		tags,
 		license: (typeof cardLicense === "string" ? cardLicense : null) ?? firstLicenseTag(tags),
-		createdAt: model.createdAt ?? null,
+		createdAt: model.createdAt,
 		updatedAt: toIsoString(model.updatedAt),
 		paramTotal: extra?.gguf?.total ?? null,
 		contextLength: extra?.gguf?.context_length ?? null,
@@ -201,7 +201,7 @@ export async function getGgufChatModel({
 		model,
 		extra: extras.get(model.name),
 		isVision:
-			model.task === "image-text-to-text" || (model.tags ?? []).includes("image-text-to-text"),
+			model.task === "image-text-to-text" || model.tags.includes("image-text-to-text"),
 	});
 }
 
@@ -213,7 +213,7 @@ export async function listGgufVariants({
 	repoId: string;
 	accessToken: string | undefined;
 }): Promise<ModelVariantInfo[]> {
-	const files: { path: string; bytes: number }[] = [];
+	const files: Array<{ path: string; bytes: number }> = [];
 	for await (const file of listFiles({
 		repo: { type: "model", name: repoId },
 		recursive: true,

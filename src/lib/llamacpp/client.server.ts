@@ -1,3 +1,4 @@
+import type { ReadableStream as NodeReadableStream } from "node:stream/web";
 import { Agent, type Response as UndiciResponse, fetch as undiciFetch } from "undici";
 import { z } from "zod";
 import { MS_PER_SECOND } from "#/lib/format";
@@ -46,7 +47,10 @@ export type LlamaModel = z.infer<typeof llamaModelSchema>;
  * The bundled llama.cpp server's API key, from `LLAMA_API_KEY`, as in compose.yaml. A
  * server started without a key ignores it.
  */
-export const LOCAL_LLAMACPP_API_KEY = process.env.LLAMA_API_KEY || "local-llamacpp";
+export const LOCAL_LLAMACPP_API_KEY =
+	process.env.LLAMA_API_KEY === undefined || process.env.LLAMA_API_KEY === ""
+		? "local-llamacpp"
+		: process.env.LLAMA_API_KEY;
 
 async function timeoutFetch({
 	url,
@@ -69,13 +73,14 @@ async function responseError({
 }): Promise<Error> {
 	const body = llamaErrorSchema.safeParse(await response.json().catch(() => null));
 	return new Error(
-		body.success ? body.data.error.message : `${operation} failed: ${response.status}`,
+		body.success ? body.data.error.message : `${operation} failed: ${String(response.status)}`,
 	);
 }
 
 /** Uses {@link LOCAL_LLAMACPP_API_KEY} when the endpoint has no key of its own. */
 function authHeaders(apiKey: string | undefined): Record<string, string> {
-	return { Authorization: `Bearer ${apiKey || LOCAL_LLAMACPP_API_KEY}` };
+	const key = apiKey === undefined || apiKey === "" ? LOCAL_LLAMACPP_API_KEY : apiKey;
+	return { Authorization: `Bearer ${key}` };
 }
 
 /** Lists every model the router has discovered, with its load status. */
@@ -101,7 +106,7 @@ export async function listModels({
 const modelEventDispatcher = new Agent({ bodyTimeout: 0 });
 
 /** undici's body stream type, which differs from the DOM `ReadableStream`. */
-type ModelEventStream = NonNullable<UndiciResponse["body"]>;
+type ModelEventStream = NodeReadableStream<Uint8Array>;
 
 async function fetchModelEventStream({
 	url,
@@ -145,19 +150,14 @@ export async function openModelEventStream({
 			let source: ModelEventStream | null = initial;
 			while (!signal.aborted) {
 				try {
-					const upstream = source ?? (await fetchModelEventStream({ url, apiKey, signal }));
-					source = null;
-					const reader = upstream.getReader();
-					while (true) {
-						const { done, value } = await reader.read();
-						if (done) break;
-						controller.enqueue(value);
-					}
+					source ??= await fetchModelEventStream({ url, apiKey, signal });
+					for await (const chunk of source) controller.enqueue(chunk);
 				} catch (error) {
-					if (signal.aborted) break;
+					// An aborted fetch rejects, and its body errors, with the signal's reason.
+					if (error === signal.reason) break;
 					log.debug({ err: error, url }, "llama.cpp model-events stream dropped; reconnecting");
 				}
-				if (signal.aborted) break;
+				source = null;
 				await new Promise((resolve) => setTimeout(resolve, RECONNECT_DELAY_MS));
 			}
 			controller.close();

@@ -1,3 +1,4 @@
+import type { ModelMessage } from "@tanstack/ai";
 import { z } from "zod";
 import type { ImportBackupCounts } from "#/features/backup/backup.schemas";
 import { perModelOptionsSchema } from "#/features/library/library.schemas";
@@ -60,17 +61,20 @@ const importPayloadSchema = z.object({
 /** A backup file as {@link importBackup} accepts it. */
 type ImportPayload = z.infer<typeof importPayloadSchema>;
 
+/** The minimum a message needs to load as a `ModelMessage`. Unknown fields are kept. */
+const messageShapeSchema = z.looseObject({
+	role: z.enum(["user", "assistant", "tool"]),
+	content: z
+		.union([z.string(), z.array(z.looseObject({ type: z.string() })), z.null()])
+		.optional(),
+});
+
 /**
- * The minimum a transcript needs to load as `ModelMessage[]`. Unknown fields are kept;
- * a conversation that fails this is skipped and counted invalid.
+ * A transcript, typed as `ModelMessage[]` once each message passes {@link messageShapeSchema}.
+ * A conversation that fails this is skipped and counted invalid.
  */
 const transcriptSchema = z.array(
-	z.looseObject({
-		role: z.string(),
-		content: z
-			.union([z.string(), z.array(z.looseObject({ type: z.string() })), z.null()])
-			.optional(),
-	}),
+	z.custom<ModelMessage>((value) => messageShapeSchema.safeParse(value).success),
 );
 
 /** A JSON backup of a user's memories, chats, chat defaults, endpoints, and model settings. */
@@ -156,7 +160,7 @@ export async function importBackup({
 	payload: ImportPayload;
 }): Promise<ImportBackupCounts> {
 	const incomingMemories = (payload.memories ?? [])
-		.filter((m) => m?.text)
+		.filter((m) => m.text)
 		.map((m) => ({
 			text: m.text,
 			category: m.category ?? "fact",
@@ -164,10 +168,10 @@ export async function importBackup({
 		}));
 
 	const incomingEndpoints = (payload.endpoints ?? []).filter(
-		(endpoint) => endpoint?.url && endpoint?.name,
+		(endpoint) => endpoint.url && endpoint.name,
 	);
 	const incomingModelSettings = (payload.modelSettings ?? []).filter(
-		(setting) => setting?.model && setting?.endpointUrl,
+		(setting) => setting.model && setting.endpointUrl,
 	);
 
 	let invalidConversations = 0;
@@ -182,7 +186,7 @@ export async function importBackup({
 				title: c.title ?? "Imported chat",
 				model: c.model ?? "",
 				// Endpoint ids differ per account, so the chat waits for a model to be picked.
-				messages: JSON.parse(JSON.stringify(transcript.data)),
+				messages: transcript.data,
 				ownerId: userId,
 			},
 		];
@@ -382,9 +386,10 @@ export async function postBackupImport({
 
 	const parsed = importPayloadSchema.safeParse(raw);
 	if (!parsed.success) return new Response("Invalid backup format", { status: 400 });
-	if ((parsed.data.version ?? BACKUP_VERSION) > BACKUP_VERSION) {
+	const version = parsed.data.version ?? BACKUP_VERSION;
+	if (version > BACKUP_VERSION) {
 		return new Response(
-			`This backup is format version ${parsed.data.version}, newer than this app supports. Update the app, then import again.`,
+			`This backup is format version ${String(version)}, newer than this app supports. Update the app, then import again.`,
 			{ status: 400 },
 		);
 	}

@@ -12,6 +12,7 @@ import { createAnthropicChat } from "@tanstack/ai-anthropic";
 import { createGeminiChat } from "@tanstack/ai-gemini";
 import { openaiCompatibleText } from "@tanstack/ai-openai/compatible";
 import { trimPathRight } from "@tanstack/react-router";
+import { z } from "zod";
 import { log } from "#/lib/log.server";
 import { LOCAL_LLAMACPP_API_KEY } from "./llamacpp/client.server";
 import { DEFAULT_MAX_TOKENS, DEFAULT_TEMPERATURE } from "./llm-constants";
@@ -41,17 +42,22 @@ type StreamLLMOptions = {
 	/** Chat middleware, run in array order. */
 	middleware?: AnyChatMiddleware[];
 	/** Answers to pending interrupts, sent when the client resolves an approval. */
-	resume?: Array<RunAgentResumeItem>;
+	resume?: RunAgentResumeItem[];
 };
 
 const OPENROUTER_REFERER = "https://localghost.app";
 const MAX_AGENT_ROUNDS = 10;
 
 /** Model-list response: OpenAI and llama.cpp use `data`, Gemini uses `models`. */
-export type ModelsResponse = {
-	data?: Array<{ id: string; supported_parameters?: string[] }>;
-	models?: Array<{ name: string }>;
-};
+const modelsResponseSchema = z.object({
+	data: z
+		.array(z.object({ id: z.string(), supported_parameters: z.array(z.string()).optional() }))
+		.optional(),
+	models: z.array(z.object({ name: z.string() })).optional(),
+});
+
+/** A parsed model-list response. */
+export type ModelsResponse = z.infer<typeof modelsResponseSchema>;
 
 /** Everything that differs between providers, so the rest of the file has no provider branches. */
 type ProviderConfig = {
@@ -177,7 +183,7 @@ const PROVIDERS: Record<LLMProvider, ProviderConfig> = {
 		}),
 		// Gemini takes the key as a `?key=` query parameter.
 		modelsHeaders: () => ({ "Content-Type": "application/json" }),
-		modelsUrl: ({ base, apiKey }) => `${base}/v1beta/models?key=${apiKey ?? ""}`,
+		modelsUrl: ({ base, apiKey = "" }) => `${base}/v1beta/models?key=${apiKey}`,
 		parseModels: (json) =>
 			(json.models ?? []).map((m) => (m.name.startsWith("models/") ? m.name.slice(7) : m.name)),
 	},
@@ -185,7 +191,10 @@ const PROVIDERS: Record<LLMProvider, ProviderConfig> = {
 		...OPENAI_COMPATIBLE,
 		// The SDK requires a key, and the bundled server enforces `--api-key` on every route
 		// but `/health`. A configured endpoint key wins.
-		resolveApiKey: (apiKey) => apiKey || LOCAL_LLAMACPP_API_KEY,
+		resolveApiKey: (apiKey) => {
+			if (apiKey === undefined || apiKey === "") return LOCAL_LLAMACPP_API_KEY;
+			return apiKey;
+		},
 		// In router mode `/models` also lists downloaded but unloaded models; `/v1/models` may not.
 		modelsUrl: ({ base }) => `${base}/models`,
 		parseModels: (json) => (json.data ?? []).map((m) => m.id),
@@ -290,9 +299,9 @@ async function fetchModels({
 	});
 	if (!res.ok) {
 		const reason = res.status === 401 || res.status === 403 ? "API key rejected" : res.statusText;
-		throw new Error(`${reason} (HTTP ${res.status})`);
+		throw new Error(`${reason} (HTTP ${String(res.status)})`);
 	}
-	return res.json();
+	return modelsResponseSchema.parse(await res.json());
 }
 
 /**
