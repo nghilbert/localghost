@@ -19,7 +19,7 @@ import { Sheet } from "#/components/ui/sheet";
 import { Tooltip } from "#/components/ui/tooltip";
 import { mergeClassName } from "#/components/ui/variants/class-name";
 import { FOCUS_RING } from "#/components/ui/variants/focus";
-import { useIsMobile } from "./use-is-mobile";
+import { useIsMobile } from "#/hooks/use-is-mobile";
 
 const SIDEBAR_WIDTH = "16rem";
 const SIDEBAR_WIDTH_MOBILE = "18rem";
