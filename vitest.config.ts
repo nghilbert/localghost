@@ -1,4 +1,4 @@
-import { resolve } from "node:path";
+import path from "node:path";
 import tailwindcss from "@tailwindcss/vite";
 import { playwright } from "@vitest/browser-playwright";
 import { defineConfig } from "vitest/config";
@@ -23,11 +23,12 @@ export default defineConfig({
 				test: {
 					name: "browser",
 					include: ["src/**/*.test.tsx"],
-					setupFiles: ["./src/test/base-ui.ts", "./src/test/browser-styles.ts"],
+					setupFiles: ["./src/test/browser-styles.ts"],
 					browser: {
 						enabled: true,
 						headless: true,
-						provider: playwright(),
+						// Reduced motion zeroes transitions, so Base UI closes popups without waiting on them.
+						provider: playwright({ contextOptions: { reducedMotion: "reduce" } }),
 						instances: [{ browser: "chromium" }],
 					},
 				},
@@ -46,5 +47,5 @@ export default defineConfig({
 			},
 		],
 	},
-	resolve: { alias: { "#": resolve(import.meta.dirname, "./src") } },
+	resolve: { alias: { "#": path.resolve(import.meta.dirname, "./src") } },
 });
