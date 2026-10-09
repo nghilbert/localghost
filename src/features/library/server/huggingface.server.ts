@@ -10,7 +10,7 @@ const AUXILIARY_GGUF_SUBSTRINGS = ["mmproj", "imatrix", "mtp-", "eagle3-", "dfla
 /** Whether a file is a projector, imatrix, or draft model instead of the model's weights. */
 function isAuxiliaryGgufFile(fileName: string): boolean {
 	const segments = fileName.split("/");
-	const basename = segments[segments.length - 1] ?? fileName;
+	const basename = segments.at(-1) ?? fileName;
 	return AUXILIARY_GGUF_SUBSTRINGS.some((substring) => basename.includes(substring));
 }
 

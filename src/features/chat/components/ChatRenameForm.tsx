@@ -35,10 +35,10 @@ export function ChatRenameForm({ conversation, onDone }: ChatRenameFormProps) {
 							size="sm"
 							// Opens with the title selected, ready to type over.
 							autoFocus
-							onFocus={(event) => event.currentTarget.select()}
+							onFocus={(event) => { event.currentTarget.select(); }}
 							value={field.state.value}
 							onValueChange={field.handleChange}
-							onBlur={() => void form.handleSubmit().catch(() => undefined)}
+							onBlur={() => void form.handleSubmit().catch(() => {})}
 							onKeyDown={(event) => {
 								if (event.key === "Escape") onDone();
 							}}

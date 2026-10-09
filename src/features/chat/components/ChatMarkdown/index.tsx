@@ -41,7 +41,7 @@ function ChatLink({ href, children, ...props }: MarkdownComponentProps<"a">) {
 	}
 	return (
 		<>
-			<BaseButton className={cn(linkClassName, "cursor-pointer")} onClick={() => setOpen(true)}>
+			<BaseButton className={cn(linkClassName, "cursor-pointer")} onClick={() => { setOpen(true); }}>
 				{children}
 			</BaseButton>
 			<LinkSafetyDialog url={href} open={open} onOpenChange={setOpen} />
@@ -69,7 +69,7 @@ function CodeBlock({
 					size="sm"
 					iconOnly
 					aria-label="Copy code"
-					onClick={() => copyToClipboard(preRef.current?.textContent ?? "")}
+					onClick={() => { copyToClipboard(preRef.current?.textContent ?? ""); }}
 				>
 					<CopyIcon />
 				</Button>

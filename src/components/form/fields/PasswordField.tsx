@@ -35,7 +35,7 @@ export function PasswordField({
 									color="neutral"
 									iconOnly
 									aria-label={toggleLabel}
-									onClick={() => setVisible((value) => !value)}
+									onClick={() => { setVisible((value) => !value); }}
 								/>
 							}
 						>

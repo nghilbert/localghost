@@ -112,7 +112,7 @@ function ModelOverviewCard({ row }: { row: ModelRow }) {
 
 /** The model's known facts, most important first. */
 function buildOverviewFacts(catalog: NonNullable<ModelRow["catalog"]>): OverviewFact[] {
-	const facts: (OverviewFact | null)[] = [
+	const facts: Array<OverviewFact | null> = [
 		catalog.author ? { label: "Author", value: catalog.author } : null,
 		catalog.license ? { label: "License", value: catalog.license } : null,
 		catalog.contextK ? { label: "Context", value: `${catalog.contextK}K tokens` } : null,
@@ -152,7 +152,7 @@ function InstalledModelCard({
 					<SlidersHorizontalIcon />
 					Model settings
 				</ButtonLink>
-				<Button type="button" color="danger" size="sm" onClick={() => onDelete(modelId)}>
+				<Button type="button" color="danger" size="sm" onClick={() => { onDelete(modelId); }}>
 					<Trash2Icon />
 					Delete model
 				</Button>

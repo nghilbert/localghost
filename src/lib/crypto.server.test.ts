@@ -8,7 +8,7 @@ describe("crypto.server", () => {
 			process.env.ENCRYPTION_KEY = VALID_KEY;
 			const { encrypt } = await import("#/lib/crypto.server");
 			const result = encrypt("hello");
-			const [ivHex, tagHex, cipherHex] = result.split(":");
+			const [ivHex, tagHex, cipherHex] = result.split(":", 3);
 			expect(ivHex).toHaveLength(24); // 12-byte IV = 24 hex chars
 			expect(tagHex).toHaveLength(32); // 16-byte GCM tag = 32 hex chars
 			expect(cipherHex?.length).toBeGreaterThan(0);

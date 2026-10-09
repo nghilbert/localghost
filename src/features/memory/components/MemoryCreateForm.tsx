@@ -10,7 +10,7 @@ export function MemoryCreateForm() {
 		validators: { onDynamic: memoryTextInput },
 		onSubmit: ({ value }) =>
 			createMemory.mutateAsync(value.text.trim(), {
-				onSuccess: () => form.reset(),
+				onSuccess: () => { form.reset(); },
 			}),
 	});
 

@@ -104,7 +104,7 @@ describe("ChatMessage", () => {
 
 	describe("assistant messages", () => {
 		it("guards link clicks behind a confirmation that shows the real URL", async () => {
-			const open = vi.spyOn(window, "open").mockReturnValue(null);
+			const open = vi.spyOn(globalThis, "open").mockReturnValue(null);
 			const screen = await render(
 				<ChatMessage message={assistantMessage("[Link](https://example.com)")} />,
 			);
@@ -331,7 +331,7 @@ describe("ChatMessage", () => {
 		it("says a stopped reply was stopped", async () => {
 			const message: ChatUIMessage = {
 				...assistantMessage("partial"),
-				metadata: { tanstack: { run: { id: "r1", startedAt: 0, finishedAt: 9_000 } } },
+				metadata: { tanstack: { run: { id: "r1", startedAt: 0, finishedAt: 9000 } } },
 			};
 
 			const screen = await render(<ChatMessage message={message} stopped />);

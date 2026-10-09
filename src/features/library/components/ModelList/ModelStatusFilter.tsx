@@ -1,18 +1,12 @@
 import { Menu } from "#/components/ui/menu";
-import type { ModelStatus } from "#/features/library/library.types";
+import { type ModelStatus, modelStatusSchema } from "#/features/library/library.schemas";
 import { formatNumber } from "#/lib/format";
-
-const MODEL_STATUSES = ["all", "installed", "available"] as const satisfies ModelStatus[];
 
 const STATUS_LABELS: Record<ModelStatus, string> = {
 	all: "All",
 	installed: "Installed",
 	available: "Available",
 };
-
-function isModelStatus(value: unknown): value is ModelStatus {
-	return MODEL_STATUSES.some((status) => status === value);
-}
 
 type ModelStatusFilterProps = {
 	value: ModelStatus;
@@ -29,10 +23,11 @@ export function ModelStatusFilter({ value, counts, onValueChange }: ModelStatusF
 			<Menu.RadioGroup
 				value={value}
 				onValueChange={(next) => {
-					if (isModelStatus(next)) onValueChange(next);
+					const parsed = modelStatusSchema.safeParse(next);
+					if (parsed.success) onValueChange(parsed.data);
 				}}
 			>
-				{MODEL_STATUSES.map((status) => (
+				{modelStatusSchema.options.map((status) => (
 					<Menu.RadioItem key={status} value={status}>
 						{STATUS_LABELS[status]}
 						<span className="ml-auto text-muted-fg tabular-nums">

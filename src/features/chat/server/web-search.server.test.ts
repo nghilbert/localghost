@@ -10,7 +10,7 @@ function searxng(body: SearxngResponse): Response {
 
 function calledUrl({ fetchMock, index }: { fetchMock: FetchMock; index: number }): URL {
 	const input = fetchMock.mock.calls[index]?.[0];
-	if (typeof input !== "string") throw new Error(`Missing fetch call ${index}`);
+	if (typeof input !== "string") throw new TypeError(`Missing fetch call ${index}`);
 	return new URL(input);
 }
 
@@ -23,7 +23,7 @@ describe("webSearchArgsSchema", () => {
 				category: "science",
 			}),
 		).toEqual({ query: "llama 3.1 instruct", time_range: undefined });
-		expect(webSearchArgsSchema.safeParse({ query: "   " }).success).toBe(false);
+		expect(webSearchArgsSchema.safeParse({ query: ' '.repeat(3) }).success).toBe(false);
 	});
 });
 
@@ -91,8 +91,7 @@ describe("webSearch", () => {
 		const result = await webSearch({ query: "recent comparison", timeRange: "year" });
 
 		expect(fetchMock).toHaveBeenCalledTimes(2);
-		expect(timeoutSpy).toHaveBeenCalledOnce();
-		expect(timeoutSpy).toHaveBeenCalledWith(15_000);
+		expect(timeoutSpy).toHaveBeenCalledExactlyOnceWith(15_000);
 		const exactUrl = calledUrl({ fetchMock, index: 0 });
 		const fallbackUrl = calledUrl({ fetchMock, index: 1 });
 		expect(exactUrl.searchParams.get("categories")).toBe("general");
@@ -174,7 +173,7 @@ describe("webSearch", () => {
 		controller.abort(new Error("cancelled"));
 		const fetchMock = vi.fn().mockImplementation((...args: Parameters<typeof fetch>) => {
 			const requestSignal = args[1]?.signal;
-			if (!(requestSignal instanceof AbortSignal)) throw new Error("Missing abort signal");
+			if (!(requestSignal instanceof AbortSignal)) throw new TypeError("Missing abort signal");
 			return Promise.reject(requestSignal.reason);
 		});
 		vi.stubGlobal("fetch", fetchMock);
@@ -191,7 +190,7 @@ describe("webSearch", () => {
 		vi.spyOn(AbortSignal, "timeout").mockReturnValue(timeoutController.signal);
 		const fetchMock = vi.fn().mockImplementation((...args: Parameters<typeof fetch>) => {
 			const requestSignal = args[1]?.signal;
-			if (!(requestSignal instanceof AbortSignal)) throw new Error("Missing abort signal");
+			if (!(requestSignal instanceof AbortSignal)) throw new TypeError("Missing abort signal");
 			return Promise.reject(requestSignal.reason);
 		});
 		vi.stubGlobal("fetch", fetchMock);

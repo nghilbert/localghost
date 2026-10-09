@@ -14,12 +14,7 @@ export function EndpointHealthBadge({ endpointId }: { endpointId: string }) {
 
 	return (
 		<div className="flex items-center gap-1">
-			{!data ? (
-				<Badge>
-					<Spinner size="sm" />
-					Checking
-				</Badge>
-			) : data.ok ? (
+			{data ? data.ok ? (
 				<StatusBadge tone="success">
 					<CheckCircle2Icon />
 					Reachable
@@ -36,6 +31,11 @@ export function EndpointHealthBadge({ endpointId }: { endpointId: string }) {
 					/>
 					<Tooltip.Content>{data.error}</Tooltip.Content>
 				</Tooltip.Root>
+			) : (
+				<Badge>
+					<Spinner size="sm" />
+					Checking
+				</Badge>
 			)}
 			<Tooltip.Root>
 				<Tooltip.Trigger

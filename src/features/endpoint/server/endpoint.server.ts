@@ -226,13 +226,13 @@ export async function upsertLlamacppEndpoint({
 }): Promise<string> {
 	const normalizedUrl = trimPathRight(url);
 	const resolved =
-		existing !== undefined
-			? existing
-			: await prisma.endpoint.findFirst({
+		existing === undefined
+			? await prisma.endpoint.findFirst({
 					where: { ownerId, provider: "llamacpp" },
 					orderBy: { id: "asc" },
 					select: { id: true, url: true },
-				});
+				})
+			: existing;
 
 	if (!resolved) {
 		// Upsert on the (ownerId, discovered) unique, so two concurrent first scans create one row.

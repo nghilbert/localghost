@@ -4,7 +4,7 @@ import { ChatMarkdown } from ".";
 
 describe("ChatMarkdown", () => {
 	it("confirms an external link before opening it", async () => {
-		const open = vi.spyOn(window, "open").mockReturnValue(null);
+		const open = vi.spyOn(globalThis, "open").mockReturnValue(null);
 		const screen = await render(<ChatMarkdown>{"[Docs](https://example.com)"}</ChatMarkdown>);
 
 		await screen.getByRole("button", { name: "Docs" }).click();

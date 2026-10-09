@@ -22,7 +22,7 @@ export function NumberField({
 		<FieldShell label={label} description={description} orientation={fieldOrientation}>
 			<NumberFieldUi.Root
 				value={field.state.value ?? null}
-				onValueChange={(value) => field.handleChange(value ?? undefined)}
+				onValueChange={(value) => { field.handleChange(value ?? undefined); }}
 				onBlur={field.handleBlur}
 				{...props}
 			>

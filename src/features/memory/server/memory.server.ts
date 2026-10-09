@@ -175,7 +175,7 @@ function likePatterns(query: string): string[] {
 		.split(/\s+/)
 		.filter((word) => word.length >= 2);
 	const tokens = words.length > 0 ? words : [query.trim().toLowerCase()];
-	return tokens.map((word) => `%${word.replace(/[\\%_]/g, "\\$&")}%`);
+	return tokens.map((word) => `%${word.replaceAll(/[\\%_]/g, String.raw`\$&`)}%`);
 }
 
 /** The user's memories, newest first, optionally capped. */
@@ -183,7 +183,7 @@ export async function findMemories({ ownerId, limit }: { ownerId: string; limit?
 	return prisma.memory.findMany({
 		where: { ownerId },
 		orderBy: { id: "desc" },
-		...(limit !== undefined ? { take: limit } : {}),
+		...(limit === undefined ? {} : { take: limit }),
 		select: { id: true, text: true, category: true, source: true },
 	});
 }

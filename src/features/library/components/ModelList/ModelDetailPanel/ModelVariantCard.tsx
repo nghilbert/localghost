@@ -115,7 +115,7 @@ export function ModelVariantCard({
 					<form.Subscribe selector={(state) => state.values}>
 						{(values) => {
 							const authorOptions = optionsForAuthor({ options, author: values.author });
-							const variantGroups: ComboboxFieldGroup<ModelVariantOption>[] =
+							const variantGroups: Array<ComboboxFieldGroup<ModelVariantOption>> =
 								groupModelVariantOptions({ options: authorOptions, hardware }).map((group) => ({
 									id: group.id,
 									label: group.label,
@@ -129,7 +129,7 @@ export function ModelVariantCard({
 								installedModelId !== null && targetModel === installedModelId;
 							const pullState =
 								pulling[targetModel] ??
-								(selectedOption?.isCurrent !== false ? fallbackPullState : undefined);
+								(selectedOption?.isCurrent === false ? undefined : fallbackPullState);
 
 							return (
 								<>

@@ -30,7 +30,7 @@ export function encrypt(plaintext: string): string {
  * @throws If the format is malformed or the auth tag fails verification.
  */
 export function decrypt(ciphertext: string): string {
-	const [ivHex, tagHex, dataHex] = ciphertext.split(":");
+	const [ivHex, tagHex, dataHex] = ciphertext.split(":", 3);
 	if (!ivHex || !tagHex || !dataHex) throw new Error("Invalid ciphertext format");
 	const iv = Buffer.from(ivHex, "hex");
 	const tag = Buffer.from(tagHex, "hex");

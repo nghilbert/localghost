@@ -130,12 +130,12 @@ export async function exportBackup({ userId, email }: { userId: string; email: s
 
 /** `text` and `category` identify a memory. */
 function memoryKey({ text, category }: { text: string; category: string }): string {
-	return `${category}\u0000${text}`;
+	return `${category}\0${text}`;
 }
 
 /** `title` and the serialized `messages` identify a conversation. */
 function conversationKey({ title, messages }: { title: string; messages: unknown }): string {
-	return `${title}\u0000${JSON.stringify(messages)}`;
+	return `${title}\0${JSON.stringify(messages)}`;
 }
 
 /** `provider` and `url` identify an endpoint. */

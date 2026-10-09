@@ -24,10 +24,9 @@ export function toolRows(controls: ToolControls): ToolRow[] {
 	return TOOL_CATALOG.map((tool) => ({
 		...tool,
 		on: enabledTools.includes(tool.id),
-		onChange: (on) =>
-			onEnabledToolsChange(
+		onChange: (on) => { onEnabledToolsChange(
 				on ? [...enabledTools, tool.id] : enabledTools.filter((t) => t !== tool.id),
-			),
+			); },
 	}));
 }
 

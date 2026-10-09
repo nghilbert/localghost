@@ -48,7 +48,7 @@ export function ChatThread({ conversation }: ChatThreadProps) {
 	// `forwardedProps` on every send, so this always carries the latest choice.
 	const forwardedProps = {
 		enabledTools: toolsToSend,
-		timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+		timeZone: new Intl.DateTimeFormat().resolvedOptions().timeZone,
 	};
 
 	const [connection] = useState(() => fetchServerSentEvents("/api/chat/stream"));
@@ -182,7 +182,7 @@ export function ChatThread({ conversation }: ChatThreadProps) {
 											}
 											onEditResend={
 												msg.role === "user" && !isStreaming
-													? (content) => handleEditResend({ id: msg.id, content })
+													? (content) => { handleEditResend({ id: msg.id, content }); }
 													: undefined
 											}
 											interrupts={interrupts}

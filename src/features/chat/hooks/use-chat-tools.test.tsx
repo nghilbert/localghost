@@ -17,7 +17,7 @@ vi.mock("#/features/chat/chat.queries", () => ({
 		toolAvailability: () => ({
 			queryKey: ["tool-availability"],
 			queryFn: () => ({ webSearch: false }),
-			staleTime: Number.POSITIVE_INFINITY,
+			staleTime: Infinity,
 		}),
 	},
 }));
@@ -54,9 +54,9 @@ describe("useChatTools", () => {
 
 	it("reset returns to the defaults after an explicit toggle", async () => {
 		const { result, act } = await renderChatTools({ webSearch: true });
-		await act(() => result.current.controls.onEnabledToolsChange(["memory"]));
+		await act(() => { result.current.controls.onEnabledToolsChange(["memory"]); });
 		expect(result.current.controls.enabledTools).toEqual(["memory"]);
-		await act(() => result.current.resetTools());
+		await act(() => { result.current.resetTools(); });
 		expect(result.current.controls.enabledTools).toEqual(["web_search"]);
 	});
 });

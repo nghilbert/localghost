@@ -11,7 +11,7 @@ import { describeChatError } from "#/features/chat/lib/chat-errors";
 
 type ChatStatusProps = {
 	status: ChatClientState;
-	messages: Array<UIMessage>;
+	messages: UIMessage[];
 	/** Replaces the waiting row's status, e.g. while the model loads. */
 	pendingStatus?: ActivityStatus;
 	/** The live run's error, or the last saved run's after a reload. */

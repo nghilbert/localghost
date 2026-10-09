@@ -23,7 +23,7 @@ function specLine(row: ModelRow): string {
 	if (paramB != null) parts.push(`${formatCount(paramB * BILLION)} params`);
 	if (catalog?.contextK) parts.push(`${catalog.contextK}K context`);
 	if (catalog?.license) parts.push(catalog.license);
-	const sizeBytes = installed?.sizeBytes ?? (catalog?.sizeGb != null ? catalog.sizeGb * GIB : null);
+	const sizeBytes = installed?.sizeBytes ?? (catalog?.sizeGb == null ? null : catalog.sizeGb * GIB);
 	if (sizeBytes != null) parts.push(formatBytes(sizeBytes));
 	if (catalog?.author && parts.length === 0) parts.push(catalog.author);
 	return parts.length > 0 ? parts.join(" · ") : row.name;

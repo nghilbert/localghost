@@ -163,7 +163,7 @@ type ModelAuthor = {
 
 /** The publisher in a repo id, e.g. `"bartowski"` from `"bartowski/Qwen_Qwen3-8B-GGUF"`. */
 function authorOf(repoId: string): string {
-	return repoId.split("/")[0] ?? repoId;
+	return repoId.split("/", 1)[0] ?? repoId;
 }
 
 /** The publishers of a model's quants, in the catalog's order, then others by name. */
@@ -186,10 +186,12 @@ export function buildModelAuthors({
 	const added = new Set<string>();
 	const append = (name: string) => {
 		const author = byName.get(name);
-		if (author && !added.has(name)) {
-			added.add(name);
-			authors.push(author);
+		if (!author || added.has(name)) {
+			return;
 		}
+
+		added.add(name);
+		authors.push(author);
 	};
 	for (const repoId of [primaryRepoId, ...siblingRepoIds]) append(authorOf(repoId));
 	for (const name of [...byName.keys()].sort()) append(name);

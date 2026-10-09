@@ -14,7 +14,7 @@ function isReachable(url: URL): Promise<boolean> {
 			socket.end();
 			resolve(true);
 		});
-		socket.once("error", () => resolve(false));
+		socket.once("error", () => { resolve(false); });
 	});
 }
 

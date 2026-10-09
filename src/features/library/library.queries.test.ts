@@ -20,8 +20,8 @@ const notFound: RuntimeStatus = {
 
 describe("libraryStatusPollInterval", () => {
 	it("scans quickly until a runtime is found, then backs off", () => {
-		expect(libraryStatusPollInterval(undefined)).toBe(5_000);
-		expect(libraryStatusPollInterval(notFound)).toBe(5_000);
+		expect(libraryStatusPollInterval(undefined)).toBe(5000);
+		expect(libraryStatusPollInterval(notFound)).toBe(5000);
 		expect(libraryStatusPollInterval(found)).toBe(30_000);
 	});
 
@@ -32,6 +32,6 @@ describe("libraryStatusPollInterval", () => {
 				...found,
 				downloads: { "org/model:Q4_K_M": { status: "Downloading" } },
 			}),
-		).toBe(2_000);
+		).toBe(2000);
 	});
 });

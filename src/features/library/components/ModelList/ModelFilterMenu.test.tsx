@@ -54,7 +54,7 @@ describe("ModelFilterMenu", () => {
 				<ModelStatusFilter
 					value="all"
 					counts={{ all: 12, installed: 3, available: 9 }}
-					onValueChange={() => undefined}
+					onValueChange={() => {}}
 				/>
 			</ModelFilterMenu>,
 		);

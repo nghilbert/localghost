@@ -12,7 +12,7 @@ export function ChangePasswordForm() {
 		onSubmit: ({ value }) =>
 			changePassword.mutateAsync(
 				{ currentPassword: value.currentPassword, newPassword: value.newPassword },
-				{ onSuccess: () => form.reset() },
+				{ onSuccess: () => { form.reset(); } },
 			),
 	});
 

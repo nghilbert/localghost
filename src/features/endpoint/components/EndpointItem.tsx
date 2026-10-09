@@ -24,7 +24,7 @@ export function EndpointItem({
 		return (
 			<Item.Root variant="outlined" render={<li />}>
 				<Item.Content>
-					<EditEndpointForm endpoint={endpoint} onDone={() => setEditing(false)} />
+					<EditEndpointForm endpoint={endpoint} onDone={() => { setEditing(false); }} />
 				</Item.Content>
 			</Item.Root>
 		);
@@ -46,7 +46,7 @@ export function EndpointItem({
 					variant="quiet"
 					size="sm"
 					iconOnly
-					onClick={() => setEditing(true)}
+					onClick={() => { setEditing(true); }}
 					aria-label="Edit provider endpoint"
 				>
 					<PencilIcon />
@@ -56,7 +56,7 @@ export function EndpointItem({
 					variant="quiet"
 					size="sm"
 					iconOnly
-					onClick={() => setDeleteOpen(true)}
+					onClick={() => { setDeleteOpen(true); }}
 					aria-label="Delete provider endpoint"
 				>
 					<Trash2Icon />
@@ -67,7 +67,7 @@ export function EndpointItem({
 					title={`Delete "${endpoint.name}"?`}
 					description="Its API key and per-model settings will be permanently deleted, and conversations using it will need a new model. Chat history is kept."
 					isPending={isDeleting}
-					onConfirm={() => onDelete(() => setDeleteOpen(false))}
+					onConfirm={() => { onDelete(() => { setDeleteOpen(false); }); }}
 				/>
 			</Item.Actions>
 		</Item.Root>

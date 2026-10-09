@@ -28,7 +28,7 @@ describe("turnSeconds", () => {
 	it("rounds the run's timings to seconds", () => {
 		const message: UIMessage = {
 			...assistantMessage("hi"),
-			metadata: { tanstack: { run: { id: "r1", startedAt: 1_000, finishedAt: 13_600 } } },
+			metadata: { tanstack: { run: { id: "r1", startedAt: 1000, finishedAt: 13_600 } } },
 		};
 		expect(turnSeconds(message)).toBe(13);
 	});
@@ -43,7 +43,7 @@ describe("turnSeconds", () => {
 	it("is null for a run that has not finished", () => {
 		const message: UIMessage = {
 			...assistantMessage("hi"),
-			metadata: { tanstack: { run: { id: "r1", startedAt: 1_000 } } },
+			metadata: { tanstack: { run: { id: "r1", startedAt: 1000 } } },
 		};
 		expect(turnSeconds(message)).toBeNull();
 	});
@@ -208,7 +208,7 @@ describe("deriveConversationTitle", () => {
 	});
 
 	it("returns null for blank text", () => {
-		expect(deriveConversationTitle("   ")).toBeNull();
+		expect(deriveConversationTitle(' '.repeat(3))).toBeNull();
 	});
 });
 

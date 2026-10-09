@@ -40,6 +40,6 @@ export const chatQueries = {
 		queryOptions({
 			queryKey: [...chatQueries.all(), "tool-availability"],
 			queryFn: () => getToolAvailability(),
-			staleTime: Number.POSITIVE_INFINITY,
+			staleTime: Infinity,
 		}),
 };

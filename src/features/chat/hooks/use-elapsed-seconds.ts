@@ -15,10 +15,10 @@ export function useElapsedSeconds(active: boolean): number {
 		if (!active) return;
 		const start = Date.now();
 		const id = setInterval(
-			() => setSeconds(Math.floor((Date.now() - start) / MS_PER_SECOND)),
+			() => { setSeconds(Math.floor((Date.now() - start) / MS_PER_SECOND)); },
 			MS_PER_SECOND,
 		);
-		return () => clearInterval(id);
+		return () => { clearInterval(id); };
 	}, [active]);
 
 	return seconds;

@@ -7,7 +7,7 @@ function fakeSessionStorage(): Storage {
 		getItem: (k) => store.get(k) ?? null,
 		setItem: (k, v) => void store.set(k, v),
 		removeItem: (k) => void store.delete(k),
-		clear: () => store.clear(),
+		clear: () => { store.clear(); },
 		key: (i) => [...store.keys()][i] ?? null,
 		get length() {
 			return store.size;

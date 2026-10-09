@@ -38,8 +38,7 @@ export function ModelSortControls({ value, onValueChange }: ModelSortControlsPro
 				variant="outlined"
 				iconOnly
 				aria-label={value.sortDir === "asc" ? "Sort ascending" : "Sort descending"}
-				onClick={() =>
-					onValueChange({ ...value, sortDir: value.sortDir === "asc" ? "desc" : "asc" })
+				onClick={() => { onValueChange({ ...value, sortDir: value.sortDir === "asc" ? "desc" : "asc" }); }
 				}
 			>
 				{value.sortDir === "asc" ? <ArrowUpNarrowWideIcon /> : <ArrowDownWideNarrowIcon />}

@@ -198,15 +198,17 @@ export function Provider({
 	};
 
 	const onShortcut = useEffectEvent((event: KeyboardEvent) => {
-		if (event.key === SIDEBAR_KEYBOARD_SHORTCUT && (event.metaKey || event.ctrlKey)) {
-			event.preventDefault();
-			toggleSidebar();
+		if (!(event.key === SIDEBAR_KEYBOARD_SHORTCUT && (event.metaKey || event.ctrlKey))) {
+			return;
 		}
+
+		event.preventDefault();
+		toggleSidebar();
 	});
 
 	useEffect(() => {
-		window.addEventListener("keydown", onShortcut);
-		return () => window.removeEventListener("keydown", onShortcut);
+		globalThis.addEventListener("keydown", onShortcut);
+		return () => { globalThis.removeEventListener("keydown", onShortcut); };
 	}, []);
 
 	const providerStyle: CSSProperties & {

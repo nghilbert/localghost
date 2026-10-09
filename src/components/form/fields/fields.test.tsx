@@ -370,7 +370,7 @@ describe("ToggleGroupField", () => {
 	function Harness({ onSubmit }: { onSubmit: (theme: string) => void }) {
 		const form = useAppForm({
 			defaultValues: { theme: "system" },
-			onSubmit: ({ value }) => onSubmit(value.theme),
+			onSubmit: ({ value }) => { onSubmit(value.theme); },
 		});
 		return (
 			<form.AppForm>
@@ -415,7 +415,7 @@ describe("ToggleGroupField", () => {
 
 describe("NumberField", () => {
 	test("steps up to its max and stops there", async () => {
-		const submitted: (number | undefined)[] = [];
+		const submitted: Array<number | undefined> = [];
 		function Harness() {
 			const form = useAppForm({
 				defaultValues: { count: 2 },

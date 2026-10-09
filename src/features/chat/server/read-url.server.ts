@@ -23,7 +23,7 @@ async function fetchFollowingSafeRedirects(input: string, signal?: AbortSignal) 
 		});
 		const location = res.headers.get("location");
 		if (res.status < 300 || res.status >= 400 || !location) return res;
-		target = new URL(location, url).toString();
+		target = new URL(location, url).href;
 	}
 	throw new Error("Too many redirects");
 }

@@ -66,21 +66,23 @@ export async function* streamModelEvents({
 		wake = undefined;
 	};
 
-	source.onopen = () => onOpen?.();
-	source.onerror = () => {
+	source.addEventListener("open", () => onOpen?.());
+	source.addEventListener("error", () => {
 		console.warn("llama.cpp model-event stream errored", { readyState: source.readyState });
 		// CLOSED means the browser gave up reconnecting.
-		if (source.readyState === EventSource.CLOSED) {
-			closed = true;
-			resume();
+		if (source.readyState !== EventSource.CLOSED) {
+			return;
 		}
-	};
-	source.onmessage = (message: MessageEvent<string>) => {
+
+		closed = true;
+		resume();
+	});
+	source.addEventListener("message", (message: MessageEvent<string>) => {
 		const event = parseModelEvent(message.data);
 		if (!event) return;
 		queued.push(event);
 		resume();
-	};
+	});
 	signal.addEventListener("abort", resume, { once: true });
 
 	try {

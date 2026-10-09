@@ -22,7 +22,7 @@ export function ModelPagination({
 				<Pagination.Item>
 					<Pagination.Previous
 						disabled={page === 0}
-						onClick={() => onPageChange(Math.max(0, page - 1))}
+						onClick={() => { onPageChange(Math.max(0, page - 1)); }}
 					/>
 				</Pagination.Item>
 				<Pagination.Item className="text-sm text-muted-fg">
@@ -31,7 +31,7 @@ export function ModelPagination({
 				<Pagination.Item>
 					<Pagination.Next
 						disabled={page >= pageCount - 1}
-						onClick={() => onPageChange(Math.min(pageCount - 1, page + 1))}
+						onClick={() => { onPageChange(Math.min(pageCount - 1, page + 1)); }}
 					/>
 				</Pagination.Item>
 			</Pagination.List>

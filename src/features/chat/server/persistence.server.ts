@@ -53,15 +53,15 @@ function mapRun(row: ChatRun): RunRecord {
 		threadId: row.threadId,
 		status: toRunStatus(row.status),
 		startedAt: Number(row.startedAt),
-		...(row.finishedAt != null ? { finishedAt: Number(row.finishedAt) } : {}),
-		...(row.error != null
-			? { error: { message: row.error, ...(row.errorCode != null ? { code: row.errorCode } : {}) } }
-			: {}),
+		...(row.finishedAt == null ? {} : { finishedAt: Number(row.finishedAt) }),
+		...(row.error == null
+			? {}
+			: { error: { message: row.error, ...(row.errorCode == null ? {} : { code: row.errorCode }) } }),
 		...(isTokenUsage(row.usage) ? { usage: row.usage } : {}),
-		...(row.sandboxKey != null ? { sandboxKey: row.sandboxKey } : {}),
-		...(row.detachedSince != null ? { detachedSince: Number(row.detachedSince) } : {}),
-		...(row.cancelRequested != null ? { cancelRequested: row.cancelRequested } : {}),
-		...(row.driverEpoch != null ? { driverEpoch: row.driverEpoch } : {}),
+		...(row.sandboxKey == null ? {} : { sandboxKey: row.sandboxKey }),
+		...(row.detachedSince == null ? {} : { detachedSince: Number(row.detachedSince) }),
+		...(row.cancelRequested == null ? {} : { cancelRequested: row.cancelRequested }),
+		...(row.driverEpoch == null ? {} : { driverEpoch: row.driverEpoch }),
 	};
 }
 
@@ -73,7 +73,7 @@ function mapInterrupt(row: ChatInterrupt): InterruptRecord {
 		status: toInterruptStatus(row.status),
 		requestedAt: Number(row.requestedAt),
 		payload: row.payload,
-		...(row.resolvedAt != null ? { resolvedAt: Number(row.resolvedAt) } : {}),
+		...(row.resolvedAt == null ? {} : { resolvedAt: Number(row.resolvedAt) }),
 		...(row.response !== null && row.response !== undefined ? { response: row.response } : {}),
 	};
 }
@@ -179,7 +179,7 @@ function createInterruptStore(): InterruptStore {
 					status: "pending",
 					requestedAt: BigInt(record.requestedAt),
 					payload: record.payload,
-					...(record.response !== undefined ? { response: record.response } : {}),
+					...(record.response === undefined ? {} : { response: record.response }),
 				},
 				update: {},
 			});
@@ -190,7 +190,7 @@ function createInterruptStore(): InterruptStore {
 				data: {
 					status: "resolved",
 					resolvedAt: BigInt(Date.now()),
-					...(response !== undefined ? { response } : {}),
+					...(response === undefined ? {} : { response }),
 				},
 			});
 		},

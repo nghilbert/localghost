@@ -179,7 +179,7 @@ export function ToolCallStep({ toolCall, result, isStreaming, interrupt }: ToolC
 						size="sm"
 						color="neutral"
 						variant="outlined"
-						onClick={() => interrupt.resolveInterrupt(true)}
+						onClick={() => { interrupt.resolveInterrupt(true); }}
 					>
 						<CheckIcon />
 						Approve
@@ -188,7 +188,7 @@ export function ToolCallStep({ toolCall, result, isStreaming, interrupt }: ToolC
 						size="sm"
 						color="neutral"
 						variant="outlined"
-						onClick={() => interrupt.resolveInterrupt(false)}
+						onClick={() => { interrupt.resolveInterrupt(false); }}
 					>
 						<XIcon />
 						Deny

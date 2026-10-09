@@ -34,7 +34,7 @@ export function requiredMemoryGb({
 	paramB,
 }: Pick<CatalogModel, "sizeGb" | "paramB">): number | null {
 	const weightsGb =
-		sizeGb ?? (paramB !== null ? roundToTenth(paramB * Q4_GB_PER_B_ESTIMATE) : null);
+		sizeGb ?? (paramB === null ? null : roundToTenth(paramB * Q4_GB_PER_B_ESTIMATE));
 	if (weightsGb === null) return null;
 	return roundToTenth(weightsGb * 1.15 + 1);
 }

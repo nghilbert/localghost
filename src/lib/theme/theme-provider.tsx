@@ -30,7 +30,7 @@ function applyMode(mode: ThemeMode) {
 
 	const resolved =
 		mode === "system"
-			? window.matchMedia("(prefers-color-scheme: dark)").matches
+			? globalThis.matchMedia("(prefers-color-scheme: dark)").matches
 				? "dark"
 				: "light"
 			: mode;
@@ -50,7 +50,7 @@ const storageChanges = new EventTarget();
 
 function subscribe(onChange: () => void) {
 	storageChanges.addEventListener("change", onChange);
-	return () => storageChanges.removeEventListener("change", onChange);
+	return () => { storageChanges.removeEventListener("change", onChange); };
 }
 
 function getStoredMode(): ThemeMode | null {
@@ -81,10 +81,10 @@ export function ThemeProvider({ children, defaultMode = "system" }: ThemeProvide
 	useEffect(() => {
 		if (mode !== "system") return;
 
-		const media = window.matchMedia("(prefers-color-scheme: dark)");
-		const onChange = () => applyMode("system");
+		const media = globalThis.matchMedia("(prefers-color-scheme: dark)");
+		const onChange = () => { applyMode("system"); };
 		media.addEventListener("change", onChange);
-		return () => media.removeEventListener("change", onChange);
+		return () => { media.removeEventListener("change", onChange); };
 	}, [mode]);
 
 	const setMode = (next: ThemeMode) => {

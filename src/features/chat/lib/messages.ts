@@ -4,7 +4,7 @@ import type { UIMessage } from "@tanstack/ai-client";
 import { MS_PER_SECOND } from "#/lib/format";
 
 /** Turns `createdAt` back into a `Date` after JSON serialization made it a string. */
-export function reviveMessageDates(messages: Array<ModelMessage>): Array<ModelMessage> {
+export function reviveMessageDates(messages: ModelMessage[]): ModelMessage[] {
 	return messages.map((message) =>
 		message.createdAt ? { ...message, createdAt: new Date(message.createdAt) } : message,
 	);
@@ -206,7 +206,7 @@ export function mergeAssistantTurns<TMessage extends UIMessage>(messages: TMessa
 }
 
 /** Whether the transcript ends on a user message that has no reply yet. */
-export function awaitingAssistantResponse(messages: Array<UIMessage>): boolean {
+export function awaitingAssistantResponse(messages: UIMessage[]): boolean {
 	const last = messages.at(-1);
 	return last?.role === "user";
 }

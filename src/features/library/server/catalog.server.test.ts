@@ -33,7 +33,7 @@ function indexEntry(
 		tags: [],
 		lastModified: "2026-01-01T00:00:00.000Z",
 		createdAt: "2025-01-01T00:00:00.000Z",
-		author: overrides.id.split("/")[0],
+		author: overrides.id.split("/", 1)[0],
 		likes: 0,
 		...overrides,
 	};
@@ -65,21 +65,21 @@ function mockHfFetch({
 			return jsonResponse([...textGeneration, ...imageTextToText]);
 		}
 		if (url.pathname.includes("/tree/")) {
-			const repoId = url.pathname.slice("/api/models/".length).split("/tree/")[0] ?? "";
+			const repoId = url.pathname.slice("/api/models/".length).split("/tree/", 1)[0] ?? "";
 			const files = treeByRepo[repoId] ?? tree;
 			return jsonResponse(files.map((f) => ({ type: "file", ...f })));
 		}
 		// `modelInfo` requests `/api/models/{name}/revision/{rev}`, not the bare index path.
 		if (url.pathname.includes("/revision/")) {
 			const repoId = decodeURIComponent(
-				url.pathname.slice("/api/models/".length).split("/revision/")[0] ?? "",
+				url.pathname.slice("/api/models/".length).split("/revision/", 1)[0] ?? "",
 			);
 			const entry = [...textGeneration, ...imageTextToText].find(
 				(candidate): candidate is { id: string } =>
 					typeof candidate === "object" &&
 					candidate !== null &&
 					"id" in candidate &&
-					(candidate as { id: unknown }).id === repoId,
+					(candidate).id === repoId,
 			);
 			return entry ? jsonResponse(entry) : new Response(null, { status: 404 });
 		}

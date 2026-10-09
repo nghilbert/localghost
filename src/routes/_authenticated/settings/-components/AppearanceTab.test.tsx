@@ -14,7 +14,7 @@ describe("AppearanceTab", () => {
 	it("starts on the stored mode and preset", async () => {
 		localStorage.setItem("theme-mode", "dark");
 		localStorage.setItem("theme-preset", "nature");
-		onTestFinished(() => localStorage.clear());
+		onTestFinished(() => { localStorage.clear(); });
 
 		const screen = await renderWithRouter(
 			<ThemeProvider>

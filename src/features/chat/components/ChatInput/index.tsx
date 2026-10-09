@@ -115,10 +115,12 @@ export function ChatInput({
 	}
 
 	function handleKeyDown(event: KeyboardEvent<HTMLElement>) {
-		if (event.key === "Enter" && !event.shiftKey) {
-			event.preventDefault();
-			event.currentTarget.closest("form")?.requestSubmit();
+		if (event.key !== "Enter" || event.shiftKey) {
+			return;
 		}
+
+		event.preventDefault();
+		event.currentTarget.closest("form")?.requestSubmit();
 	}
 
 	function handlePaste(event: ClipboardEvent<HTMLElement>) {
@@ -164,21 +166,21 @@ export function ChatInput({
 				data-dragging={isDragging || undefined}
 				className="data-dragging:ring-2 data-dragging:ring-ring"
 				onDragOver={handleDragOver}
-				onDragLeave={() => setIsDragging(false)}
+				onDragLeave={() => { setIsDragging(false); }}
 				onDrop={handleDrop}
 			>
 				{attachments.length > 0 && (
 					<InputGroup.Addon align="block-start">
 						<AttachmentPreviews
 							attachments={attachments}
-							onRemove={(id) => setAttachments((prev) => prev.filter((a) => a.id !== id))}
+							onRemove={(id) => { setAttachments((prev) => prev.filter((a) => a.id !== id)); }}
 						/>
 					</InputGroup.Addon>
 				)}
 				<InputGroup.Textarea
 					aria-label="Message"
 					value={messageDraft}
-					onChange={(event) => setMessageDraft(event.target.value)}
+					onChange={(event) => { setMessageDraft(event.target.value); }}
 					placeholder={needsModel ? "Pick a model to start..." : "Message..."}
 					className="max-h-50 w-full"
 					onKeyDown={handleKeyDown}

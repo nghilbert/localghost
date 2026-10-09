@@ -101,6 +101,3 @@ export type PullProgress = {
 	completed?: number;
 	total?: number;
 };
-
-/** Which models the Library list shows. */
-export type ModelStatus = "all" | "installed" | "available";

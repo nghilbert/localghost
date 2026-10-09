@@ -143,7 +143,7 @@ export function MessageScrollerProvider({
 
 		const anchorLastToTop = (behavior: ScrollBehavior) => {
 			const anchors = viewport.querySelectorAll<HTMLElement>("[data-scroll-anchor]");
-			const anchor = anchors[anchors.length - 1];
+			const anchor = [...anchors].at(-1);
 			if (!anchor) return;
 			const top =
 				anchor.getBoundingClientRect().top -
@@ -157,7 +157,7 @@ export function MessageScrollerProvider({
 			const spacer = spacerRef.current;
 			if (!spacer) return;
 			const anchors = content.querySelectorAll<HTMLElement>("[data-scroll-anchor]");
-			const anchor = anchors[anchors.length - 1];
+			const anchor = [...anchors].at(-1);
 			if (!anchor) {
 				if (spacerHeightRef.current !== 0) {
 					spacerHeightRef.current = 0;
@@ -169,10 +169,12 @@ export function MessageScrollerProvider({
 			const realContentHeight = content.scrollHeight - spacerHeightRef.current;
 			const lastTurnHeight = realContentHeight - anchorTop;
 			const needed = Math.max(0, viewport.clientHeight - lastTurnHeight);
-			if (needed !== spacerHeightRef.current) {
-				spacerHeightRef.current = needed;
-				spacer.style.height = `${needed}px`;
+			if (needed === spacerHeightRef.current) {
+				return;
 			}
+
+			spacerHeightRef.current = needed;
+			spacer.style.height = `${needed}px`;
 		};
 
 		const applyPin = (behavior: ScrollBehavior) => {

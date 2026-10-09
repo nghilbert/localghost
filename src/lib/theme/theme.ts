@@ -28,7 +28,7 @@ export type Theme = (typeof THEMES)[number]["id"];
 export type ThemeMode = "light" | "dark" | "system";
 
 /** The mode choices, in menu order. */
-export const MODE_OPTIONS: { label: string; value: ThemeMode; Icon: LucideIcon }[] = [
+export const MODE_OPTIONS: Array<{ label: string; value: ThemeMode; Icon: LucideIcon }> = [
 	{ label: "Light", value: "light", Icon: SunIcon },
 	{ label: "Dark", value: "dark", Icon: MoonIcon },
 	{ label: "System", value: "system", Icon: MonitorIcon },

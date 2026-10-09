@@ -55,7 +55,7 @@ export function pickDefaultVariant(variants: ModelVariantInfo[]): ModelVariantIn
 	}
 
 	return variants.reduce((smallest, v) =>
-		(v.sizeGb ?? Number.POSITIVE_INFINITY) < (smallest.sizeGb ?? Number.POSITIVE_INFINITY)
+		(v.sizeGb ?? Infinity) < (smallest.sizeGb ?? Infinity)
 			? v
 			: smallest,
 	);
@@ -77,12 +77,12 @@ const PUBLISHER_RANK: Record<string, number> = {
 };
 
 function publisherRank(repoId: string): number {
-	const publisher = repoId.split("/")[0] ?? "";
+	const publisher = repoId.split("/", 1)[0] ?? "";
 	return PUBLISHER_RANK[publisher] ?? 4;
 }
 
 /** Packaging suffixes ignored when grouping. Fine-tune markers stay, since they name different models. */
-const REPACK_SUFFIXES = ["-gguf", "-it", "-instruct"];
+const REPACK_SUFFIXES = new Set(["-gguf", "-it", "-instruct"]);
 
 /**
  * The key that groups every repack of one model: the Hub's `baseModels` link when the repo
@@ -114,7 +114,7 @@ export function contextKFromLength(contextLength: number | undefined): number | 
 
 /** A repo id reduced to its model name, so repacks by different publishers match. */
 export function baseModelKey(repoId: string): string {
-	const name = (repoId.split("/")[1] ?? repoId).toLowerCase();
+	const name = (repoId.split("/", 2)[1] ?? repoId).toLowerCase();
 	let key = name;
 	let changed = true;
 	while (changed) {
@@ -131,11 +131,11 @@ export function baseModelKey(repoId: string): string {
 
 /** A readable name from a repo id, e.g. "unsloth/Qwen3.5-4B-GGUF" becomes "Qwen3.5 4B". */
 export function deriveDisplayName(repoId: string): string {
-	const name = repoId.split("/")[1] ?? repoId;
+	const name = repoId.split("/", 2)[1] ?? repoId;
 	const words = name
 		.split(/[-_]/)
 		.filter((word) => word.length > 0)
-		.filter((word) => !REPACK_SUFFIXES.includes(`-${word.toLowerCase()}`))
+		.filter((word) => !REPACK_SUFFIXES.has(`-${word.toLowerCase()}`))
 		.filter((word) => word.toLowerCase() !== "gguf");
 	return words
 		.map((word) => {

@@ -10,7 +10,7 @@ const endpoints = [
 type RuntimeStatus = {
 	found: boolean;
 	endpointId: string;
-	installedModels: { id: string }[];
+	installedModels: Array<{ id: string }>;
 };
 
 const { fetchEndpointModels, fetchLibraryStatus } = vi.hoisted(() => ({
@@ -86,7 +86,7 @@ describe("ModelPicker dropdown", () => {
 	});
 
 	it("lists endpoint groups in the same order as the endpoints", async () => {
-		fetchEndpointModels.mockImplementation((id: string) => (id === "e1" ? ["llama3"] : ["gpt-4o"]));
+		fetchEndpointModels.mockImplementation((id: string) => ([id === "e1" ? "llama3" : "gpt-4o"]));
 
 		const screen = await renderOpenedPicker();
 

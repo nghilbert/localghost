@@ -73,9 +73,9 @@ export function ProviderEndpointForm({
 					if (result.ok) {
 						toast.add({
 							title:
-								result.modelCount != null
-									? `Connection works: ${result.modelCount} models available`
-									: "Connection works",
+								result.modelCount == null
+									? "Connection works"
+									: `Connection works: ${result.modelCount} models available`,
 							type: "success",
 						});
 					}

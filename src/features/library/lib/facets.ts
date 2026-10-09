@@ -2,7 +2,7 @@ import type { CatalogCapability, HideableFit } from "#/features/library/library.
 import { FIT_LABELS, HIDEABLE_FITS } from "./hardware-fit";
 
 /** The capability filter's options, in menu order. */
-const CAPABILITY_OPTIONS: { value: CatalogCapability; label: string }[] = [
+const CAPABILITY_OPTIONS: Array<{ value: CatalogCapability; label: string }> = [
 	{ value: "vision", label: "Vision" },
 	{ value: "code", label: "Code" },
 	{ value: "fast", label: "Fast" },
@@ -68,14 +68,14 @@ function buildFacet<T extends string>({
 			value,
 			label: renderOption(labelFor(value)),
 			checked: values.includes(value),
-			onToggle: (checked) => onChange(toggle({ values, value, on: checked })),
+			onToggle: (checked) => { onChange(toggle({ values, value, on: checked })); },
 		})),
 		chips: values.map((value) => ({
 			value,
 			label: renderChip(labelFor(value)),
-			onRemove: () => onChange(values.filter((current) => current !== value)),
+			onRemove: () => { onChange(values.filter((current) => current !== value)); },
 		})),
-		clear: () => onChange([]),
+		clear: () => { onChange([]); },
 	};
 }
 

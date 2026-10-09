@@ -111,7 +111,7 @@ export function ModelList({
 						aria-label="Search models"
 						placeholder="Search models..."
 						value={search}
-						onChange={(event) => handleSearchChange(event.target.value)}
+						onChange={(event) => { handleSearchChange(event.target.value); }}
 					/>
 				</InputGroup.Root>
 				<ModelFilterMenu facets={facets}>
@@ -143,7 +143,7 @@ export function ModelList({
 								row={row}
 								hardware={hardware}
 								expanded={expandedId === row.id}
-								onToggleExpanded={() => handleToggleExpanded(row.id)}
+								onToggleExpanded={() => { handleToggleExpanded(row.id); }}
 								onPull={onPull}
 								onStop={onStop}
 							/>

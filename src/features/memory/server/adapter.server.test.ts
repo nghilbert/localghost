@@ -34,7 +34,7 @@ describe("memoryAdapter.recall", () => {
 	});
 
 	it("renders an empty system prompt when nothing matches, without querying on blank input", async () => {
-		const result = await memoryAdapter.recall(scope, "   ");
+		const result = await memoryAdapter.recall(scope, ' '.repeat(3));
 
 		expect(recallMemories).not.toHaveBeenCalled();
 		expect(result.systemPrompt).toBe("");

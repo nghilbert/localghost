@@ -57,7 +57,7 @@ export function UserMessage({ message, onEditResend }: UserMessageProps) {
 							autoFocus
 							aria-label="Edit message"
 							value={draft}
-							onChange={(event) => setDraft(event.target.value)}
+							onChange={(event) => { setDraft(event.target.value); }}
 							onKeyDown={handleKeyDown}
 							className="max-h-50"
 						/>
@@ -95,7 +95,7 @@ export function UserMessage({ message, onEditResend }: UserMessageProps) {
 								icon={<CopyIcon />}
 								ariaLabel="Copy message"
 								tooltip="Copy"
-								onClick={() => copyToClipboard(content)}
+								onClick={() => { copyToClipboard(content); }}
 							/>
 							{onEditResend && (
 								<ActionButton

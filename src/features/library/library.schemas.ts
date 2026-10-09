@@ -19,6 +19,9 @@ const catalogCapabilitySchema = z.enum(["vision", "code", "fast"]);
 /** The hardware fit levels a user can hide, worst first. */
 export const hideableFitSchema = z.enum(["wont-fit", "tight"]);
 
+/** Which models the Library list shows, in menu order. */
+export const modelStatusSchema = z.enum(["all", "installed", "available"]);
+
 /** The fit levels hidden until the user changes the filter. */
 export const DEFAULT_HIDDEN_FITS: HideableFit[] = ["wont-fit"];
 
@@ -45,6 +48,8 @@ export type CatalogSortBy = z.infer<typeof catalogSortBySchema>;
 export type CatalogCapability = z.infer<typeof catalogCapabilitySchema>;
 /** A hardware fit level the user can hide. */
 export type HideableFit = z.infer<typeof hideableFitSchema>;
+/** Which models the Library list shows. */
+export type ModelStatus = z.infer<typeof modelStatusSchema>;
 
 /** Catalog model ids to look up. */
 export const catalogModelsByIdsInput = z.object({ ids: z.array(z.string()) });

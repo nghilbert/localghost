@@ -20,12 +20,12 @@ import {
 	type CatalogQuery,
 	DEFAULT_HIDDEN_FITS,
 	type HideableFit,
+	type ModelStatus,
 } from "#/features/library/library.schemas";
 import type {
 	CatalogModel,
 	HardwareInfo,
 	InstalledModel,
-	ModelStatus,
 	PullProgress,
 } from "#/features/library/library.types";
 import { useDebouncedValue } from "#/hooks/use-debounced-value";
@@ -52,7 +52,7 @@ function sortableRow(row: ModelRow): SortableModel {
 		paramB: catalog?.paramB ?? installed?.paramB ?? null,
 		sizeGb:
 			catalog?.sizeGb ??
-			(installed?.sizeBytes != null ? roundToTenth(installed.sizeBytes / GIB) : null),
+			(installed?.sizeBytes == null ? null : roundToTenth(installed.sizeBytes / GIB)),
 		pullCount: catalog?.pullCount ?? 0,
 		likes: catalog?.likes ?? 0,
 		updatedAt: catalog?.updatedAt,
@@ -216,7 +216,7 @@ export function useModelList({ installedModels, pulling, hardware }: UseModelLis
 		counts,
 		expandedId,
 		facets,
-		fetchedVariants: expandedCatalog !== null ? variantsQuery.data : undefined,
+		fetchedVariants: expandedCatalog === null ? undefined : variantsQuery.data,
 		handleSearchChange,
 		handleSortChange,
 		handleStatusChange,

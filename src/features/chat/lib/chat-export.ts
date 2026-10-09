@@ -1,7 +1,7 @@
 import type { ModelMessage } from "@tanstack/ai";
 
 /** The conversation fields an export needs. */
-interface ExportableConversation {
+type ExportableConversation = {
 	title: string | null;
 	messages: ModelMessage[];
 }

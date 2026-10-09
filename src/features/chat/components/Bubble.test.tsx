@@ -13,8 +13,8 @@ function backgroundOf(text: string) {
 function topCornersOf(text: string) {
 	const style = getComputedStyle(page.getByText(text).element());
 	return {
-		left: parseFloat(style.borderTopLeftRadius),
-		right: parseFloat(style.borderTopRightRadius),
+		left: Number.parseFloat(style.borderTopLeftRadius),
+		right: Number.parseFloat(style.borderTopRightRadius),
 	};
 }
 
