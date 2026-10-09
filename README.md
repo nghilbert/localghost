@@ -151,7 +151,7 @@ the bundled llama.cpp in `llamacpp`.
 
 Report bugs and send pull requests on
 [GitHub](https://github.com/nghilbert/localghost/issues). Open an issue first for
-large changes, and run `npm run biome check`, `npm run build`, and
+large changes, and run `npm run format`, `npm run lint`, `npm run build`, and
 `npm run test -- run` before sending a PR.
 
 ## License
