@@ -3,7 +3,9 @@ import { userEvent } from "vitest/browser";
 import { render } from "#/test/utils";
 import { ChatRenameForm } from "./ChatRenameForm";
 
-const { mutateAsync } = vi.hoisted(() => ({ mutateAsync: vi.fn() }));
+const { mutateAsync } = vi.hoisted(() => ({
+	mutateAsync: vi.fn<(input: unknown, options?: { onSuccess?: () => void }) => Promise<void>>(),
+}));
 
 vi.mock("#/features/chat/hooks/use-rename-conversation", () => ({
 	useRenameConversation: () => ({ mutateAsync }),

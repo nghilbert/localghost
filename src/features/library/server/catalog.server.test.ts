@@ -2,13 +2,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { HubIndexExtras } from "./huggingface.server";
 
 vi.mock("./hardware.server", () => ({
-	getHardwareInfo: vi.fn(async () => ({
+	getHardwareInfo: vi.fn().mockResolvedValue({
 		totalRamGb: 8,
 		freeRamGb: 8,
 		cpuModel: "test-cpu",
 		cpuCount: 4,
 		gpus: null,
-	})),
+	}),
 }));
 
 async function freshCatalogModule() {
@@ -57,8 +57,9 @@ function mockHfFetch({
 	treeByRepo?: Record<string, Array<{ path: string; size?: number; lfs?: { size: number } }>>;
 }): ReturnType<typeof vi.fn> {
 	const fetchMock = vi.mocked(fetch);
-	fetchMock.mockImplementation(async (input) => {
-		const url = new URL(String(input));
+	fetchMock.mockImplementation((input) =>
+		Promise.try(() => {
+		const url = new URL(input instanceof Request ? input.url : input);
 		if (url.pathname === "/api/models") {
 			// The index is queried by the `gguf` tag alone, never by pipeline tag.
 			if (url.searchParams.has("pipeline_tag")) throw new Error(`unexpected task filter: ${url}`);
@@ -84,7 +85,8 @@ function mockHfFetch({
 			return entry ? jsonResponse(entry) : new Response(null, { status: 404 });
 		}
 		throw new Error(`unexpected fetch: ${url}`);
-	});
+		}),
+	);
 	return fetchMock;
 }
 
@@ -341,7 +343,7 @@ describe("getCatalogModelsByIds (cache-miss resolution)", () => {
 		const [resolved] = await getCatalogModelsByIds(["org/model-8B-GGUF:Q8_0"]);
 
 		expect(resolved?.id).toBe("org/model-8B-GGUF:Q8_0");
-		expect(resolved?.variants?.map((v) => v.quant).sort()).toEqual(["Q4_K_M", "Q8_0"]);
+		expect(resolved?.variants?.map((v) => v.quant).toSorted((a, b) => a.localeCompare(b))).toEqual(["Q4_K_M", "Q8_0"]);
 	});
 
 	it("borrows a warm dedupe group's siblingRepoIds for a quant the cache didn't hit", async () => {
@@ -407,13 +409,12 @@ describe("listGroupVariants", () => {
 		const manySiblings = Array.from({ length: 40 }, (_, i) => `org/sibling-${i}-GGUF`);
 		mockHfFetch({
 			textGeneration: [],
-			treeByRepo: Object.fromEntries([
-				["org/primary-GGUF", [{ path: "model-Q4_K_M.gguf", lfs: { size: 2_000_000_000 } }]],
-				...manySiblings.map((repo) => [
+			treeByRepo: Object.fromEntries(
+				["org/primary-GGUF", ...manySiblings].map((repo) => [
 					repo,
 					[{ path: "model-Q4_K_M.gguf", lfs: { size: 2_000_000_000 } }],
 				]),
-			]),
+			),
 		});
 
 		const { listGroupVariants } = await freshCatalogModule();

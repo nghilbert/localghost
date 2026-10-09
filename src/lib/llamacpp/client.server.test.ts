@@ -159,7 +159,7 @@ describe("llama.cpp model status", () => {
 			.mockResolvedValueOnce(
 				new Response(secondBody, { headers: { "Content-Type": "text/event-stream" } }),
 			);
-		const debug = vi.spyOn(log, "debug").mockImplementation(() => {});
+		const debug = vi.spyOn(log, "debug").mockReturnValue();
 		const controller = new AbortController();
 
 		const body = await openModelEventStream({
@@ -182,7 +182,7 @@ describe("llama.cpp model status", () => {
 		undiciFetchMock.mockResolvedValueOnce(
 			new Response(droppedStream("first"), { headers: { "Content-Type": "text/event-stream" } }),
 		);
-		const debug = vi.spyOn(log, "debug").mockImplementation(() => {});
+		const debug = vi.spyOn(log, "debug").mockReturnValue();
 		const controller = new AbortController();
 
 		const body = await openModelEventStream({

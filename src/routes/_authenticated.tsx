@@ -4,7 +4,7 @@ import { chatQueries } from "#/features/chat/chat.queries";
 import { AppSidebar } from "./_authenticated/-components/AppSidebar";
 
 export const Route = createFileRoute("/_authenticated")({
-	beforeLoad: async ({ context }) => {
+	beforeLoad: ({ context }) => {
 		if (!context.auth) throw redirect({ to: "/sign-in" });
 		return { auth: context.auth };
 	},

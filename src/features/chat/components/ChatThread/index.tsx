@@ -101,7 +101,7 @@ export function ChatThread({ conversation }: ChatThreadProps) {
 
 	const cancelRun = useCancelChatRun();
 	// Turns stopped in this session, before a reload brings their run ids.
-	const [stoppedTurnIds, setStoppedTurnIds] = useState<ReadonlySet<string>>(new Set());
+	const [stoppedTurnIds, setStoppedTurnIds] = useState<ReadonlySet<string>>(() => new Set());
 
 	/**
 	 * Marks the run cancelled, then disconnects. The server stops a run only when it was
@@ -127,23 +127,23 @@ export function ChatThread({ conversation }: ChatThreadProps) {
 	const [autoRespond, setAutoRespond] = useState<boolean | null>(null);
 	// `takeNewChat` removes what it reads, so a ref keeps StrictMode's second effect run
 	// from reading nothing and resetting `autoRespond`.
-	const newChatChecked = useRef(false);
+	const newChatCheckedRef = useRef(false);
 	useEffect(() => {
-		if (newChatChecked.current) return;
-		newChatChecked.current = true;
+		if (newChatCheckedRef.current) return;
+		newChatCheckedRef.current = true;
 		const newChat = takeNewChat(conversation.id);
 		if (newChat) {
 			controls.onEnabledToolsChange(newChat.enabledTools);
 		}
 		setAutoRespond(newChat !== null);
-	});
+	}, [conversation.id, controls]);
 
 	// A reopened chat that ends on a user message does not answer on its own.
-	const responseRequested = useRef(false);
+	const responseRequestedRef = useRef(false);
 	useEffect(() => {
-		if (autoRespond !== true || responseRequested.current) return;
+		if (autoRespond !== true || responseRequestedRef.current) return;
 		if (status !== "ready" || !awaitingAssistantResponse(messages)) return;
-		responseRequested.current = true;
+		responseRequestedRef.current = true;
 		void reload().then(resetTools);
 	});
 
@@ -196,7 +196,7 @@ export function ChatThread({ conversation }: ChatThreadProps) {
 									messages={messages}
 									pendingStatus={pendingStatus}
 									error={error?.message ?? conversation.lastRunError ?? undefined}
-									onRetry={reload}
+									onRetry={() => void reload()}
 									onGenerate={canGenerate ? () => void reload() : undefined}
 								/>
 							</MessageScrollerItem>
@@ -219,7 +219,7 @@ export function ChatThread({ conversation }: ChatThreadProps) {
 					tools={controls}
 					supportsImages={supportsImages}
 					supportsDocuments={supportsDocuments}
-					sendMessage={handleSend}
+					sendMessage={(message) => void handleSend(message)}
 					stop={handleStop}
 				/>
 			</div>

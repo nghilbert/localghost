@@ -35,11 +35,11 @@ export const MODE_OPTIONS: Array<{ label: string; value: ThemeMode; Icon: Lucide
 ];
 
 /** Whether a stored value is a known preset id. */
-export function isTheme(value: string | null | undefined): value is Theme {
+export function isTheme(value: unknown): value is Theme {
 	return THEMES.some((theme) => theme.id === value);
 }
 
 /** Whether a stored value is a valid mode. */
-export function isThemeMode(value: string | null | undefined): value is ThemeMode {
+export function isThemeMode(value: unknown): value is ThemeMode {
 	return value === "light" || value === "dark" || value === "system";
 }

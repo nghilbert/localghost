@@ -96,7 +96,7 @@ test("publishes its orientation for descendants to read", async () => {
 		</Field.Root>,
 	);
 
-	expect(container.querySelector("[data-orientation]")?.getAttribute("data-orientation")).toBe(
+	expect(container.querySelector<HTMLElement>("[data-orientation]")?.dataset.orientation).toBe(
 		"horizontal",
 	);
 });

@@ -35,8 +35,8 @@ export function useModelDownload() {
 	const { data: runtimeStatus } = useQuery(libraryQueries.runtimeStatus());
 	const endpointId = runtimeStatus?.endpointId ?? null;
 	const { data: byteProgress = {} } = useQuery(libraryQueries.downloadProgress(endpointId));
-	const startedModels = useRef<Set<string>>(new Set());
-	const observedDownloads = useRef<Set<string>>(new Set());
+	const startedModelsRef = useRef<Set<string>>(new Set());
+	const observedDownloadsRef = useRef<Set<string>>(new Set());
 
 	const polledDownloads = runtimeStatus?.found ? runtimeStatus.downloads : {};
 	const pulling: Record<string, PullProgress> = {};
@@ -51,14 +51,14 @@ export function useModelDownload() {
 		if (!runtimeStatus?.found) return;
 		const downloading = new Set(Object.keys(runtimeStatus.downloads));
 		const installed = new Set(runtimeStatus.installedModels.map((model) => model.id));
-		for (const model of startedModels.current) {
+		for (const model of startedModelsRef.current) {
 			if (downloading.has(model)) {
-				observedDownloads.current.add(model);
+				observedDownloadsRef.current.add(model);
 				continue;
 			}
-			if (!installed.has(model) && !observedDownloads.current.has(model)) continue;
-			startedModels.current.delete(model);
-			observedDownloads.current.delete(model);
+			if (!installed.has(model) && !observedDownloadsRef.current.has(model)) continue;
+			startedModelsRef.current.delete(model);
+			observedDownloadsRef.current.delete(model);
 			if (installed.has(model)) toast.add({ title: `${model} is ready`, type: "success" });
 			else toast.add({ title: `Download failed for ${model}`, type: "error" });
 		}
@@ -70,14 +70,14 @@ export function useModelDownload() {
 			await startModelDownload({ data: { endpointId, model } });
 		},
 		onMutate: (model) => {
-			startedModels.current.add(model);
+			startedModelsRef.current.add(model);
 			evictDownloadProgress({ queryClient, endpointId, model });
 		},
 		onSuccess: () =>
 			queryClient.invalidateQueries({ queryKey: libraryQueries.runtimeStatus().queryKey }),
 		onError: (error, model) => {
-			startedModels.current.delete(model);
-			observedDownloads.current.delete(model);
+			startedModelsRef.current.delete(model);
+			observedDownloadsRef.current.delete(model);
 			toast.add({ title: "Failed to start download", type: "error", description: error.message });
 		},
 	});
@@ -87,11 +87,11 @@ export function useModelDownload() {
 			if (!endpointId) throw new Error("llama.cpp endpoint not found");
 			await cancelModelDownload({ data: { endpointId, model } });
 		},
-		onSuccess: (_data, model) => {
-			startedModels.current.delete(model);
-			observedDownloads.current.delete(model);
+		onSuccess: async (_data, model) => {
+			startedModelsRef.current.delete(model);
+			observedDownloadsRef.current.delete(model);
 			evictDownloadProgress({ queryClient, endpointId, model });
-			queryClient.invalidateQueries({ queryKey: libraryQueries.runtimeStatus().queryKey });
+			await queryClient.invalidateQueries({ queryKey: libraryQueries.runtimeStatus().queryKey });
 			toast.add({ title: `Stopped downloading ${model}`, type: "info" });
 		},
 		onError: (error) =>

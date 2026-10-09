@@ -114,7 +114,7 @@ export function MemoryTab() {
 					if (!open) setPendingDeleteId(null);
 				}}
 				title="Delete this memory?"
-				description={`"${pendingDelete?.text}" will be permanently deleted.`}
+				description={`"${pendingDelete?.text ?? ""}" will be permanently deleted.`}
 				isPending={deleteMemory.isPending}
 				onConfirm={() => {
 					if (pendingDeleteId) confirmDelete(pendingDeleteId);

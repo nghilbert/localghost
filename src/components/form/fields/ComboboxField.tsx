@@ -47,7 +47,7 @@ export function ComboboxField<TItem>({
 	className,
 }: ComboboxFieldProps<TItem>) {
 	const { field } = useFieldBinding<string>();
-	const flatItems = groups ? groups.flatMap((group) => group.items) : (items ?? []);
+	const flatItems = groups ? groups.flatMap((group) => group.items) : items;
 	const selectedItem = flatItems.find((item) => itemToValue(item) === field.state.value) ?? null;
 
 	const renderOption = (item: TItem) => (

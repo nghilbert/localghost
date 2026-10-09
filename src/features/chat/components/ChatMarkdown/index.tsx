@@ -69,7 +69,7 @@ function CodeBlock({
 					size="sm"
 					iconOnly
 					aria-label="Copy code"
-					onClick={() => { copyToClipboard(preRef.current?.textContent ?? ""); }}
+					onClick={() => void copyToClipboard(preRef.current?.textContent ?? "")}
 				>
 					<CopyIcon />
 				</Button>
@@ -87,13 +87,11 @@ function CodeBlock({
 }
 
 /** Styles inline code. Fenced code, which has a `language-*` class, is styled by {@link CodeBlock}. */
-function Code({ className, ...props }: MarkdownComponentProps<"code">) {
-	return (
-		<code
-			{...props}
-			className={className ?? "rounded-sm bg-muted px-1 py-0.5 font-mono text-[0.875em]"}
-		/>
-	);
+function Code({
+	className = "rounded-sm bg-muted px-1 py-0.5 font-mono text-[0.875em]",
+	...props
+}: MarkdownComponentProps<"code">) {
+	return <code {...props} className={className} />;
 }
 
 function Table(props: MarkdownComponentProps<"table">) {

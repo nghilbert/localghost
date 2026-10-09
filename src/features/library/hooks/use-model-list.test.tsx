@@ -17,8 +17,8 @@ type CatalogPage = {
 };
 
 const { fetchCatalogPage, fetchCatalogByIds } = vi.hoisted(() => ({
-	fetchCatalogPage: vi.fn(),
-	fetchCatalogByIds: vi.fn(),
+	fetchCatalogPage: vi.fn<(input: CatalogInput) => Promise<CatalogPage>>(),
+	fetchCatalogByIds: vi.fn<(ids: string[]) => Promise<CatalogModel[]>>(),
 }));
 
 vi.mock("#/features/library/library.queries", () => ({
@@ -167,7 +167,7 @@ describe("useModelList rows", () => {
 
 		clearFacet(result, "hardware");
 		await expect
-			.poll(() => result.current.rows.map((row) => row.id).sort())
+			.poll(() => result.current.rows.map((row) => row.id).toSorted((a, b) => a.localeCompare(b)))
 			.toEqual([fits.id, tooBig.id]);
 	});
 

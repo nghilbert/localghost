@@ -30,6 +30,8 @@ export default defineConfig(
 		languageOptions: {
 			parserOptions: { projectService: true, tsconfigRootDir: import.meta.dirname },
 		},
+		// Matches `reactCompilerPreset` in vite.config.ts, which compiles in infer mode.
+		settings: { "react-x": { compilationMode: "infer" } },
 		linterOptions: { noInlineConfig: true, reportUnusedDisableDirectives: "error" },
 		rules: {
 			"@typescript-eslint/array-type": ["error", { default: "array-simple" }],
@@ -46,6 +48,10 @@ export default defineConfig(
 						{ from: "package", package: "@tanstack/router-core", name: "NotFoundError" },
 					],
 				},
+			],
+			"@typescript-eslint/restrict-template-expressions": [
+				"error",
+				{ allowAny: false, allowBoolean: false, allowNullish: false, allowRegExp: false },
 			],
 			// If/else is often clearer.
 			"unicorn/prefer-ternary": "off",

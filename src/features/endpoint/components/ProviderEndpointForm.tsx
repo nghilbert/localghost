@@ -35,7 +35,7 @@ export function ProviderEndpointForm({
 	provider,
 	defaultValues,
 	keyLabel,
-	keyPlaceholder,
+	keyPlaceholder = "sk-...",
 	keyDescription,
 	urlPlaceholder,
 	collapseUrl,
@@ -62,7 +62,7 @@ export function ProviderEndpointForm({
 	function handleTest() {
 		const parsed = schema.safeParse(form.state.values);
 		if (!parsed.success) {
-			form.validateAllFields("submit");
+			void form.validateAllFields("submit");
 			return;
 		}
 		testEndpoint.reset();
@@ -72,10 +72,7 @@ export function ProviderEndpointForm({
 				onSuccess: (result) => {
 					if (result.ok) {
 						toast.add({
-							title:
-								result.modelCount == null
-									? "Connection works"
-									: `Connection works: ${result.modelCount} models available`,
+							title: `Connection works: ${result.modelCount} models available`,
 							type: "success",
 						});
 					}
@@ -99,7 +96,7 @@ export function ProviderEndpointForm({
 					{(field) => (
 						<field.PasswordField
 							label={keyLabel}
-							placeholder={keyPlaceholder ?? "sk-..."}
+							placeholder={keyPlaceholder}
 							description={keyDescription}
 						/>
 					)}

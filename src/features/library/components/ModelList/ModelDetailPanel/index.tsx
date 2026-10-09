@@ -71,12 +71,18 @@ function ModelOverviewCard({ row }: { row: ModelRow }) {
 		);
 	const facts = catalog ? buildOverviewFacts(catalog) : [];
 	const caption =
-		catalog?.description || (installed ? "Installed model metadata reported by llama.cpp." : null);
+		catalog && catalog.description !== ""
+			? catalog.description
+			: installed
+				? "Installed model metadata reported by llama.cpp."
+				: null;
 
 	return (
 		<Card.Root size="sm">
 			<Card.Header>
-				<Card.Title>{catalog?.displayName || id}</Card.Title>
+				<Card.Title>
+					{catalog && catalog.displayName !== "" ? catalog.displayName : id}
+				</Card.Title>
 				<Card.Description className="truncate font-mono text-xs">{id}</Card.Description>
 			</Card.Header>
 			<Card.Content className="space-y-3">

@@ -9,7 +9,7 @@ type ChatFailure = {
 /** Explains a chat run's error message. A crashed local model shows as `unexpected EOF`. */
 export function describeChatError(message: string): ChatFailure {
 	// llama.cpp's router: "model name=<id> failed to load"; a GPU out of memory shows as a lost device.
-	if (/failed to load|out of (device )?memory|device.?lost|ErrorOutOfDeviceMemory/i.test(message)) {
+	if (/failed to load|out of (?:device )?memory|device.?lost|ErrorOutOfDeviceMemory/i.test(message)) {
 		return {
 			title: "The model couldn't load",
 			description:
@@ -27,7 +27,7 @@ export function describeChatError(message: string): ChatFailure {
 	}
 	// OpenAI-compat: "does not support tools"; OpenRouter: "No endpoints found that support tool use".
 	if (
-		/(not |n't )support(s|ed)? tool|tools? (is |are |use )?not supported|no endpoints found that support tool/i.test(
+		/(?:not |n't )support(?:s|ed)? tool|tools? (?:is |are |use )?not supported|no endpoints found that support tool/i.test(
 			message,
 		)
 	) {

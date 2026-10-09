@@ -17,7 +17,7 @@ import { fieldContext, formContext } from "./form-context";
 import { SubmitButton } from "./SubmitButton";
 
 const {
-	useAppForm: baseAppForm,
+	useAppForm: useBaseAppForm,
 	withForm,
 	withFieldGroup,
 } = createFormHook({
@@ -44,7 +44,7 @@ const {
  * TanStack Form's `useAppForm` with this kit's fields. Defaults `validationLogic` to
  * `revalidateLogic()`, which `validators.onDynamic` needs in order to run.
  */
-export const useAppForm: typeof baseAppForm = (props) =>
-	baseAppForm({ validationLogic: revalidateLogic(), ...props });
+export const useAppForm: typeof useBaseAppForm = (props) =>
+	useBaseAppForm({ validationLogic: revalidateLogic(), ...props });
 
 export { withFieldGroup, withForm };

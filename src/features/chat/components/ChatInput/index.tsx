@@ -3,8 +3,8 @@ import {
 	type ChangeEvent,
 	type ClipboardEvent,
 	type DragEvent,
-	type FormEvent,
 	type KeyboardEvent,
+	type SubmitEvent,
 	useRef,
 	useState,
 } from "react";
@@ -109,7 +109,7 @@ export function ChatInput({
 		setAttachments([]);
 	}
 
-	function handleSubmit(event: FormEvent<HTMLFormElement>) {
+	function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
 		event.preventDefault();
 		submit();
 	}

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import { buildModelFacets } from "#/features/library/lib/facets";
 import type { CatalogCapability, HideableFit } from "#/features/library/library.schemas";
@@ -54,7 +54,7 @@ describe("ModelFilterMenu", () => {
 				<ModelStatusFilter
 					value="all"
 					counts={{ all: 12, installed: 3, available: 9 }}
-					onValueChange={() => {}}
+					onValueChange={vi.fn()}
 				/>
 			</ModelFilterMenu>,
 		);

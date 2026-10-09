@@ -4,7 +4,7 @@ import type { PullProgress } from "#/features/library/library.types";
 import { render } from "#/test/utils";
 
 const { pullingMock, stopMock } = vi.hoisted(() => ({
-	pullingMock: vi.fn(),
+	pullingMock: vi.fn<() => Record<string, PullProgress>>(),
 	stopMock: vi.fn(),
 }));
 

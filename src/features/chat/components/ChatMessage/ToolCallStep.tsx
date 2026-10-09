@@ -6,11 +6,11 @@ import {
 	CircleAlertIcon,
 	GlobeIcon,
 	LinkIcon,
-	type LucideIcon,
 	SquareIcon,
 	TerminalIcon,
 	XIcon,
 } from "lucide-react";
+import type { ReactElement } from "react";
 import { Button } from "#/components/ui/button";
 import { Collapsible } from "#/components/ui/collapsible";
 import { ActivityMarker } from "#/features/chat/components/ActivityMarker";
@@ -44,19 +44,19 @@ export function pageTitle(output: string): string | null {
 }
 
 /** The icon for each phase, shared by every tool. `null` shows the tool's own icon. */
-const PHASE_ICONS: Record<ToolPhase, LucideIcon | null> = {
+const PHASE_ICONS: Record<ToolPhase, ReactElement | null> = {
 	choosing: null,
 	running: null,
 	done: null,
-	failed: CircleAlertIcon,
-	denied: BanIcon,
+	failed: <CircleAlertIcon />,
+	denied: <BanIcon />,
 	// Matches the stop button's icon.
-	stopped: SquareIcon,
+	stopped: <SquareIcon />,
 };
 
 /** What a tool call says in each phase, from the user's point of view. */
 type ToolLabels = {
-	icon: LucideIcon;
+	icon: ReactElement;
 	choosing: string;
 	running: string;
 	done: string;
@@ -81,7 +81,7 @@ export function toolLabels(call: ChatToolCall, output: string): ToolLabels {
 			const query = call.input?.query;
 			const target = query ? ` for "${query}"` : "";
 			return {
-				icon: GlobeIcon,
+				icon: <GlobeIcon />,
 				choosing: "Choosing what to search",
 				running: `Searching the web${target}`,
 				done: `Searched the web${target}`,
@@ -92,7 +92,7 @@ export function toolLabels(call: ChatToolCall, output: string): ToolLabels {
 			const page = urlLabel(call.input?.url);
 			const title = pageTitle(output);
 			return {
-				icon: LinkIcon,
+				icon: <LinkIcon />,
 				choosing: "Choosing a page to open",
 				running: `Opening ${page ?? "a page"}`,
 				done: title ? `Read "${title}"` : `Read ${page ?? "a page"}`,
@@ -105,7 +105,7 @@ export function toolLabels(call: ChatToolCall, output: string): ToolLabels {
 				? MEMORY_ACTIONS[action]
 				: { doing: "Updating memory", did: "Updated memory", verb: "update memory" };
 			return {
-				icon: BrainIcon,
+				icon: <BrainIcon />,
 				choosing: "Preparing to use memory",
 				running: phrases.doing,
 				done: phrases.did,
@@ -114,7 +114,7 @@ export function toolLabels(call: ChatToolCall, output: string): ToolLabels {
 		}
 		case "delete_memory":
 			return {
-				icon: BrainIcon,
+				icon: <BrainIcon />,
 				choosing: "Preparing to delete a memory",
 				running: "Deleting a memory",
 				done: "Deleted a memory",
@@ -126,7 +126,7 @@ export function toolLabels(call: ChatToolCall, output: string): ToolLabels {
 			};
 	}
 	return {
-		icon: TerminalIcon,
+		icon: <TerminalIcon />,
 		choosing: `Preparing ${name}`,
 		running: `Running ${name}`,
 		done: `Ran ${name}`,
@@ -163,16 +163,13 @@ export function ToolCallStep({ toolCall, result, isStreaming, interrupt }: ToolC
 	const phase = toolPhase(toolCall, result, Boolean(isStreaming));
 	const output = outputText(toolCall.output ?? result?.content);
 	const labels = toolLabels(toolCall, output);
-	const { icon: Icon } = labels;
 	const question = labels.approval?.question ?? labels.running;
 	const { seconds } = useStepDuration(isPending(phase));
 
 	if (interrupt) {
 		return (
 			<Marker>
-				<MarkerIcon>
-					<Icon />
-				</MarkerIcon>
+				<MarkerIcon>{labels.icon}</MarkerIcon>
 				<MarkerContent className="flex items-center gap-2">
 					{question}
 					<Button
@@ -199,8 +196,13 @@ export function ToolCallStep({ toolCall, result, isStreaming, interrupt }: ToolC
 	}
 
 	if (phase === "choosing" || phase === "running") {
-		const PhaseIcon = PHASE_ICONS[phase] ?? Icon;
-		return <ActivityMarker label={labels[phase]} icon={<PhaseIcon />} seconds={seconds} />;
+		return (
+			<ActivityMarker
+				label={labels[phase]}
+				icon={PHASE_ICONS[phase] ?? labels.icon}
+				seconds={seconds}
+			/>
+		);
 	}
 
 	// A stopped row says what the call was doing when it stopped.
@@ -218,14 +220,12 @@ export function ToolCallStep({ toolCall, result, isStreaming, interrupt }: ToolC
 		},
 		stopped: { label: `Stopped while ${interrupted}`, detail: "" },
 	}[phase];
-	const RowIcon = PHASE_ICONS[phase] ?? Icon;
+	const rowIcon = PHASE_ICONS[phase] ?? labels.icon;
 
 	if (!detail) {
 		return (
 			<Marker>
-				<MarkerIcon>
-					<RowIcon />
-				</MarkerIcon>
+				<MarkerIcon>{rowIcon}</MarkerIcon>
 				<MarkerContent>{label}</MarkerContent>
 			</Marker>
 		);
@@ -234,9 +234,7 @@ export function ToolCallStep({ toolCall, result, isStreaming, interrupt }: ToolC
 	return (
 		<Collapsible.Root className="flex flex-col gap-1.5">
 			<Marker className="w-fit" render={<Collapsible.Trigger />}>
-				<MarkerIcon>
-					<RowIcon />
-				</MarkerIcon>
+				<MarkerIcon>{rowIcon}</MarkerIcon>
 				<MarkerContent className="flex items-center gap-1 hover:text-fg">
 					{label}
 					<ChevronRightIcon className="size-3 transition-transform in-data-panel-open:rotate-90" />

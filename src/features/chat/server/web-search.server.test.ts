@@ -1,8 +1,8 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from "vitest";
 import { webSearchArgsSchema } from "#/features/chat/chat.schemas";
 import { type SearxngResponse, webSearch } from "#/features/chat/server/web-search.server";
 
-type FetchMock = ReturnType<typeof vi.fn>;
+type FetchMock = Mock<typeof fetch>;
 
 function searxng(body: SearxngResponse): Response {
 	return Response.json(body);
@@ -47,7 +47,7 @@ describe("webSearch", () => {
 	});
 
 	it("returns exact answers and limited results without a fallback note", async () => {
-		const fetchMock = vi.fn().mockResolvedValue(
+		const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
 			searxng({
 				results: [
 					{ title: "Result 1", url: "https://example.com/one", content: "First" },
@@ -73,7 +73,7 @@ describe("webSearch", () => {
 	it("retries an empty ranged search once without the time filter", async () => {
 		const timeoutSpy = vi.spyOn(AbortSignal, "timeout");
 		const fetchMock = vi
-			.fn()
+			.fn<typeof fetch>()
 			.mockResolvedValueOnce(searxng({ results: [] }))
 			.mockResolvedValueOnce(
 				searxng({
@@ -106,7 +106,7 @@ describe("webSearch", () => {
 
 	it("returns actionable guidance when both ranged attempts are empty", async () => {
 		// A fresh Response per call, since a body can be read only once.
-		const fetchMock = vi.fn(async () => searxng({ results: [] }));
+		const fetchMock = vi.fn<typeof fetch>(() => Promise.resolve(searxng({ results: [] })));
 		vi.stubGlobal("fetch", fetchMock);
 
 		const result = await webSearch({ query: "nothing", timeRange: "month" });
@@ -117,7 +117,7 @@ describe("webSearch", () => {
 	});
 
 	it("does not retry an empty search without a time filter", async () => {
-		const fetchMock = vi.fn().mockResolvedValue(searxng({ results: [] }));
+		const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(searxng({ results: [] }));
 		vi.stubGlobal("fetch", fetchMock);
 
 		const result = await webSearch({ query: "xyzzy1234nonexistent" });
@@ -131,7 +131,7 @@ describe("webSearch", () => {
 		["invalid result", { results: [{ title: "Missing URL" }] }],
 	])("rejects an %s without retrying", async (_name, payload) => {
 		// Malformed on purpose, so it is not a `SearxngResponse`.
-		const fetchMock = vi.fn().mockResolvedValue(Response.json(payload));
+		const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(Response.json(payload));
 		vi.stubGlobal("fetch", fetchMock);
 
 		await expect(webSearch({ query: "test", timeRange: "year" })).rejects.toThrow(
@@ -141,7 +141,7 @@ describe("webSearch", () => {
 	});
 
 	it("rejects HTTP failures without retrying", async () => {
-		const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 503 }));
+		const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(new Response(null, { status: 503 }));
 		vi.stubGlobal("fetch", fetchMock);
 
 		await expect(webSearch({ query: "test", timeRange: "year" })).rejects.toThrow(
@@ -151,7 +151,7 @@ describe("webSearch", () => {
 	});
 
 	it("rejects invalid JSON without retrying", async () => {
-		const fetchMock = vi.fn().mockResolvedValue(new Response("<html>not json</html>"));
+		const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(new Response("<html>not json</html>"));
 		vi.stubGlobal("fetch", fetchMock);
 
 		await expect(webSearch({ query: "test", timeRange: "year" })).rejects.toThrow(SyntaxError);
@@ -159,7 +159,7 @@ describe("webSearch", () => {
 	});
 
 	it("rejects network failures without retrying", async () => {
-		const fetchMock = vi.fn().mockRejectedValue(new Error("Network unavailable"));
+		const fetchMock = vi.fn<typeof fetch>().mockRejectedValue(new Error("Network unavailable"));
 		vi.stubGlobal("fetch", fetchMock);
 
 		await expect(webSearch({ query: "test", timeRange: "year" })).rejects.toThrow(
@@ -171,11 +171,12 @@ describe("webSearch", () => {
 	it("forwards cancellation without retrying", async () => {
 		const controller = new AbortController();
 		controller.abort(new Error("cancelled"));
-		const fetchMock = vi.fn().mockImplementation((...args: Parameters<typeof fetch>) => {
-			const requestSignal = args[1]?.signal;
-			if (!(requestSignal instanceof AbortSignal)) throw new TypeError("Missing abort signal");
-			return Promise.reject(requestSignal.reason);
-		});
+		const fetchMock = vi.fn<typeof fetch>((_input, init) =>
+			Promise.try(() => {
+				init?.signal?.throwIfAborted();
+				throw new TypeError("Missing abort signal");
+			}),
+		);
 		vi.stubGlobal("fetch", fetchMock);
 
 		await expect(
@@ -188,11 +189,12 @@ describe("webSearch", () => {
 		const timeoutController = new AbortController();
 		timeoutController.abort(new DOMException("Search timed out", "TimeoutError"));
 		vi.spyOn(AbortSignal, "timeout").mockReturnValue(timeoutController.signal);
-		const fetchMock = vi.fn().mockImplementation((...args: Parameters<typeof fetch>) => {
-			const requestSignal = args[1]?.signal;
-			if (!(requestSignal instanceof AbortSignal)) throw new TypeError("Missing abort signal");
-			return Promise.reject(requestSignal.reason);
-		});
+		const fetchMock = vi.fn<typeof fetch>((_input, init) =>
+			Promise.try(() => {
+				init?.signal?.throwIfAborted();
+				throw new TypeError("Missing abort signal");
+			}),
+		);
 		vi.stubGlobal("fetch", fetchMock);
 
 		await expect(webSearch({ query: "test", timeRange: "year" })).rejects.toMatchObject({

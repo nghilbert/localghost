@@ -79,7 +79,7 @@ describe("crypto.server", () => {
 			process.env.ENCRYPTION_KEY = VALID_KEY;
 			const { endpointApiKey } = await import("#/lib/crypto.server");
 			const { log } = await import("#/lib/log.server");
-			const logError = vi.spyOn(log, "error").mockImplementation(() => {});
+			const logError = vi.spyOn(log, "error").mockReturnValue();
 
 			expect(() => endpointApiKey({ apiKeyEncrypted: "a:b:c" })).toThrow(/re-enter the key/i);
 			expect(logError).toHaveBeenCalledOnce();

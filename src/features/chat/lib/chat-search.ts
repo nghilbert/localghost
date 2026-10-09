@@ -29,7 +29,7 @@ export function snippetSegments(snippet: string): SnippetSegment[] {
 	const segments: SnippetSegment[] = [];
 	let cursor = 0;
 	for (const match of snippet.matchAll(/<<<([\s\S]*?)>>>/g)) {
-		const index = match.index ?? 0;
+		const { index } = match;
 		if (index > cursor) {
 			segments.push({ text: snippet.slice(cursor, index), highlight: false, start: cursor });
 		}

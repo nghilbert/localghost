@@ -52,7 +52,7 @@ export function NewChat() {
 						newChat: { enabledTools: controls.enabledTools },
 					});
 					// The reply is already streaming, so skip the transition.
-					navigate({
+					void navigate({
 						to: "/chat/$conversationId",
 						params: { conversationId: id },
 						viewTransition: false,

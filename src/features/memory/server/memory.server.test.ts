@@ -40,7 +40,7 @@ describe("recallMemories", () => {
 
 		const result = await recallMemories({ ownerId: user.id, query: "hit" });
 
-		expect(result).toEqual([{ id: expect.any(String), text: "keyword hit", category: "fact" }]);
+		expect(result).toMatchObject([{ text: "keyword hit", category: "fact" }]);
 	});
 
 	it("returns the vector result directly when the query succeeds", async () => {
@@ -50,7 +50,7 @@ describe("recallMemories", () => {
 
 		const result = await recallMemories({ ownerId: user.id, query: "hit" });
 
-		expect(result).toEqual([{ id: expect.any(String), text: "semantic hit", category: "fact" }]);
+		expect(result).toMatchObject([{ text: "semantic hit", category: "fact" }]);
 	});
 
 	it("tokenizes a multi-word keyword query into one pattern per word", async () => {

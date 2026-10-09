@@ -187,7 +187,7 @@ export function dedupeByBaseModel(candidates: CatalogCandidate[]): CatalogCandid
 		);
 		const others = group
 			.filter((member) => member !== winner)
-			.sort((a, b) => publisherRank(a.name) - publisherRank(b.name));
+			.toSorted((a, b) => publisherRank(a.name) - publisherRank(b.name));
 		const ordered = [winner, ...others];
 		const seen = new Set<string>();
 		const mergedVariants: ModelVariantInfo[] = [];

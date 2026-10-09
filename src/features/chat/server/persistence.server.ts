@@ -108,10 +108,10 @@ function createRunStore(): RunStore {
 			return row ? mapRun(row) : null;
 		},
 		// An empty `update` inserts only when absent, so an existing run comes back unchanged.
-		async createOrResume({ runId, threadId, startedAt, status }) {
+		async createOrResume({ runId, threadId, startedAt, status = "running" }) {
 			const row = await prisma.chatRun.upsert({
 				where: { runId },
-				create: { runId, threadId, status: status ?? "running", startedAt: BigInt(startedAt) },
+				create: { runId, threadId, status, startedAt: BigInt(startedAt) },
 				update: {},
 			});
 			return mapRun(row);

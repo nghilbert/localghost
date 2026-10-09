@@ -8,7 +8,7 @@ import { useImportBackup } from "#/features/backup/hooks/use-import-backup";
 /** Exports and imports a backup file. */
 export function BackupCard() {
 	const importBackup = useImportBackup();
-	const fileInput = useRef<HTMLInputElement>(null);
+	const fileInputRef = useRef<HTMLInputElement>(null);
 
 	return (
 		<Card.Root>
@@ -29,13 +29,13 @@ export function BackupCard() {
 					variant="outlined"
 					size="sm"
 					disabled={importBackup.isPending}
-					onClick={() => fileInput.current?.click()}
+					onClick={() => fileInputRef.current?.click()}
 				>
 					<UploadIcon />
 					{importBackup.isPending ? "Importing..." : "Import backup"}
 				</Button>
 				<input
-					ref={fileInput}
+					ref={fileInputRef}
 					aria-label="Backup file"
 					type="file"
 					accept="application/json,.json"

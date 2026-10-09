@@ -13,8 +13,8 @@ function backgroundOf(text: string) {
 function topCornersOf(text: string) {
 	const style = getComputedStyle(page.getByText(text).element());
 	return {
-		left: Number.parseFloat(style.borderTopLeftRadius),
-		right: Number.parseFloat(style.borderTopRightRadius),
+		left: style.borderTopLeftRadius,
+		right: style.borderTopRightRadius,
 	};
 }
 
@@ -47,8 +47,8 @@ describe("Bubble", () => {
 				</MessageContent>
 			</Message>,
 		);
-		await expect.poll(() => topCornersOf("from them").left).toBe(0);
-		expect(topCornersOf("from them").right).toBeGreaterThan(0);
+		await expect.poll(() => topCornersOf("from them").left).toBe("0px");
+		expect(topCornersOf("from them").right).not.toBe("0px");
 	});
 
 	it("squares the top corner on the end side", async () => {
@@ -61,7 +61,7 @@ describe("Bubble", () => {
 				</MessageContent>
 			</Message>,
 		);
-		await expect.poll(() => topCornersOf("from me").right).toBe(0);
-		expect(topCornersOf("from me").left).toBeGreaterThan(0);
+		await expect.poll(() => topCornersOf("from me").right).toBe("0px");
+		expect(topCornersOf("from me").left).not.toBe("0px");
 	});
 });

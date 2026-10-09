@@ -35,9 +35,6 @@ export function toolRows(controls: ToolControls): ToolRow[] {
  * Disabled when the model cannot use tools.
  */
 export function ToolsMenu(controls: ToolControls) {
-	const rows = toolRows(controls);
-	const activeCount = rows.filter((row) => row.on).length;
-
 	if (!controls.supportsTools) {
 		return (
 			<Tooltip.Root>
@@ -59,6 +56,9 @@ export function ToolsMenu(controls: ToolControls) {
 			</Tooltip.Root>
 		);
 	}
+
+	const rows = toolRows(controls);
+	const activeCount = rows.filter((row) => row.on).length;
 
 	return (
 		<Popover.Root>

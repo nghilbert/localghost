@@ -147,8 +147,6 @@ export async function probeModelCapabilities({
 }): Promise<{ supportsTools: boolean; supportsImages: boolean; supportsDocuments: boolean }> {
 	const endpoint = await prisma.endpoint.findFirst({ where: { id: endpointId, ownerId } });
 	if (!endpoint) return { supportsTools: true, supportsImages: false, supportsDocuments: false };
-	// Only these providers' adapters support documents.
-	const supportsDocuments = endpoint.provider === "anthropic" || endpoint.provider === "gemini";
 	if (endpoint.provider === "llamacpp") {
 		try {
 			const models = await listLlamacppModels({ url: endpoint.url, timeoutMs: 5000 });
@@ -164,6 +162,8 @@ export async function probeModelCapabilities({
 			return { supportsTools: true, supportsImages: false, supportsDocuments: false };
 		}
 	}
+	// Only these providers' adapters support documents.
+	const supportsDocuments = endpoint.provider === "anthropic" || endpoint.provider === "gemini";
 	try {
 		const supportsTools = await modelSupportsTools({
 			url: endpoint.url,

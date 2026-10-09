@@ -248,5 +248,5 @@ export async function listGgufVariants({
 		});
 	}
 
-	return variants.sort((a, b) => (a.sizeGb ?? 0) - (b.sizeGb ?? 0));
+	return variants.toSorted((a, b) => (a.sizeGb ?? 0) - (b.sizeGb ?? 0));
 }

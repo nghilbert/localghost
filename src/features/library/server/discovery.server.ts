@@ -23,7 +23,8 @@ const WELL_KNOWN_URLS = [
 
 /** The endpoint's API key, or the bundled server's when it has none. */
 function runtimeApiKey(endpoint: Pick<Endpoint, "apiKeyEncrypted"> | null): string {
-	return (endpoint ? endpointApiKey(endpoint) : undefined) || LOCAL_LLAMACPP_API_KEY;
+	const key = endpoint ? endpointApiKey(endpoint) : undefined;
+	return key === undefined || key === "" ? LOCAL_LLAMACPP_API_KEY : key;
 }
 
 /** The `:QUANT` suffix of a router model id, e.g. `Q4_K_M` from `repo:Q4_K_M`. */

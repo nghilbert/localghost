@@ -112,7 +112,7 @@ async function fetchHfCatalog(): Promise<CatalogModel[]> {
 	if (listed.length === 0) throw new Error("Hugging Face GGUF index returned 0 eligible models");
 
 	const grouped = dedupeByBaseModel(listed.map(toCandidate))
-		.sort((a, b) => b.pullCount - a.pullCount)
+		.toSorted((a, b) => b.pullCount - a.pullCount)
 		.slice(0, CATALOG_TARGET);
 
 	const enriched: CatalogCandidate[] = [];
@@ -129,34 +129,32 @@ async function fetchHfCatalog(): Promise<CatalogModel[]> {
 		},
 	});
 
-	return enriched.map(toCatalogModel).sort((a, b) => b.pullCount - a.pullCount);
+	return enriched.map(toCatalogModel).toSorted((a, b) => b.pullCount - a.pullCount);
 }
 
 let cache: { data: CatalogModel[]; fetchedAt: number } | null = null;
 let refreshInFlight: Promise<CatalogModel[]> | null = null;
 
+/** Fetches the catalog into the cache. A failed refresh keeps serving the cached catalog. */
+async function refreshCatalog(): Promise<CatalogModel[]> {
+	try {
+		const data = await fetchHfCatalog();
+		cache = { data, fetchedAt: Date.now() };
+		return data;
+	} catch (error) {
+		log.error({ err: error }, "Hugging Face catalog fetch failed");
+		if (cache) return cache.data;
+		throw error;
+	} finally {
+		refreshInFlight = null;
+	}
+}
+
 /** Returns the cached catalog while refreshing stale results in the background. */
 export async function getCatalog(): Promise<CatalogModel[]> {
 	if (cache && Date.now() - cache.fetchedAt < CACHE_TTL_MS) return cache.data;
-
-	refreshInFlight ??= fetchHfCatalog()
-		.then((data) => {
-			cache = { data, fetchedAt: Date.now() };
-			return data;
-		})
-		.catch((error) => {
-			log.error({ err: error }, "Hugging Face catalog fetch failed");
-			throw error;
-		})
-		.finally(() => {
-			refreshInFlight = null;
-		});
-
-	if (cache) {
-		refreshInFlight.catch(() => {});
-		return cache.data;
-	}
-	return refreshInFlight;
+	refreshInFlight ??= refreshCatalog();
+	return cache?.data ?? refreshInFlight;
 }
 
 /** A filtered, sorted page of the cached catalog, with the licenses available to filter by. */
@@ -167,7 +165,7 @@ export async function getCatalogPage(
 
 	const availableLicenses = [
 		...new Set(all.map((m) => m.license).filter((license): license is string => license !== null)),
-	].sort();
+	].toSorted((a, b) => a.localeCompare(b));
 
 	let filtered = all;
 	if (query.hiddenFits.length > 0) {
@@ -189,7 +187,7 @@ export async function getCatalogPage(
 		filtered = filtered.filter((model) => rankItem(catalogSearchText(model), search).passed);
 	}
 
-	const sorted = [...filtered].sort((left, right) =>
+	const sorted = filtered.toSorted((left, right) =>
 		compareModels({ left, right, sortBy: query.sortBy, sortDir: query.sortDir }),
 	);
 

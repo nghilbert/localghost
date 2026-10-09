@@ -40,7 +40,7 @@ export function RecentChatList() {
 	});
 	const lowerQuery = query.toLowerCase();
 	const titleMatches = conversations.filter((c) =>
-		(c.title ?? "").toLowerCase().includes(lowerQuery),
+		c.title.toLowerCase().includes(lowerQuery),
 	);
 	const visibleConversations: SearchableConversation[] = query
 		? mergeSearchResults({ titleMatches, contentMatches: contentMatches ?? [] })
@@ -50,7 +50,7 @@ export function RecentChatList() {
 		deleteConversation.mutate(id, {
 			onSuccess: () => {
 				setPendingDeleteId(null);
-				if (id === currentConversationId) navigate({ to: "/new" });
+				if (id === currentConversationId) void navigate({ to: "/new" });
 			},
 		});
 	}
@@ -158,7 +158,7 @@ export function RecentChatList() {
 					if (!open) setPendingDeleteId(null);
 				}}
 				title="Delete this chat?"
-				description={`"${pendingDelete?.title}" and its messages will be permanently deleted.`}
+				description={`"${pendingDelete?.title ?? ""}" and its messages will be permanently deleted.`}
 				isPending={deleteConversation.isPending}
 				onConfirm={() => {
 					if (pendingDeleteId) confirmDelete(pendingDeleteId);

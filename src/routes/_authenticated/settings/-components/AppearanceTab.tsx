@@ -21,7 +21,11 @@ export function AppearanceTab() {
 			<SettingsSection title="Appearance">
 				<form.AppField
 					name="mode"
-					listeners={{ onChange: ({ value }) => isThemeMode(value) && setMode(value) }}
+					listeners={{
+						onChange: ({ value }) => {
+							if (isThemeMode(value)) setMode(value);
+						},
+					}}
 				>
 					{(field) => (
 						<field.ToggleGroupField

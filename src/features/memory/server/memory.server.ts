@@ -14,7 +14,7 @@ export async function insertMemory({
 	db,
 	ownerId,
 	text,
-	category,
+	category = "fact",
 	source,
 	embedding,
 }: {
@@ -29,7 +29,7 @@ export async function insertMemory({
 		INSERT INTO memory (text, category, source, owner_id, embedding)
 		VALUES (
 			${text},
-			${category ?? "fact"},
+			${category},
 			${source},
 			${ownerId}::uuid,
 			${embedding ? toVectorLiteral(embedding) : null}::vector
@@ -49,7 +49,7 @@ const DEDUP_MAX_COSINE_DISTANCE = 0.08;
 export async function saveMemory({
 	ownerId,
 	text,
-	category,
+	category = "fact",
 	source = "agent",
 }: {
 	ownerId: string;
@@ -63,7 +63,7 @@ export async function saveMemory({
 	return prisma.$transaction(
 		async (tx) => {
 			const exact = await tx.memory.findFirst({
-				where: { ownerId, text, category: category ?? "fact" },
+				where: { ownerId, text, category },
 				select: { text: true },
 			});
 			if (exact) return { status: "duplicate", text: exact.text };

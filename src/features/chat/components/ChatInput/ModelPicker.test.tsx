@@ -14,8 +14,8 @@ type RuntimeStatus = {
 };
 
 const { fetchEndpointModels, fetchLibraryStatus } = vi.hoisted(() => ({
-	fetchEndpointModels: vi.fn(),
-	fetchLibraryStatus: vi.fn(),
+	fetchEndpointModels: vi.fn<(endpointId: string) => string[] | Promise<string[]>>(),
+	fetchLibraryStatus: vi.fn<() => Promise<RuntimeStatus>>(),
 }));
 
 vi.mock("#/features/library/library.queries", () => ({

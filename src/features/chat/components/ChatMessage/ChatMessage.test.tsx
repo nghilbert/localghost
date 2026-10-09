@@ -51,7 +51,7 @@ describe("ChatMessage", () => {
 
 		it("opens an editable textarea prefilled with the message text", async () => {
 			const screen = await render(
-				<ChatMessage message={userMessage("Original text")} onEditResend={() => {}} />,
+				<ChatMessage message={userMessage("Original text")} onEditResend={vi.fn()} />,
 			);
 
 			await screen.getByRole("button", { name: "Edit message" }).click();

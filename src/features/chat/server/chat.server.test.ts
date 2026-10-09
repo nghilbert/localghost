@@ -150,7 +150,7 @@ describe("probeModelRunState", () => {
 			model: "org/llama3-GGUF:Q4_K_M",
 		});
 		listModels.mockRejectedValue(new Error("connection refused"));
-		const logWarn = vi.spyOn(log, "warn").mockImplementation(() => {});
+		const logWarn = vi.spyOn(log, "warn").mockReturnValue();
 
 		expect(await probeModelRunState({ id: conversation.id, ownerId: user.id })).toBe("unreachable");
 		expect(logWarn).toHaveBeenCalledOnce();

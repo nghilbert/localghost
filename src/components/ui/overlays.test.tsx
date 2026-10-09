@@ -193,7 +193,7 @@ describe("Tabs", () => {
 			</Tabs.Root>,
 		);
 
-		expect(container.querySelector("[data-layout]")?.getAttribute("data-layout")).toBe("underline");
+		expect(container.querySelector<HTMLElement>("[data-layout]")?.dataset.layout).toBe("underline");
 	});
 });
 

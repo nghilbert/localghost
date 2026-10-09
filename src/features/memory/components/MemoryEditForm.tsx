@@ -39,7 +39,9 @@ export function MemoryEditForm({ memory, onDone }: MemoryEditFormProps) {
 							aria-label="Memory text"
 							value={field.state.value}
 							onValueChange={(value) => { field.handleChange(value); }}
-							onBlur={() => form.handleSubmit()}
+							onBlur={(event) => {
+								event.currentTarget.form?.requestSubmit();
+							}}
 							onKeyDown={(event) => {
 								if (event.key === "Escape") onDone();
 							}}

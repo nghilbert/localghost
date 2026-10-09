@@ -14,9 +14,9 @@ function sortValue({ model, sortBy }: { model: SortableModel; sortBy: CatalogSor
 		case "name":
 			return model.displayName.toLowerCase();
 		case "paramB":
-			return model.paramB ?? Number.NEGATIVE_INFINITY;
+			return model.paramB ?? -Infinity;
 		case "sizeGb":
-			return model.sizeGb ?? Number.NEGATIVE_INFINITY;
+			return model.sizeGb ?? -Infinity;
 		case "pullCount":
 			return model.pullCount;
 		case "likes":
@@ -26,7 +26,7 @@ function sortValue({ model, sortBy }: { model: SortableModel; sortBy: CatalogSor
 		case "createdAt":
 			return model.createdAt ?? "";
 		case "memory":
-			return requiredMemoryGb(model) ?? Number.NEGATIVE_INFINITY;
+			return requiredMemoryGb(model) ?? -Infinity;
 	}
 }
 

@@ -37,7 +37,7 @@ describe("embeddingConfigFor", () => {
 describe("embed", () => {
 	beforeEach(async () => {
 		await resetDb();
-		vi.spyOn(log, "error").mockImplementation(() => {});
+		vi.spyOn(log, "error").mockReturnValue();
 		vi.stubGlobal(
 			"fetch",
 			vi.fn().mockResolvedValue(
@@ -77,7 +77,10 @@ describe("embed", () => {
 
 		const fetchMock = vi.mocked(fetch);
 		expect(fetchMock).toHaveBeenCalledOnce();
-		expect(String(fetchMock.mock.calls[0]?.[0])).toBe("https://two.test/v1/embeddings");
+		const input = fetchMock.mock.calls[0]?.[0];
+		expect(input instanceof Request ? input.url : input?.toString()).toBe(
+			"https://two.test/v1/embeddings",
+		);
 	});
 });
 
@@ -98,7 +101,6 @@ describe("toVectorLiteral", () => {
 		const v = [1.234567890123456, -0.000001, 0.9999999];
 		const literal = toVectorLiteral(v);
 		expect(literal).toMatch(/^\[[\d.,e+-]+\]$/);
-		const parsed: number[] = JSON.parse(literal);
-		expect(parsed).toHaveLength(3);
+		expect(JSON.parse(literal)).toEqual(v);
 	});
 });

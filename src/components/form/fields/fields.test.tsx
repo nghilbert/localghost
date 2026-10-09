@@ -89,19 +89,19 @@ describe("SubmitButton", () => {
 	}
 
 	test("stays disabled until the submission resolves", async () => {
-		const submission = Promise.withResolvers<void>();
+		const submission = Promise.withResolvers<undefined>();
 		await render(<Harness submission={submission.promise} />);
 		const button = page.getByRole("button", { name: "Save" });
 
 		await button.click();
 		await expect.element(button).toHaveAttribute("aria-disabled", "true");
 
-		submission.resolve();
+		submission.resolve(undefined);
 		await expect.element(button).toHaveAttribute("aria-disabled", "false");
 	});
 
 	test("re-enables when the submission rejects", async () => {
-		const submission = Promise.withResolvers<void>();
+		const submission = Promise.withResolvers<undefined>();
 		await render(<Harness submission={submission.promise} />);
 		const button = page.getByRole("button", { name: "Save" });
 
@@ -447,14 +447,15 @@ describe("NumberField", () => {
 
 	test("stores a cleared value as undefined, not zero", async () => {
 		function Harness() {
-			const form = useAppForm({ defaultValues: { amount: 5 } });
+			const defaultValues: { amount: number | undefined } = { amount: 5 };
+			const form = useAppForm({ defaultValues });
 			return (
 				<form.AppForm>
 					<form.AppField name="amount">
 						{(field) => <field.NumberField label="Amount" />}
 					</form.AppField>
-					<form.Subscribe selector={(state) => state.values.amount}>
-						{(amount) => <output>{amount === undefined ? "unset" : amount}</output>}
+					<form.Subscribe selector={(state) => state.values.amount ?? "unset"}>
+						{(amount) => <output>{amount}</output>}
 					</form.Subscribe>
 				</form.AppForm>
 			);

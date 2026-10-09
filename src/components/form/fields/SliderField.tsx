@@ -17,8 +17,8 @@ export function SliderField({
 			<Slider
 				value={[field.state.value]}
 				onValueChange={(value) => {
-					const newValue = Array.isArray(value) ? value[0] : value;
-					if (typeof newValue === "number") field.handleChange(newValue);
+					const newValue = typeof value === "number" ? value : value[0];
+					if (newValue !== undefined) field.handleChange(newValue);
 				}}
 				// Commit on thumb release marks the field touched, so blur-mode validation fires.
 				onValueCommitted={field.handleBlur}

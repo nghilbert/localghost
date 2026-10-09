@@ -96,7 +96,7 @@ export function AssistantMessage({
 									icon={<CopyIcon />}
 									ariaLabel="Copy message"
 									tooltip="Copy"
-									onClick={() => { copyToClipboard(answer); }}
+									onClick={() => void copyToClipboard(answer)}
 								/>
 							)}
 							{onRegenerate && (

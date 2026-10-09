@@ -38,7 +38,9 @@ export function ChatRenameForm({ conversation, onDone }: ChatRenameFormProps) {
 							onFocus={(event) => { event.currentTarget.select(); }}
 							value={field.state.value}
 							onValueChange={field.handleChange}
-							onBlur={() => void form.handleSubmit().catch(() => {})}
+							onBlur={(event) => {
+								event.currentTarget.form?.requestSubmit();
+							}}
 							onKeyDown={(event) => {
 								if (event.key === "Escape") onDone();
 							}}

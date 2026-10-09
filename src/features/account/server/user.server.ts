@@ -15,8 +15,8 @@ export async function findUserSettings({ ownerId }: { ownerId: string }) {
 /** Saves the user's chat defaults. */
 export async function saveUserSettings({
 	ownerId,
-	systemPrompt,
-	temperature,
+	systemPrompt = null,
+	temperature = null,
 }: {
 	ownerId: string;
 	systemPrompt?: string | null;
@@ -24,7 +24,7 @@ export async function saveUserSettings({
 }) {
 	return prisma.user.update({
 		where: { id: ownerId },
-		data: { systemPrompt: systemPrompt ?? null, temperature: temperature ?? null },
+		data: { systemPrompt, temperature },
 		select: { systemPrompt: true, temperature: true },
 	});
 }

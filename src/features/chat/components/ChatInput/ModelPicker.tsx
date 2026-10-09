@@ -64,7 +64,7 @@ export function ModelPicker({ selection, onSelect }: ModelPickerProps) {
 								<Menu.GroupLabel>{endpoint.name}</Menu.GroupLabel>
 								{models.map((model) => {
 									const isSelected =
-										selection?.endpointId === endpoint.id && selection?.model === model;
+										selection?.endpointId === endpoint.id && selection.model === model;
 									return (
 										<Menu.Item
 											key={model}

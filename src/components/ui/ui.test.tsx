@@ -205,7 +205,7 @@ describe.each(rows)("%s", (_name, row) => {
 
 	test("passes an unknown prop through to the DOM", async () => {
 		const { container } = await render(row.element({ className: PROBE, "data-probe": "yes" }));
-		expect(container.querySelector(`.${PROBE}`)?.getAttribute("data-probe")).toBe("yes");
+		expect(container.querySelector<HTMLElement>(`.${PROBE}`)?.dataset.probe).toBe("yes");
 	});
 });
 

@@ -44,13 +44,13 @@ export function isImageFile(file: File): boolean {
 
 /** Whether a file is an accepted document. Markdown often has a blank MIME type. */
 export function isDocumentFile(file: File): boolean {
-	return DOCUMENT_MIME_TYPES.has(file.type) || /\.(md|markdown|txt)$/i.test(file.name);
+	return DOCUMENT_MIME_TYPES.has(file.type) || /\.(?:md|markdown|txt)$/i.test(file.name);
 }
 
 /** The file's MIME type, or `text/markdown` when the browser left it blank. */
 function attachmentMimeType(file: File): string {
 	if (file.type) return file.type;
-	if (/\.(md|markdown)$/i.test(file.name)) return "text/markdown";
+	if (/\.(?:md|markdown)$/i.test(file.name)) return "text/markdown";
 	if (/\.txt$/i.test(file.name)) return "text/plain";
 	return "application/octet-stream";
 }
@@ -59,14 +59,23 @@ function attachmentMimeType(file: File): string {
 export function readAttachment(file: File): Promise<Attachment> {
 	return new Promise((resolve, reject) => {
 		const reader = new FileReader();
-		reader.addEventListener('load', () => { resolve({
+		reader.addEventListener("load", () => {
+			// Always a string after `readAsDataURL`; the check narrows the type.
+			if (typeof reader.result !== "string") {
+				reject(new Error(`Couldn't read ${file.name}`));
+				return;
+			}
+			resolve({
 				id: crypto.randomUUID(),
 				name: file.name,
-				dataUrl: String(reader.result),
+				dataUrl: reader.result,
 				mimeType: attachmentMimeType(file),
 				kind: isImageFile(file) ? "image" : "document",
-			}); });
-		reader.onerror = () => { reject(reader.error ?? new Error(`Couldn't read ${file.name}`)); };
+			});
+		});
+		reader.addEventListener("error", () => {
+			reject(reader.error ?? new Error(`Couldn't read ${file.name}`));
+		});
 		reader.readAsDataURL(file);
 	});
 }

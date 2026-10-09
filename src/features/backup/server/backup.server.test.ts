@@ -180,10 +180,11 @@ describe("importBackup: memories", () => {
 		});
 
 		expect(result).toMatchObject({ memories: 1, skippedMemories: 1 });
-		const texts = (await prisma.memory.findMany({ where: { ownerId: user.id } })).map(
-			(m) => m.text,
-		);
-		expect(texts.sort()).toEqual(["already saved", "new one"]);
+		const memories = await prisma.memory.findMany({
+			where: { ownerId: user.id },
+			orderBy: { text: "asc" },
+		});
+		expect(memories.map((m) => m.text)).toEqual(["already saved", "new one"]);
 	});
 });
 

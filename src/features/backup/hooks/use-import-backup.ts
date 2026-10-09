@@ -15,9 +15,9 @@ export function useImportBackup() {
 			if (!res.ok) throw new Error(await res.text());
 			return importBackupResultSchema.parse(await res.json()).imported;
 		},
-		onSuccess: (imported) => {
+		onSuccess: async (imported) => {
 			// A backup touches nearly every feature's data.
-			queryClient.invalidateQueries();
+			await queryClient.invalidateQueries();
 			const skipped =
 				imported.skippedMemories +
 				imported.skippedConversations +

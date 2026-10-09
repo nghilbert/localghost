@@ -94,7 +94,7 @@ export function ModelList({
 							size="sm"
 							color="neutral"
 							variant="outlined"
-							onClick={() => catalogPageQuery.refetch()}
+							onClick={() => void catalogPageQuery.refetch()}
 						>
 							Try again
 						</Button>

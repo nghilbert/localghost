@@ -66,7 +66,7 @@ export function conversationExportFilename({
 		(char >= "a" && char <= "z") || (char >= "0" && char <= "9");
 	let dashed = "";
 	let lastWasDash = false;
-	for (const char of (title ?? "").toLowerCase()) {
+	for (const char of title?.toLowerCase() ?? "") {
 		if (isAlphanumeric(char)) {
 			dashed += char;
 			lastWasDash = false;

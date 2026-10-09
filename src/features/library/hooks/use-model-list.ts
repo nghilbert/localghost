@@ -149,7 +149,7 @@ export function useModelList({ installedModels, pulling, hardware }: UseModelLis
 			base = base.filter((row) => matchesModelFacets({ row, licenses, capabilities }));
 		}
 	}
-	const rows = [...base].sort((left, right) =>
+	const rows = base.toSorted((left, right) =>
 		compareModels({ left: sortableRow(left), right: sortableRow(right), ...sort }),
 	);
 

@@ -68,13 +68,15 @@ describe("streamRunResponse", () => {
 		const runs: RunStore = {
 			createOrResume: vi.fn(),
 			update: vi.fn(),
-			get: vi.fn(async () => null),
-			findActiveRun: vi.fn(async () => null),
+			get: vi.fn().mockResolvedValue(null),
+			findActiveRun: vi.fn().mockResolvedValue(null),
 		};
-		async function* failing(): AsyncGenerator<StreamChunk> {
-			yield* [];
-			throw new Error("provider exploded");
-		}
+		const failing = () =>
+			new ReadableStream<StreamChunk>({
+				start(controller) {
+					controller.error(new Error("provider exploded"));
+				},
+			});
 
 		const response = streamRunResponse({
 			request: new Request("http://localhost/api/chat/stream", { method: "POST" }),
@@ -90,9 +92,9 @@ describe("streamRunResponse", () => {
 });
 
 describe("resumeRunResponse", () => {
-	const owned = async (threadId: string) => threadId === "own-thread";
-	const threadOf = async ({ runId }: { runId: string }) =>
-		({ "own-run": "own-thread", "their-run": "their-thread" })[runId] ?? null;
+	const owned = (threadId: string) => Promise.resolve(threadId === "own-thread");
+	const threadOf = ({ runId }: { runId: string }) =>
+		Promise.resolve({ "own-run": "own-thread", "their-run": "their-thread" }[runId] ?? null);
 
 	it("refuses a reconnect that names no run", async () => {
 		const response = await resumeRunResponse({

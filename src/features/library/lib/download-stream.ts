@@ -59,7 +59,6 @@ export async function* streamModelEvents({
 	const search = new URLSearchParams({ endpointId });
 	const source = new EventSource(`/api/models/events?${search}`);
 	const queued: LlamaModelDownloadEvent[] = [];
-	let closed = false;
 	let wake: (() => void) | undefined;
 	const resume = () => {
 		wake?.();
@@ -70,12 +69,7 @@ export async function* streamModelEvents({
 	source.addEventListener("error", () => {
 		console.warn("llama.cpp model-event stream errored", { readyState: source.readyState });
 		// CLOSED means the browser gave up reconnecting.
-		if (source.readyState !== EventSource.CLOSED) {
-			return;
-		}
-
-		closed = true;
-		resume();
+		if (source.readyState === EventSource.CLOSED) resume();
 	});
 	source.addEventListener("message", (message: MessageEvent<string>) => {
 		const event = parseModelEvent(message.data);
@@ -86,15 +80,17 @@ export async function* streamModelEvents({
 	signal.addEventListener("abort", resume, { once: true });
 
 	try {
-		while (!signal.aborted && !closed) {
+		while (!signal.aborted && source.readyState !== EventSource.CLOSED) {
 			const next = queued.shift();
 			if (next) {
 				yield next;
 				continue;
 			}
-			await new Promise<void>((settle) => {
-				wake = settle;
-			});
+			const { promise, resolve } = Promise.withResolvers<undefined>();
+			wake = () => {
+				resolve(undefined);
+			};
+			await promise;
 		}
 	} finally {
 		signal.removeEventListener("abort", resume);

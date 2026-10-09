@@ -89,7 +89,7 @@ export function Library() {
 					if (!open) setPendingDelete(null);
 				}}
 				title="Delete this model?"
-				description={`${pendingDelete} will be removed from this machine. You'll need to download it again to use it.`}
+				description={`${pendingDelete ?? ""} will be removed from this machine. You'll need to download it again to use it.`}
 				isPending={deleteModel.isPending}
 				onConfirm={() => {
 					if (pendingDelete && runtimeStatus?.found) {

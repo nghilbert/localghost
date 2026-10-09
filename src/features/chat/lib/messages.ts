@@ -136,21 +136,24 @@ export function buildFirstUserMessage({
  * Replaces a user message's text and drops every message after it, ready to resend.
  * @returns The shortened transcript, or `messages` unchanged when `id` is not found.
  */
-export function editUserMessage({
+export function editUserMessage<TTools extends ReadonlyArray<{ name: string }>>({
 	messages,
 	id,
 	content,
 }: {
-	messages: UIMessage[];
+	messages: Array<UIMessage<TTools>>;
 	id: string;
 	content: string;
-}): UIMessage[] {
+}): Array<UIMessage<TTools>> {
 	const target = messages.find((message) => message.id === id);
 	if (!target) return messages;
 	const mediaParts = target.parts.filter(
 		(part) => part.type === "image" || part.type === "document",
 	);
-	const edited: UIMessage = { ...target, parts: [...mediaParts, { type: "text", content }] };
+	const edited: UIMessage<TTools> = {
+		...target,
+		parts: [...mediaParts, { type: "text", content }],
+	};
 	return [...messages.slice(0, messages.indexOf(target)), edited];
 }
 

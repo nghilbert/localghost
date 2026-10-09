@@ -17,7 +17,7 @@ export function RouteErrorScreen({ error, reset }: ErrorComponentProps) {
 					variant="outlined"
 					onClick={() => {
 						reset();
-						router.invalidate();
+						void router.invalidate();
 					}}
 				>
 					Try again

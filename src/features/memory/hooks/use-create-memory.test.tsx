@@ -3,7 +3,7 @@ import { renderHook, testQueryClient } from "#/test/utils";
 
 const { createMemory, toastAdd } = vi.hoisted(() => ({
 	createMemory: vi.fn(),
-	toastAdd: vi.fn(),
+	toastAdd: vi.fn<(toast: { title: string; type?: string; description?: string }) => void>(),
 }));
 
 vi.mock("#/features/memory/memory.functions", () => ({
@@ -19,7 +19,7 @@ beforeEach(() => vi.clearAllMocks());
 
 describe("useCreateMemory", () => {
 	it("stays pending through invalidation before reporting success", async () => {
-		const invalidation = Promise.withResolvers<void>();
+		const invalidation = Promise.withResolvers<undefined>();
 		const queryClient = testQueryClient();
 		vi.spyOn(queryClient, "invalidateQueries").mockReturnValue(invalidation.promise);
 		createMemory.mockResolvedValue(undefined);
@@ -30,7 +30,7 @@ describe("useCreateMemory", () => {
 		await expect.poll(() => result.current.isPending).toBe(true);
 		expect(toastAdd).not.toHaveBeenCalled();
 
-		invalidation.resolve();
+		invalidation.resolve(undefined);
 		await expect.poll(() => result.current.isSuccess).toBe(true);
 		expect(toastAdd).toHaveBeenCalledOnce();
 		expect(toastAdd.mock.calls[0]?.[0]?.type).toBe("success");

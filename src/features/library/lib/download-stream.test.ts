@@ -96,7 +96,7 @@ afterEach(() => {
 describe("streamModelEvents", () => {
 	it("yields parsed events, skips junk, and closes the source when the signal aborts", async () => {
 		vi.stubGlobal("EventSource", FakeEventSource);
-		vi.spyOn(console, "warn").mockImplementation(() => {});
+		vi.spyOn(console, "warn").mockReturnValue();
 		const controller = new AbortController();
 		const onOpen = vi.fn();
 		const seen: string[] = [];
@@ -139,7 +139,7 @@ describe("streamModelEvents", () => {
 
 	it("ends the stream when the browser gives up reconnecting", async () => {
 		vi.stubGlobal("EventSource", FakeEventSource);
-		vi.spyOn(console, "warn").mockImplementation(() => {});
+		vi.spyOn(console, "warn").mockReturnValue();
 		const seen: string[] = [];
 
 		const consumed = (async () => {

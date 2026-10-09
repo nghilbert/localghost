@@ -18,12 +18,12 @@ export function parseNvidiaSmi(output: string): GpuInfo[] | null {
 		.filter((line) => line.trim());
 	if (!lines.length) return null;
 	return lines.map((line): GpuInfo => {
-		const [name, total, free] = line.split(", ").map((s) => s.trim());
+		const [name = "", total, free] = line.split(", ").map((s) => s.trim());
 		return {
-			name: name || "Unknown GPU",
+			name: name === "" ? "Unknown GPU" : name,
 			vendor: "nvidia",
-			totalVramMb: Number.parseInt(total ?? "0", 10) || 0,
-			freeVramMb: Number.parseInt(free ?? "0", 10) || 0,
+			totalVramMb: Math.trunc(Number(total)) || 0,
+			freeVramMb: Math.trunc(Number(free)) || 0,
 		};
 	});
 }

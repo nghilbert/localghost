@@ -141,7 +141,7 @@ export function buildModelVariants({
 				isSameRepoAsPrimary: variant.repoId === catalog.name,
 			};
 		})
-		.sort((left, right) => compareOptions({ left, right }));
+		.toSorted((left, right) => compareOptions({ left, right }));
 
 	return {
 		initialModelId:
@@ -194,7 +194,7 @@ export function buildModelAuthors({
 		authors.push(author);
 	};
 	for (const repoId of [primaryRepoId, ...siblingRepoIds]) append(authorOf(repoId));
-	for (const name of [...byName.keys()].sort()) append(name);
+	for (const name of [...byName.keys()].toSorted((a, b) => a.localeCompare(b))) append(name);
 
 	const primaryAuthor = authorOf(primaryRepoId);
 	const defaultAuthor = byName.has(primaryAuthor)

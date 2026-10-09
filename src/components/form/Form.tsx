@@ -12,16 +12,22 @@ type FormProps = Omit<ComponentProps<typeof FormUi>, "onSubmit"> & { children: R
 export function Form({ children, ...props }: FormProps) {
 	const form = useFormContext();
 
+	async function submit() {
+		try {
+			await form.handleSubmit();
+		} catch (error) {
+			if (!(error instanceof FieldErrors)) return;
+			form.setErrorMap({ onServer: { fields: error.fields } });
+		}
+	}
+
 	return (
 		<FormUi
 			{...props}
 			onSubmit={(event) => {
 				event.preventDefault();
 				event.stopPropagation();
-				form.handleSubmit().catch((error) => {
-					if (!(error instanceof FieldErrors)) return;
-					form.setErrorMap({ onServer: { fields: error.fields } });
-				});
+				void submit();
 			}}
 		>
 			{children}

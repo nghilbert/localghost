@@ -95,7 +95,7 @@ export function UserMessage({ message, onEditResend }: UserMessageProps) {
 								icon={<CopyIcon />}
 								ariaLabel="Copy message"
 								tooltip="Copy"
-								onClick={() => { copyToClipboard(content); }}
+								onClick={() => void copyToClipboard(content)}
 							/>
 							{onEditResend && (
 								<ActionButton

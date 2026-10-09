@@ -50,8 +50,8 @@ describe("ChatMarkdown", () => {
 		);
 
 		await expect.element(screen.getByRole("button", { name: "Copy code" })).toBeVisible();
-		const highlighted = screen.container.querySelectorAll(".th-line--highlighted");
-		expect([...highlighted].map((line) => line.getAttribute("data-line"))).toEqual(["2"]);
+		const highlighted = screen.container.querySelectorAll<HTMLElement>(".th-line--highlighted");
+		expect([...highlighted].map((line) => line.dataset.line)).toEqual(["2"]);
 	});
 
 	it("drops a trailing empty list item while streaming", async () => {

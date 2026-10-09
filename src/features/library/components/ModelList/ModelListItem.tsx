@@ -87,7 +87,7 @@ export function ModelListItem(props: ModelListItemProps) {
 				>
 					{loaded ? (
 						<>
-							{catalog?.displayName || loaded.row.name}
+							{catalog && catalog.displayName !== "" ? catalog.displayName : loaded.row.name}
 							{isVision && <ImageIcon className="size-3.5 text-muted-fg" />}
 							{catalog?.pullCount != null && catalog.pullCount > 0 && (
 								<span className="flex items-center gap-1 text-xs font-normal text-muted-fg">

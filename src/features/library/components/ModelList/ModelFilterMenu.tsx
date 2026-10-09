@@ -24,12 +24,12 @@ export function ModelFilterMenu({ facets, children }: ModelFilterMenuProps) {
 				{activeCount > 0 && <Badge className="tabular-nums">{activeCount}</Badge>}
 			</Menu.Trigger>
 			<Menu.Content align="end" className="w-72">
-				{children && (
+				{children ? (
 					<>
 						{children}
 						<Menu.Separator />
 					</>
-				)}
+				) : null}
 				{activeCount > 0 && (
 					<>
 						<Menu.Item

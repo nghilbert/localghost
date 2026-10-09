@@ -19,7 +19,7 @@ function ModelsSettings() {
 	return (
 		<ModelSettingsTab
 			selection={endpointId && model ? { endpointId, model } : undefined}
-			onSelectionChange={(selection) => navigate({ search: selection, replace: true })}
+			onSelectionChange={(selection) => void navigate({ search: selection, replace: true })}
 		/>
 	);
 }

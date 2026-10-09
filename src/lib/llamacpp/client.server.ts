@@ -71,10 +71,11 @@ async function responseError({
 	response: Response | UndiciResponse;
 	operation: string;
 }): Promise<Error> {
-	const body = llamaErrorSchema.safeParse(await response.json().catch(() => null));
-	return new Error(
-		body.success ? body.data.error.message : `${operation} failed: ${String(response.status)}`,
-	);
+	try {
+		return new Error(llamaErrorSchema.parse(await response.json()).error.message);
+	} catch {
+		return new Error(`${operation} failed: ${response.status}`);
+	}
 }
 
 /** Uses {@link LOCAL_LLAMACPP_API_KEY} when the endpoint has no key of its own. */

@@ -1,12 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
+import type { getModelSettings } from "#/features/library/library.functions";
 import { render } from "#/test/utils";
 import { ModelSettingsTab } from "./ModelSettingsTab";
 
 const LOCAL_ID = "0197c3a0-0000-7000-8000-000000000001";
 
 const { fetchModelSettings, resetMutate } = vi.hoisted(() => ({
-	fetchModelSettings: vi.fn(),
+	fetchModelSettings: vi.fn<() => ReturnType<typeof getModelSettings>>(),
 	resetMutate: vi.fn(),
 }));
 
