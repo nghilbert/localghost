@@ -1,10 +1,10 @@
 import { HttpResponse, http } from "msw";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { worker } from "#/test/msw";
+import { beforeEach, describe, expect, vi } from "vitest";
+import { test, worker } from "#/test/msw";
 import { renderHook } from "#/test/utils";
 
 const { toastAdd } = vi.hoisted(() => ({
-	toastAdd: vi.fn(),
+	toastAdd: vi.fn<(toast: { title: string; type?: string; description?: string }) => void>(),
 }));
 
 vi.mock("#/components/ui/toast", () => ({ toast: { add: toastAdd } }));
@@ -35,7 +35,7 @@ beforeEach(() => {
 });
 
 describe("useImportBackup", () => {
-	it("uploads the file's text and summarizes the counts the endpoint reports", async () => {
+	test("uploads the file's text and summarizes the counts the endpoint reports", async () => {
 		let uploaded: string | undefined;
 		worker.use(
 			http.post("/api/backup/import", async ({ request }) => {
@@ -64,7 +64,7 @@ describe("useImportBackup", () => {
 		expect(toast?.description).toContain("re-enter their API keys");
 	});
 
-	it("reports the server's message when the import is rejected", async () => {
+	test("reports the server's message when the import is rejected", async () => {
 		worker.use(
 			http.post(
 				"/api/backup/import",

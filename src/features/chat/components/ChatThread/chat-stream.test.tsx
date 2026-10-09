@@ -3,16 +3,19 @@ import { EventType } from "@tanstack/ai/client";
 import type { UIMessage } from "@tanstack/ai-client";
 import { fetchServerSentEvents, useChat } from "@tanstack/ai-react";
 import { HttpResponse, http } from "msw";
-import { beforeEach, describe, expect, it } from "vitest";
-import { worker } from "#/test/msw";
+import { beforeEach, describe, expect } from "vitest";
+import { test, worker } from "#/test/msw";
 import { renderHook } from "#/test/utils";
 
 /** The response the stream route sends, framed by the same helper the server uses. */
 function sseResponse(events: StreamChunk[]): Response {
 	return toServerSentEventsResponse(
-		(async function* () {
-			yield* events;
-		})(),
+		new ReadableStream<StreamChunk>({
+			start(controller) {
+				for (const event of events) controller.enqueue(event);
+				controller.close();
+			},
+		}),
 	);
 }
 
@@ -49,7 +52,7 @@ function mountChat() {
 function assistantText(messages: UIMessage[]) {
 	return messages
 		.filter((message) => message.role === "assistant")
-		.flatMap((message) => message.parts ?? [])
+		.flatMap((message) => message.parts)
 		.flatMap((part) => (part.type === "text" ? [part.content] : []))
 		.join("");
 }
@@ -63,7 +66,7 @@ beforeEach(() => {
 });
 
 describe("chat streaming over /api/chat/stream", () => {
-	it("assembles streamed deltas into one assistant message", async () => {
+	test("assembles streamed deltas into one assistant message", async () => {
 		stubStream(textRun("a1", ["Otters ", "are ", "mustelids."]));
 		const { result } = await mountChat();
 
@@ -73,7 +76,7 @@ describe("chat streaming over /api/chat/stream", () => {
 		expect(result.current.messages.filter((m) => m.role === "user")).toHaveLength(1);
 	});
 
-	it("posts the conversation's forwardedProps alongside the transcript", async () => {
+	test("posts the conversation's forwardedProps alongside the transcript", async () => {
 		let body: { forwardedProps?: Record<string, unknown> } | undefined;
 		worker.use(
 			http.post<never, { forwardedProps?: Record<string, unknown> }>(
@@ -91,7 +94,7 @@ describe("chat streaming over /api/chat/stream", () => {
 		await expect.poll(() => body?.forwardedProps).toEqual({ enabledTools: [], timeZone: "UTC" });
 	});
 
-	it("surfaces a terminal RUN_ERROR instead of hanging on a half-finished run", async () => {
+	test("surfaces a terminal RUN_ERROR instead of hanging on a half-finished run", async () => {
 		stubStream([
 			RUN_STARTED,
 			{ type: EventType.TEXT_MESSAGE_START, messageId: "a1", role: "assistant" },
@@ -106,7 +109,7 @@ describe("chat streaming over /api/chat/stream", () => {
 		await expect.poll(() => result.current.isLoading).toBe(false);
 	});
 
-	it("keeps a tool call and its result on the assistant message", async () => {
+	test("keeps a tool call and its result on the assistant message", async () => {
 		stubStream([
 			RUN_STARTED,
 			{
@@ -133,7 +136,7 @@ describe("chat streaming over /api/chat/stream", () => {
 		await result.current.sendMessage({ content: "search otters" });
 
 		await expect.poll(() => assistantText(result.current.messages)).toBe("They swim.");
-		const parts = result.current.messages.flatMap((message) => message.parts ?? []);
+		const parts = result.current.messages.flatMap((message) => message.parts);
 		expect(parts.some((part) => part.type === "tool-call")).toBe(true);
 	});
 });
