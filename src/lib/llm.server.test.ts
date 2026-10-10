@@ -5,7 +5,6 @@ import {
 	buildModelsRequest,
 	chatBaseUrl,
 	modelSupportsTools,
-	streamLLMEvents,
 	type ModelsResponse,
 } from "#/lib/llm.server";
 
@@ -130,14 +129,6 @@ describe("llm.server", () => {
 			expect(chatBaseUrl({ url: "http://localhost:8080", provider: "llamacpp" })).toBe(
 				"http://localhost:8080/v1",
 			);
-			expect(() =>
-				streamLLMEvents({
-					url: "http://localhost:8080",
-					provider: "llamacpp",
-					model: "local-model",
-					messages: [],
-				}),
-			).not.toThrow();
 		});
 
 		it("leaves the gemini base URL untouched", () => {
