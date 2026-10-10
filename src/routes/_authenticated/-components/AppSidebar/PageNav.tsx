@@ -1,5 +1,5 @@
-import { Link, type LinkProps, useRouterState } from "@tanstack/react-router";
-import { LibraryIcon, type LucideIcon, MessageCirclePlusIcon } from "lucide-react";
+import { Link, useRouterState, type LinkProps } from "@tanstack/react-router";
+import { LibraryIcon, MessageCirclePlusIcon, type LucideIcon } from "lucide-react";
 import { Sidebar } from "#/components/ui/sidebar";
 
 type NavItem = {

@@ -1,5 +1,5 @@
-import type { ContentPart } from "@tanstack/ai/client";
 import type { MultimodalContent } from "@tanstack/ai-client";
+import type { ContentPart } from "@tanstack/ai/client";
 import { MIB } from "#/lib/format";
 import { documentMessageParts, imageMessageParts } from "./messages";
 

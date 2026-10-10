@@ -1,6 +1,6 @@
 import type { CatalogSortBy } from "#/features/library/library.schemas";
 import type { CatalogModel, HardwareInfo } from "#/features/library/library.types";
-import { classifyHardwareFit, type HardwareFit, requiredMemoryGb } from "./hardware-fit";
+import { classifyHardwareFit, requiredMemoryGb, type HardwareFit } from "./hardware-fit";
 
 /** The fields a catalog model sorts by. An installed model without a catalog entry fills what it knows. */
 export type SortableModel = Pick<

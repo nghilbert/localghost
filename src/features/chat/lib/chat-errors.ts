@@ -9,7 +9,9 @@ type ChatFailure = {
 /** Explains a chat run's error message. A crashed local model shows as `unexpected EOF`. */
 export function describeChatError(message: string): ChatFailure {
 	// llama.cpp's router: "model name=<id> failed to load"; a GPU out of memory shows as a lost device.
-	if (/failed to load|out of (?:device )?memory|device.?lost|ErrorOutOfDeviceMemory/i.test(message)) {
+	if (
+		/failed to load|out of (?:device )?memory|device.?lost|ErrorOutOfDeviceMemory/i.test(message)
+	) {
 		return {
 			title: "The model couldn't load",
 			description:

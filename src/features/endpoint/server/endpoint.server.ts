@@ -8,13 +8,13 @@ import type { Endpoint } from "#/generated/prisma/client";
 import { encrypt, endpointApiKey } from "#/lib/crypto.server";
 import { prisma } from "#/lib/db.server";
 import { listModels as listLlamacppModels } from "#/lib/llamacpp/client.server";
+import { asLLMProvider } from "#/lib/llm-provider";
 import {
-	type EndpointProbeResult,
 	listModels,
 	modelSupportsTools,
 	probeEndpoint,
+	type EndpointProbeResult,
 } from "#/lib/llm.server";
-import { asLLMProvider } from "#/lib/llm-provider";
 import { log } from "#/lib/log.server";
 
 /** An endpoint row safe to send to the client: a `hasApiKey` flag replaces the encrypted key. */

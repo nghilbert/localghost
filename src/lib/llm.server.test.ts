@@ -1,13 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { LOCAL_LLAMACPP_API_KEY } from "#/lib/llamacpp/client.server";
+import { asLLMProvider, detectProvider } from "#/lib/llm-provider";
 import {
 	buildModelsRequest,
 	chatBaseUrl,
-	type ModelsResponse,
 	modelSupportsTools,
 	streamLLMEvents,
+	type ModelsResponse,
 } from "#/lib/llm.server";
-import { asLLMProvider, detectProvider } from "#/lib/llm-provider";
 
 describe("llm.server", () => {
 	describe("asLLMProvider", () => {

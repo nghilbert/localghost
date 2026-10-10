@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
-import { probeEndpoint } from "#/lib/llm.server";
 import { modelSelectionSchema } from "#/lib/llm-schemas";
+import { probeEndpoint } from "#/lib/llm.server";
 import { authedFn } from "#/lib/middleware";
 import {
 	createEndpointSchema,

@@ -1,4 +1,4 @@
-import { type LucideIcon, MonitorIcon, MoonIcon, SunIcon } from "lucide-react";
+import { MonitorIcon, MoonIcon, SunIcon, type LucideIcon } from "lucide-react";
 
 /**
  * Color presets. Each id matches `[data-theme="<id>"]` in `src/styles/themes/<id>.css`,

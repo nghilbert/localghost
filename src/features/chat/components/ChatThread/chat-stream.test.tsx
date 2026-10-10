@@ -1,8 +1,8 @@
-import { type StreamChunk, toServerSentEventsResponse } from "@tanstack/ai";
-import { EventType } from "@tanstack/ai/client";
+import { toServerSentEventsResponse, type StreamChunk } from "@tanstack/ai";
 import type { UIMessage } from "@tanstack/ai-client";
 import { fetchServerSentEvents, useChat } from "@tanstack/ai-react";
-import { HttpResponse, http } from "msw";
+import { EventType } from "@tanstack/ai/client";
+import { http, HttpResponse } from "msw";
 import { beforeEach, describe, expect } from "vitest";
 import { test, worker } from "#/test/msw";
 import { renderHook } from "#/test/utils";
@@ -30,9 +30,11 @@ function textRun(messageId: string, deltas: string[]): StreamChunk[] {
 	return [
 		RUN_STARTED,
 		{ type: EventType.TEXT_MESSAGE_START, messageId, role: "assistant" },
-		...deltas.map(
-			(delta): StreamChunk => ({ type: EventType.TEXT_MESSAGE_CONTENT, messageId, delta }),
-		),
+		...deltas.map((delta): StreamChunk => ({
+			type: EventType.TEXT_MESSAGE_CONTENT,
+			messageId,
+			delta,
+		})),
 		{ type: EventType.TEXT_MESSAGE_END, messageId },
 		RUN_FINISHED,
 	];

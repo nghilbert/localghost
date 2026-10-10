@@ -1,5 +1,5 @@
 import { Menu } from "#/components/ui/menu";
-import { type ModelStatus, modelStatusSchema } from "#/features/library/library.schemas";
+import { modelStatusSchema, type ModelStatus } from "#/features/library/library.schemas";
 import { formatNumber } from "#/lib/format";
 
 const STATUS_LABELS: Record<ModelStatus, string> = {

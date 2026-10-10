@@ -1,6 +1,6 @@
 import { mergeProps } from "@base-ui/react/merge-props";
 import { useRender } from "@base-ui/react/use-render";
-import { type ActionVariants, actionVariants } from "#/components/ui/variants/action";
+import { actionVariants, type ActionVariants } from "#/components/ui/variants/action";
 
 /** Props for {@link ButtonLink}. */
 export type ButtonLinkProps = useRender.ComponentProps<"a"> & ActionVariants;

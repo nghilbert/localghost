@@ -1,5 +1,4 @@
 import { CheckCircle2Icon } from "lucide-react";
-
 import type { ComboboxFieldGroup } from "#/components/form/fields/ComboboxField";
 import { useAppForm } from "#/components/form/use-app-form";
 import { Badge } from "#/components/ui/badge";
@@ -11,9 +10,9 @@ import {
 	defaultOptionForAuthor,
 	formatModelVariantDetails,
 	groupModelVariantOptions,
+	optionsForAuthor,
 	type ModelVariantGroupId,
 	type ModelVariantOption,
-	optionsForAuthor,
 } from "#/features/library/lib/model-variants";
 import type {
 	CatalogModel,

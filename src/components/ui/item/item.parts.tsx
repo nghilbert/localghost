@@ -12,7 +12,7 @@ const itemVariants = tv({
 	slots: {
 		group: "flex w-full flex-col gap-4",
 		root: [
-			"flex w-full flex-wrap items-center rounded-lg text-sm outline-none transition-colors duration-100",
+			"flex w-full flex-wrap items-center rounded-lg text-sm transition-colors duration-100 outline-none",
 			FOCUS_RING,
 			"[a]:hover:bg-muted",
 		],

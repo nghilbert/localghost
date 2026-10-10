@@ -25,7 +25,9 @@ export function useChatTools({ selection }: { selection: ModelSelection | null }
 		webSearchAvailable,
 		initialEnabledTools: override ?? undefined,
 	});
-	const resetTools = () => { setOverride(null); };
+	const resetTools = () => {
+		setOverride(null);
+	};
 
 	const controls: ToolControls = {
 		enabledTools,

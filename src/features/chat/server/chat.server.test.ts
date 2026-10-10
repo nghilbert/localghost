@@ -3,11 +3,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { prisma } from "#/lib/db.server";
 import { log } from "#/lib/log.server";
 import { createConversation, createEndpoint, createUser, resetDb } from "#/test/db.server";
+import { patchConversation, probeModelRunState, removeConversation } from "./chat.server";
 
 const { listModels } = vi.hoisted(() => ({ listModels: vi.fn() }));
 vi.mock("#/lib/llamacpp/client.server", () => ({ listModels }));
-
-import { patchConversation, probeModelRunState, removeConversation } from "./chat.server";
 
 beforeEach(async () => {
 	await resetDb();

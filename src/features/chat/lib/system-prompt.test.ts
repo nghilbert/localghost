@@ -32,7 +32,7 @@ describe("buildChatSystemPrompt", () => {
 	});
 
 	it("skips blank user prompts", () => {
-		const prompt = buildChatSystemPrompt({ userPrompt: ' '.repeat(3), enabledTools: [] });
+		const prompt = buildChatSystemPrompt({ userPrompt: " ".repeat(3), enabledTools: [] });
 		expect(prompt).not.toContain("\n\n");
 	});
 });

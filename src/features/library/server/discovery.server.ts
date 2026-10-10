@@ -9,7 +9,7 @@ import { aggregatePullProgress } from "#/features/library/lib/pull-progress";
 import type { InstalledModel, PullProgress } from "#/features/library/library.types";
 import type { Endpoint } from "#/generated/prisma/client";
 import { endpointApiKey } from "#/lib/crypto.server";
-import { type LlamaModel, LOCAL_LLAMACPP_API_KEY, listModels } from "#/lib/llamacpp/client.server";
+import { listModels, LOCAL_LLAMACPP_API_KEY, type LlamaModel } from "#/lib/llamacpp/client.server";
 
 const DEFAULT_RUNTIME_URL = "http://localhost:8080";
 

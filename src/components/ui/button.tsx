@@ -1,5 +1,5 @@
 import { Button as BaseButton } from "@base-ui/react/button";
-import { type ActionVariants, actionVariants } from "#/components/ui/variants/action";
+import { actionVariants, type ActionVariants } from "#/components/ui/variants/action";
 import { mergeClassName } from "#/components/ui/variants/class-name";
 
 /** Props for {@link Button}. */

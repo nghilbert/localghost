@@ -3,17 +3,17 @@ import { mergeProps } from "@base-ui/react/merge-props";
 import { useRender } from "@base-ui/react/use-render";
 import { PanelLeftIcon } from "lucide-react";
 import {
-	type ComponentProps,
-	type CSSProperties,
 	createContext,
 	use,
 	useEffect,
 	useEffectEvent,
 	useState,
+	type ComponentProps,
+	type CSSProperties,
 } from "react";
 import { tv, type VariantProps } from "tailwind-variants";
 import { Button, type ButtonProps } from "#/components/ui/button";
-import { type InputProps, Input as InputUi } from "#/components/ui/input";
+import { Input as InputUi, type InputProps } from "#/components/ui/input";
 import { Separator as SeparatorUi } from "#/components/ui/separator";
 import { Sheet } from "#/components/ui/sheet";
 import { Tooltip } from "#/components/ui/tooltip";
@@ -56,7 +56,7 @@ const sidebarVariants = tv({
 		groupLabel: [
 			"flex h-8 shrink-0 items-center rounded-md px-2 text-xs font-medium text-muted-fg",
 			"transition-[margin,opacity] duration-200 ease-linear",
-			"in-sidebar-icon:-mt-8 in-sidebar-icon:opacity-0 [--icon-size:--spacing(4)]",
+			"[--icon-size:--spacing(4)] in-sidebar-icon:-mt-8 in-sidebar-icon:opacity-0",
 		],
 		groupContent: "w-full text-sm",
 		menu: "flex w-full min-w-0 flex-col",
@@ -67,12 +67,12 @@ const sidebarVariants = tv({
 			FOCUS_RING,
 			"disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50",
 			"data-active:bg-primary-soft data-active:font-medium data-active:text-primary",
-			"group-has-data-action/menu-item:pr-8 [&>span:last-child]:truncate [--icon-size:--spacing(4)]",
+			"[--icon-size:--spacing(4)] group-has-data-action/menu-item:pr-8 [&>span:last-child]:truncate",
 			"in-sidebar-icon:size-8! in-sidebar-icon:p-2!",
 		],
 		menuAction: [
 			"absolute top-1/2 right-1 flex aspect-square w-5 -translate-y-1/2 items-center justify-center rounded-md p-0",
-			"outline-hidden hover:bg-neutral-soft [--icon-size:--spacing(4)]",
+			"outline-hidden [--icon-size:--spacing(4)] hover:bg-neutral-soft",
 			FOCUS_RING,
 			"after:absolute after:-inset-2 md:after:hidden in-sidebar-icon:hidden",
 		],
@@ -208,7 +208,9 @@ export function Provider({
 
 	useEffect(() => {
 		globalThis.addEventListener("keydown", onShortcut);
-		return () => { globalThis.removeEventListener("keydown", onShortcut); };
+		return () => {
+			globalThis.removeEventListener("keydown", onShortcut);
+		};
 	}, []);
 
 	const providerStyle: CSSProperties & {

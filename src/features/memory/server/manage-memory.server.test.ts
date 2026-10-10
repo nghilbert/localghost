@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { manageMemory } from "./manage-memory.server";
 
 const { saveMemory, recallMemories, findMemories, removeMemory } = vi.hoisted(() => ({
 	saveMemory: vi.fn(),
@@ -13,8 +14,6 @@ vi.mock("./memory.server", () => ({
 	findMemories,
 	removeMemory,
 }));
-
-import { manageMemory } from "./manage-memory.server";
 
 const ownerId = "owner-1";
 

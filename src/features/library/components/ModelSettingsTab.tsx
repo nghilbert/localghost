@@ -102,8 +102,9 @@ export function ModelSettingsTab({ selection, onSelectionChange }: ModelSettings
 										color="neutral"
 										variant="outlined"
 										size="sm"
-										onClick={() => { onSelectionChange({ endpointId: setting.endpointId, model: setting.model }); }
-										}
+										onClick={() => {
+											onSelectionChange({ endpointId: setting.endpointId, model: setting.model });
+										}}
 									>
 										Edit
 									</Button>
@@ -112,8 +113,9 @@ export function ModelSettingsTab({ selection, onSelectionChange }: ModelSettings
 										variant="quiet"
 										size="sm"
 										disabled={reset.isPending}
-										onClick={() => { reset.mutate({ endpointId: setting.endpointId, model: setting.model }); }
-										}
+										onClick={() => {
+											reset.mutate({ endpointId: setting.endpointId, model: setting.model });
+										}}
 									>
 										Reset
 									</Button>

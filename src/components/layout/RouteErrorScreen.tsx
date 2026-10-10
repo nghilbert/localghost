@@ -1,4 +1,4 @@
-import { type ErrorComponentProps, useRouter } from "@tanstack/react-router";
+import { useRouter, type ErrorComponentProps } from "@tanstack/react-router";
 import { Button } from "#/components/ui/button";
 import { Empty } from "#/components/ui/empty";
 

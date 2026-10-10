@@ -2,7 +2,6 @@ import { CircleAlertIcon, SearchIcon } from "lucide-react";
 import { Fragment, type ReactNode } from "react";
 import { Alert } from "#/components/ui/alert";
 import { Button } from "#/components/ui/button";
-
 import { Empty } from "#/components/ui/empty";
 import { InputGroup } from "#/components/ui/input-group";
 import { Item } from "#/components/ui/item";
@@ -111,7 +110,9 @@ export function ModelList({
 						aria-label="Search models"
 						placeholder="Search models..."
 						value={search}
-						onChange={(event) => { handleSearchChange(event.target.value); }}
+						onChange={(event) => {
+							handleSearchChange(event.target.value);
+						}}
 					/>
 				</InputGroup.Root>
 				<ModelFilterMenu facets={facets}>
@@ -143,7 +144,9 @@ export function ModelList({
 								row={row}
 								hardware={hardware}
 								expanded={expandedId === row.id}
-								onToggleExpanded={() => { handleToggleExpanded(row.id); }}
+								onToggleExpanded={() => {
+									handleToggleExpanded(row.id);
+								}}
 								onPull={onPull}
 								onStop={onStop}
 							/>

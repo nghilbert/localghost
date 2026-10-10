@@ -13,7 +13,7 @@ const switchVariants = tv({
 			FOCUS_RING,
 			INVALID_RING,
 			DISABLED,
-			"data-checked:bg-primary data-unchecked:bg-line data-disabled:cursor-not-allowed",
+			"data-checked:bg-primary data-disabled:cursor-not-allowed data-unchecked:bg-line",
 		],
 		thumb: [
 			"pointer-events-none block size-4 rounded-full bg-bg transition-transform",

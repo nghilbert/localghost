@@ -1,5 +1,5 @@
 import { ScriptOnce } from "@tanstack/react-router";
-import { createContext, type ReactNode, use, useEffect, useSyncExternalStore } from "react";
+import { createContext, use, useEffect, useSyncExternalStore, type ReactNode } from "react";
 import { isTheme, isThemeMode, THEMES, type Theme, type ThemeMode } from "./theme";
 
 type ThemeContextValue = {
@@ -50,7 +50,9 @@ const storageChanges = new EventTarget();
 
 function subscribe(onChange: () => void) {
 	storageChanges.addEventListener("change", onChange);
-	return () => { storageChanges.removeEventListener("change", onChange); };
+	return () => {
+		storageChanges.removeEventListener("change", onChange);
+	};
 }
 
 function getStoredMode(): ThemeMode | null {
@@ -82,9 +84,13 @@ export function ThemeProvider({ children, defaultMode = "system" }: ThemeProvide
 		if (mode !== "system") return;
 
 		const media = globalThis.matchMedia("(prefers-color-scheme: dark)");
-		const onChange = () => { applyMode("system"); };
+		const onChange = () => {
+			applyMode("system");
+		};
 		media.addEventListener("change", onChange);
-		return () => { media.removeEventListener("change", onChange); };
+		return () => {
+			media.removeEventListener("change", onChange);
+		};
 	}, [mode]);
 
 	const setMode = (next: ThemeMode) => {

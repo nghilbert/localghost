@@ -1,5 +1,5 @@
-import { ActivityMarker } from "#/features/chat/components/ActivityMarker";
 import { ACTIVITY_STATUS, type ActivityStatus } from "#/features/chat/components/activity-status";
+import { ActivityMarker } from "#/features/chat/components/ActivityMarker";
 import { useElapsedSeconds } from "#/features/chat/hooks/use-elapsed-seconds";
 import type {
 	ChatInterrupts,
@@ -9,7 +9,7 @@ import type {
 } from "#/features/chat/lib/chat-tools";
 import { isPending, toolPhase } from "#/features/chat/lib/tool-phase";
 import { ReasoningStep } from "./ReasoningStep";
-import { type ToolApprovalInterrupt, ToolCallStep } from "./ToolCallStep";
+import { ToolCallStep, type ToolApprovalInterrupt } from "./ToolCallStep";
 
 type ActivityTrailProps = {
 	/** The reply's parts before its answer. */

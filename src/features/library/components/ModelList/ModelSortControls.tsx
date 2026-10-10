@@ -2,7 +2,7 @@ import { ArrowDownWideNarrowIcon, ArrowUpNarrowWideIcon } from "lucide-react";
 import { Button } from "#/components/ui/button";
 import { ButtonGroup } from "#/components/ui/button-group";
 import { Select } from "#/components/ui/select";
-import { defaultSortDirFor, type ModelSort, SORT_FIELDS } from "#/features/library/lib/model-sort";
+import { defaultSortDirFor, SORT_FIELDS, type ModelSort } from "#/features/library/lib/model-sort";
 import type { CatalogSortBy } from "#/features/library/library.schemas";
 
 type ModelSortControlsProps = {
@@ -38,8 +38,9 @@ export function ModelSortControls({ value, onValueChange }: ModelSortControlsPro
 				variant="outlined"
 				iconOnly
 				aria-label={value.sortDir === "asc" ? "Sort ascending" : "Sort descending"}
-				onClick={() => { onValueChange({ ...value, sortDir: value.sortDir === "asc" ? "desc" : "asc" }); }
-				}
+				onClick={() => {
+					onValueChange({ ...value, sortDir: value.sortDir === "asc" ? "desc" : "asc" });
+				}}
 			>
 				{value.sortDir === "asc" ? <ArrowUpNarrowWideIcon /> : <ArrowDownWideNarrowIcon />}
 			</Button>

@@ -59,32 +59,32 @@ function mockHfFetch({
 	const fetchMock = vi.mocked(fetch);
 	fetchMock.mockImplementation((input) =>
 		Promise.try(() => {
-		const url = new URL(input instanceof Request ? input.url : input);
-		if (url.pathname === "/api/models") {
-			// The index is queried by the `gguf` tag alone, never by pipeline tag.
-			if (url.searchParams.has("pipeline_tag")) throw new Error(`unexpected task filter: ${url}`);
-			return jsonResponse([...textGeneration, ...imageTextToText]);
-		}
-		if (url.pathname.includes("/tree/")) {
-			const repoId = url.pathname.slice("/api/models/".length).split("/tree/", 1)[0] ?? "";
-			const files = treeByRepo[repoId] ?? tree;
-			return jsonResponse(files.map((f) => ({ type: "file", ...f })));
-		}
-		// `modelInfo` requests `/api/models/{name}/revision/{rev}`, not the bare index path.
-		if (url.pathname.includes("/revision/")) {
-			const repoId = decodeURIComponent(
-				url.pathname.slice("/api/models/".length).split("/revision/", 1)[0] ?? "",
-			);
-			const entry = [...textGeneration, ...imageTextToText].find(
-				(candidate): candidate is { id: string } =>
-					typeof candidate === "object" &&
-					candidate !== null &&
-					"id" in candidate &&
-					(candidate).id === repoId,
-			);
-			return entry ? jsonResponse(entry) : new Response(null, { status: 404 });
-		}
-		throw new Error(`unexpected fetch: ${url}`);
+			const url = new URL(input instanceof Request ? input.url : input);
+			if (url.pathname === "/api/models") {
+				// The index is queried by the `gguf` tag alone, never by pipeline tag.
+				if (url.searchParams.has("pipeline_tag")) throw new Error(`unexpected task filter: ${url}`);
+				return jsonResponse([...textGeneration, ...imageTextToText]);
+			}
+			if (url.pathname.includes("/tree/")) {
+				const repoId = url.pathname.slice("/api/models/".length).split("/tree/", 1)[0] ?? "";
+				const files = treeByRepo[repoId] ?? tree;
+				return jsonResponse(files.map((f) => ({ type: "file", ...f })));
+			}
+			// `modelInfo` requests `/api/models/{name}/revision/{rev}`, not the bare index path.
+			if (url.pathname.includes("/revision/")) {
+				const repoId = decodeURIComponent(
+					url.pathname.slice("/api/models/".length).split("/revision/", 1)[0] ?? "",
+				);
+				const entry = [...textGeneration, ...imageTextToText].find(
+					(candidate): candidate is { id: string } =>
+						typeof candidate === "object" &&
+						candidate !== null &&
+						"id" in candidate &&
+						candidate.id === repoId,
+				);
+				return entry ? jsonResponse(entry) : new Response(null, { status: 404 });
+			}
+			throw new Error(`unexpected fetch: ${url}`);
 		}),
 	);
 	return fetchMock;
@@ -343,7 +343,10 @@ describe("getCatalogModelsByIds (cache-miss resolution)", () => {
 		const [resolved] = await getCatalogModelsByIds(["org/model-8B-GGUF:Q8_0"]);
 
 		expect(resolved?.id).toBe("org/model-8B-GGUF:Q8_0");
-		expect(resolved?.variants?.map((v) => v.quant).toSorted((a, b) => a.localeCompare(b))).toEqual(["Q4_K_M", "Q8_0"]);
+		expect(resolved?.variants?.map((v) => v.quant).toSorted((a, b) => a.localeCompare(b))).toEqual([
+			"Q4_K_M",
+			"Q8_0",
+		]);
 	});
 
 	it("borrows a warm dedupe group's siblingRepoIds for a quant the cache didn't hit", async () => {

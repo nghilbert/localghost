@@ -1,4 +1,4 @@
-import { CpuIcon, GpuIcon, type LucideIcon, MemoryStickIcon } from "lucide-react";
+import { CpuIcon, GpuIcon, MemoryStickIcon, type LucideIcon } from "lucide-react";
 import { Badge } from "#/components/ui/badge";
 import { Card } from "#/components/ui/card";
 import { Skeleton } from "#/components/ui/skeleton";
@@ -19,7 +19,7 @@ function HardwareStat({ icon: Icon, label, value, detail, extra }: HardwareStatP
 	return (
 		<Card.Root size="sm">
 			<Card.Header>
-				<Card.Description className="flex items-center gap-1.5 uppercase tracking-wide">
+				<Card.Description className="flex items-center gap-1.5 tracking-wide uppercase">
 					<Icon />
 					{label}
 				</Card.Description>

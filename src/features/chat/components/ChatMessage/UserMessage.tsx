@@ -1,5 +1,5 @@
 import { CopyIcon, PencilIcon } from "lucide-react";
-import { type KeyboardEvent, useState } from "react";
+import { useState, type KeyboardEvent } from "react";
 import { Button } from "#/components/ui/button";
 import { InputGroup } from "#/components/ui/input-group";
 import { Bubble, BubbleContent } from "#/features/chat/components/Bubble";
@@ -57,7 +57,9 @@ export function UserMessage({ message, onEditResend }: UserMessageProps) {
 							autoFocus
 							aria-label="Edit message"
 							value={draft}
-							onChange={(event) => { setDraft(event.target.value); }}
+							onChange={(event) => {
+								setDraft(event.target.value);
+							}}
 							onKeyDown={handleKeyDown}
 							className="max-h-50"
 						/>
@@ -90,7 +92,7 @@ export function UserMessage({ message, onEditResend }: UserMessageProps) {
 					</MessageFooter>
 				) : (
 					content && (
-						<MessageFooter className="justify-end gap-1 opacity-0 transition-opacity pointer-coarse:opacity-100 focus-within:opacity-100 group-hover/message:opacity-100">
+						<MessageFooter className="justify-end gap-1 opacity-0 transition-opacity group-hover/message:opacity-100 focus-within:opacity-100 pointer-coarse:opacity-100">
 							<ActionButton
 								icon={<CopyIcon />}
 								ariaLabel="Copy message"

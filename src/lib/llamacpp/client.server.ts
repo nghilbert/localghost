@@ -1,5 +1,5 @@
 import type { ReadableStream as NodeReadableStream } from "node:stream/web";
-import { Agent, type Response as UndiciResponse, fetch as undiciFetch } from "undici";
+import { Agent, fetch as undiciFetch, type Response as UndiciResponse } from "undici";
 import { z } from "zod";
 import { MS_PER_SECOND } from "#/lib/format";
 import { log } from "#/lib/log.server";

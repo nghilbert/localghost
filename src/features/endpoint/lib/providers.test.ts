@@ -3,8 +3,8 @@ import { detectProvider } from "#/lib/llm-provider";
 import {
 	buildEndpointFormSchema,
 	dbProviderFor,
-	PROVIDERS,
 	providerDefinitionFor,
+	PROVIDERS,
 } from "./providers";
 
 describe("provider registry", () => {

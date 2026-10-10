@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mergeSearchResults, type SearchableConversation, snippetSegments } from "./chat-search";
+import { mergeSearchResults, snippetSegments, type SearchableConversation } from "./chat-search";
 
 function conversation(
 	id: string,

@@ -49,7 +49,12 @@ export function AuthMenu() {
 								<SettingsIcon />
 								Settings
 							</Menu.LinkItem>
-							<Menu.Item disabled={signOut.isPending} onClick={() => { signOut.mutate(); }}>
+							<Menu.Item
+								disabled={signOut.isPending}
+								onClick={() => {
+									signOut.mutate();
+								}}
+							>
 								<LogOutIcon />
 								{signOut.isPending ? "Signing out..." : "Sign out"}
 							</Menu.Item>

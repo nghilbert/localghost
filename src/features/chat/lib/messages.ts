@@ -1,6 +1,6 @@
 import type { ModelMessage } from "@tanstack/ai";
-import type { DocumentPart, ImagePart } from "@tanstack/ai/client";
 import type { UIMessage } from "@tanstack/ai-client";
+import type { DocumentPart, ImagePart } from "@tanstack/ai/client";
 import { MS_PER_SECOND } from "#/lib/format";
 
 /** Turns `createdAt` back into a `Date` after JSON serialization made it a string. */
@@ -54,12 +54,10 @@ export function splitReply<TPart extends UIMessage["parts"][number]>(
 
 /** Image message parts for attachments, each with a data URL source. */
 export function imageMessageParts(images: Array<{ dataUrl: string }>): ImagePart[] {
-	return images.map(
-		(image): ImagePart => ({
-			type: "image",
-			source: { type: "url", value: image.dataUrl },
-		}),
-	);
+	return images.map((image): ImagePart => ({
+		type: "image",
+		source: { type: "url", value: image.dataUrl },
+	}));
 }
 
 /** The URLs of a message's images, in order. */
@@ -79,17 +77,15 @@ function dataUrlToBase64(dataUrl: string): string {
 export function documentMessageParts(
 	documents: Array<{ dataUrl: string; mimeType: string; name: string }>,
 ): DocumentPart[] {
-	return documents.map(
-		(document): DocumentPart => ({
-			type: "document",
-			source: {
-				type: "data",
-				value: dataUrlToBase64(document.dataUrl),
-				mimeType: document.mimeType,
-			},
-			metadata: { filename: document.name },
-		}),
-	);
+	return documents.map((document): DocumentPart => ({
+		type: "document",
+		source: {
+			type: "data",
+			value: dataUrlToBase64(document.dataUrl),
+			mimeType: document.mimeType,
+		},
+		metadata: { filename: document.name },
+	}));
 }
 
 /** The filename in a document part's metadata, or "Document". */

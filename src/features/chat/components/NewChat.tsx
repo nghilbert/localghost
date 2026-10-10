@@ -76,8 +76,9 @@ export function NewChat() {
 					supportsImages={supportsImages}
 					supportsDocuments={supportsDocuments}
 					isSending={createConversation.isPending}
-					sendMessage={({ content, attachments }) => { startChat({ firstMessage: content, attachments }); }
-					}
+					sendMessage={({ content, attachments }) => {
+						startChat({ firstMessage: content, attachments });
+					}}
 				/>
 			</div>
 		</Empty.Root>

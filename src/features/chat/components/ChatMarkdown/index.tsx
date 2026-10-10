@@ -6,7 +6,7 @@ import {
 	type MarkdownComponents,
 } from "@tanstack/markdown/react";
 import { CopyIcon } from "lucide-react";
-import { createElement, type JSX, useRef, useState } from "react";
+import { createElement, useRef, useState, type JSX } from "react";
 import { cn } from "tailwind-variants";
 import { Button } from "#/components/ui/button";
 import { LinkSafetyDialog } from "#/features/chat/components/ChatMessage/LinkSafetyDialog";
@@ -41,7 +41,12 @@ function ChatLink({ href, children, ...props }: MarkdownComponentProps<"a">) {
 	}
 	return (
 		<>
-			<BaseButton className={cn(linkClassName, "cursor-pointer")} onClick={() => { setOpen(true); }}>
+			<BaseButton
+				className={cn(linkClassName, "cursor-pointer")}
+				onClick={() => {
+					setOpen(true);
+				}}
+			>
 				{children}
 			</BaseButton>
 			<LinkSafetyDialog url={href} open={open} onOpenChange={setOpen} />

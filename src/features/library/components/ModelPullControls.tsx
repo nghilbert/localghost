@@ -24,7 +24,13 @@ export function ModelPullControls({ modelId, pullState, onPull, onStop }: ModelP
 	}
 
 	return (
-		<Button type="button" size="sm" onClick={() => { onPull(modelId); }}>
+		<Button
+			type="button"
+			size="sm"
+			onClick={() => {
+				onPull(modelId);
+			}}
+		>
 			<DownloadIcon />
 			Download
 		</Button>

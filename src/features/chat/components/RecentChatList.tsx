@@ -10,8 +10,8 @@ import { useDeleteConversation } from "#/features/chat/hooks/use-delete-conversa
 import { useExportConversation } from "#/features/chat/hooks/use-export-conversation";
 import {
 	mergeSearchResults,
-	type SearchableConversation,
 	snippetSegments,
+	type SearchableConversation,
 } from "#/features/chat/lib/chat-search";
 import { useDebouncedValue } from "#/hooks/use-debounced-value";
 import { ChatRenameForm } from "./ChatRenameForm";
@@ -39,9 +39,7 @@ export function RecentChatList() {
 		placeholderData: keepPreviousData,
 	});
 	const lowerQuery = query.toLowerCase();
-	const titleMatches = conversations.filter((c) =>
-		c.title.toLowerCase().includes(lowerQuery),
-	);
+	const titleMatches = conversations.filter((c) => c.title.toLowerCase().includes(lowerQuery));
 	const visibleConversations: SearchableConversation[] = query
 		? mergeSearchResults({ titleMatches, contentMatches: contentMatches ?? [] })
 		: conversations;
@@ -66,7 +64,9 @@ export function RecentChatList() {
 						type="search"
 						placeholder="Search chats"
 						value={search}
-						onChange={(event) => { setSearch(event.target.value); }}
+						onChange={(event) => {
+							setSearch(event.target.value);
+						}}
 						aria-label="Search chats"
 						className="mb-1"
 					/>
@@ -75,7 +75,12 @@ export function RecentChatList() {
 					{visibleConversations.map((conversation) => (
 						<Sidebar.MenuItem key={conversation.id}>
 							{renamingId === conversation.id ? (
-								<ChatRenameForm conversation={conversation} onDone={() => { setRenamingId(null); }} />
+								<ChatRenameForm
+									conversation={conversation}
+									onDone={() => {
+										setRenamingId(null);
+									}}
+								/>
 							) : (
 								<Sidebar.MenuButton
 									render={
@@ -83,7 +88,9 @@ export function RecentChatList() {
 									}
 									active={currentConversationId === conversation.id}
 									tooltip={conversation.title}
-									onDoubleClick={() => { setRenamingId(conversation.id); }}
+									onDoubleClick={() => {
+										setRenamingId(conversation.id);
+									}}
 									className={
 										conversation.snippet ? "h-auto flex-col items-start gap-0.5" : undefined
 									}
@@ -111,7 +118,11 @@ export function RecentChatList() {
 								</Menu.Trigger>
 								<Menu.Content side="right" align="start" className="min-w-36">
 									<Menu.Group>
-										<Menu.Item onClick={() => { setRenamingId(conversation.id); }}>
+										<Menu.Item
+											onClick={() => {
+												setRenamingId(conversation.id);
+											}}
+										>
 											<PencilIcon />
 											Rename
 										</Menu.Item>
@@ -122,20 +133,27 @@ export function RecentChatList() {
 											</Menu.SubmenuTrigger>
 											<Menu.Content>
 												<Menu.Item
-													onClick={() => { exportConversation.mutate({ id: conversation.id, format: "markdown" }); }
-													}
+													onClick={() => {
+														exportConversation.mutate({ id: conversation.id, format: "markdown" });
+													}}
 												>
 													Markdown
 												</Menu.Item>
 												<Menu.Item
-													onClick={() => { exportConversation.mutate({ id: conversation.id, format: "json" }); }
-													}
+													onClick={() => {
+														exportConversation.mutate({ id: conversation.id, format: "json" });
+													}}
 												>
 													JSON
 												</Menu.Item>
 											</Menu.Content>
 										</Menu.SubmenuRoot>
-										<Menu.Item color="danger" onClick={() => { setPendingDeleteId(conversation.id); }}>
+										<Menu.Item
+											color="danger"
+											onClick={() => {
+												setPendingDeleteId(conversation.id);
+											}}
+										>
 											<Trash2Icon />
 											Delete
 										</Menu.Item>

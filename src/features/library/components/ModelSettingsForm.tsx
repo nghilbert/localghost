@@ -52,7 +52,9 @@ export function ModelSettingsForm({ endpointId, model }: ModelSettingsFormProps)
 			}}
 			hasSetting={!!setting}
 			onSave={(options) => save.mutateAsync({ endpointId, model, options })}
-			onReset={() => { reset.mutate({ endpointId, model }); }}
+			onReset={() => {
+				reset.mutate({ endpointId, model });
+			}}
 		/>
 	);
 }

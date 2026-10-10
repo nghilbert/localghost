@@ -208,7 +208,7 @@ describe("deriveConversationTitle", () => {
 	});
 
 	it("returns null for blank text", () => {
-		expect(deriveConversationTitle(' '.repeat(3))).toBeNull();
+		expect(deriveConversationTitle(" ".repeat(3))).toBeNull();
 	});
 });
 

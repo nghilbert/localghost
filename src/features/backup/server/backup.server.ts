@@ -64,9 +64,7 @@ type ImportPayload = z.infer<typeof importPayloadSchema>;
 /** The minimum a message needs to load as a `ModelMessage`. Unknown fields are kept. */
 const messageShapeSchema = z.looseObject({
 	role: z.enum(["user", "assistant", "tool"]),
-	content: z
-		.union([z.string(), z.array(z.looseObject({ type: z.string() })), z.null()])
-		.optional(),
+	content: z.union([z.string(), z.array(z.looseObject({ type: z.string() })), z.null()]).optional(),
 });
 
 /**

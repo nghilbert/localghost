@@ -1,7 +1,7 @@
 import type { PullProgress } from "#/features/library/library.types";
 import {
-	type LlamaModelDownloadEvent,
 	llamaModelDownloadEventSchema,
+	type LlamaModelDownloadEvent,
 } from "#/lib/llamacpp/schemas";
 import { aggregatePullProgress } from "./pull-progress";
 

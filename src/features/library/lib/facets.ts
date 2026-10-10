@@ -68,14 +68,20 @@ function buildFacet<T extends string>({
 			value,
 			label: renderOption(labelFor(value)),
 			checked: values.includes(value),
-			onToggle: (checked) => { onChange(toggle({ values, value, on: checked })); },
+			onToggle: (checked) => {
+				onChange(toggle({ values, value, on: checked }));
+			},
 		})),
 		chips: values.map((value) => ({
 			value,
 			label: renderChip(labelFor(value)),
-			onRemove: () => { onChange(values.filter((current) => current !== value)); },
+			onRemove: () => {
+				onChange(values.filter((current) => current !== value));
+			},
 		})),
-		clear: () => { onChange([]); },
+		clear: () => {
+			onChange([]);
+		},
 	};
 }
 

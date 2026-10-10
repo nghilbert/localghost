@@ -35,7 +35,9 @@ export function AccountTab() {
 						color="danger"
 						variant="soft"
 						size="sm"
-						onClick={() => { signOut.mutate(); }}
+						onClick={() => {
+							signOut.mutate();
+						}}
 						disabled={signOut.isPending}
 					>
 						{signOut.isPending ? "Signing out..." : "Sign out"}

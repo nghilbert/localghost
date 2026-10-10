@@ -42,7 +42,9 @@ export function AttachmentPreviews({ attachments, onRemove }: AttachmentPreviews
 						iconOnly
 						aria-label={`Remove ${attachment.name}`}
 						className="absolute -top-1.5 -right-1.5 size-5 rounded-full opacity-0 shadow-sm transition-opacity group-hover/attachment:opacity-100 focus-visible:opacity-100"
-						onClick={() => { onRemove(attachment.id); }}
+						onClick={() => {
+							onRemove(attachment.id);
+						}}
 					>
 						<XIcon className="size-3" />
 					</Button>

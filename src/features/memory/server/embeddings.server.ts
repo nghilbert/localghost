@@ -4,8 +4,8 @@ import { trimPathRight } from "@tanstack/react-router";
 import { endpointApiKey } from "#/lib/crypto.server";
 import { prisma } from "#/lib/db.server";
 import { MS_PER_SECOND } from "#/lib/format";
-import { chatBaseUrl, providerApiKey } from "#/lib/llm.server";
 import { asLLMProvider, type LLMProvider } from "#/lib/llm-provider";
+import { chatBaseUrl, providerApiKey } from "#/lib/llm.server";
 import { log } from "#/lib/log.server";
 
 /** The embedding model a provider family serves, and the OpenAI-compatible base URL to call it at. */

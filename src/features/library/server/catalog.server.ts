@@ -5,13 +5,13 @@ import {
 	isFitHidden,
 } from "#/features/library/lib/catalog-query";
 import {
-	type CatalogCandidate,
 	contextKFromLength,
 	dedupeByBaseModel,
 	deriveDisplayName,
 	deriveTags,
 	paramBFromTotal,
 	pickDefaultVariant,
+	type CatalogCandidate,
 } from "#/features/library/lib/curation";
 import { parseParamB } from "#/features/library/lib/model-id";
 import type { CatalogQuery } from "#/features/library/library.schemas";
@@ -21,9 +21,9 @@ import { log } from "#/lib/log.server";
 import { getHardwareInfo } from "./hardware.server";
 import {
 	getGgufChatModel,
-	type HfChatModel,
 	listGgufChatModels,
 	listGgufVariants,
+	type HfChatModel,
 } from "./huggingface.server";
 
 const CATALOG_TARGET = 300;

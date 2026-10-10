@@ -1,14 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { prisma } from "#/lib/db.server";
 import { createUser, resetDb } from "#/test/db.server";
+import { insertMemory, recallMemories, saveMemory } from "./memory.server";
 
 const { embed } = vi.hoisted(() => ({ embed: vi.fn() }));
 vi.mock("./embeddings.server", async (importOriginal) => ({
 	...(await importOriginal<typeof import("./embeddings.server")>()),
 	embed,
 }));
-
-import { insertMemory, recallMemories, saveMemory } from "./memory.server";
 
 beforeEach(async () => {
 	await resetDb();

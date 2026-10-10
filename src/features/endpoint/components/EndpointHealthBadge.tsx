@@ -14,23 +14,25 @@ export function EndpointHealthBadge({ endpointId }: { endpointId: string }) {
 
 	return (
 		<div className="flex items-center gap-1">
-			{data ? data.ok ? (
-				<StatusBadge tone="success">
-					<CheckCircle2Icon />
-					Reachable
-				</StatusBadge>
-			) : (
-				<Tooltip.Root>
-					<Tooltip.Trigger
-						render={
-							<StatusBadge tone="warning">
-								<CircleAlertIcon />
-								Unreachable
-							</StatusBadge>
-						}
-					/>
-					<Tooltip.Content>{data.error}</Tooltip.Content>
-				</Tooltip.Root>
+			{data ? (
+				data.ok ? (
+					<StatusBadge tone="success">
+						<CheckCircle2Icon />
+						Reachable
+					</StatusBadge>
+				) : (
+					<Tooltip.Root>
+						<Tooltip.Trigger
+							render={
+								<StatusBadge tone="warning">
+									<CircleAlertIcon />
+									Unreachable
+								</StatusBadge>
+							}
+						/>
+						<Tooltip.Content>{data.error}</Tooltip.Content>
+					</Tooltip.Root>
+				)
 			) : (
 				<Badge>
 					<Spinner size="sm" />

@@ -17,7 +17,7 @@ import { ActivityMarker } from "#/features/chat/components/ActivityMarker";
 import { Marker, MarkerContent, MarkerIcon } from "#/features/chat/components/Marker";
 import { useStepDuration } from "#/features/chat/hooks/use-step-duration";
 import type { ChatInterrupts, ChatToolCall, ChatToolResult } from "#/features/chat/lib/chat-tools";
-import { isChoosing, isPending, type ToolPhase, toolPhase } from "#/features/chat/lib/tool-phase";
+import { isChoosing, isPending, toolPhase, type ToolPhase } from "#/features/chat/lib/tool-phase";
 
 /** A pending approval for a tool call. */
 export type ToolApprovalInterrupt = Extract<ChatInterrupts[number], { kind: "tool-approval" }>;
@@ -176,7 +176,9 @@ export function ToolCallStep({ toolCall, result, isStreaming, interrupt }: ToolC
 						size="sm"
 						color="neutral"
 						variant="outlined"
-						onClick={() => { interrupt.resolveInterrupt(true); }}
+						onClick={() => {
+							interrupt.resolveInterrupt(true);
+						}}
 					>
 						<CheckIcon />
 						Approve
@@ -185,7 +187,9 @@ export function ToolCallStep({ toolCall, result, isStreaming, interrupt }: ToolC
 						size="sm"
 						color="neutral"
 						variant="outlined"
-						onClick={() => { interrupt.resolveInterrupt(false); }}
+						onClick={() => {
+							interrupt.resolveInterrupt(false);
+						}}
 					>
 						<XIcon />
 						Deny
@@ -241,7 +245,7 @@ export function ToolCallStep({ toolCall, result, isStreaming, interrupt }: ToolC
 				</MarkerContent>
 			</Marker>
 			<Collapsible.Panel>
-				<pre className="ml-2 max-h-56 overflow-y-auto pl-3 whitespace-pre-wrap wrap-break-word font-mono text-xs leading-relaxed text-muted-fg">
+				<pre className="ml-2 max-h-56 overflow-y-auto pl-3 font-mono text-xs leading-relaxed wrap-break-word whitespace-pre-wrap text-muted-fg">
 					{detail}
 				</pre>
 			</Collapsible.Panel>

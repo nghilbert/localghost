@@ -55,9 +55,7 @@ export function pickDefaultVariant(variants: ModelVariantInfo[]): ModelVariantIn
 	}
 
 	return variants.reduce((smallest, v) =>
-		(v.sizeGb ?? Infinity) < (smallest.sizeGb ?? Infinity)
-			? v
-			: smallest,
+		(v.sizeGb ?? Infinity) < (smallest.sizeGb ?? Infinity) ? v : smallest,
 	);
 }
 

@@ -143,7 +143,10 @@ describe("dedupeByBaseModel", () => {
 		]);
 		expect(merged).toHaveLength(1);
 		expect(merged[0]?.name).toBe("ggml-org/Qwen3-8B-GGUF");
-		expect(merged[0]?.variants.map((v) => v.quant).toSorted((a, b) => a.localeCompare(b))).toEqual(["Q4_K_M", "Q8_0"]);
+		expect(merged[0]?.variants.map((v) => v.quant).toSorted((a, b) => a.localeCompare(b))).toEqual([
+			"Q4_K_M",
+			"Q8_0",
+		]);
 	});
 
 	it("groups on the base-model link across differently named repacks", () => {
@@ -178,10 +181,9 @@ describe("dedupeByBaseModel", () => {
 			}),
 		]);
 		expect(merged).toHaveLength(1);
-		expect(merged[0]?.variants.map((v) => v.repoId).toSorted((a, b) => a.localeCompare(b))).toEqual([
-			"ggml-org/Qwen3-8B-GGUF",
-			"unsloth/Qwen3-8B-GGUF",
-		]);
+		expect(merged[0]?.variants.map((v) => v.repoId).toSorted((a, b) => a.localeCompare(b))).toEqual(
+			["ggml-org/Qwen3-8B-GGUF", "unsloth/Qwen3-8B-GGUF"],
+		);
 	});
 
 	it("keeps unrelated models separate", () => {

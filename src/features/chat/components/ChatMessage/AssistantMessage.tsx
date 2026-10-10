@@ -88,9 +88,9 @@ export function AssistantMessage({
 				{!isStreaming && (answer || stopped) && (
 					<MessageFooter className="gap-1">
 						{durationNote && (
-							<span className="text-xs tabular-nums text-muted-fg">{durationNote}</span>
+							<span className="text-xs text-muted-fg tabular-nums">{durationNote}</span>
 						)}
-						<div className="ml-auto flex items-center gap-1 opacity-0 transition-opacity pointer-coarse:opacity-100 focus-within:opacity-100 group-hover/message:opacity-100">
+						<div className="ml-auto flex items-center gap-1 opacity-0 transition-opacity group-hover/message:opacity-100 focus-within:opacity-100 pointer-coarse:opacity-100">
 							{answer && (
 								<ActionButton
 									icon={<CopyIcon />}

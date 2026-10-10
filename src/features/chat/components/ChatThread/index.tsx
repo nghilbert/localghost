@@ -16,7 +16,7 @@ import {
 } from "#/features/chat/components/MessageScroller";
 import { useCancelChatRun } from "#/features/chat/hooks/use-cancel-chat-run";
 import { useConversation } from "#/features/chat/hooks/use-conversation";
-import { type Attachment, composeMessageContent } from "#/features/chat/lib/attachments";
+import { composeMessageContent, type Attachment } from "#/features/chat/lib/attachments";
 import { CHAT_TOOLS } from "#/features/chat/lib/chat-tools";
 import {
 	awaitingAssistantResponse,
@@ -182,7 +182,9 @@ export function ChatThread({ conversation }: ChatThreadProps) {
 											}
 											onEditResend={
 												msg.role === "user" && !isStreaming
-													? (content) => { handleEditResend({ id: msg.id, content }); }
+													? (content) => {
+															handleEditResend({ id: msg.id, content });
+														}
 													: undefined
 											}
 											interrupts={interrupts}

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { type LlamaModel, LOCAL_LLAMACPP_API_KEY } from "#/lib/llamacpp/client.server";
+import { LOCAL_LLAMACPP_API_KEY, type LlamaModel } from "#/lib/llamacpp/client.server";
 import { createEndpoint, createUser, resetDb } from "#/test/db.server";
 import {
 	buildRuntimeCandidateUrls,

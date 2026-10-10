@@ -1,12 +1,12 @@
 import { ArrowDownIcon } from "lucide-react";
 import {
-	type ComponentProps,
 	createContext,
-	type ReactNode,
-	type RefObject,
 	use,
 	useEffect,
 	useRef,
+	type ComponentProps,
+	type ReactNode,
+	type RefObject,
 } from "react";
 import { cn, tv } from "tailwind-variants";
 import { Button, type ButtonProps } from "#/components/ui/button";
@@ -17,7 +17,7 @@ const messageScrollerVariants = tv({
 	slots: {
 		root: "group/message-scroller relative flex size-full min-h-0 flex-col overflow-hidden",
 		scrollbar: "opacity-0",
-		viewport: "size-full min-h-0 min-w-0 scroll-fade-b overscroll-contain contain-content",
+		viewport: "size-full min-h-0 min-w-0 overscroll-contain scroll-fade-b contain-content",
 		content: "flex h-max min-h-full flex-col gap-6",
 		// `content-visibility` clips paint to the item; the margin spares icons drawn past their box.
 		item: "min-w-0 shrink-0 [contain-intrinsic-size:auto_10rem] [content-visibility:auto] [overflow-clip-margin:--spacing(2)]",

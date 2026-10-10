@@ -200,8 +200,7 @@ export async function getGgufChatModel({
 	return toHfChatModel({
 		model,
 		extra: extras.get(model.name),
-		isVision:
-			model.task === "image-text-to-text" || model.tags.includes("image-text-to-text"),
+		isVision: model.task === "image-text-to-text" || model.tags.includes("image-text-to-text"),
 	});
 }
 

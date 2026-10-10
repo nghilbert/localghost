@@ -7,8 +7,8 @@ import { formatBytes, GIB } from "#/lib/format";
 import {
 	classifyHardwareFit,
 	FIT_LABELS,
-	type HardwareFit,
 	requiredMemoryGb,
+	type HardwareFit,
 } from "./hardware-fit";
 
 /** One quant a user can pick. */

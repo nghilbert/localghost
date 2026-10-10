@@ -1,4 +1,4 @@
-import { type ClassValue, cn } from "tailwind-variants";
+import { cn, type ClassValue } from "tailwind-variants";
 
 /**
  * What Base UI accepts for `className`: a string, or a function of the part's state.

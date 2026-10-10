@@ -25,7 +25,7 @@ const selectVariants = tv({
 				"w-fit justify-between gap-1.5 pr-2 pl-2.5 whitespace-nowrap select-none data-placeholder:text-muted-fg",
 		}),
 		icon: "text-muted-fg transition-transform",
-		value: "flex flex-1 items-center gap-1.5 text-left line-clamp-1",
+		value: "line-clamp-1 flex flex-1 items-center gap-1.5 text-left",
 		scrollArrow: "sticky z-10 flex w-full items-center justify-center bg-surface py-1",
 	},
 	defaultVariants: { density: "list" },

@@ -56,7 +56,9 @@ function mapRun(row: ChatRun): RunRecord {
 		...(row.finishedAt == null ? {} : { finishedAt: Number(row.finishedAt) }),
 		...(row.error == null
 			? {}
-			: { error: { message: row.error, ...(row.errorCode == null ? {} : { code: row.errorCode }) } }),
+			: {
+					error: { message: row.error, ...(row.errorCode == null ? {} : { code: row.errorCode }) },
+				}),
 		...(isTokenUsage(row.usage) ? { usage: row.usage } : {}),
 		...(row.sandboxKey == null ? {} : { sandboxKey: row.sandboxKey }),
 		...(row.detachedSince == null ? {} : { detachedSince: Number(row.detachedSince) }),

@@ -27,7 +27,9 @@ type ComboboxFieldBase<TItem> = BaseFieldProps & {
 
 /** Exactly one of `items` (flat) or `groups` (labelled buckets) is provided. */
 type ComboboxFieldProps<TItem> = ComboboxFieldBase<TItem> &
-	({ items: TItem[]; groups?: never } | { groups: Array<ComboboxFieldGroup<TItem>>; items?: never });
+	(
+		{ items: TItem[]; groups?: never } | { groups: Array<ComboboxFieldGroup<TItem>>; items?: never }
+	);
 
 /**
  * A searchable single-select field over arbitrary items, flat or grouped. Stores the

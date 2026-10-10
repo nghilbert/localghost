@@ -80,9 +80,7 @@ function ModelOverviewCard({ row }: { row: ModelRow }) {
 	return (
 		<Card.Root size="sm">
 			<Card.Header>
-				<Card.Title>
-					{catalog && catalog.displayName !== "" ? catalog.displayName : id}
-				</Card.Title>
+				<Card.Title>{catalog && catalog.displayName !== "" ? catalog.displayName : id}</Card.Title>
 				<Card.Description className="truncate font-mono text-xs">{id}</Card.Description>
 			</Card.Header>
 			<Card.Content className="space-y-3">
@@ -90,7 +88,7 @@ function ModelOverviewCard({ row }: { row: ModelRow }) {
 					<dl className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3">
 						{facts.map((fact) => (
 							<div key={fact.label} className="min-w-0">
-								<dt className="text-[11px] font-medium uppercase tracking-wide text-muted-fg">
+								<dt className="text-[11px] font-medium tracking-wide text-muted-fg uppercase">
 									{fact.label}
 								</dt>
 								<dd className="truncate text-sm font-medium">{fact.value}</dd>
@@ -158,7 +156,14 @@ function InstalledModelCard({
 					<SlidersHorizontalIcon />
 					Model settings
 				</ButtonLink>
-				<Button type="button" color="danger" size="sm" onClick={() => { onDelete(modelId); }}>
+				<Button
+					type="button"
+					color="danger"
+					size="sm"
+					onClick={() => {
+						onDelete(modelId);
+					}}
+				>
 					<Trash2Icon />
 					Delete model
 				</Button>

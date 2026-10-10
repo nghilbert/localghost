@@ -34,7 +34,9 @@ export function QueuedMessageItem({ item, onCancel }: QueuedMessageItemProps) {
 						icon={<XIcon />}
 						ariaLabel="Cancel queued message"
 						tooltip="Cancel"
-						onClick={() => { onCancel(item.id); }}
+						onClick={() => {
+							onCancel(item.id);
+						}}
 					/>
 				</MessageFooter>
 			</MessageContent>

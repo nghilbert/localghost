@@ -5,7 +5,12 @@ describe("parseNvidiaSmi", () => {
 	it("maps each CSV line to a GPU with MB values", () => {
 		const out = "NVIDIA GeForce RTX 4090, 24564, 23000\nNVIDIA RTX A6000, 49140, 49000\n";
 		expect(parseNvidiaSmi(out)).toEqual([
-			{ name: "NVIDIA GeForce RTX 4090", vendor: "nvidia", totalVramMb: 24_564, freeVramMb: 23_000 },
+			{
+				name: "NVIDIA GeForce RTX 4090",
+				vendor: "nvidia",
+				totalVramMb: 24_564,
+				freeVramMb: 23_000,
+			},
 			{ name: "NVIDIA RTX A6000", vendor: "nvidia", totalVramMb: 49_140, freeVramMb: 49_000 },
 		]);
 	});

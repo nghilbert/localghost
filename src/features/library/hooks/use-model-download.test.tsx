@@ -98,7 +98,9 @@ describe("useModelDownload", () => {
 		});
 		const rendered = await renderHook(() => useModelDownload(), { queryClient });
 
-		await rendered.act(() => { rendered.result.current.pull("org/model:Q4_K_M"); });
+		await rendered.act(() => {
+			rendered.result.current.pull("org/model:Q4_K_M");
+		});
 
 		expect(queryClient.getQueryData<Record<string, PullProgress>>(progressKey)).toEqual({});
 		await expect

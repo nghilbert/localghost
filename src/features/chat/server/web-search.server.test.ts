@@ -1,6 +1,6 @@
-import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 import { webSearchArgsSchema } from "#/features/chat/chat.schemas";
-import { type SearxngResponse, webSearch } from "#/features/chat/server/web-search.server";
+import { webSearch, type SearxngResponse } from "#/features/chat/server/web-search.server";
 
 type FetchMock = Mock<typeof fetch>;
 
@@ -23,7 +23,7 @@ describe("webSearchArgsSchema", () => {
 				category: "science",
 			}),
 		).toEqual({ query: "llama 3.1 instruct", time_range: undefined });
-		expect(webSearchArgsSchema.safeParse({ query: ' '.repeat(3) }).success).toBe(false);
+		expect(webSearchArgsSchema.safeParse({ query: " ".repeat(3) }).success).toBe(false);
 	});
 });
 
@@ -151,7 +151,9 @@ describe("webSearch", () => {
 	});
 
 	it("rejects invalid JSON without retrying", async () => {
-		const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(new Response("<html>not json</html>"));
+		const fetchMock = vi
+			.fn<typeof fetch>()
+			.mockResolvedValue(new Response("<html>not json</html>"));
 		vi.stubGlobal("fetch", fetchMock);
 
 		await expect(webSearch({ query: "test", timeRange: "year" })).rejects.toThrow(SyntaxError);

@@ -10,15 +10,15 @@ import {
 import { buildModelFacets } from "#/features/library/lib/facets";
 import {
 	buildModelRows,
-	type ModelRow,
 	matchesModelFacets,
+	type ModelRow,
 } from "#/features/library/lib/model-rows";
 import { DEFAULT_SORT, type ModelSort } from "#/features/library/lib/model-sort";
 import { libraryQueries } from "#/features/library/library.queries";
 import {
+	DEFAULT_HIDDEN_FITS,
 	type CatalogCapability,
 	type CatalogQuery,
-	DEFAULT_HIDDEN_FITS,
 	type HideableFit,
 	type ModelStatus,
 } from "#/features/library/library.schemas";

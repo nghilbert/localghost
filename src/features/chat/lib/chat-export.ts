@@ -4,7 +4,7 @@ import type { ModelMessage } from "@tanstack/ai";
 type ExportableConversation = {
 	title: string | null;
 	messages: ModelMessage[];
-}
+};
 
 const ROLE_HEADINGS: Record<Exclude<ModelMessage["role"], "tool">, string> = {
 	user: "User",

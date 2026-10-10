@@ -370,7 +370,9 @@ describe("ToggleGroupField", () => {
 	function Harness({ onSubmit }: { onSubmit: (theme: string) => void }) {
 		const form = useAppForm({
 			defaultValues: { theme: "system" },
-			onSubmit: ({ value }) => { onSubmit(value.theme); },
+			onSubmit: ({ value }) => {
+				onSubmit(value.theme);
+			},
 		});
 		return (
 			<form.AppForm>

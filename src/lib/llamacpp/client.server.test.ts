@@ -2,12 +2,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	deleteModel,
 	downloadModel,
-	type LlamaError,
-	type LlamaModelList,
-	LOCAL_LLAMACPP_API_KEY,
 	listModels,
+	LOCAL_LLAMACPP_API_KEY,
 	openModelEventStream,
 	unloadModel,
+	type LlamaError,
+	type LlamaModelList,
 } from "#/lib/llamacpp/client.server";
 import { log } from "#/lib/log.server";
 

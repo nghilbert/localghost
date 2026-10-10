@@ -4,8 +4,8 @@ import { LibraryIcon, RefreshCwIcon, SparklesIcon, TriangleAlertIcon } from "luc
 import { Alert } from "#/components/ui/alert";
 import { Button } from "#/components/ui/button";
 import { ButtonLink } from "#/components/ui/button-link";
-import { ActivityMarker } from "#/features/chat/components/ActivityMarker";
 import { ACTIVITY_STATUS, type ActivityStatus } from "#/features/chat/components/activity-status";
+import { ActivityMarker } from "#/features/chat/components/ActivityMarker";
 import { useElapsedSeconds } from "#/features/chat/hooks/use-elapsed-seconds";
 import { describeChatError } from "#/features/chat/lib/chat-errors";
 

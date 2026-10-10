@@ -33,7 +33,9 @@ export function DownloadRow({ model, title, pullState, size, onStop }: DownloadR
 								size="sm"
 								iconOnly
 								className="text-muted-fg hover:text-danger"
-								onClick={() => { onStop(model); }}
+								onClick={() => {
+									onStop(model);
+								}}
 								aria-label={`Stop downloading ${model}`}
 							/>
 						}

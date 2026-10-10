@@ -13,7 +13,7 @@ export const surfaceVariants = tv({
 			"origin-(--transform-origin) rounded-md outline-none",
 			"bg-surface text-surface-fg ring-1 ring-line",
 			"transition-[opacity,transform] duration-100",
-			"data-starting-style:opacity-0 data-ending-style:opacity-0",
+			"data-ending-style:opacity-0 data-starting-style:opacity-0",
 			"side-none:transition-none",
 		],
 	},

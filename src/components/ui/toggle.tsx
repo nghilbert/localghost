@@ -1,6 +1,6 @@
 import { Toggle as BaseToggle } from "@base-ui/react/toggle";
 import { tv } from "tailwind-variants";
-import { type ActionVariants, actionVariants } from "#/components/ui/variants/action";
+import { actionVariants, type ActionVariants } from "#/components/ui/variants/action";
 import { mergeClassName } from "#/components/ui/variants/class-name";
 
 /** The button look plus a pressed state. */

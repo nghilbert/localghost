@@ -38,7 +38,9 @@ describe("readUrl", () => {
 	});
 
 	it("extracts the main content as text", async () => {
-		fetchMock.mockResolvedValue(mockResponse({ ok: true, text: () => Promise.resolve(ARTICLE_HTML) }));
+		fetchMock.mockResolvedValue(
+			mockResponse({ ok: true, text: () => Promise.resolve(ARTICLE_HTML) }),
+		);
 
 		const result = await readUrl("https://example.com/article");
 		expect(result).toContain("Test Article");

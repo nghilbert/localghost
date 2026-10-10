@@ -1,5 +1,5 @@
 import type { StatusTone } from "#/components/layout/StatusBadge";
-import { type HideableFit, hideableFitSchema } from "#/features/library/library.schemas";
+import { hideableFitSchema, type HideableFit } from "#/features/library/library.schemas";
 import type { CatalogModel, GpuInfo, HardwareInfo } from "#/features/library/library.types";
 import { GIB, MIB, roundToTenth } from "#/lib/format";
 
