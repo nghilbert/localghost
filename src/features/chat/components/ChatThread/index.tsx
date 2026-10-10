@@ -61,6 +61,7 @@ export function ChatThread({ conversation }: ChatThreadProps) {
 		runId,
 		status,
 		isLoading,
+		isHydrating,
 		error,
 		reload,
 		setMessages,
@@ -141,7 +142,7 @@ export function ChatThread({ conversation }: ChatThreadProps) {
 	// A reopened chat that ends on a user message does not answer on its own.
 	const responseRequestedRef = useRef(false);
 	useEffect(() => {
-		if (autoRespond !== true || responseRequestedRef.current) return;
+		if (autoRespond !== true || responseRequestedRef.current || isHydrating) return;
 		if (status !== "ready" || !awaitingAssistantResponse(messages)) return;
 		responseRequestedRef.current = true;
 		void reload().then(resetTools);
@@ -149,7 +150,10 @@ export function ChatThread({ conversation }: ChatThreadProps) {
 
 	// Instead it offers a button to generate the reply.
 	const canGenerate =
-		autoRespond === false && status === "ready" && awaitingAssistantResponse(messages);
+		autoRespond === false &&
+		!isHydrating &&
+		status === "ready" &&
+		awaitingAssistantResponse(messages);
 
 	const turns = mergeAssistantTurns(messages);
 
@@ -158,7 +162,7 @@ export function ChatThread({ conversation }: ChatThreadProps) {
 			<MessageScrollerProvider autoScroll defaultScrollPosition="last-anchor">
 				<MessageScroller className="flex-1">
 					<MessageScrollerViewport aria-label="Conversation" className="p-4">
-						<MessageScrollerContent aria-busy={isStreaming}>
+						<MessageScrollerContent aria-busy={isStreaming || isHydrating}>
 							{turns.map((msg, idx) => {
 								const isLast = idx === turns.length - 1;
 								const isLastAssistant = isLast && msg.role === "assistant";
@@ -195,6 +199,7 @@ export function ChatThread({ conversation }: ChatThreadProps) {
 							<MessageScrollerItem>
 								<ChatStatus
 									status={status}
+									isHydrating={isHydrating}
 									messages={messages}
 									pendingStatus={pendingStatus}
 									error={error?.message ?? conversation.lastRunError ?? undefined}

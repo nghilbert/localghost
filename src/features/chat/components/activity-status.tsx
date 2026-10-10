@@ -2,6 +2,7 @@ import {
 	ClipboardListIcon,
 	FilesIcon,
 	FileTextIcon,
+	HistoryIcon,
 	MemoryStickIcon,
 	MessageSquareTextIcon,
 	ServerOffIcon,
@@ -15,6 +16,7 @@ export type ActivityStatus = { label: string; icon: ComponentType };
 
 /** Every live row shown while the model works between steps. A tool call labels its own row. */
 export const ACTIVITY_STATUS = {
+	loadingConversation: { label: "Loading the conversation", icon: HistoryIcon },
 	loadingModel: { label: "Loading the model into memory", icon: MemoryStickIcon },
 	serverUnreachable: {
 		label: "Waiting for the model server, which isn't responding",

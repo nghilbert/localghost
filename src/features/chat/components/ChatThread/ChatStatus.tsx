@@ -11,6 +11,8 @@ import { describeChatError } from "#/features/chat/lib/chat-errors";
 
 type ChatStatusProps = {
 	status: ChatClientState;
+	/** Set while the transcript is restored from the server, before it can be shown. */
+	isHydrating: boolean;
 	messages: UIMessage[];
 	/** Replaces the waiting row's status, e.g. while the model loads. */
 	pendingStatus?: ActivityStatus;
@@ -54,9 +56,10 @@ function FailureAlert({ message, onRetry }: FailureAlertProps) {
 	);
 }
 
-/** The live row before the reply appears, or an error with a retry. */
+/** The live row while the chat loads or before the reply appears, or an error with a retry. */
 export function ChatStatus({
 	status,
+	isHydrating,
 	messages,
 	pendingStatus,
 	error,
@@ -66,6 +69,11 @@ export function ChatStatus({
 	const awaiting =
 		(status === "submitted" || status === "streaming") && messages.at(-1)?.role !== "assistant";
 	const seconds = useElapsedSeconds(awaiting);
+
+	if (isHydrating) {
+		const { label, icon: Icon } = ACTIVITY_STATUS.loadingConversation;
+		return <ActivityMarker label={label} icon={<Icon />} />;
+	}
 
 	if (awaiting) {
 		const { label, icon: Icon } = pendingStatus ?? ACTIVITY_STATUS.readingMessage;
