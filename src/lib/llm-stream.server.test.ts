@@ -1,6 +1,7 @@
 import { memoryStream, type RunStore, type StreamChunk } from "@tanstack/ai";
 import { EventType } from "@tanstack/ai/client";
 import { describe, expect, it, vi } from "vitest";
+import { readRunParams, resumeRunResponse, streamRunResponse } from "#/lib/llm-stream.server";
 
 /** Writes a finished run's log, as a completed stream leaves it for a reconnect. */
 async function finishedLog({ runId, chunks }: { runId: string; chunks: StreamChunk[] }) {
@@ -8,8 +9,6 @@ async function finishedLog({ runId, chunks }: { runId: string; chunks: StreamChu
 	await log.append(chunks);
 	await log.close();
 }
-
-import { readRunParams, resumeRunResponse, streamRunResponse } from "#/lib/llm-stream.server";
 
 function postJson(body: string) {
 	return new Request("http://localhost/api/chat/stream", { method: "POST", body });
