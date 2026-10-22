@@ -5,7 +5,7 @@ import {
 	type MarkdownComponentProps,
 	type MarkdownComponents,
 } from "@tanstack/markdown/react";
-import { CopyIcon } from "lucide-react";
+import { CopyIcon, ImageIcon } from "lucide-react";
 import { createElement, useRef, useState, type JSX } from "react";
 import { cn } from "tailwind-variants";
 import { Button } from "#/components/ui/button";
@@ -51,6 +51,35 @@ function ChatLink({ href, children, ...props }: MarkdownComponentProps<"a">) {
 			</BaseButton>
 			<LinkSafetyDialog url={href} open={open} onOpenChange={setOpen} />
 		</>
+	);
+}
+
+/**
+ * Shows an image from model output only once the user asks. Loading it on render would send a
+ * request to any URL the model writes, including one that carries chat contents in its query.
+ */
+function ChatImage({ src, alt, className, ...props }: MarkdownComponentProps<"img">) {
+	const [shown, setShown] = useState(false);
+
+	if (shown) {
+		return (
+			<img {...props} src={src} alt={alt} className={cn("max-w-full rounded-md", className)} />
+		);
+	}
+	const host = typeof src === "string" && URL.canParse(src) ? new URL(src).host : "";
+	return (
+		<Button
+			size="sm"
+			color="neutral"
+			variant="outlined"
+			onClick={() => {
+				setShown(true);
+			}}
+		>
+			<ImageIcon />
+			{alt ? `Show "${alt}"` : "Show image"}
+			{host && ` from ${host}`}
+		</Button>
 	);
 }
 
@@ -133,7 +162,7 @@ const components = {
 		className: "border border-line bg-muted px-3 py-1.5 text-left font-semibold",
 	}),
 	td: styled({ tag: "td", className: "border border-line px-3 py-1.5" }),
-	img: styled({ tag: "img", className: "max-w-full rounded-md" }),
+	img: ChatImage,
 } satisfies MarkdownComponents;
 
 interface ChatMarkdownProps {

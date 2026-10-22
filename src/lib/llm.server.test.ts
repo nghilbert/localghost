@@ -1,3 +1,4 @@
+import { streamToText } from "@tanstack/ai";
 import { http, HttpResponse } from "msw";
 import { describe, expect } from "vitest";
 import { LOCAL_LLAMACPP_API_KEY } from "#/lib/llamacpp/client.server";
@@ -6,6 +7,7 @@ import {
 	buildModelsRequest,
 	chatBaseUrl,
 	modelSupportsTools,
+	streamLLMEvents,
 	type ModelsResponse,
 } from "#/lib/llm.server";
 import { it, network } from "#/test/network.server";
@@ -189,6 +191,39 @@ describe("llm.server", () => {
 					model: "meta/tool-model",
 				}),
 			).resolves.toBe(true);
+		});
+	});
+
+	describe("streamLLMEvents", () => {
+		it("streams from a keyless OpenAI-compatible endpoint and sends it no Authorization header", async () => {
+			const authorization: Array<string | null> = [];
+			const chunk = {
+				id: "chunk",
+				object: "chat.completion.chunk",
+				created: 0,
+				model: "local-model",
+				choices: [{ index: 0, delta: { content: "Hello" }, finish_reason: "stop" }],
+			};
+			network.use(
+				http.post("https://local.test/v1/chat/completions", ({ request }) => {
+					authorization.push(request.headers.get("authorization"));
+					return new HttpResponse(`data: ${JSON.stringify(chunk)}\n\ndata: [DONE]\n\n`, {
+						headers: { "Content-Type": "text/event-stream" },
+					});
+				}),
+			);
+
+			const { text } = await streamToText(
+				streamLLMEvents({
+					url: "https://local.test",
+					provider: "openai",
+					model: "local-model",
+					messages: [{ role: "user", content: "Hi" }],
+				}),
+			);
+
+			expect(text).toBe("Hello");
+			expect(authorization).toEqual([null]);
 		});
 	});
 

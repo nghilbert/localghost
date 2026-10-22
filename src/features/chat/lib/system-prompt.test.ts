@@ -1,22 +1,39 @@
-import { describe, expect, it } from "vitest";
-import { buildChatSystemPrompt, currentDateTimeLine } from "./system-prompt";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { buildChatSystemPrompt, currentDateLine } from "./system-prompt";
 
-describe("currentDateTimeLine", () => {
-	it("formats in the given IANA timezone with the zone name", () => {
-		const line = currentDateTimeLine("Asia/Tokyo");
-		expect(line).toMatch(/^Current date and time: /);
-		expect(line).toContain("GMT+9");
+afterEach(() => {
+	vi.useRealTimers();
+});
+
+describe("currentDateLine", () => {
+	it("gives the date in the given IANA timezone", () => {
+		vi.useFakeTimers({ now: new Date("2026-10-14T20:00:00Z") });
+
+		expect(currentDateLine("Asia/Tokyo")).toContain("Thursday, October 15, 2026");
+		expect(currentDateLine("America/New_York")).toContain("Wednesday, October 14, 2026");
 	});
 
 	it("falls back to the server timezone on an invalid zone", () => {
-		expect(currentDateTimeLine("Not/AZone")).toMatch(/^Current date and time: /);
+		vi.useFakeTimers({ now: new Date("2026-10-14T12:00:00Z") });
+
+		expect(currentDateLine("Not/AZone")).toContain("2026");
 	});
 });
 
 describe("buildChatSystemPrompt", () => {
 	it("always starts with the date line", () => {
 		const prompt = buildChatSystemPrompt({ enabledTools: [] });
-		expect(prompt).toMatch(/^Current date and time: /);
+		expect(prompt).toMatch(/^Today's date: /);
+	});
+
+	it("stays the same through the day, so the provider's prompt cache keeps matching", () => {
+		const prompt = () => buildChatSystemPrompt({ enabledTools: [], timeZone: "UTC" });
+		vi.useFakeTimers({ now: new Date("2026-10-14T09:00:00Z") });
+		const morning = prompt();
+
+		vi.setSystemTime(new Date("2026-10-14T10:00:01Z"));
+
+		expect(prompt()).toBe(morning);
 	});
 
 	it("appends the trimmed user prompt", () => {

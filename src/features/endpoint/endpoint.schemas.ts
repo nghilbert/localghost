@@ -14,7 +14,9 @@ export const createEndpointSchema = z.object({
 });
 
 /** The endpoint fields to change. */
-export const updateEndpointSchema = createEndpointSchema.partial();
+export const updateEndpointSchema = createEndpointSchema
+	.extend({ provider: llmProviderSchema })
+	.partial();
 
 /** Identifies an endpoint. */
 export const endpointIdInput = z.object({ id: uuid });

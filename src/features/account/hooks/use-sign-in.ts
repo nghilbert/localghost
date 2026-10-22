@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import type { z } from "zod";
 import type { signInSchema } from "#/features/account/account.schemas";
@@ -7,6 +7,7 @@ import { authClient } from "#/lib/auth-client";
 /** Signs in and opens the app. The error message is shown inline by the form, not as a toast. */
 export function useSignIn() {
 	const navigate = useNavigate();
+	const queryClient = useQueryClient();
 
 	return useMutation({
 		mutationFn: async (credentials: z.infer<typeof signInSchema>) => {
@@ -18,6 +19,10 @@ export function useSignIn() {
 				error.status === 403 && error.message ? error.message : "Invalid credentials.",
 			);
 		},
-		onSuccess: () => navigate({ to: "/" }),
+		onSuccess: () => {
+			// The cache holds the previous account's data.
+			queryClient.clear();
+			return navigate({ to: "/" });
+		},
 	});
 }

@@ -109,12 +109,23 @@ function openaiAdapter({
 	baseUrl: string;
 	defaultHeaders?: Record<string, string>;
 }): AnyTextAdapter {
+	const credentials = openaiCredentials(apiKey);
 	return openaiCompatibleText(model, {
 		baseURL: baseUrl,
-		apiKey,
 		api: "chat-completions",
-		...(defaultHeaders ? { defaultHeaders } : {}),
+		...credentials,
+		defaultHeaders: { ...defaultHeaders, ...credentials.defaultHeaders },
 	});
+}
+
+/**
+ * OpenAI SDK client options for an endpoint key that may be blank. The SDK refuses to build a
+ * client without a key, so a keyless endpoint gets a placeholder and its `Authorization` header
+ * is omitted.
+ */
+export function openaiCredentials(apiKey: string | undefined) {
+	if (apiKey) return { apiKey };
+	return { apiKey: "unused", defaultHeaders: { Authorization: null } };
 }
 
 /** Strips a trailing `/v1`, so callers that append `/v1/...` don't double it. */

@@ -1,4 +1,6 @@
-import { describe, expect, it, vi } from "vitest";
+import { http, HttpResponse } from "msw";
+import { describe, expect, vi } from "vitest";
+import { it, worker } from "#/test/msw";
 import { render } from "#/test/utils";
 import { ChatMarkdown } from ".";
 
@@ -52,6 +54,27 @@ describe("ChatMarkdown", () => {
 		await expect.element(screen.getByRole("button", { name: "Copy code" })).toBeVisible();
 		const highlighted = screen.container.querySelectorAll<HTMLElement>(".th-line--highlighted");
 		expect([...highlighted].map((line) => line.dataset.line)).toEqual(["2"]);
+	});
+
+	it("loads an image from model output only after the user asks", async () => {
+		const requested: string[] = [];
+		worker.use(
+			http.get("https://images.test/cat.png", ({ request }) => {
+				requested.push(request.url);
+				return new HttpResponse(null, { status: 204 });
+			}),
+		);
+		const screen = await render(
+			<ChatMarkdown>{"![A cat](https://images.test/cat.png)"}</ChatMarkdown>,
+		);
+		const show = screen.getByRole("button", { name: 'Show "A cat" from images.test' });
+
+		await expect.element(show).toBeVisible();
+		expect(screen.getByRole("img").elements()).toHaveLength(0);
+
+		await show.click();
+		await expect.element(screen.getByRole("img", { name: "A cat" })).toBeInTheDocument();
+		await expect.poll(() => requested).toEqual(["https://images.test/cat.png"]);
 	});
 
 	it("drops a trailing empty list item while streaming", async () => {

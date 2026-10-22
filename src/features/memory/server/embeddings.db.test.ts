@@ -75,6 +75,22 @@ describe("embed", () => {
 		await expect(embed({ text: "hello", ownerId: user.id })).resolves.toEqual([0.3, 0.4]);
 	});
 
+	it("embeds with a keyless endpoint and sends it no Authorization header", async () => {
+		const user = await createUser();
+		await createEndpoint({ ownerId: user.id, url: "https://local.test", provider: "openai" });
+		const authorization: Array<string | null> = [];
+		network.use(
+			// Returns nothing, so the request falls through to the next handler.
+			http.post("https://local.test/v1/embeddings", ({ request }) => {
+				authorization.push(request.headers.get("authorization"));
+			}),
+			embeddingsApi({ base: "https://local.test/v1", vectorFor: () => [0.5, 0.6] }),
+		);
+
+		await expect(embed({ text: "hello", ownerId: user.id })).resolves.toEqual([0.5, 0.6]);
+		expect(authorization).toEqual([null]);
+	});
+
 	it("returns null when no endpoint can embed", async () => {
 		const user = await createUser();
 		await createEndpoint({ ownerId: user.id, url: "https://claude.test", provider: "anthropic" });

@@ -241,6 +241,28 @@ describe("ChatMessage", () => {
 			await expect.element(screen.getByText("Ran do_a_thing")).toBeInTheDocument();
 		});
 
+		it("labels a memory action the app doesn't define as a memory update", async () => {
+			// Untyped, since the model can send an action outside the typed set.
+			const message: UIMessage = {
+				id: "a1",
+				role: "assistant",
+				parts: [
+					{
+						type: "tool-call",
+						id: "c1",
+						name: "manage_memory",
+						arguments: '{"action":"forget"}',
+						input: { action: "forget" },
+						state: "complete",
+					},
+				],
+			};
+
+			const screen = await render(<ChatMessage message={message} />);
+
+			await expect.element(screen.getByText("Updated memory")).toBeInTheDocument();
+		});
+
 		it("shows a running indicator for an in-flight tool call while streaming", async () => {
 			const message: ChatUIMessage = {
 				id: "a1",

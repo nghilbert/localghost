@@ -66,10 +66,23 @@ interface ToolLabels {
 }
 
 /** A memory action's phrases, which its labels are built from. */
-const MEMORY_ACTIONS = {
-	add: { doing: "Saving a memory", did: "Saved a memory", verb: "save a memory" },
-	search: { doing: "Searching memories", did: "Recalled memories", verb: "search memories" },
-	list: { doing: "Listing memories", did: "Listed memories", verb: "list memories" },
+interface MemoryPhrases {
+	doing: string;
+	did: string;
+	verb: string;
+}
+
+/** Keyed by any string, since the model can send an action outside the typed set. */
+const MEMORY_ACTIONS = new Map<string, MemoryPhrases>([
+	["add", { doing: "Saving a memory", did: "Saved a memory", verb: "save a memory" }],
+	["search", { doing: "Searching memories", did: "Recalled memories", verb: "search memories" }],
+	["list", { doing: "Listing memories", did: "Listed memories", verb: "list memories" }],
+]);
+
+const MEMORY_UPDATE: MemoryPhrases = {
+	doing: "Updating memory",
+	did: "Updated memory",
+	verb: "update memory",
 };
 
 /** Labels for a call, naming what it works on, such as the search query or the page. */
@@ -101,9 +114,7 @@ export function toolLabels(call: ChatToolCall, output: string): ToolLabels {
 		}
 		case "manage_memory": {
 			const action = call.input?.action;
-			const phrases = action
-				? MEMORY_ACTIONS[action]
-				: { doing: "Updating memory", did: "Updated memory", verb: "update memory" };
+			const phrases = (action && MEMORY_ACTIONS.get(action)) ?? MEMORY_UPDATE;
 			return {
 				icon: <BrainIcon />,
 				choosing: "Preparing to use memory",

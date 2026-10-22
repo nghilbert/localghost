@@ -180,7 +180,7 @@ describe("postChatStream runs", () => {
 		await postRun(chat);
 
 		const request = requestAt(0);
-		expect(systemPromptText(request)).toContain("Current date and time:");
+		expect(systemPromptText(request)).toContain("Today's date:");
 		expect(systemPromptText(request)).toContain("Answer like a pirate.");
 		expect(request.modelOptions).toMatchObject({ temperature: 0.3 });
 		expect(toolNames(request).toSorted((a, b) => a.localeCompare(b))).toEqual([
