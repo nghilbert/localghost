@@ -76,7 +76,7 @@ function mapInterrupt(row: ChatInterrupt): InterruptRecord {
 		requestedAt: Number(row.requestedAt),
 		payload: row.payload,
 		...(row.resolvedAt == null ? {} : { resolvedAt: Number(row.resolvedAt) }),
-		...(row.response !== null && row.response !== undefined ? { response: row.response } : {}),
+		...(row.response == null ? {} : { response: row.response }),
 	};
 }
 

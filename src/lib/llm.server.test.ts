@@ -1,4 +1,5 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { http, HttpResponse } from "msw";
+import { describe, expect } from "vitest";
 import { LOCAL_LLAMACPP_API_KEY } from "#/lib/llamacpp/client.server";
 import { asLLMProvider, detectProvider } from "#/lib/llm-provider";
 import {
@@ -7,6 +8,7 @@ import {
 	modelSupportsTools,
 	type ModelsResponse,
 } from "#/lib/llm.server";
+import { it, network } from "#/test/network.server";
 
 describe("llm.server", () => {
 	describe("asLLMProvider", () => {
@@ -139,24 +141,16 @@ describe("llm.server", () => {
 	});
 
 	describe("modelSupportsTools", () => {
-		afterEach(() => {
-			vi.unstubAllGlobals();
-		});
+		const OPENROUTER_MODELS = "https://openrouter.ai/api/v1/models";
 
-		function stubModels(data: NonNullable<ModelsResponse["data"]>) {
-			// A fresh Response per call: a body is single-read.
-			vi.stubGlobal(
-				"fetch",
-				vi
-					.fn()
-					.mockImplementation(() =>
-						Promise.resolve(Response.json({ data } satisfies ModelsResponse)),
-					),
+		function listModels(data: NonNullable<ModelsResponse["data"]>) {
+			network.use(
+				http.get(OPENROUTER_MODELS, () => HttpResponse.json({ data } satisfies ModelsResponse)),
 			);
 		}
 
 		it("reads openrouter tool support from supported_parameters", async () => {
-			stubModels([
+			listModels([
 				{ id: "meta/tool-model", supported_parameters: ["tools", "temperature"] },
 				{ id: "meta/plain-model", supported_parameters: ["temperature"] },
 			]);
@@ -170,7 +164,7 @@ describe("llm.server", () => {
 		});
 
 		it("assumes capable when the model is missing from the list", async () => {
-			stubModels([]);
+			listModels([]);
 			await expect(
 				modelSupportsTools({
 					url: "https://openrouter.ai/api",
@@ -180,17 +174,14 @@ describe("llm.server", () => {
 			).resolves.toBe(true);
 		});
 
-		it("assumes capable without fetching for providers with no capability metadata", async () => {
-			const fetchSpy = vi.fn();
-			vi.stubGlobal("fetch", fetchSpy);
+		it("assumes capable for providers with no capability metadata", async () => {
 			await expect(
 				modelSupportsTools({ url: "https://api.openai.com", provider: "openai", model: "gpt-x" }),
 			).resolves.toBe(true);
-			expect(fetchSpy).not.toHaveBeenCalled();
 		});
 
 		it("assumes capable when the model-list fetch fails", async () => {
-			vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("down")));
+			network.use(http.get(OPENROUTER_MODELS, () => HttpResponse.error()));
 			await expect(
 				modelSupportsTools({
 					url: "https://openrouter.ai/api",

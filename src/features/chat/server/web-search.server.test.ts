@@ -1,17 +1,23 @@
-import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
+import { delay, http, HttpResponse } from "msw";
+import { beforeEach, describe, expect, vi } from "vitest";
 import { webSearchArgsSchema } from "#/features/chat/chat.schemas";
 import { webSearch, type SearxngResponse } from "#/features/chat/server/web-search.server";
+import { it, network } from "#/test/network.server";
 
-type FetchMock = Mock<typeof fetch>;
+const SEARXNG_URL = "http://searxng:8080";
 
-function searxng(body: SearxngResponse): Response {
-	return Response.json(body);
-}
-
-function calledUrl({ fetchMock, index }: { fetchMock: FetchMock; index: number }): URL {
-	const input = fetchMock.mock.calls[index]?.[0];
-	if (typeof input !== "string") throw new TypeError(`Missing fetch call ${index}`);
-	return new URL(input);
+/** Answers each SearXNG search with the next body in turn, and returns the URLs searched. */
+function searxng(...bodies: Array<SearxngResponse | Response>): URL[] {
+	const searched: URL[] = [];
+	network.use(
+		http.get(`${SEARXNG_URL}/search`, ({ request }) => {
+			searched.push(new URL(request.url));
+			const body = bodies[searched.length - 1];
+			if (!body) throw new Error(`SearXNG was searched ${searched.length} times`);
+			return body instanceof Response ? body : HttpResponse.json(body);
+		}),
+	);
+	return searched;
 }
 
 describe("webSearchArgsSchema", () => {
@@ -29,16 +35,11 @@ describe("webSearchArgsSchema", () => {
 
 describe("webSearch", () => {
 	beforeEach(() => {
-		process.env.SEARXNG_URL = "http://searxng:8080";
-	});
-
-	afterEach(() => {
-		vi.restoreAllMocks();
-		vi.unstubAllGlobals();
+		vi.stubEnv("SEARXNG_URL", SEARXNG_URL);
 	});
 
 	it("returns guidance when SEARXNG_URL is not configured", async () => {
-		delete process.env.SEARXNG_URL;
+		vi.stubEnv("SEARXNG_URL", undefined);
 
 		const result = await webSearch({ query: "anything" });
 
@@ -47,23 +48,20 @@ describe("webSearch", () => {
 	});
 
 	it("returns exact answers and limited results without a fallback note", async () => {
-		const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
-			searxng({
-				results: [
-					{ title: "Result 1", url: "https://example.com/one", content: "First" },
-					{ title: "Result 2", url: "https://example.com/two", content: "Second" },
-				],
-				answers: ["First answer.", { answer: "Second answer." }],
-			}),
-		);
-		vi.stubGlobal("fetch", fetchMock);
+		const searched = searxng({
+			results: [
+				{ title: "Result 1", url: "https://example.com/one", content: "First" },
+				{ title: "Result 2", url: "https://example.com/two", content: "Second" },
+			],
+			answers: ["First answer.", { answer: "Second answer." }],
+		});
 
 		const result = await webSearch({ query: "test query", limit: 1 });
 
-		expect(fetchMock).toHaveBeenCalledTimes(1);
-		const url = calledUrl({ fetchMock, index: 0 });
-		expect(url.searchParams.get("categories")).toBe("general");
-		expect(url.searchParams.has("time_range")).toBe(false);
+		expect(searched).toHaveLength(1);
+		expect(searched[0]?.searchParams.get("q")).toBe("test query");
+		expect(searched[0]?.searchParams.get("categories")).toBe("general");
+		expect(searched[0]?.searchParams.has("time_range")).toBe(false);
 		expect(result).toContain("Answer: First answer. Second answer.");
 		expect(result).toContain("Result 1");
 		expect(result).not.toContain("Result 2");
@@ -71,58 +69,43 @@ describe("webSearch", () => {
 	});
 
 	it("retries an empty ranged search once without the time filter", async () => {
-		const timeoutSpy = vi.spyOn(AbortSignal, "timeout");
-		const fetchMock = vi
-			.fn<typeof fetch>()
-			.mockResolvedValueOnce(searxng({ results: [] }))
-			.mockResolvedValueOnce(
-				searxng({
-					results: [
-						{
-							title: "Broader result",
-							url: "https://example.com/broader",
-							content: "Found without a time filter.",
-						},
-					],
-				}),
-			);
-		vi.stubGlobal("fetch", fetchMock);
+		const searched = searxng(
+			{ results: [] },
+			{
+				results: [
+					{
+						title: "Broader result",
+						url: "https://example.com/broader",
+						content: "Found without a time filter.",
+					},
+				],
+			},
+		);
 
 		const result = await webSearch({ query: "recent comparison", timeRange: "year" });
 
-		expect(fetchMock).toHaveBeenCalledTimes(2);
-		expect(timeoutSpy).toHaveBeenCalledExactlyOnceWith(15_000);
-		const exactUrl = calledUrl({ fetchMock, index: 0 });
-		const fallbackUrl = calledUrl({ fetchMock, index: 1 });
-		expect(exactUrl.searchParams.get("categories")).toBe("general");
-		expect(exactUrl.searchParams.get("time_range")).toBe("year");
-		expect(fallbackUrl.searchParams.get("categories")).toBe("general");
-		expect(fallbackUrl.searchParams.has("time_range")).toBe(false);
-		expect(fetchMock.mock.calls[0]?.[1]?.signal).toBe(fetchMock.mock.calls[1]?.[1]?.signal);
+		expect(searched.map((url) => url.searchParams.get("time_range"))).toEqual(["year", null]);
 		expect(result).toContain('No results matched time range "year"');
 		expect(result).toContain("Showing results without a time limit");
 		expect(result).toContain("Broader result");
 	});
 
 	it("returns actionable guidance when both ranged attempts are empty", async () => {
-		// A fresh Response per call, since a body can be read only once.
-		const fetchMock = vi.fn<typeof fetch>(() => Promise.resolve(searxng({ results: [] })));
-		vi.stubGlobal("fetch", fetchMock);
+		const searched = searxng({ results: [] }, { results: [] });
 
 		const result = await webSearch({ query: "nothing", timeRange: "month" });
 
-		expect(fetchMock).toHaveBeenCalledTimes(2);
+		expect(searched).toHaveLength(2);
 		expect(result).toContain('retrying without the "month" time filter');
 		expect(result).toContain("Try a shorter or differently worded query");
 	});
 
 	it("does not retry an empty search without a time filter", async () => {
-		const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(searxng({ results: [] }));
-		vi.stubGlobal("fetch", fetchMock);
+		const searched = searxng({ results: [] });
 
 		const result = await webSearch({ query: "xyzzy1234nonexistent" });
 
-		expect(fetchMock).toHaveBeenCalledTimes(1);
+		expect(searched).toHaveLength(1);
 		expect(result).toBe("No results found. Try a shorter or differently worded query.");
 	});
 
@@ -130,78 +113,66 @@ describe("webSearch", () => {
 		["invalid envelope", { results: "not-an-array" }],
 		["invalid result", { results: [{ title: "Missing URL" }] }],
 	])("rejects an %s without retrying", async (_name, payload) => {
-		// Malformed on purpose, so it is not a `SearxngResponse`.
-		const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(Response.json(payload));
-		vi.stubGlobal("fetch", fetchMock);
+		const searched = searxng(HttpResponse.json(payload));
 
 		await expect(webSearch({ query: "test", timeRange: "year" })).rejects.toThrow(
 			"Invalid SearXNG response",
 		);
-		expect(fetchMock).toHaveBeenCalledTimes(1);
+		expect(searched).toHaveLength(1);
 	});
 
 	it("rejects HTTP failures without retrying", async () => {
-		const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(new Response(null, { status: 503 }));
-		vi.stubGlobal("fetch", fetchMock);
+		const searched = searxng(new HttpResponse(null, { status: 503 }));
 
 		await expect(webSearch({ query: "test", timeRange: "year" })).rejects.toThrow(
 			"SearXNG HTTP 503",
 		);
-		expect(fetchMock).toHaveBeenCalledTimes(1);
+		expect(searched).toHaveLength(1);
 	});
 
 	it("rejects invalid JSON without retrying", async () => {
-		const fetchMock = vi
-			.fn<typeof fetch>()
-			.mockResolvedValue(new Response("<html>not json</html>"));
-		vi.stubGlobal("fetch", fetchMock);
+		const searched = searxng(HttpResponse.text("<html>not json</html>"));
 
 		await expect(webSearch({ query: "test", timeRange: "year" })).rejects.toThrow(SyntaxError);
-		expect(fetchMock).toHaveBeenCalledTimes(1);
+		expect(searched).toHaveLength(1);
 	});
 
 	it("rejects network failures without retrying", async () => {
-		const fetchMock = vi.fn<typeof fetch>().mockRejectedValue(new Error("Network unavailable"));
-		vi.stubGlobal("fetch", fetchMock);
+		const searched = searxng(HttpResponse.error());
 
-		await expect(webSearch({ query: "test", timeRange: "year" })).rejects.toThrow(
-			"Network unavailable",
-		);
-		expect(fetchMock).toHaveBeenCalledTimes(1);
+		await expect(webSearch({ query: "test", timeRange: "year" })).rejects.toThrow(TypeError);
+		expect(searched).toHaveLength(1);
 	});
 
-	it("forwards cancellation without retrying", async () => {
+	it("forwards cancellation", async () => {
+		network.use(http.get(`${SEARXNG_URL}/search`, () => delay("infinite")));
 		const controller = new AbortController();
-		controller.abort(new Error("cancelled"));
-		const fetchMock = vi.fn<typeof fetch>((_input, init) =>
-			Promise.try(() => {
-				init?.signal?.throwIfAborted();
-				throw new TypeError("Missing abort signal");
-			}),
-		);
-		vi.stubGlobal("fetch", fetchMock);
 
-		await expect(
-			webSearch({ query: "test", timeRange: "year", signal: controller.signal }),
-		).rejects.toThrow("cancelled");
-		expect(fetchMock).toHaveBeenCalledTimes(1);
+		const search = webSearch({ query: "test", timeRange: "year", signal: controller.signal });
+		controller.abort(new Error("cancelled"));
+
+		await expect(search).rejects.toThrow("cancelled");
 	});
 
-	it("enforces the overall timeout without retrying", async () => {
-		const timeoutController = new AbortController();
-		timeoutController.abort(new DOMException("Search timed out", "TimeoutError"));
-		vi.spyOn(AbortSignal, "timeout").mockReturnValue(timeoutController.signal);
-		const fetchMock = vi.fn<typeof fetch>((_input, init) =>
-			Promise.try(() => {
-				init?.signal?.throwIfAborted();
-				throw new TypeError("Missing abort signal");
+	it("gives up after 15 seconds across both attempts", async () => {
+		// `AbortSignal.timeout` runs on its own clock, so the test fires the timeout itself.
+		const timeout = new AbortController();
+		const timeoutSpy = vi.spyOn(AbortSignal, "timeout").mockReturnValue(timeout.signal);
+		const searched: URL[] = [];
+		network.use(
+			http.get(`${SEARXNG_URL}/search`, ({ request }) => {
+				searched.push(new URL(request.url));
+				return searched.length === 1 ? HttpResponse.json({ results: [] }) : delay("infinite");
 			}),
 		);
-		vi.stubGlobal("fetch", fetchMock);
 
-		await expect(webSearch({ query: "test", timeRange: "year" })).rejects.toMatchObject({
-			name: "TimeoutError",
+		const search = webSearch({ query: "test", timeRange: "year" });
+		await vi.waitFor(() => {
+			expect(searched).toHaveLength(2);
 		});
-		expect(fetchMock).toHaveBeenCalledTimes(1);
+		timeout.abort(new DOMException("Search timed out", "TimeoutError"));
+
+		await expect(search).rejects.toMatchObject({ name: "TimeoutError" });
+		expect(timeoutSpy).toHaveBeenCalledExactlyOnceWith(15_000);
 	});
 });

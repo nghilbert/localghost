@@ -1,53 +1,64 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { renderHook, testQueryClient } from "#/test/utils";
+import { useQuery } from "@tanstack/react-query";
+import { describe, expect, it, vi } from "vitest";
+import { page } from "vitest/browser";
+import { useCreateMemory } from "#/features/memory/hooks/use-create-memory";
+import type {
+	createMemory as createMemoryFn,
+	listMemories as listMemoriesFn,
+} from "#/features/memory/memory.functions";
+import { memoryQueries } from "#/features/memory/memory.queries";
+import { renderHook } from "#/test/utils";
 
-const { createMemory, toastAdd } = vi.hoisted(() => ({
-	createMemory: vi.fn(),
-	toastAdd: vi.fn<(toast: { title: string; type?: string; description?: string }) => void>(),
+type MemoryList = Awaited<ReturnType<typeof listMemoriesFn>>;
+
+const { createMemory, listMemories } = vi.hoisted(() => ({
+	createMemory: vi.fn<typeof createMemoryFn>(),
+	listMemories: vi.fn<typeof listMemoriesFn>(),
 }));
 
-vi.mock("#/features/memory/memory.functions", () => ({
-	createMemory,
-	listMemories: vi.fn(),
-}));
+vi.mock("#/features/memory/memory.functions", () => ({ createMemory, listMemories }));
 
-vi.mock("#/components/ui/toast", () => ({ toast: { add: toastAdd } }));
-
-const { useCreateMemory } = await import("#/features/memory/hooks/use-create-memory");
-
-beforeEach(() => vi.clearAllMocks());
+/** The hook, rendered beside the memory list it refreshes. */
+function renderWithList() {
+	return renderHook(() => {
+		useQuery(memoryQueries.list());
+		return useCreateMemory();
+	});
+}
 
 describe("useCreateMemory", () => {
-	it("stays pending through invalidation before reporting success", async () => {
-		const invalidation = Promise.withResolvers<undefined>();
-		const queryClient = testQueryClient();
-		vi.spyOn(queryClient, "invalidateQueries").mockReturnValue(invalidation.promise);
+	it("saves the text and confirms only after the memory list has refreshed", async () => {
+		listMemories.mockResolvedValue([]);
 		createMemory.mockResolvedValue(undefined);
-		const { result } = await renderHook(() => useCreateMemory(), { queryClient });
+		const { result } = await renderWithList();
+		await expect.poll(() => listMemories.mock.calls.length).toBe(1);
+		const refetch = Promise.withResolvers<MemoryList>();
+		listMemories.mockReturnValueOnce(refetch.promise);
 
 		result.current.mutate("Prefer metric units");
 
-		await expect.poll(() => result.current.isPending).toBe(true);
-		expect(toastAdd).not.toHaveBeenCalled();
+		await expect.poll(() => listMemories.mock.calls.length).toBe(2);
+		expect(createMemory).toHaveBeenCalledExactlyOnceWith({ data: { text: "Prefer metric units" } });
+		const saved = page.getByRole("dialog", { name: "Memory saved" });
+		await expect.element(saved).not.toBeInTheDocument();
+		expect(result.current.isPending).toBe(true);
 
-		invalidation.resolve(undefined);
-		await expect.poll(() => result.current.isSuccess).toBe(true);
-		expect(toastAdd).toHaveBeenCalledOnce();
-		expect(toastAdd.mock.calls[0]?.[0]?.type).toBe("success");
+		refetch.resolve([]);
+
+		await expect.element(saved).toBeVisible();
+		expect(result.current.isSuccess).toBe(true);
 	});
 
-	it("reports a rejected mutation exactly once", async () => {
+	it("reports a failed save once, with the server's message", async () => {
+		listMemories.mockResolvedValue([]);
 		createMemory.mockRejectedValue(new Error("Save failed"));
-		const { result } = await renderHook(() => useCreateMemory());
+		const { result } = await renderWithList();
 
 		result.current.mutate("Prefer metric units");
 
-		await expect.poll(() => result.current.isError).toBe(true);
-		expect(toastAdd).toHaveBeenCalledOnce();
-		expect(toastAdd.mock.calls[0]?.[0]).toEqual({
-			title: "Failed to save memory",
-			type: "error",
-			description: "Save failed",
-		});
+		await expect
+			.element(page.getByRole("dialog", { name: "Failed to save memory" }))
+			.toMatchTextContent("Save failed");
+		expect(page.getByRole("dialog").elements()).toHaveLength(1);
 	});
 });

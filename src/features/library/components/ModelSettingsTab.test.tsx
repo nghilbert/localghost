@@ -1,5 +1,7 @@
+import type { ComponentProps } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
+import type { useResetModelSetting } from "#/features/library/hooks/use-reset-model-setting";
 import type { getModelSettings } from "#/features/library/library.functions";
 import { render } from "#/test/utils";
 import { ModelSettingsTab } from "./ModelSettingsTab";
@@ -8,7 +10,7 @@ const LOCAL_ID = "0197c3a0-0000-7000-8000-000000000001";
 
 const { fetchModelSettings, resetMutate } = vi.hoisted(() => ({
 	fetchModelSettings: vi.fn<() => ReturnType<typeof getModelSettings>>(),
-	resetMutate: vi.fn(),
+	resetMutate: vi.fn<ReturnType<typeof useResetModelSetting>["mutate"]>(),
 }));
 
 vi.mock("#/features/library/library.queries", () => ({
@@ -49,7 +51,7 @@ beforeEach(() => {
 
 describe("ModelSettingsTab", () => {
 	it("picks a model from the endpoint groups", async () => {
-		const onSelectionChange = vi.fn();
+		const onSelectionChange = vi.fn<ComponentProps<typeof ModelSettingsTab>["onSelectionChange"]>();
 		const screen = await render(
 			<ModelSettingsTab selection={undefined} onSelectionChange={onSelectionChange} />,
 		);
@@ -64,7 +66,7 @@ describe("ModelSettingsTab", () => {
 		const screen = await render(
 			<ModelSettingsTab
 				selection={{ endpointId: LOCAL_ID, model: "gemma:Q4_K_M" }}
-				onSelectionChange={vi.fn()}
+				onSelectionChange={vi.fn<ComponentProps<typeof ModelSettingsTab>["onSelectionChange"]>()}
 			/>,
 		);
 
@@ -80,7 +82,7 @@ describe("ModelSettingsTab", () => {
 				options: { temperature: 0.3, top_p: undefined },
 			},
 		]);
-		const onSelectionChange = vi.fn();
+		const onSelectionChange = vi.fn<ComponentProps<typeof ModelSettingsTab>["onSelectionChange"]>();
 		const screen = await render(
 			<ModelSettingsTab selection={undefined} onSelectionChange={onSelectionChange} />,
 		);
@@ -94,7 +96,10 @@ describe("ModelSettingsTab", () => {
 
 	it("says so when no model has overrides", async () => {
 		const screen = await render(
-			<ModelSettingsTab selection={undefined} onSelectionChange={vi.fn()} />,
+			<ModelSettingsTab
+				selection={undefined}
+				onSelectionChange={vi.fn<ComponentProps<typeof ModelSettingsTab>["onSelectionChange"]>()}
+			/>,
 		);
 
 		await expect.element(screen.getByText("No overrides yet")).toBeVisible();

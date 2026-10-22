@@ -1,3 +1,4 @@
+import type { ComponentProps } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import { Menu } from "#/components/ui/menu";
@@ -6,7 +7,7 @@ import { ModelStatusFilter } from "./ModelStatusFilter";
 
 describe("ModelStatusFilter", () => {
 	it("reports the status picked from the menu, with each status's count", async () => {
-		const onValueChange = vi.fn();
+		const onValueChange = vi.fn<ComponentProps<typeof ModelStatusFilter>["onValueChange"]>();
 		const screen = await render(
 			<Menu.Root open>
 				<Menu.Content>

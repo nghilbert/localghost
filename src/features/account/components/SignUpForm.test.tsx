@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi, type Mock } from "vitest";
+import type { useSignUp } from "#/features/account/hooks/use-sign-up";
 import { render } from "#/test/utils";
 import { SignUpForm } from "./SignUpForm";
 
@@ -8,7 +9,7 @@ interface MutationStub {
 }
 
 const mocks = vi.hoisted<{ signUp: MutationStub }>(() => ({
-	signUp: { mutateAsync: vi.fn(), error: null },
+	signUp: { mutateAsync: vi.fn<ReturnType<typeof useSignUp>["mutateAsync"]>(), error: null },
 }));
 
 vi.mock("#/features/account/hooks/use-sign-up", () => ({ useSignUp: () => mocks.signUp }));

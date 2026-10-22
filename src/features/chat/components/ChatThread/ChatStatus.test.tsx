@@ -1,3 +1,4 @@
+import type { ComponentProps } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { page } from "vitest/browser";
 import { render } from "#/test/utils";
@@ -6,7 +7,13 @@ import { ChatStatus } from "./ChatStatus";
 describe("ChatStatus", () => {
 	it("shows a loading row while the transcript hydrates", async () => {
 		await render(
-			<ChatStatus status="ready" isHydrating messages={[]} error={undefined} onRetry={vi.fn()} />,
+			<ChatStatus
+				status="ready"
+				isHydrating
+				messages={[]}
+				error={undefined}
+				onRetry={vi.fn<ComponentProps<typeof ChatStatus>["onRetry"]>()}
+			/>,
 		);
 
 		await expect.element(page.getByRole("status")).toHaveTextContent("Loading the conversation");
@@ -19,7 +26,7 @@ describe("ChatStatus", () => {
 				isHydrating={false}
 				messages={[]}
 				error={undefined}
-				onRetry={vi.fn()}
+				onRetry={vi.fn<ComponentProps<typeof ChatStatus>["onRetry"]>()}
 			/>,
 		);
 

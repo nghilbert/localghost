@@ -1,8 +1,11 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { http, HttpResponse } from "msw";
+import { describe, expect, vi } from "vitest";
+import { it, network } from "#/test/network.server";
+import type { getHardwareInfo } from "./hardware.server";
 import type { HubIndexExtras } from "./huggingface.server";
 
 vi.mock("./hardware.server", () => ({
-	getHardwareInfo: vi.fn().mockResolvedValue({
+	getHardwareInfo: vi.fn<typeof getHardwareInfo>().mockResolvedValue({
 		totalRamGb: 8,
 		freeRamGb: 8,
 		cpuModel: "test-cpu",
@@ -14,10 +17,6 @@ vi.mock("./hardware.server", () => ({
 async function freshCatalogModule() {
 	vi.resetModules();
 	return import("./catalog.server");
-}
-
-function jsonResponse(body: unknown, headers?: Record<string, string>): Response {
-	return Response.json(body, { headers });
 }
 
 /**
@@ -39,12 +38,15 @@ function indexEntry(
 	};
 }
 
+const HUB = "https://huggingface.co";
+
 /**
- * Routes a mocked `fetch` by path shape rather than an exact query string, since
+ * Serves the Hub API by path shape rather than an exact query string, since
  * `@huggingface/hub` owns URL construction and its param order isn't our contract.
  * Ingest makes one GGUF index pass, so both fixture arrays are combined for it.
+ * Returns the repo ids whose file tree was requested.
  */
-function mockHfFetch({
+function mockHub({
 	textGeneration,
 	imageTextToText = [],
 	tree = [{ path: "model-Q4_K_M.gguf", size: 1_000_000_000 }],
@@ -55,47 +57,46 @@ function mockHfFetch({
 	tree?: Array<{ path: string; size?: number; lfs?: { size: number } }>;
 	/** Per-repo override, for tests where different repos in a group expose different quants. */
 	treeByRepo?: Record<string, Array<{ path: string; size?: number; lfs?: { size: number } }>>;
-}): ReturnType<typeof vi.fn> {
-	const fetchMock = vi.mocked(fetch);
-	fetchMock.mockImplementation((input) =>
-		Promise.try(() => {
-			const url = new URL(input instanceof Request ? input.url : input);
-			if (url.pathname === "/api/models") {
-				// The index is queried by the `gguf` tag alone, never by pipeline tag.
-				if (url.searchParams.has("pipeline_tag")) throw new Error(`unexpected task filter: ${url}`);
-				return jsonResponse([...textGeneration, ...imageTextToText]);
+}): string[] {
+	const treeRequests: string[] = [];
+	const entries = [...textGeneration, ...imageTextToText];
+	network.use(
+		http.get(`${HUB}/api/models`, ({ request }) => {
+			// The index is queried by the `gguf` tag alone, never by pipeline tag.
+			if (new URL(request.url).searchParams.has("pipeline_tag")) {
+				throw new Error(`unexpected task filter: ${request.url}`);
 			}
-			if (url.pathname.includes("/tree/")) {
-				const repoId = url.pathname.slice("/api/models/".length).split("/tree/", 1)[0] ?? "";
-				const files = treeByRepo[repoId] ?? tree;
-				return jsonResponse(files.map((f) => ({ type: "file", ...f })));
-			}
-			// `modelInfo` requests `/api/models/{name}/revision/{rev}`, not the bare index path.
-			if (url.pathname.includes("/revision/")) {
-				const repoId = decodeURIComponent(
-					url.pathname.slice("/api/models/".length).split("/revision/", 1)[0] ?? "",
-				);
-				const entry = [...textGeneration, ...imageTextToText].find(
-					(candidate): candidate is { id: string } =>
-						typeof candidate === "object" &&
-						candidate !== null &&
-						"id" in candidate &&
-						candidate.id === repoId,
-				);
-				return entry ? jsonResponse(entry) : new Response(null, { status: 404 });
-			}
-			throw new Error(`unexpected fetch: ${url}`);
+			return HttpResponse.json(entries);
+		}),
+		http.get(/^https:\/\/huggingface\.co\/api\/models\/.+\/tree\//, ({ request }) => {
+			const { pathname } = new URL(request.url);
+			const repoId = pathname.slice("/api/models/".length).split("/tree/", 1)[0] ?? "";
+			treeRequests.push(repoId);
+			const files = treeByRepo[repoId] ?? tree;
+			return HttpResponse.json(files.map((f) => ({ type: "file", ...f })));
+		}),
+		// `modelInfo` requests `/api/models/{name}/revision/{rev}`, not the bare index path.
+		http.get(/^https:\/\/huggingface\.co\/api\/models\/.+\/revision\//, ({ request }) => {
+			const { pathname } = new URL(request.url);
+			const repoId = decodeURIComponent(
+				pathname.slice("/api/models/".length).split("/revision/", 1)[0] ?? "",
+			);
+			const entry = entries.find(
+				(candidate): candidate is { id: string } =>
+					typeof candidate === "object" &&
+					candidate !== null &&
+					"id" in candidate &&
+					candidate.id === repoId,
+			);
+			return entry ? HttpResponse.json(entry) : new HttpResponse(null, { status: 404 });
 		}),
 	);
-	return fetchMock;
+	return treeRequests;
 }
 
 describe("getCatalog (Hugging Face)", () => {
-	beforeEach(() => vi.stubGlobal("fetch", vi.fn()));
-	afterEach(() => vi.unstubAllGlobals());
-
 	it("uses the default Q4_K_M quant, preserves its repository id, and reads gguf metadata", async () => {
-		mockHfFetch({
+		mockHub({
 			textGeneration: [
 				indexEntry({
 					id: "ggml-org/gemma-3-4b-it-GGUF",
@@ -119,7 +120,7 @@ describe("getCatalog (Hugging Face)", () => {
 	});
 
 	it("skips mmproj files and sums sharded model parts", async () => {
-		mockHfFetch({
+		mockHub({
 			textGeneration: [
 				indexEntry({ id: "org/model-8B-GGUF", downloads: 1, tags: ["conversational"] }),
 			],
@@ -138,7 +139,7 @@ describe("getCatalog (Hugging Face)", () => {
 	});
 
 	it("excludes imatrix and draft files that llama.cpp itself would skip", async () => {
-		mockHfFetch({
+		mockHub({
 			textGeneration: [
 				indexEntry({ id: "org/model-8B-GGUF", downloads: 1, tags: ["conversational"] }),
 			],
@@ -157,7 +158,7 @@ describe("getCatalog (Hugging Face)", () => {
 	});
 
 	it("drops repositories with no eligible GGUF variant", async () => {
-		mockHfFetch({
+		mockHub({
 			textGeneration: [
 				indexEntry({ id: "org/no-gguf-8B", downloads: 1, tags: ["conversational"] }),
 			],
@@ -169,7 +170,7 @@ describe("getCatalog (Hugging Face)", () => {
 	});
 
 	it("keeps a model whose id has no parseable size when the Hub reports one via gguf.total", async () => {
-		mockHfFetch({
+		mockHub({
 			textGeneration: [
 				indexEntry({
 					id: "org/no-size-in-name-GGUF",
@@ -186,7 +187,7 @@ describe("getCatalog (Hugging Face)", () => {
 	});
 
 	it("drops gated and private repositories before any tree fetch", async () => {
-		const fetchMock = mockHfFetch({
+		const treeRequests = mockHub({
 			textGeneration: [
 				indexEntry({ id: "org/gated-8B", downloads: 1, tags: ["conversational"], gated: true }),
 				indexEntry({ id: "org/private-8B", downloads: 1, tags: ["conversational"], private: true }),
@@ -197,12 +198,11 @@ describe("getCatalog (Hugging Face)", () => {
 		const { getCatalog } = await freshCatalogModule();
 		const models = await getCatalog();
 		expect(models.map((model) => model.name)).toEqual(["org/open-8B"]);
-		// One GGUF index pass plus one tree fetch for the sole survivor.
-		expect(fetchMock).toHaveBeenCalledTimes(2);
+		expect(treeRequests).toEqual(["org/open-8B"]);
 	});
 
 	it("dedupes repacks by base-model link and prefers the higher-ranked publisher", async () => {
-		mockHfFetch({
+		mockHub({
 			textGeneration: [
 				indexEntry({
 					id: "unsloth/Qwen3-8B-GGUF",
@@ -227,14 +227,14 @@ describe("getCatalog (Hugging Face)", () => {
 	});
 
 	it("raises when the Hub returns no GGUF models", async () => {
-		mockHfFetch({ textGeneration: [] });
+		mockHub({ textGeneration: [] });
 
 		const { getCatalog } = await freshCatalogModule();
 		await expect(getCatalog()).rejects.toThrow("0 eligible models");
 	});
 
 	it("combines multi-select facets before pagination and lists every license", async () => {
-		mockHfFetch({
+		mockHub({
 			textGeneration: [
 				indexEntry({
 					id: "org/alpha-code-8B-GGUF",
@@ -297,7 +297,7 @@ describe("getCatalog (Hugging Face)", () => {
 	});
 
 	it("hides rows whose fit band is in hiddenFits, keyed on the same classification as the badge", async () => {
-		mockHfFetch({
+		mockHub({
 			textGeneration: [
 				indexEntry({ id: "org/small-8B-GGUF", downloads: 200, tags: ["conversational"] }),
 				indexEntry({ id: "org/huge-70B-GGUF", downloads: 100, tags: ["conversational"] }),
@@ -327,11 +327,8 @@ describe("getCatalog (Hugging Face)", () => {
 });
 
 describe("getCatalogModelsByIds (cache-miss resolution)", () => {
-	beforeEach(() => vi.stubGlobal("fetch", vi.fn()));
-	afterEach(() => vi.unstubAllGlobals());
-
 	it("returns every quant in the repo, not just the one requested, on a cold cache", async () => {
-		mockHfFetch({
+		mockHub({
 			textGeneration: [indexEntry({ id: "org/model-8B-GGUF", downloads: 10 })],
 			tree: [
 				{ path: "model-Q4_K_M.gguf", lfs: { size: 2_000_000_000 } },
@@ -350,7 +347,7 @@ describe("getCatalogModelsByIds (cache-miss resolution)", () => {
 	});
 
 	it("borrows a warm dedupe group's siblingRepoIds for a quant the cache didn't hit", async () => {
-		mockHfFetch({
+		mockHub({
 			textGeneration: [
 				indexEntry({
 					id: "unsloth/model-8B-GGUF",
@@ -379,11 +376,8 @@ describe("getCatalogModelsByIds (cache-miss resolution)", () => {
 });
 
 describe("listGroupVariants", () => {
-	beforeEach(() => vi.stubGlobal("fetch", vi.fn()));
-	afterEach(() => vi.unstubAllGlobals());
-
 	it("merges the primary repo's quants with its siblings', primary first", async () => {
-		mockHfFetch({
+		mockHub({
 			textGeneration: [],
 			treeByRepo: {
 				"org/primary-GGUF": [{ path: "model-Q4_K_M.gguf", lfs: { size: 2_000_000_000 } }],
@@ -410,7 +404,7 @@ describe("listGroupVariants", () => {
 	it("still returns the primary repo's quants when a group has far more siblings than get queried", async () => {
 		// A popular model can have dozens of repos; the main one is always kept.
 		const manySiblings = Array.from({ length: 40 }, (_, i) => `org/sibling-${i}-GGUF`);
-		mockHfFetch({
+		mockHub({
 			textGeneration: [],
 			treeByRepo: Object.fromEntries(
 				["org/primary-GGUF", ...manySiblings].map((repo) => [

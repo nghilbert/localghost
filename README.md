@@ -122,10 +122,10 @@ it up. Web search stays off until `SEARXNG_URL` points at a SearXNG instance.
 npm run test -- run
 ```
 
-The `server` project runs against a real Postgres at `TEST_DATABASE_URL` (see
+The `db` project (`*.db.test.ts`) runs against a real Postgres at `TEST_DATABASE_URL` (see
 `.env.example`), starting the Compose `db` service first if nothing is listening
-there. It resets that database on every run and copies it to one
-`<name>_<n>` database per test worker, so keep it separate from `DATABASE_URL`.
+there. Each run migrates its own `<name>_<runId>` database, copies it once per
+test worker and drops them all when it ends, so overlapping runs never collide.
 
 ## Deploy
 

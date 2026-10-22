@@ -8,7 +8,7 @@ describe("ChatMarkdown", () => {
 		const screen = await render(<ChatMarkdown>{"[Docs](https://example.com)"}</ChatMarkdown>);
 
 		await screen.getByRole("button", { name: "Docs" }).click();
-		await expect.element(screen.getByRole("alertdialog")).toHaveTextContent("https://example.com");
+		await expect.element(screen.getByRole("alertdialog")).toMatchTextContent("https://example.com");
 		expect(open).not.toHaveBeenCalled();
 
 		await screen.getByRole("button", { name: "Open link" }).click();

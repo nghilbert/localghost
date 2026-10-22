@@ -15,11 +15,11 @@ interface DownloadRowProps {
 }
 
 /** A running download: its title, progress, and a button to stop it. */
-export function DownloadRow({ model, title, pullState, size, onStop }: DownloadRowProps) {
+export function DownloadRow({ model, title = model, pullState, size, onStop }: DownloadRowProps) {
 	return (
 		<Item.Root variant="soft" size="sm" className="flex-nowrap">
 			<Item.Content>
-				<Item.Title className="block max-w-full truncate">{title ?? model}</Item.Title>
+				<Item.Title className="block max-w-full truncate">{title}</Item.Title>
 				<DownloadStatus pullState={pullState} size={size} />
 			</Item.Content>
 			<Item.Actions>

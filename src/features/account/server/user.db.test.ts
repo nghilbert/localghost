@@ -1,9 +1,7 @@
 import { randomUUID } from "node:crypto";
-import { beforeEach, describe, expect, it } from "vitest";
-import { createUser, resetDb } from "#/test/db.server";
+import { describe, expect } from "vitest";
+import { createUser, it } from "#/test/db.server";
 import { findUserSettings, saveUserSettings } from "./user.server";
-
-beforeEach(resetDb);
 
 describe("findUserSettings", () => {
 	it("null-coalesces unset fields on the user row", async () => {

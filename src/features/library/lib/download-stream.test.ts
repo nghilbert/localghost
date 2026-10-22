@@ -67,7 +67,7 @@ class FakeEventSource extends EventTarget {
 	static readonly CLOSED = 2;
 	readonly url: string;
 	readyState = 0;
-	readonly close = vi.fn();
+	readonly close = vi.fn<EventSource["close"]>();
 
 	constructor(url: string | URL) {
 		super();
@@ -98,7 +98,7 @@ describe("streamModelEvents", () => {
 		vi.stubGlobal("EventSource", FakeEventSource);
 		vi.spyOn(console, "warn").mockReturnValue();
 		const controller = new AbortController();
-		const onOpen = vi.fn();
+		const onOpen = vi.fn<NonNullable<Parameters<typeof streamModelEvents>[0]["onOpen"]>>();
 		const seen: string[] = [];
 
 		const consumed = (async () => {

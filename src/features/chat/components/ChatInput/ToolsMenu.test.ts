@@ -6,7 +6,7 @@ function makeControls(overrides: Partial<ToolControls> = {}): ToolControls {
 	return {
 		enabledTools: [],
 		supportsTools: true,
-		onEnabledToolsChange: vi.fn(),
+		onEnabledToolsChange: vi.fn<ToolControls["onEnabledToolsChange"]>(),
 		...overrides,
 	};
 }

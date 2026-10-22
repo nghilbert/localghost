@@ -1,12 +1,10 @@
 import { randomUUID } from "node:crypto";
 import type { ModelMessage } from "@tanstack/ai";
-import { beforeEach, describe, expect, it } from "vitest";
+import { describe, expect } from "vitest";
 import { encrypt } from "#/lib/crypto.server";
 import { prisma } from "#/lib/db.server";
-import { createConversation, createEndpoint, createUser, resetDb } from "#/test/db.server";
+import { createConversation, createEndpoint, createUser, it } from "#/test/db.server";
 import { exportBackup, importBackup } from "./backup.server";
-
-beforeEach(resetDb);
 
 describe("exportBackup", () => {
 	it("shapes memories, conversations, endpoints, model settings, and defaults from the user's rows", async () => {

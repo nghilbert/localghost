@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { useModelDownload } from "#/features/library/hooks/use-model-download";
+import type { cancelModelDownload } from "#/features/library/library.functions";
 import type { PullProgress, RuntimeStatus } from "#/features/library/library.types";
 import { renderHook, testQueryClient } from "#/test/utils";
 
@@ -9,7 +10,7 @@ const { startModelDownload } = vi.hoisted(() => ({
 }));
 
 vi.mock("#/features/library/library.functions", () => ({
-	cancelModelDownload: vi.fn(),
+	cancelModelDownload: vi.fn<typeof cancelModelDownload>(),
 	startModelDownload,
 }));
 

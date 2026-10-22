@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ComponentProps } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import { buildModelFacets } from "#/features/library/lib/facets";
@@ -27,7 +27,7 @@ describe("ModelFilterMenu", () => {
 	it("counts the default-on fit filter and every facet, and clears them together", async () => {
 		const screen = await render(<FilterHarness />);
 		const trigger = screen.getByRole("button", { name: /Filter/ });
-		await expect.element(trigger).toHaveTextContent(/^Filter1$/);
+		await expect.element(trigger).toHaveTextContent("Filter1");
 		await userEvent.click(trigger);
 
 		// A second fit band plus a capability and a license: four active filters.
@@ -36,10 +36,10 @@ describe("ModelFilterMenu", () => {
 		);
 		await userEvent.click(screen.getByRole("menuitemcheckbox", { name: "Code" }));
 		await userEvent.click(screen.getByRole("menuitemcheckbox", { name: "mit" }));
-		await expect.element(trigger).toHaveTextContent(/^Filter4$/);
+		await expect.element(trigger).toHaveTextContent("Filter4");
 
 		await userEvent.click(screen.getByRole("menuitem", { name: "Clear filters" }));
-		await expect.element(trigger).toHaveTextContent(/^Filter$/);
+		await expect.element(trigger).toHaveTextContent("Filter");
 		await expect
 			.element(screen.getByRole("menuitemcheckbox", { name: `Hide "Won't fit"` }))
 			.toHaveAttribute("aria-checked", "false");
@@ -54,7 +54,7 @@ describe("ModelFilterMenu", () => {
 				<ModelStatusFilter
 					value="all"
 					counts={{ all: 12, installed: 3, available: 9 }}
-					onValueChange={vi.fn()}
+					onValueChange={vi.fn<ComponentProps<typeof ModelStatusFilter>["onValueChange"]>()}
 				/>
 			</ModelFilterMenu>,
 		);

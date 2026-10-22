@@ -65,10 +65,10 @@ describe("readRunParams", () => {
 describe("streamRunResponse", () => {
 	it("turns a thrown run into a terminal RUN_ERROR event", async () => {
 		const runs: RunStore = {
-			createOrResume: vi.fn(),
-			update: vi.fn(),
-			get: vi.fn().mockResolvedValue(null),
-			findActiveRun: vi.fn().mockResolvedValue(null),
+			createOrResume: vi.fn<RunStore["createOrResume"]>(),
+			update: vi.fn<RunStore["update"]>(),
+			get: vi.fn<RunStore["get"]>().mockResolvedValue(null),
+			findActiveRun: vi.fn<RunStore["findActiveRun"]>().mockResolvedValue(null),
 		};
 		const failing = () =>
 			new ReadableStream<StreamChunk>({

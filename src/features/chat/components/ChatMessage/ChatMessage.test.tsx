@@ -1,4 +1,5 @@
 import type { UIMessage } from "@tanstack/ai-client";
+import type { ComponentProps } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { ACTIVITY_STATUS } from "#/features/chat/components/activity-status";
 import type { ChatUIMessage } from "#/features/chat/lib/chat-tools";
@@ -51,7 +52,10 @@ describe("ChatMessage", () => {
 
 		it("opens an editable textarea prefilled with the message text", async () => {
 			const screen = await render(
-				<ChatMessage message={userMessage("Original text")} onEditResend={vi.fn()} />,
+				<ChatMessage
+					message={userMessage("Original text")}
+					onEditResend={vi.fn<NonNullable<ComponentProps<typeof ChatMessage>["onEditResend"]>>()}
+				/>,
 			);
 
 			await screen.getByRole("button", { name: "Edit message" }).click();
@@ -112,7 +116,7 @@ describe("ChatMessage", () => {
 			await screen.getByRole("button", { name: "Link" }).click();
 			await expect
 				.element(screen.getByRole("alertdialog"))
-				.toHaveTextContent("https://example.com");
+				.toMatchTextContent("https://example.com");
 			expect(open).not.toHaveBeenCalled();
 
 			await screen.getByRole("button", { name: "Open link" }).click();

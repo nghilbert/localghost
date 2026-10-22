@@ -1,12 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
+import type { useConnectRuntime } from "#/features/library/hooks/use-connect-runtime";
+import type { useTestRuntime } from "#/features/library/hooks/use-test-runtime";
 import { render } from "#/test/utils";
 import { RuntimeConnectionForm } from "./RuntimeConnectionForm";
 
 const { connectMutateAsync, testMutate, testReset } = vi.hoisted(() => ({
-	connectMutateAsync: vi.fn(),
-	testMutate: vi.fn(),
-	testReset: vi.fn(),
+	connectMutateAsync: vi.fn<ReturnType<typeof useConnectRuntime>["mutateAsync"]>(),
+	testMutate: vi.fn<ReturnType<typeof useTestRuntime>["mutate"]>(),
+	testReset: vi.fn<ReturnType<typeof useTestRuntime>["reset"]>(),
 }));
 
 vi.mock("#/features/library/hooks/use-connect-runtime", () => ({

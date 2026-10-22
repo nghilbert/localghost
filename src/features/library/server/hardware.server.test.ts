@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { ZodError } from "zod";
 import { parseNvidiaSmi, parseRocmSmi } from "./hardware.server";
 
 describe("parseNvidiaSmi", () => {
@@ -58,6 +59,6 @@ describe("parseRocmSmi", () => {
 	});
 
 	it("throws on a shape that isn't card-keyed number maps", () => {
-		expect(() => parseRocmSmi(JSON.stringify({ card0: "nope" }))).toThrow();
+		expect(() => parseRocmSmi(JSON.stringify({ card0: "nope" }))).toThrow(ZodError);
 	});
 });

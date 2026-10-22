@@ -1,8 +1,6 @@
-import { beforeEach, describe, expect, it } from "vitest";
-import { createSession, createUser, resetDb } from "#/test/db.server";
+import { describe, expect } from "vitest";
+import { createSession, createUser, it } from "#/test/db.server";
 import { findOtherSignedInUser } from "./active-session.server";
-
-beforeEach(resetDb);
 
 describe("findOtherSignedInUser", () => {
 	it("returns the other person holding a live session", async () => {

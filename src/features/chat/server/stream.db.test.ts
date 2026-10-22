@@ -1,11 +1,14 @@
 import { randomUUID } from "node:crypto";
 import type { TextOptions } from "@tanstack/ai";
 import type { FakeResponse, FakeResponseStep } from "@tanstack/ai/testing";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { http, HttpResponse } from "msw";
+import { beforeEach, describe, expect, vi } from "vitest";
 import { z } from "zod";
 import { insertMemory } from "#/features/memory/server/memory.server";
+import { encrypt } from "#/lib/crypto.server";
 import { prisma } from "#/lib/db.server";
-import { createConversation, createEndpoint, createUser, resetDb } from "#/test/db.server";
+import { createConversation, createEndpoint, createUser, it } from "#/test/db.server";
+import { network } from "#/test/network.server";
 import { postChatStream } from "./stream.server";
 
 const { fake } = await vi.hoisted(async () => {
@@ -15,12 +18,6 @@ const { fake } = await vi.hoisted(async () => {
 
 // Every OpenAI-compatible endpoint answers from the script; the rest of the request is real.
 vi.mock("@tanstack/ai-openai/compatible", () => ({ openaiCompatibleText: () => fake }));
-
-// No embeddings endpoint is reachable, so memory falls back to keyword search.
-vi.mock("#/features/memory/server/embeddings.server", async (importOriginal) => ({
-	...(await importOriginal<typeof import("#/features/memory/server/embeddings.server")>()),
-	embed: () => Promise.resolve(null),
-}));
 
 /** The part of a stream event these tests read. */
 const eventSchema = z.object({ type: z.string(), delta: z.string().optional() });
@@ -64,7 +61,11 @@ function toolNames(request: TextOptions): string[] {
 /** A user with an OpenAI-compatible endpoint and a conversation on it. */
 async function setupChat(user: { systemPrompt?: string; temperature?: number } = {}) {
 	const owner = await createUser(user);
-	const endpoint = await createEndpoint({ ownerId: owner.id, provider: "openai" });
+	const endpoint = await createEndpoint({
+		ownerId: owner.id,
+		provider: "openai",
+		apiKeyEncrypted: encrypt("key"),
+	});
 	const conversation = await createConversation({
 		ownerId: owner.id,
 		endpointId: endpoint.id,
@@ -103,10 +104,11 @@ async function postRun({
 	return { status: response.status, body: await response.text(), runId };
 }
 
-beforeEach(async () => {
-	await resetDb();
+beforeEach(() => {
 	requests = [];
 	fake.setResponses([]);
+	// The endpoint serves no embeddings, so memory falls back to keyword search.
+	network.use(http.post("*/embeddings", () => new HttpResponse(null, { status: 404 })));
 });
 
 describe("postChatStream guards", () => {

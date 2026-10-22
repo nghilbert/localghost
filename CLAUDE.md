@@ -10,7 +10,10 @@ npm run build        # typecheck + production build
 npm run lint         # ESLint (`-- --fix` to auto-fix)
 npm run format       # Prettier
 npm run test -- run  # all Vitest projects once
-npm run test -- run --project unit   # or: browser, server
+npm run test -- run --project unit   # or: browser, db
+npm run test -- --project unit       # watch one project
+npm run test -- related <files> --run   # only tests that import <files>
+npm run test -- run --coverage       # report in .vitest/coverage; a guide, not a gate
 ```
 
 `prisma` is a passthrough script. Put `--` before flags: `npm run prisma -- migrate status` keeps them.
@@ -105,13 +108,26 @@ Completion-dependent forms return `mutation.mutateAsync(value, { onSuccess })` f
 
 ## Testing
 
-Tests sit beside their subject, named for it (`chat.server.ts` -> `chat.server.test.ts`; a folder component `ChatInput/index.tsx` -> `ChatInput/ChatInput.test.tsx`). Three projects:
+Tests sit beside their subject, named for it (`crypto.server.ts` -> `crypto.server.test.ts`; a folder component `ChatInput/index.tsx` -> `ChatInput/ChatInput.test.tsx`). A test that needs Postgres drops `.server` for `.db` (`chat.server.ts` -> `chat.db.test.ts`). Three projects:
 
-- `unit`: `*.test.ts` in node.
+- `unit`: `*.test.ts` in node, including database-free `*.server.test.ts`.
 - `browser`: `*.test.tsx` in headless Chromium, with `render` / `renderHook` from `#/test/utils` (async). Chromium runs with reduced motion, so Base UI's transitions finish at once, and a setup file loads the real CSS.
-- `server`: `*.server.test.ts` against a real Postgres at `TEST_DATABASE_URL` (the Compose `db` service is started if unreachable, then reset before the run and copied to one `<name>_<n>` database per worker, so files run in parallel).
+- `db`: `*.db.test.ts` against a real Postgres at `TEST_DATABASE_URL` (the Compose `db` service is started if unreachable). Each run migrates its own `<name>_<runId>` database and copies it once per worker, so runs can overlap and files run in parallel; teardown drops them.
 
 `components/ui/ui.test.tsx` is one table of library-wide invariants; a new module adds a row.
+
+- **Write the failing test first.** When an existing test fails, suspect the code before the test.
+- **Assert outcomes:** the DOM by role and name, HTTP responses, database rows. Never assert calls into our own code.
+- **Fake only boundaries:**
+  - the model: `fakeText()` from `@tanstack/ai/testing`, through `vi.mock("@tanstack/ai-openai/compatible")`
+  - outbound HTTP: MSW handlers on `network` (`#/test/network.server`) or `worker` (`#/test/msw`)
+  - a browser test's server: `vi.mock` of the feature's `*.functions.ts`, typed `vi.fn<typeof fn>()`
+  - env and time: `vi.stubEnv`, fake timers
+
+  Never mock or spy on our own hooks, query factories, components or toasts; `render` mounts the real toast viewport.
+
+- **Import `test` from a fixture module**, not `vitest`, when the test needs one: `#/test/db.server` empties every table first, and the MSW modules fail any request no handler matches.
+- **Build data with the app's own code** or a factory (`#/test/factories`, `create*` in `#/test/db.server`), never a hand-written copy of something the app derives. Faker is seeded per test, so its values repeat across runs.
 
 ## Architecture
 

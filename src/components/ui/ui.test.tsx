@@ -1,5 +1,6 @@
 import { createRef, type ReactNode } from "react";
-import { describe, expect, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { userEvent } from "vitest/browser";
 import { Alert } from "#/components/ui/alert";
 import { AlertDialog } from "#/components/ui/alert-dialog";
 import { Avatar } from "#/components/ui/avatar";
@@ -192,18 +193,18 @@ const MODULES: Record<string, Row> = {
 const rows = Object.entries(MODULES);
 
 describe.each(rows)("%s", (_name, row) => {
-	test("puts the caller's className on the element", async () => {
+	it("puts the caller's className on the element", async () => {
 		const { container } = await render(row.element({ className: PROBE }));
 		expect(container.querySelector(`.${PROBE}`)).not.toBeNull();
 	});
 
-	test("forwards a ref to that same element", async () => {
+	it("forwards a ref to that same element", async () => {
 		const ref = createRef<HTMLElement>();
 		const { container } = await render(row.element({ className: PROBE, ref }));
 		expect(ref.current).toBe(container.querySelector(`.${PROBE}`));
 	});
 
-	test("passes an unknown prop through to the DOM", async () => {
+	it("passes an unknown prop through to the DOM", async () => {
 		const { container } = await render(row.element({ className: PROBE, "data-probe": "yes" }));
 		expect(container.querySelector<HTMLElement>(`.${PROBE}`)?.dataset.probe).toBe("yes");
 	});
@@ -212,7 +213,7 @@ describe.each(rows)("%s", (_name, row) => {
 describe.each(rows.filter(([, row]) => row.swapsElement !== false))(
 	"%s render prop",
 	(_name, row) => {
-		test("replaces the default element", async () => {
+		it("replaces the default element", async () => {
 			const { container } = await render(row.element({ className: PROBE, render: <article /> }));
 			expect(container.querySelector(`.${PROBE}`)?.tagName).toBe("ARTICLE");
 		});
@@ -226,12 +227,12 @@ describe.each(rows.filter(([, row]) => row.swapsElement !== false))(
  * leave the recipe's class last and therefore winning.
  */
 describe("className precedence", () => {
-	test("a caller's radius replaces the recipe's", async () => {
+	it("a caller's radius replaces the recipe's", async () => {
 		const { container } = await render(<Button className="rounded-full">Save</Button>);
 		expect(container.querySelector("button.rounded-full:not(.rounded-md)")).not.toBeNull();
 	});
 
-	test("a caller's height replaces the size variant's", async () => {
+	it("a caller's height replaces the size variant's", async () => {
 		const { container } = await render(
 			<Button size="lg" className="h-20">
 				Save
@@ -245,7 +246,7 @@ describe("className precedence", () => {
 	 * function form has to survive `mergeClassName`, which cannot hand a function
 	 * to a `tv` recipe and so must return one of its own.
 	 */
-	test("a className function still receives the part's state", async () => {
+	it("a className function still receives the part's state", async () => {
 		const { container } = await render(
 			<Button disabled className={(state) => (state.disabled ? PROBE : "")}>
 				Save
@@ -269,7 +270,7 @@ describe("ButtonLink", () => {
 		"text-decoration-line",
 	];
 
-	test.each([
+	it.each([
 		{},
 		{ color: "neutral", variant: "outlined", size: "sm" },
 		{ color: "danger", variant: "quiet", size: "lg" },
@@ -285,14 +286,22 @@ describe("ButtonLink", () => {
 		const button = container.querySelector("button");
 		const link = container.querySelector("a");
 		if (!button || !link) throw new Error("expected a button and a link");
-		// A color transition can still be running on mount, and its computed value is
-		// written in another color space until it ends.
-		for (const animation of document.getAnimations()) animation.finish();
-
-		const drawn = (element: Element) => {
+		// The pointer stays wherever an earlier test left it, so each measurement puts it on
+		// a known element first.
+		const drawn = async ({ element, pointerOn }: { element: Element; pointerOn: Element }) => {
+			await userEvent.hover(pointerOn);
+			// Hovering starts a color transition, whose computed value is written in another
+			// color space until it ends.
+			for (const animation of document.getAnimations()) animation.finish();
 			const style = getComputedStyle(element);
 			return DRAWN.map((property) => style.getPropertyValue(property));
 		};
-		expect(drawn(link)).toEqual(drawn(button));
+
+		expect(await drawn({ element: link, pointerOn: button })).toEqual(
+			await drawn({ element: button, pointerOn: link }),
+		);
+		expect(await drawn({ element: link, pointerOn: link })).toEqual(
+			await drawn({ element: button, pointerOn: button }),
+		);
 	});
 });

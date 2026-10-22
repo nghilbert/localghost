@@ -1,15 +1,9 @@
 import { http, HttpResponse } from "msw";
-import { beforeEach, describe, expect, vi } from "vitest";
-import { test, worker } from "#/test/msw";
+import { describe, expect } from "vitest";
+import { page } from "vitest/browser";
+import { useImportBackup } from "#/features/backup/hooks/use-import-backup";
+import { it, worker } from "#/test/msw";
 import { renderHook } from "#/test/utils";
-
-const { toastAdd } = vi.hoisted(() => ({
-	toastAdd: vi.fn<(toast: { title: string; type?: string; description?: string }) => void>(),
-}));
-
-vi.mock("#/components/ui/toast", () => ({ toast: { add: toastAdd } }));
-
-const { useImportBackup } = await import("#/features/backup/hooks/use-import-backup");
 
 function importedCounts(overrides: Record<string, number> = {}) {
 	return {
@@ -30,12 +24,8 @@ function backupFile(contents: object) {
 	return new File([JSON.stringify(contents)], "backup.json", { type: "application/json" });
 }
 
-beforeEach(() => {
-	vi.clearAllMocks();
-});
-
 describe("useImportBackup", () => {
-	test("uploads the file's text and summarizes the counts the endpoint reports", async () => {
+	it("uploads the file's text and summarizes the counts the endpoint reports", async () => {
 		let uploaded: string | undefined;
 		worker.use(
 			http.post("/api/backup/import", async ({ request }) => {
@@ -54,17 +44,17 @@ describe("useImportBackup", () => {
 
 		result.current.mutate(backupFile({ version: 3 }));
 
-		await expect.poll(() => toastAdd.mock.calls.length).toBe(1);
+		const toast = page.getByRole("dialog", { name: "Backup imported" });
+		await expect.element(toast).toBeVisible();
 		expect(uploaded).toBe('{"version":3}');
-		const [toast] = toastAdd.mock.lastCall ?? [];
-		expect(toast?.title).toBe("Backup imported");
-		expect(toast?.type).toBe("success");
-		expect(toast?.description).toContain("3 memories and 2 conversations added; 4 duplicates");
+		await expect
+			.element(toast)
+			.toMatchTextContent("3 memories and 2 conversations added; 4 duplicates");
 		// Endpoints arrive without their keys, so the summary has to say so.
-		expect(toast?.description).toContain("re-enter their API keys");
+		await expect.element(toast).toMatchTextContent("re-enter their API keys");
 	});
 
-	test("reports the server's message when the import is rejected", async () => {
+	it("reports the server's message when the import is rejected", async () => {
 		worker.use(
 			http.post(
 				"/api/backup/import",
@@ -78,9 +68,8 @@ describe("useImportBackup", () => {
 
 		result.current.mutate(backupFile({ version: 99 }));
 
-		await expect.poll(() => toastAdd.mock.calls.length).toBe(1);
-		const [toast] = toastAdd.mock.lastCall ?? [];
-		expect(toast?.type).toBe("error");
-		expect(toast?.description).toBe("Unsupported backup version");
+		await expect
+			.element(page.getByRole("dialog", { name: "Failed to import backup" }))
+			.toMatchTextContent("Unsupported backup version");
 	});
 });

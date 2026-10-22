@@ -64,7 +64,9 @@ describe("readUrl", () => {
 		fetchMock.mockResolvedValue(mockResponse({ ok: false, status: 404 }));
 		const controller = new AbortController();
 		controller.abort();
-		await expect(readUrl("https://example.com", controller.signal)).rejects.toThrow();
+		await expect(readUrl("https://example.com", controller.signal)).rejects.toThrow(
+			"Failed to read page: HTTP 404",
+		);
 		expect(fetchMock.mock.calls[0]?.[1]?.signal?.aborted).toBe(true);
 	});
 

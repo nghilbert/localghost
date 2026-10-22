@@ -2,7 +2,7 @@ import { http, HttpResponse } from "msw";
 import { describe, expect } from "vitest";
 import { userEvent } from "vitest/browser";
 import { SignInForm } from "#/features/account/components/SignInForm";
-import { test, worker } from "#/test/msw";
+import { it, worker } from "#/test/msw";
 import { renderWithRouter } from "#/test/utils";
 
 async function submitSignIn() {
@@ -14,7 +14,7 @@ async function submitSignIn() {
 }
 
 describe("useSignIn", () => {
-	test("shows who is signed in when the server refuses a second person", async () => {
+	it("shows who is signed in when the server refuses a second person", async () => {
 		const message =
 			"Sam is signed in. They need to sign out, or you can sign in after their session ends.";
 		worker.use(
@@ -28,7 +28,7 @@ describe("useSignIn", () => {
 		await expect.element(screen.getByRole("alert")).toHaveTextContent(message);
 	});
 
-	test("keeps other failures vague", async () => {
+	it("keeps other failures vague", async () => {
 		worker.use(
 			http.post("/api/auth/sign-in/email", () =>
 				HttpResponse.json(

@@ -1,7 +1,8 @@
+import type { ComponentProps } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
-import type { ModelRow } from "#/features/library/lib/model-rows";
-import type { PullProgress } from "#/features/library/library.types";
+import { buildModelRows } from "#/features/library/lib/model-rows";
+import type { InstalledModel, PullProgress } from "#/features/library/library.types";
 import { makeCatalogModel, makeHardware, makeInstalledModel } from "#/test/factories";
 import { render, renderWithRouter } from "#/test/utils";
 import { ModelDetailPanel } from ".";
@@ -21,30 +22,35 @@ const catalog = makeCatalogModel({
 	],
 });
 
-const availableRow: ModelRow = {
-	id: "org/llama3.1-GGUF:Q4_K_M",
-	name: "org/llama3.1-GGUF",
-	catalog,
-	installed: null,
-	pullState: undefined,
-};
+/** The Library row that `buildModelRows` makes for `catalog` beside the `installed` models. */
+function rowFor(installed: InstalledModel[] = []) {
+	const [row] = buildModelRows({
+		catalogPage: [catalog],
+		catalogById: new Map(),
+		installedModels: installed,
+		pulling: {},
+		includeOffPageInstalled: false,
+	});
+	if (!row) throw new Error("The catalog model has no row");
+	return row;
+}
 
 const INSTALLED_HINT = "This quantization is installed. Pick another to add it alongside.";
 
 describe("ModelDetailPanel", () => {
 	it("selects a searched variant and binds every pull action to its exact id", async () => {
-		const onPull = vi.fn();
-		const onStop = vi.fn();
+		const onPull = vi.fn<ComponentProps<typeof ModelDetailPanel>["onPull"]>();
+		const onStop = vi.fn<ComponentProps<typeof ModelDetailPanel>["onStop"]>();
 		const renderPanel = ({ pulling }: { pulling: Record<string, PullProgress> }) => (
 			<ModelDetailPanel
-				row={availableRow}
+				row={rowFor()}
 				hardware={makeHardware({ freeRamGb: 16, gpus: null })}
 				pulling={pulling}
 				endpointId="endpoint-1"
 				fetchedVariants={undefined}
 				onPull={onPull}
 				onStop={onStop}
-				onDelete={vi.fn()}
+				onDelete={vi.fn<ComponentProps<typeof ModelDetailPanel>["onDelete"]>()}
 			/>
 		);
 		const screen = await render(renderPanel({ pulling: {} }));
@@ -77,19 +83,18 @@ describe("ModelDetailPanel", () => {
 
 	it("links to the model's settings and shows variants for an installed row, with the installed quant unpullable", async () => {
 		const installed = makeInstalledModel({ id: "org/llama3.1-GGUF:Q4_K_M" });
-		const installedRow: ModelRow = { ...availableRow, installed };
-		const onDelete = vi.fn();
-		const onPull = vi.fn();
+		const onDelete = vi.fn<ComponentProps<typeof ModelDetailPanel>["onDelete"]>();
+		const onPull = vi.fn<ComponentProps<typeof ModelDetailPanel>["onPull"]>();
 
 		const screen = await renderWithRouter(
 			<ModelDetailPanel
-				row={installedRow}
+				row={rowFor([installed])}
 				hardware={undefined}
 				pulling={{}}
 				endpointId="endpoint-1"
 				fetchedVariants={undefined}
 				onPull={onPull}
-				onStop={vi.fn()}
+				onStop={vi.fn<ComponentProps<typeof ModelDetailPanel>["onStop"]>()}
 				onDelete={onDelete}
 			/>,
 		);

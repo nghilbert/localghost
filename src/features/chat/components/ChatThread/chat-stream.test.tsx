@@ -4,7 +4,7 @@ import { fetchServerSentEvents, useChat } from "@tanstack/ai-react";
 import { EventType } from "@tanstack/ai/client";
 import { http, HttpResponse } from "msw";
 import { beforeEach, describe, expect } from "vitest";
-import { test, worker } from "#/test/msw";
+import { it, worker } from "#/test/msw";
 import { renderHook } from "#/test/utils";
 
 /** The response the stream route sends, framed by the same helper the server uses. */
@@ -68,7 +68,7 @@ beforeEach(() => {
 });
 
 describe("chat streaming over /api/chat/stream", () => {
-	test("assembles streamed deltas into one assistant message", async () => {
+	it("assembles streamed deltas into one assistant message", async () => {
 		stubStream(textRun("a1", ["Otters ", "are ", "mustelids."]));
 		const { result } = await mountChat();
 
@@ -78,7 +78,7 @@ describe("chat streaming over /api/chat/stream", () => {
 		expect(result.current.messages.filter((m) => m.role === "user")).toHaveLength(1);
 	});
 
-	test("posts the conversation's forwardedProps alongside the transcript", async () => {
+	it("posts the conversation's forwardedProps alongside the transcript", async () => {
 		let body: { forwardedProps?: Record<string, unknown> } | undefined;
 		worker.use(
 			http.post<never, { forwardedProps?: Record<string, unknown> }>(
@@ -96,7 +96,7 @@ describe("chat streaming over /api/chat/stream", () => {
 		await expect.poll(() => body?.forwardedProps).toEqual({ enabledTools: [], timeZone: "UTC" });
 	});
 
-	test("surfaces a terminal RUN_ERROR instead of hanging on a half-finished run", async () => {
+	it("surfaces a terminal RUN_ERROR instead of hanging on a half-finished run", async () => {
 		stubStream([
 			RUN_STARTED,
 			{ type: EventType.TEXT_MESSAGE_START, messageId: "a1", role: "assistant" },
@@ -111,7 +111,7 @@ describe("chat streaming over /api/chat/stream", () => {
 		await expect.poll(() => result.current.isLoading).toBe(false);
 	});
 
-	test("keeps a tool call and its result on the assistant message", async () => {
+	it("keeps a tool call and its result on the assistant message", async () => {
 		stubStream([
 			RUN_STARTED,
 			{

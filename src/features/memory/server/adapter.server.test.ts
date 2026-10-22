@@ -1,12 +1,15 @@
 import { convertSchemaToJsonSchema } from "@tanstack/ai";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { memoryAdapter } from "./adapter.server";
+import type * as MemoryServer from "./memory.server";
 
-const { recallMemories } = vi.hoisted(() => ({ recallMemories: vi.fn() }));
+const { recallMemories } = vi.hoisted(() => ({
+	recallMemories: vi.fn<typeof MemoryServer.recallMemories>(),
+}));
 
 vi.mock("./memory.server", () => ({
 	recallMemories,
-	findMemories: vi.fn(),
+	findMemories: vi.fn<typeof MemoryServer.findMemories>(),
 }));
 
 const scope = { threadId: "t1", userId: "owner-1" };

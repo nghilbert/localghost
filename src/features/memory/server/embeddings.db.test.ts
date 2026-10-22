@@ -1,8 +1,9 @@
-import type { CreateEmbeddingResponse } from "openai/resources";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { http, HttpResponse } from "msw";
+import { describe, expect } from "vitest";
 import { encrypt } from "#/lib/crypto.server";
-import { log } from "#/lib/log.server";
-import { createEndpoint, createUser, resetDb } from "#/test/db.server";
+import { createEndpoint, createUser, it } from "#/test/db.server";
+import { embeddingsApi } from "#/test/embeddings-api";
+import { network } from "#/test/network.server";
 import { embed, embeddingConfigFor, toVectorLiteral } from "./embeddings.server";
 
 describe("embeddingConfigFor", () => {
@@ -35,31 +36,9 @@ describe("embeddingConfigFor", () => {
 });
 
 describe("embed", () => {
-	beforeEach(async () => {
-		await resetDb();
-		vi.spyOn(log, "error").mockReturnValue();
-		vi.stubGlobal(
-			"fetch",
-			vi.fn().mockResolvedValue(
-				Response.json({
-					object: "list",
-					data: [{ object: "embedding", index: 0, embedding: [0.1, 0.2] }],
-					model: "text-embedding-3-small",
-					usage: { prompt_tokens: 1, total_tokens: 1 },
-				} satisfies CreateEmbeddingResponse),
-			),
-		);
-	});
-
-	afterEach(() => {
-		vi.unstubAllGlobals();
-		vi.restoreAllMocks();
-	});
-
 	it("skips an endpoint whose key can't be decrypted and uses the next one", async () => {
 		const user = await createUser();
-		// Not a valid `iv:tag:ciphertext` triple, so decrypt() throws and endpointApiKey
-		// wraps it in the "re-enter the key" error embed() catches and skips past.
+		// Not a valid `iv:tag:ciphertext` triple, so the key can't be decrypted.
 		await createEndpoint({
 			ownerId: user.id,
 			url: "https://one.test",
@@ -72,15 +51,35 @@ describe("embed", () => {
 			provider: "openai",
 			apiKeyEncrypted: encrypt("plain-key"),
 		});
+		// Only the second endpoint answers, so a request to the first fails the test.
+		network.use(embeddingsApi({ base: "https://two.test/v1", vectorFor: () => [0.1, 0.2] }));
 
 		await expect(embed({ text: "hello", ownerId: user.id })).resolves.toEqual([0.1, 0.2]);
+	});
 
-		const fetchMock = vi.mocked(fetch);
-		expect(fetchMock).toHaveBeenCalledOnce();
-		const input = fetchMock.mock.calls[0]?.[0];
-		expect(input instanceof Request ? input.url : input?.toString()).toBe(
-			"https://two.test/v1/embeddings",
+	it("falls through to the next endpoint when one fails", async () => {
+		const user = await createUser();
+		for (const url of ["https://one.test", "https://two.test"]) {
+			await createEndpoint({
+				ownerId: user.id,
+				url,
+				provider: "openai",
+				apiKeyEncrypted: encrypt("key"),
+			});
+		}
+		network.use(
+			http.post("https://one.test/v1/embeddings", () => new HttpResponse(null, { status: 500 })),
+			embeddingsApi({ base: "https://two.test/v1", vectorFor: () => [0.3, 0.4] }),
 		);
+
+		await expect(embed({ text: "hello", ownerId: user.id })).resolves.toEqual([0.3, 0.4]);
+	});
+
+	it("returns null when no endpoint can embed", async () => {
+		const user = await createUser();
+		await createEndpoint({ ownerId: user.id, url: "https://claude.test", provider: "anthropic" });
+
+		await expect(embed({ text: "hello", ownerId: user.id })).resolves.toBeNull();
 	});
 });
 

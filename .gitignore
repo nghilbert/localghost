@@ -21,8 +21,7 @@ __unconfig*
 todos.json
 
 # Test artifacts
-__screenshots__/
-.vitest-attachments/
+.vitest/
 
 # Logs
 *.log

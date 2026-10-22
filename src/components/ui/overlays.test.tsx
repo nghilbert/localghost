@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, it } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { Alert } from "#/components/ui/alert";
 import { Dialog } from "#/components/ui/dialog";
@@ -17,7 +17,7 @@ import { render } from "#/test/utils";
 
 describe("Select", () => {
 	/** `items` is what lets `Select.Value` show a label rather than the raw value. */
-	test("opens, picks an option and reflects it on the trigger", async () => {
+	it("opens, picks an option and reflects it on the trigger", async () => {
 		await render(
 			<Select.Root
 				items={[
@@ -47,7 +47,7 @@ describe("Select", () => {
 		await expect.element(trigger).toHaveAttribute("aria-expanded", "false");
 	});
 
-	test("closes on Escape without choosing", async () => {
+	it("closes on Escape without choosing", async () => {
 		await render(
 			<Select.Root>
 				<Select.Trigger aria-label="Plan">
@@ -70,7 +70,7 @@ describe("Select", () => {
 });
 
 describe("Menu", () => {
-	test("opens from the trigger and runs the chosen item", async () => {
+	it("opens from the trigger and runs the chosen item", async () => {
 		const chosen: string[] = [];
 		await render(
 			<Menu.Root>
@@ -91,7 +91,7 @@ describe("Menu", () => {
 		await expect.element(trigger).toHaveAttribute("aria-expanded", "false");
 	});
 
-	test("paints a background behind the hovered item", async () => {
+	it("paints a background behind the hovered item", async () => {
 		await render(
 			<Menu.Root defaultOpen>
 				<Menu.Trigger>Actions</Menu.Trigger>
@@ -109,7 +109,7 @@ describe("Menu", () => {
 });
 
 describe("Dialog", () => {
-	test("labels itself from its Title and closes on Escape", async () => {
+	it("labels itself from its Title and closes on Escape", async () => {
 		await render(
 			<Dialog.Root>
 				<Dialog.Trigger>Open</Dialog.Trigger>
@@ -134,7 +134,7 @@ describe("Dialog", () => {
 });
 
 describe("Popover", () => {
-	test("opens from its trigger and closes on Escape", async () => {
+	it("opens from its trigger and closes on Escape", async () => {
 		await render(
 			<Popover.Root>
 				<Popover.Trigger>Details</Popover.Trigger>
@@ -154,7 +154,7 @@ describe("Popover", () => {
 });
 
 describe("Tabs", () => {
-	test("moves between tabs with the arrow keys and swaps the panel", async () => {
+	it("moves between tabs with the arrow keys and swaps the panel", async () => {
 		await render(
 			<Tabs.Root defaultValue="one">
 				<Tabs.List>
@@ -184,7 +184,7 @@ describe("Tabs", () => {
 	});
 
 	/** `layout` is a Root-level variant; children read it back off `data-layout`. */
-	test("publishes its layout for descendants to read", async () => {
+	it("publishes its layout for descendants to read", async () => {
 		const { container } = await render(
 			<Tabs.Root layout="underline" defaultValue="one">
 				<Tabs.List>
@@ -198,7 +198,7 @@ describe("Tabs", () => {
 });
 
 describe("Sheet", () => {
-	test("slides in from its side, labelled by its Title, and closes from its button", async () => {
+	it("slides in from its side, labelled by its Title, and closes from its button", async () => {
 		await render(
 			<Sheet.Root>
 				<Sheet.Trigger>Filters</Sheet.Trigger>
@@ -221,7 +221,7 @@ describe("Sheet", () => {
 });
 
 describe("Alert", () => {
-	test("announces itself as an alert", async () => {
+	it("announces itself as an alert", async () => {
 		await render(
 			<Alert.Root color="danger">
 				<Alert.Title>Could not load</Alert.Title>
