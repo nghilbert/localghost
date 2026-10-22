@@ -137,10 +137,10 @@ export function editUserMessage<TTools extends ReadonlyArray<{ name: string }>>(
 	id,
 	content,
 }: {
-	messages: Array<UIMessage<TTools>>;
+	messages: ReadonlyArray<UIMessage<TTools>>;
 	id: string;
 	content: string;
-}): Array<UIMessage<TTools>> {
+}): ReadonlyArray<UIMessage<TTools>> {
 	const target = messages.find((message) => message.id === id);
 	if (!target) return messages;
 	const mediaParts = target.parts.filter(
@@ -187,7 +187,9 @@ export function turnSeconds(message: UIMessage): number | null {
  * so a turn that took several model calls reads as one reply. A reloaded thread stores
  * each call as its own message.
  */
-export function mergeAssistantTurns<TMessage extends UIMessage>(messages: TMessage[]): TMessage[] {
+export function mergeAssistantTurns<TMessage extends UIMessage>(
+	messages: readonly TMessage[],
+): TMessage[] {
 	const turns: TMessage[] = [];
 	for (const message of messages) {
 		const previous = turns.at(-1);
@@ -205,7 +207,7 @@ export function mergeAssistantTurns<TMessage extends UIMessage>(messages: TMessa
 }
 
 /** Whether the transcript ends on a user message that has no reply yet. */
-export function awaitingAssistantResponse(messages: UIMessage[]): boolean {
+export function awaitingAssistantResponse(messages: readonly UIMessage[]): boolean {
 	const last = messages.at(-1);
 	return last?.role === "user";
 }

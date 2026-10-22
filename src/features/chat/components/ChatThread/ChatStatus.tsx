@@ -13,7 +13,7 @@ type ChatStatusProps = {
 	status: ChatClientState;
 	/** Set while the transcript is restored from the server, before it can be shown. */
 	isHydrating: boolean;
-	messages: UIMessage[];
+	messages: readonly UIMessage[];
 	/** Replaces the waiting row's status, e.g. while the model loads. */
 	pendingStatus?: ActivityStatus;
 	/** The live run's error, or the last saved run's after a reload. */

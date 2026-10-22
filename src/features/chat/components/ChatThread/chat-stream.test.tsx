@@ -51,7 +51,7 @@ function mountChat() {
 	);
 }
 
-function assistantText(messages: UIMessage[]) {
+function assistantText(messages: readonly UIMessage[]) {
 	return messages
 		.filter((message) => message.role === "assistant")
 		.flatMap((message) => message.parts)
