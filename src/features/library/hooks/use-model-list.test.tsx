@@ -9,12 +9,16 @@ import { makeCatalogModel, makeHardware, makeInstalledModel } from "#/test/facto
 import { renderHook } from "#/test/utils";
 import { CATALOG_PAGE_SIZE } from "./use-model-list";
 
-type CatalogInput = { page: number; search?: string; licenses?: string[] };
-type CatalogPage = {
+interface CatalogInput {
+	page: number;
+	search?: string;
+	licenses?: string[];
+}
+interface CatalogPage {
 	rows: CatalogModel[];
 	total: number;
 	availableLicenses: string[];
-};
+}
 
 const { fetchCatalogPage, fetchCatalogByIds } = vi.hoisted(() => ({
 	fetchCatalogPage: vi.fn<(input: CatalogInput) => Promise<CatalogPage>>(),
@@ -56,7 +60,9 @@ function mountList({
 	return renderHook(() => useModelList({ installedModels, pulling, hardware }));
 }
 
-type ListResult = { current: ReturnType<typeof useModelList> };
+interface ListResult {
+	current: ReturnType<typeof useModelList>;
+}
 
 async function selectLicense(result: ListResult, license: string) {
 	const control = (list: ListResult) =>

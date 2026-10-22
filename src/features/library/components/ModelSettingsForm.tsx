@@ -12,10 +12,10 @@ import { perModelOptionsSchema } from "#/features/library/library.schemas";
 
 type ModelSettingsFormValues = z.infer<typeof perModelOptionsSchema>;
 
-type ModelSettingsFormProps = {
+interface ModelSettingsFormProps {
 	endpointId: string;
 	model: string;
-};
+}
 
 /** Edits a model's sampling settings, which override the endpoint's and the user's. */
 export function ModelSettingsForm({ endpointId, model }: ModelSettingsFormProps) {

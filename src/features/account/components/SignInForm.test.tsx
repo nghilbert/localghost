@@ -2,7 +2,10 @@ import { beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 import { render } from "#/test/utils";
 import { SignInForm } from "./SignInForm";
 
-type MutationStub = { mutateAsync: Mock; error: Error | null };
+interface MutationStub {
+	mutateAsync: Mock;
+	error: Error | null;
+}
 
 const mocks = vi.hoisted<{ signIn: MutationStub }>(() => ({
 	signIn: { mutateAsync: vi.fn(), error: null },

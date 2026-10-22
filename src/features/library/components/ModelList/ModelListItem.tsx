@@ -29,7 +29,7 @@ function specLine(row: ModelRow): string {
 	return parts.length > 0 ? parts.join(" · ") : row.name;
 }
 
-type ModelListItemLoadedProps = {
+interface ModelListItemLoadedProps {
 	isLoading?: false;
 	row: ModelRow;
 	hardware: HardwareInfo | undefined;
@@ -37,7 +37,7 @@ type ModelListItemLoadedProps = {
 	onToggleExpanded: () => void;
 	onPull: (model: string) => void;
 	onStop: (model: string) => void;
-};
+}
 
 type ModelListItemProps = { isLoading: true } | ModelListItemLoadedProps;
 

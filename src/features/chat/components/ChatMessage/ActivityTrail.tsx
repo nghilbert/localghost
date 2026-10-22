@@ -11,7 +11,7 @@ import { isPending, toolPhase } from "#/features/chat/lib/tool-phase";
 import { ReasoningStep } from "./ReasoningStep";
 import { ToolCallStep, type ToolApprovalInterrupt } from "./ToolCallStep";
 
-type ActivityTrailProps = {
+interface ActivityTrailProps {
 	/** The reply's parts before its answer. */
 	parts: ChatUIMessage["parts"];
 	isStreaming?: boolean;
@@ -19,7 +19,7 @@ type ActivityTrailProps = {
 	pendingStatus?: ActivityStatus;
 	/** Pending approvals for this message's tool calls. */
 	interrupts?: ChatInterrupts;
-};
+}
 
 // One line joins each step's icon to the next, past any open output. It is the only line,
 // since `--line` is translucent and overlapping lines would show darker.

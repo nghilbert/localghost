@@ -26,10 +26,10 @@ const TOOL_BUILDERS: Record<string, () => AnyServerTool[]> = {
 	web_search: () => [webSearchTool(), readUrlTool()],
 };
 
-type BuildChatToolsOptions = {
+interface BuildChatToolsOptions {
 	/** The tool ids the client turned on for this message. */
 	enabledTools: string[];
-};
+}
 
 /** The server tools for one chat run. Unknown ids are skipped. */
 export function buildChatTools({ enabledTools }: BuildChatToolsOptions): AnyServerTool[] {

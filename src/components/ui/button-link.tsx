@@ -3,7 +3,8 @@ import { useRender } from "@base-ui/react/use-render";
 import { actionVariants, type ActionVariants } from "#/components/ui/variants/action";
 
 /** Props for {@link ButtonLink}. */
-export type ButtonLinkProps = useRender.ComponentProps<"a"> & ActionVariants;
+export interface ButtonLinkProps
+	extends Omit<useRender.ComponentProps<"a">, "color">, ActionVariants {}
 
 /**
  * A link drawn as a button. It renders an `<a>`, since Base UI's Button gives any element

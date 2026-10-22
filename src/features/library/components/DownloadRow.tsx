@@ -5,14 +5,14 @@ import { Tooltip } from "#/components/ui/tooltip";
 import type { PullProgress } from "#/features/library/library.types";
 import { DownloadStatus } from "./DownloadStatus";
 
-type DownloadRowProps = {
+interface DownloadRowProps {
 	model: string;
 	/** Shown above the bar; the model id when left out. */
 	title?: string;
 	pullState: PullProgress;
 	size?: "sm" | "md";
 	onStop: (model: string) => void;
-};
+}
 
 /** A running download: its title, progress, and a button to stop it. */
 export function DownloadRow({ model, title, pullState, size, onStop }: DownloadRowProps) {

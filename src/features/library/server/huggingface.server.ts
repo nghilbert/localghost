@@ -36,7 +36,7 @@ type IndexExtras = z.infer<typeof indexExtrasSchema>;
 export type HubIndexExtras = z.input<typeof indexExtrasSchema>;
 
 /** One GGUF chat repo as the catalog needs it, flattened from the Hub's index. */
-export type HfChatModel = {
+export interface HfChatModel {
 	repoId: string;
 	author: string | null;
 	downloads: number;
@@ -52,7 +52,7 @@ export type HfChatModel = {
 	/** Repos this one derives from; quantizers set it on repacks, but not all do. */
 	baseModelIds: string[];
 	isVision: boolean;
-};
+}
 
 /**
  * A `fetch` for `listModels` and `modelInfo` that also requests the extra fields and

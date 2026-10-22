@@ -8,9 +8,13 @@ import type { buildEndpointFormSchema } from "#/features/endpoint/lib/providers"
 import type { LLMProvider } from "#/lib/llm-provider";
 
 /** The trimmed values of a submitted endpoint form. */
-type EndpointFormValues = { name: string; url: string; apiKey: string };
+interface EndpointFormValues {
+	name: string;
+	url: string;
+	apiKey: string;
+}
 
-type ProviderEndpointFormProps = {
+interface ProviderEndpointFormProps {
 	schema: ReturnType<typeof buildEndpointFormSchema>;
 	/** The provider, so "Test connection" sends its kind of key. */
 	provider: LLMProvider;
@@ -27,7 +31,7 @@ type ProviderEndpointFormProps = {
 	onCancel?: () => void;
 	/** Call `onSaved` after saving, to reset the form and test result. */
 	onSubmit: (args: { value: EndpointFormValues; onSaved: () => void }) => Promise<unknown>;
-};
+}
 
 /** An endpoint's name, URL, and key fields, with "Test connection". */
 export function ProviderEndpointForm({

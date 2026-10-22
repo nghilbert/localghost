@@ -6,14 +6,14 @@ import { bestGpu } from "#/features/library/lib/hardware-fit";
 import type { HardwareInfo } from "#/features/library/library.types";
 import { formatBytes, GIB, MIB } from "#/lib/format";
 
-type HardwareStatProps = {
+interface HardwareStatProps {
 	icon: LucideIcon;
 	label: string;
 	/** Undefined while loading, which shows skeletons. */
 	value: string | undefined;
 	detail: string | undefined;
 	extra?: string | undefined;
-};
+}
 
 function HardwareStat({ icon: Icon, label, value, detail, extra }: HardwareStatProps) {
 	return (
@@ -42,10 +42,10 @@ function HardwareStat({ icon: Icon, label, value, detail, extra }: HardwareStatP
 	);
 }
 
-type HardwareCardProps = {
+interface HardwareCardProps {
 	hardware: HardwareInfo | undefined;
 	isLoading: boolean;
-};
+}
 
 /** The host's CPU, RAM, and GPU. Values show skeletons while loading. */
 export function HardwareCard({ hardware, isLoading }: HardwareCardProps) {

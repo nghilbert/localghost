@@ -3,10 +3,10 @@ import { Button } from "#/components/ui/button";
 import { Item } from "#/components/ui/item";
 import type { Attachment } from "#/features/chat/lib/attachments";
 
-type AttachmentPreviewsProps = {
+interface AttachmentPreviewsProps {
 	attachments: Attachment[];
 	onRemove: (id: string) => void;
-};
+}
 
 /** The attachments waiting to be sent, each removable. */
 export function AttachmentPreviews({ attachments, onRemove }: AttachmentPreviewsProps) {

@@ -55,7 +55,7 @@ const PHASE_ICONS: Record<ToolPhase, ReactElement | null> = {
 };
 
 /** What a tool call says in each phase, from the user's point of view. */
-type ToolLabels = {
+interface ToolLabels {
 	icon: ReactElement;
 	choosing: string;
 	running: string;
@@ -63,7 +63,7 @@ type ToolLabels = {
 	failed: string;
 	/** For a tool that needs approval: the question it asks, and what a denied call says. */
 	approval?: { question: string; denied: string };
-};
+}
 
 /** A memory action's phrases, which its labels are built from. */
 const MEMORY_ACTIONS = {
@@ -145,14 +145,14 @@ function outputText(output: unknown): string {
 	return typeof output === "string" ? output : JSON.stringify(output, null, 2);
 }
 
-type ToolCallStepProps = {
+interface ToolCallStepProps {
 	toolCall: ChatToolCall;
 	/** The call's result, which tells a denied, stopped or failed call apart from a finished one. */
 	result?: ChatToolResult;
 	isStreaming?: boolean;
 	/** The call's pending approval, if any. */
 	interrupt?: ToolApprovalInterrupt;
-};
+}
 
 /**
  * A tool call: a timer while the model writes it and while it runs, then a row that shows

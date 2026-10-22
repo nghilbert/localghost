@@ -8,12 +8,12 @@ const STATUS_LABELS: Record<ModelStatus, string> = {
 	available: "Available",
 };
 
-type ModelStatusFilterProps = {
+interface ModelStatusFilterProps {
 	value: ModelStatus;
 	/** How many models each choice shows. */
 	counts: Record<ModelStatus, number>;
 	onValueChange: (value: ModelStatus) => void;
-};
+}
 
 /** Filters the list to installed or available models, with counts. */
 export function ModelStatusFilter({ value, counts, onValueChange }: ModelStatusFilterProps) {

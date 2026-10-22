@@ -19,7 +19,7 @@ import { DEFAULT_MAX_TOKENS, DEFAULT_TEMPERATURE } from "./llm-constants";
 import { detectProvider, type LLMProvider } from "./llm-provider";
 
 /** Options for {@link streamLLMEvents}. */
-type StreamLLMOptions = {
+interface StreamLLMOptions {
 	url: string;
 	/** The endpoint's stored provider. Detected from the URL when absent. */
 	provider?: LLMProvider;
@@ -43,7 +43,7 @@ type StreamLLMOptions = {
 	middleware?: AnyChatMiddleware[];
 	/** Answers to pending interrupts, sent when the client resolves an approval. */
 	resume?: RunAgentResumeItem[];
-};
+}
 
 const OPENROUTER_REFERER = "https://localghost.app";
 const MAX_AGENT_ROUNDS = 10;
@@ -60,7 +60,7 @@ const modelsResponseSchema = z.object({
 export type ModelsResponse = z.infer<typeof modelsResponseSchema>;
 
 /** Everything that differs between providers, so the rest of the file has no provider branches. */
-type ProviderConfig = {
+interface ProviderConfig {
 	/** Normalizes a configured endpoint URL to the base the chat adapter expects. */
 	chatBaseUrl: (url: string) => string;
 	buildAdapter: (args: { model: string; apiKey: string; baseUrl: string }) => AnyTextAdapter;
@@ -79,7 +79,7 @@ type ProviderConfig = {
 	parseToolSupport?: (args: { json: ModelsResponse; model: string }) => boolean;
 	/** The key to use when none is configured. */
 	resolveApiKey?: (apiKey?: string) => string | undefined;
-};
+}
 
 /** The key to send to a provider: the endpoint's own, or the provider's default when it has one. */
 export function providerApiKey({

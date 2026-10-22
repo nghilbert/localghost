@@ -9,10 +9,10 @@ import { chatBaseUrl, providerApiKey } from "#/lib/llm.server";
 import { log } from "#/lib/log.server";
 
 /** The embedding model a provider family serves, and the OpenAI-compatible base URL to call it at. */
-type EmbeddingConfig = {
+interface EmbeddingConfig {
 	model: string;
 	baseUrl: (url: string) => string;
-};
+}
 
 /** The embedding config for a provider, or `null` when it has no embeddings API (Anthropic). */
 export function embeddingConfigFor(provider: LLMProvider | undefined): EmbeddingConfig | null {

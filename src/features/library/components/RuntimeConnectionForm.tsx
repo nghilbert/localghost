@@ -5,10 +5,10 @@ import { useConnectRuntime } from "#/features/library/hooks/use-connect-runtime"
 import { useTestRuntime } from "#/features/library/hooks/use-test-runtime";
 import { llamacppUrlSchema } from "#/lib/llamacpp/url";
 
-type RuntimeConnectionFormProps = {
+interface RuntimeConnectionFormProps {
 	defaultUrl: string;
 	submitLabel: string;
-};
+}
 
 /** Configures and tests a llama.cpp runtime URL. */
 export function RuntimeConnectionForm({ defaultUrl, submitLabel }: RuntimeConnectionFormProps) {

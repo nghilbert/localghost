@@ -9,7 +9,7 @@ import { ActivityMarker } from "#/features/chat/components/ActivityMarker";
 import { useElapsedSeconds } from "#/features/chat/hooks/use-elapsed-seconds";
 import { describeChatError } from "#/features/chat/lib/chat-errors";
 
-type ChatStatusProps = {
+interface ChatStatusProps {
 	status: ChatClientState;
 	/** Set while the transcript is restored from the server, before it can be shown. */
 	isHydrating: boolean;
@@ -21,9 +21,12 @@ type ChatStatusProps = {
 	onRetry: () => void;
 	/** Set when the last user message has no reply, to offer generating one. */
 	onGenerate?: () => void;
-};
+}
 
-type FailureAlertProps = { message: string; onRetry: () => void };
+interface FailureAlertProps {
+	message: string;
+	onRetry: () => void;
+}
 
 function FailureAlert({ message, onRetry }: FailureAlertProps) {
 	const failure = describeChatError(message);

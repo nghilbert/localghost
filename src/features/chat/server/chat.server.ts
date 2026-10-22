@@ -12,13 +12,13 @@ import { log } from "#/lib/log.server";
 import { chatPersistence, findRunThreadId } from "./persistence.server";
 
 /** A conversation in the sidebar list. */
-type ConversationListItem = {
+interface ConversationListItem {
 	id: string;
 	title: string;
 	model: string | null;
 	endpointId: string | null;
 	updatedAt: Date;
-};
+}
 
 /** The user's conversations, most recently active first, counting both messages and renames. */
 export function findConversations({
@@ -39,14 +39,14 @@ export function findConversations({
 }
 
 /** A conversation search result with a snippet of the match. */
-type ConversationSearchHit = {
+interface ConversationSearchHit {
 	id: string;
 	title: string;
 	model: string | null;
 	endpointId: string | null;
 	updatedAt: Date;
 	snippet: string;
-};
+}
 
 /** Full-text search over the user's transcripts, best match first, with a snippet. */
 export function searchConversations({

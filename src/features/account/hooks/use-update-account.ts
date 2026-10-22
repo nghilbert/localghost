@@ -5,13 +5,13 @@ import { updateUserSettings } from "#/features/account/account.functions";
 import { accountQueries } from "#/features/account/account.queries";
 import { authClient } from "#/lib/auth-client";
 
-type UpdateAccount = {
+interface UpdateAccount {
 	name: string;
 	/** Empty clears it. */
 	systemPrompt: string;
 	/** Sent unchanged, since the settings save replaces both fields. */
 	temperature: number;
-};
+}
 
 /** Saves the account form: the profile name and the chat system prompt. */
 export function useUpdateAccount() {

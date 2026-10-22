@@ -12,11 +12,11 @@ import { libraryQueries } from "#/features/library/library.queries";
 import type { ModelSelection } from "#/lib/llm-schemas";
 import { ModelSettingsForm } from "./ModelSettingsForm";
 
-type ModelSettingsTabProps = {
+interface ModelSettingsTabProps {
 	/** The model being edited, if any. */
 	selection: ModelSelection | undefined;
 	onSelectionChange: (selection: ModelSelection) => void;
-};
+}
 
 /** A unique key for one model on one endpoint. */
 function selectionKey({ endpointId, model }: ModelSelection): string {

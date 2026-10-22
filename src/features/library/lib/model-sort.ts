@@ -1,7 +1,10 @@
 import type { CatalogSortBy } from "#/features/library/library.schemas";
 
 /** The catalog's sort field and direction. */
-export type ModelSort = { sortBy: CatalogSortBy; sortDir: "asc" | "desc" };
+export interface ModelSort {
+	sortBy: CatalogSortBy;
+	sortDir: "asc" | "desc";
+}
 
 /** The sort fields, in menu order. */
 export const SORT_FIELDS: Array<{ id: CatalogSortBy; label: string }> = [

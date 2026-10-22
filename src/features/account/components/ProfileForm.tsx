@@ -5,12 +5,12 @@ import { accountFormSchema } from "#/features/account/account.schemas";
 import { useUpdateAccount } from "#/features/account/hooks/use-update-account";
 import { formatDecimal } from "#/lib/format";
 
-type ProfileFormProps = {
+interface ProfileFormProps {
 	name: string;
 	email: string;
 	systemPrompt: string;
 	temperature: number;
-};
+}
 
 /** Edits the user's name and chat defaults. */
 export function ProfileForm({ name, email, systemPrompt, temperature }: ProfileFormProps) {

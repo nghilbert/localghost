@@ -9,14 +9,14 @@ import type { ToolControls } from "#/features/chat/chat.types";
 import { TOOL_CATALOG } from "#/features/chat/lib/tool-catalog";
 
 /** One tool's row in the menu. */
-type ToolRow = {
+interface ToolRow {
 	id: string;
 	label: string;
 	description: string;
 	icon: LucideIcon;
 	on: boolean;
 	onChange: (on: boolean) => void;
-};
+}
 
 /** One row per tool in the catalog, each toggling its id in `enabledTools`. */
 export function toolRows(controls: ToolControls): ToolRow[] {

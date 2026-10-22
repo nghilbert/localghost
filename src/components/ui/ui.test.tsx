@@ -58,12 +58,12 @@ import { render } from "#/test/utils";
 
 const PROBE = "ui-contract-probe";
 
-type Row = {
+interface Row {
 	/** Anything the part needs around it: a Root for context, a list for a tab. */
 	element: (props: Record<string, unknown>) => ReactNode;
 	/** Omitted when the part is a native control that cannot become a `<article>`. */
 	swapsElement?: false;
-};
+}
 
 const MODULES: Record<string, Row> = {
 	"alert-dialog": {

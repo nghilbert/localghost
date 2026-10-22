@@ -12,7 +12,7 @@ import {
 } from "./hardware-fit";
 
 /** One quant a user can pick. */
-export type ModelVariantOption = {
+export interface ModelVariantOption {
 	quant: string;
 	modelId: string;
 	sizeGb: number | null;
@@ -24,25 +24,25 @@ export type ModelVariantOption = {
 	repoId: string;
 	/** False when this quant comes from another repo of the same model. */
 	isSameRepoAsPrimary: boolean;
-};
+}
 
 /** A group of quants: a fit level, or all of them when the hardware is unknown. */
 export type ModelVariantGroupId = HardwareFit | "variants";
 
 /** Quants grouped under one label. */
-type ModelVariantGroup = {
+interface ModelVariantGroup {
 	id: ModelVariantGroupId;
 	label: string;
 	options: ModelVariantOption[];
-};
+}
 
 /** A model's quant choices, their groups, and the default. */
-type ModelVariants = {
+interface ModelVariants {
 	/** The model id selected by default. It names a repo too, since publishers share quant names. */
 	initialModelId: string;
 	options: ModelVariantOption[];
 	groups: ModelVariantGroup[];
-};
+}
 
 // Best fit first.
 const FIT_GROUP_ORDER: HardwareFit[] = ["fits", "tight", "wont-fit", "unknown"];
@@ -154,12 +154,12 @@ export function buildModelVariants({
 }
 
 /** One publisher offering quants of a model, e.g. `"unsloth"`. */
-type ModelAuthor = {
+interface ModelAuthor {
 	/** The Hugging Face user or org. */
 	name: string;
 	/** One of this publisher's repos for the model. */
 	repoId: string;
-};
+}
 
 /** The publisher in a repo id, e.g. `"bartowski"` from `"bartowski/Qwen_Qwen3-8B-GGUF"`. */
 function authorOf(repoId: string): string {

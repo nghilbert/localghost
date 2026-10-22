@@ -23,7 +23,8 @@ const skeletonVariants = tv({
 });
 
 /** Props for {@link Skeleton}. */
-export type SkeletonProps = useRender.ComponentProps<"div"> & VariantProps<typeof skeletonVariants>;
+export interface SkeletonProps
+	extends useRender.ComponentProps<"div">, VariantProps<typeof skeletonVariants> {}
 
 /**
  * A grey placeholder shape, hidden from screen readers. Put `aria-busy` on the

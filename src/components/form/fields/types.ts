@@ -3,14 +3,18 @@ import type { ComponentProps, ElementType } from "react";
 import type { Field } from "#/components/ui/field";
 
 /** Props every field component takes. */
-export type BaseFieldProps = {
+export interface BaseFieldProps {
 	label: string;
 	description?: string;
 	fieldOrientation?: ComponentProps<typeof Field.Root>["orientation"];
-};
+}
 
 /** One choice in a select, radio, or toggle group field. */
-export type FieldOption = { label: string; value: string; icon?: LucideIcon };
+export interface FieldOption {
+	label: string;
+	value: string;
+	icon?: LucideIcon;
+}
 
 type FormManagedPropKeys =
 	| "id"

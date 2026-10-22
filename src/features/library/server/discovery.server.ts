@@ -58,11 +58,11 @@ export function buildRuntimeCandidateUrls(opts: { savedUrls: string[] }): string
 }
 
 /** Whether a llama.cpp server answered, with its models and downloads. */
-type RuntimeProbeResult = {
+interface RuntimeProbeResult {
 	reachable: boolean;
 	installedModels: InstalledModel[];
 	downloads: Record<string, PullProgress>;
-};
+}
 
 /** Splits the router's model list into installed models and running downloads. */
 export function toRuntimeModels(models: LlamaModel[]): {
@@ -111,7 +111,7 @@ export async function probeRuntime({
 }
 
 /** Where llama.cpp was found, with its models, downloads, and matching saved endpoint. */
-type RuntimeScanResult = {
+interface RuntimeScanResult {
 	url: string;
 	installedModels: InstalledModel[];
 	downloads: Record<string, PullProgress>;
@@ -119,7 +119,7 @@ type RuntimeScanResult = {
 	apiKey: string;
 	/** The saved endpoint for this URL, else the user's oldest llama.cpp endpoint. */
 	savedEndpoint: SavedLlamacppEndpoint | null;
-};
+}
 
 /** Probes the candidate URLs at once and returns the first reachable one, in priority order. */
 export async function scanForRuntime(userId: string): Promise<RuntimeScanResult | null> {

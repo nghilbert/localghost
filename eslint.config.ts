@@ -36,7 +36,6 @@ export default defineConfig(
 		rules: {
 			"@typescript-eslint/array-type": ["error", { default: "array-simple" }],
 			"@typescript-eslint/consistent-type-assertions": ["error", { assertionStyle: "never" }],
-			"@typescript-eslint/consistent-type-definitions": ["error", "type"],
 			// Destructuring a key out with a rest sibling is how an entry is dropped immutably.
 			"@typescript-eslint/no-unused-vars": ["error", { ignoreRestSiblings: true }],
 			// `redirect()` and `notFound()` are thrown by design.

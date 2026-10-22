@@ -30,7 +30,7 @@ const GROUP_LABEL_STYLE: Record<ModelVariantGroupId, string> = {
 	variants: "text-muted-fg",
 };
 
-type ModelVariantCardProps = {
+interface ModelVariantCardProps {
 	catalog: CatalogModel | null;
 	fallbackModelId: string;
 	fallbackPullState: PullProgress | undefined;
@@ -43,7 +43,7 @@ type ModelVariantCardProps = {
 	onPull: (model: string) => void;
 	onStop: (model: string) => void;
 	className?: string;
-};
+}
 
 function VariantOptionBody({
 	option,

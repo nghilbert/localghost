@@ -2,13 +2,13 @@ import { Link, useRouterState, type LinkProps } from "@tanstack/react-router";
 import { LibraryIcon, MessageCirclePlusIcon, type LucideIcon } from "lucide-react";
 import { Sidebar } from "#/components/ui/sidebar";
 
-type NavItem = {
+interface NavItem {
 	label: string;
 	to: LinkProps["to"];
 	NavIcon: LucideIcon;
 	/** Path prefixes that count as this section, beyond `to` itself. */
 	matches: readonly string[];
-};
+}
 const NAV_ITEMS = [
 	{ label: "Chat", to: "/new", NavIcon: MessageCirclePlusIcon, matches: ["/new", "/chat"] },
 	{ label: "Library", to: "/library", NavIcon: LibraryIcon, matches: ["/library"] },

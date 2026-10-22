@@ -7,14 +7,14 @@ import { documentMessageParts, imageMessageParts } from "./messages";
 type AttachmentKind = "image" | "document";
 
 /** A file read into a base64 data URL, ready to send or preview. */
-export type Attachment = {
+export interface Attachment {
 	id: string;
 	name: string;
 	/** A `data:<mime>;base64,...` URL: the source for both sending and the preview. */
 	dataUrl: string;
 	mimeType: string;
 	kind: AttachmentKind;
-};
+}
 
 /** The largest attachment allowed, well under the chat request's 64 MB limit. */
 export const MAX_ATTACHMENT_BYTES = 20 * MIB;

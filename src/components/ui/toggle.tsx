@@ -11,7 +11,7 @@ const toggleVariants = tv({
 });
 
 /** `solid` and `soft` are not offered: both look pressed already. */
-export type ToggleProps = BaseToggle.Props & ActionVariants<"outlined" | "quiet">;
+export interface ToggleProps extends BaseToggle.Props, ActionVariants<"outlined" | "quiet"> {}
 
 /** A button that stays pressed until clicked again. */
 export function Toggle({ className, color, variant, size, iconOnly, ...props }: ToggleProps) {

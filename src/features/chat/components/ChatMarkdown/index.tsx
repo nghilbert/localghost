@@ -136,14 +136,14 @@ const components = {
 	img: styled({ tag: "img", className: "max-w-full rounded-md" }),
 } satisfies MarkdownComponents;
 
-type ChatMarkdownProps = {
+interface ChatMarkdownProps {
 	children: string;
 	/** Hides half-written trailing blocks, such as an empty list item, while the text streams. */
 	isStreaming?: boolean;
 	/** Draws a block caret after the last block. */
 	caret?: boolean;
 	className?: string;
-};
+}
 
 /** Model output rendered as Markdown, with raw HTML left as text. */
 export function ChatMarkdown({ children, isStreaming, caret, className }: ChatMarkdownProps) {

@@ -179,7 +179,10 @@ export async function probeModelCapabilities({
 }
 
 /** A saved llama.cpp endpoint's id and URL. */
-export type SavedLlamacppEndpoint = { id: string; url: string };
+export interface SavedLlamacppEndpoint {
+	id: string;
+	url: string;
+}
 
 /** The user's llama.cpp endpoints, oldest first. */
 export function findLlamacppEndpoints({ ownerId }: { ownerId: string }): Promise<Endpoint[]> {

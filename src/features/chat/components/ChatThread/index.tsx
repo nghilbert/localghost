@@ -29,7 +29,9 @@ import { MS_PER_SECOND } from "#/lib/format";
 import { ChatStatus } from "./ChatStatus";
 import { QueuedMessageItem } from "./QueuedMessageItem";
 
-type ChatThreadProps = { conversation: ConversationDetail };
+interface ChatThreadProps {
+	conversation: ConversationDetail;
+}
 /** A conversation's transcript and message box, streaming replies as they arrive. */
 export function ChatThread({ conversation }: ChatThreadProps) {
 	const {

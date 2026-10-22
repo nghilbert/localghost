@@ -1,5 +1,5 @@
 /** A conversation in the sidebar, with a snippet when its messages matched a search. */
-export type SearchableConversation = {
+export interface SearchableConversation {
 	id: string;
 	title: string;
 	model: string | null;
@@ -7,7 +7,7 @@ export type SearchableConversation = {
 	updatedAt: Date;
 	/** Only on a message match, not a title match. */
 	snippet?: string;
-};
+}
 
 /** Title matches first, then message matches that are not already listed. */
 export function mergeSearchResults({
@@ -22,7 +22,11 @@ export function mergeSearchResults({
 }
 
 /** A piece of a search snippet. `start` is its offset in the snippet, unique enough for a React key. */
-type SnippetSegment = { text: string; highlight: boolean; start: number };
+interface SnippetSegment {
+	text: string;
+	highlight: boolean;
+	start: number;
+}
 
 /** Splits a `ts_headline` snippet on its `<<<` and `>>>` markers, so matches can be bolded without raw HTML. */
 export function snippetSegments(snippet: string): SnippetSegment[] {

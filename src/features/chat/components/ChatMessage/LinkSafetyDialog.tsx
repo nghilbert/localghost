@@ -1,10 +1,10 @@
 import { AlertDialog } from "#/components/ui/alert-dialog";
 
-type LinkSafetyDialogProps = {
+interface LinkSafetyDialogProps {
 	url: string;
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
-};
+}
 
 /** Shows the real destination of a link from model output and opens it in a new tab on confirm. */
 export function LinkSafetyDialog({ url, open, onOpenChange }: LinkSafetyDialogProps) {

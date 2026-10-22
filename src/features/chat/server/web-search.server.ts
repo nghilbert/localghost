@@ -30,12 +30,12 @@ export type SearxngResponse = z.input<typeof searxResponseSchema>;
 type SearchTimeRange = z.infer<typeof webSearchArgsSchema>["time_range"];
 type SearXNGSearchResponse = z.infer<typeof searxResponseSchema>;
 
-type WebSearchParams = {
+interface WebSearchParams {
 	query: string;
 	limit?: number;
 	timeRange?: SearchTimeRange;
 	signal?: AbortSignal;
-};
+}
 
 /**
  * Searches SearXNG and returns the results as text for the model. A time-ranged search

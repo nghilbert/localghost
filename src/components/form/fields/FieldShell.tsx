@@ -2,12 +2,12 @@ import type { ComponentProps, ReactNode } from "react";
 import { Field } from "#/components/ui/field";
 import { useFieldBinding } from "../use-field-binding";
 
-type FieldShellProps = {
+interface FieldShellProps {
 	label: string;
 	description?: string;
 	orientation?: ComponentProps<typeof Field.Root>["orientation"];
 	children: ReactNode;
-};
+}
 
 /**
  * Wraps a field control with its label, optional description, and validation error,

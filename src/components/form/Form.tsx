@@ -3,7 +3,9 @@ import { Form as FormUi } from "#/components/ui/form";
 import { FieldErrors } from "#/lib/form-errors";
 import { useFormContext } from "./form-context";
 
-type FormProps = Omit<ComponentProps<typeof FormUi>, "onSubmit"> & { children: ReactNode };
+interface FormProps extends Omit<ComponentProps<typeof FormUi>, "onSubmit"> {
+	children: ReactNode;
+}
 
 /**
  * Submits the form and shows a thrown `FieldErrors` inline on the fields it names.

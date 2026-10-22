@@ -2,12 +2,12 @@ import { ScriptOnce } from "@tanstack/react-router";
 import { createContext, use, useEffect, useSyncExternalStore, type ReactNode } from "react";
 import { isTheme, isThemeMode, THEMES, type Theme, type ThemeMode } from "./theme";
 
-type ThemeContextValue = {
+interface ThemeContextValue {
 	mode: ThemeMode;
 	setMode: (mode: ThemeMode) => void;
 	theme: Theme | null;
 	setTheme: (theme: Theme | null) => void;
-};
+}
 
 const MODE_STORAGE_KEY = "theme-mode";
 const THEME_STORAGE_KEY = "theme-preset";
@@ -70,10 +70,10 @@ function getServerValue() {
 	return null;
 }
 
-type ThemeProviderProps = {
+interface ThemeProviderProps {
 	children: ReactNode;
 	defaultMode?: ThemeMode;
-};
+}
 
 /** Applies and stores the light/dark mode and color preset for the app. */
 export function ThemeProvider({ children, defaultMode = "system" }: ThemeProviderProps) {

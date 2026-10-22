@@ -3,7 +3,7 @@ import { actionVariants, type ActionVariants } from "#/components/ui/variants/ac
 import { mergeClassName } from "#/components/ui/variants/class-name";
 
 /** Props for {@link Button}. */
-export type ButtonProps = BaseButton.Props & ActionVariants;
+export interface ButtonProps extends BaseButton.Props, ActionVariants {}
 
 /**
  * `color` picks the color, `variant` picks how loud to draw it. Any pairing

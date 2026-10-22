@@ -66,14 +66,14 @@ function scrollElementToBottom({
 	viewport.scrollTo({ top: viewport.scrollHeight, behavior });
 }
 
-type MessageScrollerContextValue = {
+interface MessageScrollerContextValue {
 	viewportRef: RefObject<HTMLDivElement | null>;
 	contentRef: RefObject<HTMLDivElement | null>;
 	spacerRef: RefObject<HTMLDivElement | null>;
 	markUserIntent: () => void;
 	scrollToEnd: (behavior?: ScrollBehavior) => void;
 	scrollToStart: (behavior?: ScrollBehavior) => void;
-};
+}
 
 const MessageScrollerContext = createContext<MessageScrollerContextValue | null>(null);
 

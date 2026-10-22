@@ -29,7 +29,7 @@ import { LockedModelLabel } from "./LockedModelLabel";
 import { ModelPicker } from "./ModelPicker";
 import { ToolsMenu } from "./ToolsMenu";
 
-type ChatInputProps = {
+interface ChatInputProps {
 	disabled?: boolean;
 	isStreaming: boolean;
 	selection: ModelSelection | null;
@@ -47,7 +47,7 @@ type ChatInputProps = {
 	isSending?: boolean;
 	sendMessage: (message: { content: string; attachments: Attachment[] }) => void;
 	stop?: () => void;
-};
+}
 
 /** The message box, with attachments, the model, and tool switches. */
 export function ChatInput({

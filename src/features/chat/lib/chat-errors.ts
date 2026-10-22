@@ -1,10 +1,10 @@
 /** A provider error explained for the chat, with what the user can do about it. */
-type ChatFailure = {
+interface ChatFailure {
 	title: string;
 	description: string;
 	/** What the alert offers: try again, pick another model in the Library, or nothing that would help. */
 	remedy: "retry" | "library" | "none";
-};
+}
 
 /** Explains a chat run's error message. A crashed local model shows as `unexpected EOF`. */
 export function describeChatError(message: string): ChatFailure {

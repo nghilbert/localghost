@@ -4,7 +4,11 @@ import { log } from "#/lib/log.server";
 import { embed, toVectorLiteral } from "./embeddings.server";
 
 /** A memory returned by {@link recallMemories}. */
-type RecalledMemory = { id: string; text: string; category: string };
+interface RecalledMemory {
+	id: string;
+	text: string;
+	category: string;
+}
 
 /**
  * Inserts a memory with a precomputed embedding, using raw SQL since Prisma has no

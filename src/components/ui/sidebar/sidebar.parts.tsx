@@ -143,7 +143,7 @@ const sidebarSlots = sidebarVariants();
 
 type SidebarVariants = VariantProps<typeof sidebarVariants>;
 
-type SidebarContextValue = {
+interface SidebarContextValue {
 	state: "expanded" | "collapsed";
 	open: boolean;
 	setOpen: (open: boolean) => void;
@@ -151,7 +151,7 @@ type SidebarContextValue = {
 	setOpenMobile: (open: boolean) => void;
 	isMobile: boolean;
 	toggleSidebar: () => void;
-};
+}
 
 const SidebarContext = createContext<SidebarContextValue | null>(null);
 
@@ -162,11 +162,11 @@ export function useSidebar(): SidebarContextValue {
 	return context;
 }
 
-type ProviderProps = ComponentProps<"div"> & {
+interface ProviderProps extends ComponentProps<"div"> {
 	defaultOpen?: boolean;
 	open?: boolean;
 	onOpenChange?: (open: boolean) => void;
-};
+}
 
 /**
  * Holds the open state for a `Root` and the `Inset` beside it, and lays the two
@@ -241,11 +241,10 @@ export function Provider({
 	);
 }
 
-type RootProps = ComponentProps<"div"> &
-	Pick<SidebarVariants, "side" | "variant"> & {
-		/** What collapsing does: slide away, shrink to icons, or nothing. */
-		collapsible?: "offcanvas" | "icon" | "none";
-	};
+interface RootProps extends ComponentProps<"div">, Pick<SidebarVariants, "side" | "variant"> {
+	/** What collapsing does: slide away, shrink to icons, or nothing. */
+	collapsible?: "offcanvas" | "icon" | "none";
+}
 
 /**
  * The panel. On a narrow screen it becomes a sheet that slides in from `side`.
@@ -453,15 +452,15 @@ export function MenuItem({ render, className, ...props }: useRender.ComponentPro
 	});
 }
 
-type MenuButtonProps = useRender.ComponentProps<"button"> &
-	Pick<SidebarVariants, "size"> & {
-		/** Marks the row for the current page, as `data-active`. */
-		active?: boolean;
-		/** How loud to draw the row at rest. */
-		variant?: "quiet" | "outlined";
-		/** Shown beside the button while the panel is collapsed to icons. */
-		tooltip?: string;
-	};
+interface MenuButtonProps
+	extends useRender.ComponentProps<"button">, Pick<SidebarVariants, "size"> {
+	/** Marks the row for the current page, as `data-active`. */
+	active?: boolean;
+	/** How loud to draw the row at rest. */
+	variant?: "quiet" | "outlined";
+	/** Shown beside the button while the panel is collapsed to icons. */
+	tooltip?: string;
+}
 
 /**
  * A row's main button. For a row that navigates, pass `render={<Link />}`.

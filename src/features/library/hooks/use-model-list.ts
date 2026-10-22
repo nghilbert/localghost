@@ -66,11 +66,11 @@ function matchesSearch({ row, search }: { row: ModelRow; search: string }): bool
 	return rankItem(haystack, search).passed;
 }
 
-type UseModelListProps = {
+interface UseModelListProps {
 	installedModels: InstalledModel[];
 	pulling: Record<string, PullProgress>;
 	hardware: HardwareInfo | undefined;
-};
+}
 
 /** The Library list's catalog query, installed models, filters, sorting, and paging. */
 export function useModelList({ installedModels, pulling, hardware }: UseModelListProps) {

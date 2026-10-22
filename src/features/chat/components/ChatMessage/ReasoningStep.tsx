@@ -8,7 +8,10 @@ import { Marker, MarkerContent, MarkerIcon } from "#/features/chat/components/Ma
 import { useStepDuration } from "#/features/chat/hooks/use-step-duration";
 import { formatSeconds } from "#/lib/format";
 
-type ReasoningStepProps = { content: string; isThinking: boolean };
+interface ReasoningStepProps {
+	content: string;
+	isThinking: boolean;
+}
 
 /**
  * A reasoning step: open with a timer while the model thinks, then collapsed to

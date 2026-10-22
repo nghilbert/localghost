@@ -5,10 +5,10 @@ import { Select } from "#/components/ui/select";
 import { defaultSortDirFor, SORT_FIELDS, type ModelSort } from "#/features/library/lib/model-sort";
 import type { CatalogSortBy } from "#/features/library/library.schemas";
 
-type ModelSortControlsProps = {
+interface ModelSortControlsProps {
 	value: ModelSort;
 	onValueChange: (value: ModelSort) => void;
-};
+}
 
 /** The catalog's sort field and direction. The direction icon shows the current order. */
 export function ModelSortControls({ value, onValueChange }: ModelSortControlsProps) {

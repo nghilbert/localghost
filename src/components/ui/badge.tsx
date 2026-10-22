@@ -23,7 +23,9 @@ const badgeVariants = tv({
 });
 
 type BadgeVariants = Omit<ActionVariants<"solid" | "soft" | "outlined">, "size" | "iconOnly">;
-type BadgeState = { color: NonNullable<BadgeVariants["color"]> };
+interface BadgeState {
+	color: NonNullable<BadgeVariants["color"]>;
+}
 
 /**
  * A small label for a count, a status or a tag.

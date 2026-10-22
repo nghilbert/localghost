@@ -15,11 +15,11 @@ import { ActionButton } from "./ActionButton";
 import { DocumentList } from "./DocumentList";
 import { ImageGrid } from "./ImageGrid";
 
-type UserMessageProps = {
+interface UserMessageProps {
 	message: ChatUIMessage;
 	/** Replaces the text and resends. Absent when editing is not allowed. */
 	onEditResend?: (content: string) => void;
-};
+}
 
 /** A user's message: its attachments and text bubble, with copy and edit-and-resend. */
 export function UserMessage({ message, onEditResend }: UserMessageProps) {

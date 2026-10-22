@@ -6,9 +6,9 @@ import { FieldShell } from "./FieldShell";
 import type { ComponentFieldProps, FieldOption } from "./types";
 
 /** Props for {@link RadioGroupField}. */
-type RadioGroupFieldProps = Omit<ComponentFieldProps<typeof RadioGroup>, "name"> & {
+interface RadioGroupFieldProps extends Omit<ComponentFieldProps<typeof RadioGroup>, "name"> {
 	options: FieldOption[];
-};
+}
 
 /** A labeled radio group bound to the enclosing form field. */
 export function RadioGroupField({

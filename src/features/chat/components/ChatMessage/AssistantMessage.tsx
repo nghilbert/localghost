@@ -12,7 +12,7 @@ import { formatSeconds } from "#/lib/format";
 import { ActionButton } from "./ActionButton";
 import { ActivityTrail } from "./ActivityTrail";
 
-type AssistantMessageProps = {
+interface AssistantMessageProps {
 	message: ChatUIMessage;
 	isStreaming?: boolean;
 	/** Replaces the live row's status, e.g. while the model loads. */
@@ -23,7 +23,7 @@ type AssistantMessageProps = {
 	onRegenerate?: () => void;
 	/** Pending approvals for this message's tool calls. */
 	interrupts?: ChatInterrupts;
-};
+}
 
 /** How long the reply took, and whether the user stopped it. */
 function describeDuration(seconds: number, stopped?: boolean): string | null {

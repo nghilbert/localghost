@@ -5,11 +5,11 @@ import { Button } from "#/components/ui/button";
 import { Menu } from "#/components/ui/menu";
 import type { Facet } from "#/features/library/lib/facets";
 
-type ModelFilterMenuProps = {
+interface ModelFilterMenuProps {
 	facets: Facet[];
 	/** Menu content drawn above the facets, such as the status choice. */
 	children?: ReactNode;
-};
+}
 
 /** The catalog filters as grouped checkboxes. A filter with no options is skipped. */
 export function ModelFilterMenu({ facets, children }: ModelFilterMenuProps) {

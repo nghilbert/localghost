@@ -5,11 +5,11 @@ import { FieldShell } from "./FieldShell";
 import type { ComponentFieldProps, FieldOption } from "./types";
 
 /** Props for {@link ToggleGroupField}. */
-type ToggleGroupFieldProps = Omit<ComponentFieldProps<typeof ToggleGroup>, "multiple"> & {
+interface ToggleGroupFieldProps extends Omit<ComponentFieldProps<typeof ToggleGroup>, "multiple"> {
 	options: FieldOption[];
 	/** How loud to draw each option. */
 	variant?: ToggleProps["variant"];
-};
+}
 
 /** A labeled toggle group bound to the enclosing form field. */
 export function ToggleGroupField({

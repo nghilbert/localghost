@@ -7,10 +7,10 @@ import {
 	type ProviderDefinition,
 } from "#/features/endpoint/lib/providers";
 
-type AddProviderFormProps = {
+interface AddProviderFormProps {
 	definition: ProviderDefinition;
 	onCreated?: () => void;
-};
+}
 
 /** The fields for adding one kind of provider. */
 export function AddProviderForm({ definition, onCreated }: AddProviderFormProps) {

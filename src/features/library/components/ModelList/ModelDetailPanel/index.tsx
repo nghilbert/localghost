@@ -13,7 +13,7 @@ import type {
 import { BILLION, formatCount, formatDate } from "#/lib/format";
 import { ModelVariantCard } from "./ModelVariantCard";
 
-type ModelDetailPanelProps = {
+interface ModelDetailPanelProps {
 	row: ModelRow;
 	hardware: HardwareInfo | undefined;
 	pulling: Record<string, PullProgress>;
@@ -24,7 +24,7 @@ type ModelDetailPanelProps = {
 	onPull: (model: string) => void;
 	onStop: (model: string) => void;
 	onDelete: (model: string) => void;
-};
+}
 
 /** A model's details and quants, shown when its row expands. */
 export function ModelDetailPanel({
@@ -59,7 +59,10 @@ export function ModelDetailPanel({
 	);
 }
 
-type OverviewFact = { label: string; value: string };
+interface OverviewFact {
+	label: string;
+	value: string;
+}
 
 /** The model's name, Hugging Face details, and capabilities. */
 function ModelOverviewCard({ row }: { row: ModelRow }) {

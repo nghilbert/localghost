@@ -12,10 +12,10 @@ export function queuedMessageText(content: QueuedMessage["content"]): string {
 	return parts.flatMap((part) => (part.type === "text" ? [part.content] : [])).join("");
 }
 
-type QueuedMessageItemProps = {
+interface QueuedMessageItemProps {
 	item: QueuedMessage;
 	onCancel: (id: string) => void;
-};
+}
 
 /** A message waiting for the current reply to finish before it sends. */
 export function QueuedMessageItem({ item, onCancel }: QueuedMessageItemProps) {

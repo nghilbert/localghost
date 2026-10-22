@@ -37,7 +37,7 @@ export function ModelListSkeleton() {
 	);
 }
 
-type ModelListProps = {
+interface ModelListProps {
 	installedModels: InstalledModel[];
 	pulling: Record<string, PullProgress>;
 	hardware: HardwareInfo | undefined;
@@ -46,7 +46,7 @@ type ModelListProps = {
 	onPull: (model: string) => void;
 	onStop: (model: string) => void;
 	onDelete: (model: string) => void;
-};
+}
 
 /** The Library's model list: a catalog page plus installed and downloading models. */
 export function ModelList({

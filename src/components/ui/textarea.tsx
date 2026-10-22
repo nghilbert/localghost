@@ -4,11 +4,11 @@ import { mergeClassName } from "#/components/ui/variants/class-name";
 import { controlVariants } from "#/components/ui/variants/control";
 
 /** Props for {@link Textarea}. */
-export type TextareaProps = BaseField.Control.Props &
-	VariantProps<typeof controlVariants> & {
-		/** The starting height in lines; the box still grows with its content. */
-		rows?: number;
-	};
+export interface TextareaProps
+	extends Omit<BaseField.Control.Props, "size">, VariantProps<typeof controlVariants> {
+	/** The starting height in lines; the box still grows with its content. */
+	rows?: number;
+}
 
 /**
  * A multi-line text box.

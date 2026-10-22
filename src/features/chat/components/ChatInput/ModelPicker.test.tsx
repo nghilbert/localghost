@@ -7,11 +7,11 @@ const endpoints = [
 	{ id: "e2", name: "Cloud" },
 ];
 
-type RuntimeStatus = {
+interface RuntimeStatus {
 	found: boolean;
 	endpointId: string;
 	installedModels: Array<{ id: string }>;
-};
+}
 
 const { fetchEndpointModels, fetchLibraryStatus } = vi.hoisted(() => ({
 	fetchEndpointModels: vi.fn<(endpointId: string) => string[] | Promise<string[]>>(),

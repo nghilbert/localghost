@@ -2,11 +2,11 @@ import { useAppForm } from "#/components/form/use-app-form";
 import { Input } from "#/components/ui/input";
 import { useRenameConversation } from "#/features/chat/hooks/use-rename-conversation";
 
-type ChatRenameFormProps = {
+interface ChatRenameFormProps {
 	conversation: { id: string; title: string };
 	/** Closes the editor, whether the rename happened or was cancelled. */
 	onDone: () => void;
-};
+}
 
 /** Inline sidebar editor for a chat title: Enter or blur saves, Escape cancels. */
 export function ChatRenameForm({ conversation, onDone }: ChatRenameFormProps) {

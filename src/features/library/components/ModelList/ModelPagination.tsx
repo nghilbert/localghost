@@ -1,11 +1,11 @@
 import { Pagination } from "#/components/ui/pagination";
 
-type ModelPaginationProps = {
+interface ModelPaginationProps {
 	page: number;
 	pageCount: number;
 	onPageChange: (page: number) => void;
 	className?: string;
-};
+}
 
 /** Previous and next page buttons for the catalog. */
 export function ModelPagination({

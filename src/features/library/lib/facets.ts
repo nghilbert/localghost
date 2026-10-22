@@ -13,34 +13,34 @@ function capabilityLabel(capability: CatalogCapability): string {
 }
 
 /** One option of a filter, as a menu checkbox. */
-type FacetControl = {
+interface FacetControl {
 	value: string;
 	label: string;
 	checked: boolean;
 	onToggle: (checked: boolean) => void;
-};
+}
 
 /** A selected filter option, as a removable chip. */
-type FacetChip = {
+interface FacetChip {
 	value: string;
 	label: string;
 	onRemove: () => void;
-};
+}
 
 /** One catalog filter, as menu checkboxes and chips over the caller's selection. */
-export type Facet = {
+export interface Facet {
 	id: string;
 	label: string;
 	controls: FacetControl[];
 	chips: FacetChip[];
 	clear: () => void;
-};
+}
 
 function toggle<T>({ values, value, on }: { values: T[]; value: T; on: boolean }): T[] {
 	return on ? [...values, value] : values.filter((current) => current !== value);
 }
 
-type FacetSpec<T extends string> = {
+interface FacetSpec<T extends string> {
 	id: string;
 	label: string;
 	optionValues: T[];
@@ -49,7 +49,7 @@ type FacetSpec<T extends string> = {
 	labelFor: (value: T) => string;
 	renderOption?: (label: string) => string;
 	renderChip?: (label: string) => string;
-};
+}
 
 function buildFacet<T extends string>({
 	id,
@@ -85,7 +85,7 @@ function buildFacet<T extends string>({
 	};
 }
 
-type ModelFacetsParams = {
+interface ModelFacetsParams {
 	availableLicenses: string[];
 	hiddenFits: HideableFit[];
 	capabilities: CatalogCapability[];
@@ -93,7 +93,7 @@ type ModelFacetsParams = {
 	onHiddenFitsChange: (values: HideableFit[]) => void;
 	onCapabilitiesChange: (values: CatalogCapability[]) => void;
 	onLicensesChange: (values: string[]) => void;
-};
+}
 
 /** The catalog filters for the current selection. The fit filter hides levels instead of choosing them. */
 export function buildModelFacets({

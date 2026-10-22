@@ -8,10 +8,10 @@ import { Spinner } from "#/components/ui/spinner";
 import { useEndpointModelGroups } from "#/features/library/hooks/use-endpoint-model-groups";
 import type { ModelSelection } from "#/lib/llm-schemas";
 
-type ModelPickerProps = {
+interface ModelPickerProps {
 	selection: ModelSelection | null;
 	onSelect?: (selection: ModelSelection) => void;
-};
+}
 
 /** Picks the endpoint and model for a new chat. */
 export function ModelPicker({ selection, onSelect }: ModelPickerProps) {
