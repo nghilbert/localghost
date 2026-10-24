@@ -1,18 +1,17 @@
 import { randomUUID } from "node:crypto";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { http, HttpResponse } from "msw";
+import { describe, expect, vi } from "vitest";
 import { prisma } from "#/lib/db.server";
+import type { LlamaModelList } from "#/lib/llamacpp/client.server";
 import { log } from "#/lib/log.server";
-import { createConversation, createEndpoint, createUser, resetDb } from "#/test/db.server";
-
-const { listModels } = vi.hoisted(() => ({ listModels: vi.fn() }));
-vi.mock("#/lib/llamacpp/client.server", () => ({ listModels }));
-
+import { createConversation, createEndpoint, createUser, it } from "#/test/db.server";
+import { network } from "#/test/network.server";
 import { patchConversation, probeModelRunState, removeConversation } from "./chat.server";
 
-beforeEach(async () => {
-	await resetDb();
-	vi.clearAllMocks();
-});
+/** The llama.cpp router at `http://localhost:8080` lists `body` as its models. */
+function llamacppModels(body: LlamaModelList) {
+	network.use(http.get("http://localhost:8080/models", () => HttpResponse.json(body)));
+}
 
 describe("patchConversation", () => {
 	it("throws when no conversation with that id is owned by the user", async () => {
@@ -60,7 +59,6 @@ describe("probeModelRunState", () => {
 		const conversation = await createConversation({ ownerId: user.id });
 
 		expect(await probeModelRunState({ id: conversation.id, ownerId: user.id })).toBe("ready");
-		expect(listModels).not.toHaveBeenCalled();
 	});
 
 	it("reports ready for a non-llamacpp endpoint without probing", async () => {
@@ -77,7 +75,6 @@ describe("probeModelRunState", () => {
 		});
 
 		expect(await probeModelRunState({ id: conversation.id, ownerId: user.id })).toBe("ready");
-		expect(listModels).not.toHaveBeenCalled();
 	});
 
 	it("reports ready when the model is loaded", async () => {
@@ -92,9 +89,9 @@ describe("probeModelRunState", () => {
 			endpointId: endpoint.id,
 			model: "org/llama3-GGUF:Q4_K_M",
 		});
-		listModels.mockResolvedValue([
-			{ id: "org/llama3-GGUF:Q4_K_M", path: "/models/x.gguf", status: { value: "loaded" } },
-		]);
+		llamacppModels({
+			data: [{ id: "org/llama3-GGUF:Q4_K_M", path: "/models/x.gguf", status: { value: "loaded" } }],
+		});
 
 		expect(await probeModelRunState({ id: conversation.id, ownerId: user.id })).toBe("ready");
 	});
@@ -111,9 +108,11 @@ describe("probeModelRunState", () => {
 			endpointId: endpoint.id,
 			model: "org/llama3-GGUF:Q4_K_M",
 		});
-		listModels.mockResolvedValue([
-			{ id: "org/llama3-GGUF:Q4_K_M", path: "/models/x.gguf", status: { value: "unloaded" } },
-		]);
+		llamacppModels({
+			data: [
+				{ id: "org/llama3-GGUF:Q4_K_M", path: "/models/x.gguf", status: { value: "unloaded" } },
+			],
+		});
 
 		expect(await probeModelRunState({ id: conversation.id, ownerId: user.id })).toBe("warming");
 	});
@@ -130,9 +129,11 @@ describe("probeModelRunState", () => {
 			endpointId: endpoint.id,
 			model: "org/llama3-GGUF:Q4_K_M",
 		});
-		listModels.mockResolvedValue([
-			{ id: "org/llama3-GGUF:Q4_K_M", path: "/models/x.gguf", status: { value: "loading" } },
-		]);
+		llamacppModels({
+			data: [
+				{ id: "org/llama3-GGUF:Q4_K_M", path: "/models/x.gguf", status: { value: "loading" } },
+			],
+		});
 
 		expect(await probeModelRunState({ id: conversation.id, ownerId: user.id })).toBe("warming");
 	});
@@ -149,8 +150,8 @@ describe("probeModelRunState", () => {
 			endpointId: endpoint.id,
 			model: "org/llama3-GGUF:Q4_K_M",
 		});
-		listModels.mockRejectedValue(new Error("connection refused"));
-		const logWarn = vi.spyOn(log, "warn").mockImplementation(() => {});
+		network.use(http.get("http://localhost:8080/models", () => HttpResponse.error()));
+		const logWarn = vi.spyOn(log, "warn").mockReturnValue();
 
 		expect(await probeModelRunState({ id: conversation.id, ownerId: user.id })).toBe("unreachable");
 		expect(logWarn).toHaveBeenCalledOnce();

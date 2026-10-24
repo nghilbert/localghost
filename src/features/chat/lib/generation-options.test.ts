@@ -24,9 +24,9 @@ describe("resolveGenerationOptions", () => {
 		const result = resolveGenerationOptions({
 			userTemperature: null,
 			endpointOptions: { max_tokens: 4096, top_p: 0.9 },
-			modelOptions: { max_tokens: 16384 },
+			modelOptions: { max_tokens: 16_384 },
 		});
-		expect(result.options).toEqual({ max_tokens: 16384, top_p: 0.9 });
+		expect(result.options).toEqual({ max_tokens: 16_384, top_p: 0.9 });
 	});
 
 	it("has no temperature when neither the user nor the model sets one", () => {

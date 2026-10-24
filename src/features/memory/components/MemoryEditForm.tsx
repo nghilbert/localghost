@@ -3,11 +3,11 @@ import { useAppForm } from "#/components/form/use-app-form";
 import { Input } from "#/components/ui/input";
 import { useUpdateMemory } from "#/features/memory/hooks/use-update-memory";
 
-type MemoryEditFormProps = {
+interface MemoryEditFormProps {
 	memory: { id: string; text: string };
 	/** Closes the editor, whether the edit happened or was cancelled. */
 	onDone: () => void;
-};
+}
 
 /** Inline editor for a saved memory's text: Enter or blur saves, Escape cancels. */
 export function MemoryEditForm({ memory, onDone }: MemoryEditFormProps) {
@@ -38,8 +38,12 @@ export function MemoryEditForm({ memory, onDone }: MemoryEditFormProps) {
 							ref={inputRef}
 							aria-label="Memory text"
 							value={field.state.value}
-							onValueChange={(value) => field.handleChange(value)}
-							onBlur={() => form.handleSubmit()}
+							onValueChange={(value) => {
+								field.handleChange(value);
+							}}
+							onBlur={(event) => {
+								event.currentTarget.form?.requestSubmit();
+							}}
 							onKeyDown={(event) => {
 								if (event.key === "Escape") onDone();
 							}}

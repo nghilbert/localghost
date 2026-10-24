@@ -2,6 +2,7 @@ import { faker } from "@faker-js/faker";
 import type { Prisma } from "#/generated/prisma/client";
 import { prisma } from "#/lib/db.server";
 import { MS_PER_DAY } from "#/lib/format";
+import { test as networkTest } from "./network.server";
 
 /** Empties every table, reading their names from `pg_tables` so new models are included. */
 export async function resetDb(): Promise<void> {
@@ -12,6 +13,18 @@ export async function resetDb(): Promise<void> {
 	const names = tables.map((t) => `"${t.tablename}"`).join(", ");
 	await prisma.$executeRawUnsafe(`TRUNCATE TABLE ${names} RESTART IDENTITY CASCADE`);
 }
+
+/**
+ * `test` for database tests: each test starts from empty tables, and outbound HTTP goes
+ * through `network`.
+ */
+export const test = networkTest.extend("db", { auto: true }, async () => {
+	await resetDb();
+	return prisma;
+});
+
+/** `test` under the name `it`, for tests inside a `describe`, as Vitest names them. */
+export const it = test;
 
 /** Creates a user with fake defaults. */
 export function createUser(overrides: Partial<Prisma.UserUncheckedCreateInput> = {}) {

@@ -1,6 +1,7 @@
 import { memoryStream, type RunStore, type StreamChunk } from "@tanstack/ai";
 import { EventType } from "@tanstack/ai/client";
 import { describe, expect, it, vi } from "vitest";
+import { readRunParams, resumeRunResponse, streamRunResponse } from "#/lib/llm-stream.server";
 
 /** Writes a finished run's log, as a completed stream leaves it for a reconnect. */
 async function finishedLog({ runId, chunks }: { runId: string; chunks: StreamChunk[] }) {
@@ -8,8 +9,6 @@ async function finishedLog({ runId, chunks }: { runId: string; chunks: StreamChu
 	await log.append(chunks);
 	await log.close();
 }
-
-import { readRunParams, resumeRunResponse, streamRunResponse } from "#/lib/llm-stream.server";
 
 function postJson(body: string) {
 	return new Request("http://localhost/api/chat/stream", { method: "POST", body });
@@ -66,15 +65,17 @@ describe("readRunParams", () => {
 describe("streamRunResponse", () => {
 	it("turns a thrown run into a terminal RUN_ERROR event", async () => {
 		const runs: RunStore = {
-			createOrResume: vi.fn(),
-			update: vi.fn(),
-			get: vi.fn(async () => null),
-			findActiveRun: vi.fn(async () => null),
+			createOrResume: vi.fn<RunStore["createOrResume"]>(),
+			update: vi.fn<RunStore["update"]>(),
+			get: vi.fn<RunStore["get"]>().mockResolvedValue(null),
+			findActiveRun: vi.fn<RunStore["findActiveRun"]>().mockResolvedValue(null),
 		};
-		async function* failing(): AsyncGenerator<StreamChunk> {
-			yield* [];
-			throw new Error("provider exploded");
-		}
+		const failing = () =>
+			new ReadableStream<StreamChunk>({
+				start(controller) {
+					controller.error(new Error("provider exploded"));
+				},
+			});
 
 		const response = streamRunResponse({
 			request: new Request("http://localhost/api/chat/stream", { method: "POST" }),
@@ -90,9 +91,9 @@ describe("streamRunResponse", () => {
 });
 
 describe("resumeRunResponse", () => {
-	const owned = async (threadId: string) => threadId === "own-thread";
-	const threadOf = async ({ runId }: { runId: string }) =>
-		({ "own-run": "own-thread", "their-run": "their-thread" })[runId] ?? null;
+	const owned = (threadId: string) => Promise.resolve(threadId === "own-thread");
+	const threadOf = ({ runId }: { runId: string }) =>
+		Promise.resolve({ "own-run": "own-thread", "their-run": "their-thread" }[runId] ?? null);
 
 	it("refuses a reconnect that names no run", async () => {
 		const response = await resumeRunResponse({

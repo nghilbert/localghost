@@ -1,7 +1,7 @@
 import type { PullProgress } from "#/features/library/library.types";
 import {
-	type LlamaModelDownloadEvent,
 	llamaModelDownloadEventSchema,
+	type LlamaModelDownloadEvent,
 } from "#/lib/llamacpp/schemas";
 import { aggregatePullProgress } from "./pull-progress";
 
@@ -59,40 +59,38 @@ export async function* streamModelEvents({
 	const search = new URLSearchParams({ endpointId });
 	const source = new EventSource(`/api/models/events?${search}`);
 	const queued: LlamaModelDownloadEvent[] = [];
-	let closed = false;
 	let wake: (() => void) | undefined;
 	const resume = () => {
 		wake?.();
 		wake = undefined;
 	};
 
-	source.onopen = () => onOpen?.();
-	source.onerror = () => {
+	source.addEventListener("open", () => onOpen?.());
+	source.addEventListener("error", () => {
 		console.warn("llama.cpp model-event stream errored", { readyState: source.readyState });
 		// CLOSED means the browser gave up reconnecting.
-		if (source.readyState === EventSource.CLOSED) {
-			closed = true;
-			resume();
-		}
-	};
-	source.onmessage = (message: MessageEvent<string>) => {
+		if (source.readyState === EventSource.CLOSED) resume();
+	});
+	source.addEventListener("message", (message: MessageEvent<string>) => {
 		const event = parseModelEvent(message.data);
 		if (!event) return;
 		queued.push(event);
 		resume();
-	};
+	});
 	signal.addEventListener("abort", resume, { once: true });
 
 	try {
-		while (!signal.aborted && !closed) {
+		while (!signal.aborted && source.readyState !== EventSource.CLOSED) {
 			const next = queued.shift();
 			if (next) {
 				yield next;
 				continue;
 			}
-			await new Promise<void>((settle) => {
-				wake = settle;
-			});
+			const { promise, resolve } = Promise.withResolvers<undefined>();
+			wake = () => {
+				resolve(undefined);
+			};
+			await promise;
 		}
 	} finally {
 		signal.removeEventListener("abort", resume);

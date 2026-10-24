@@ -2,13 +2,13 @@ import type { CatalogCapability } from "#/features/library/library.schemas";
 import type { CatalogModel, InstalledModel, PullProgress } from "#/features/library/library.types";
 
 /** A Library row: a model with its catalog entry, install state, and download. */
-export type ModelRow = {
+export interface ModelRow {
 	id: string;
 	name: string;
 	catalog: CatalogModel | null;
 	installed: InstalledModel | null;
 	pullState: PullProgress | undefined;
-};
+}
 
 /**
  * Library rows from the catalog page, installed models, and downloads. Downloads are

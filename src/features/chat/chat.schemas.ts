@@ -12,6 +12,11 @@ const updateConversationSchema = z.object({
 /** Identifies a conversation. */
 export const conversationIdInput = z.object({ id: uuid });
 
+/** A conversation to download, as Markdown or JSON. */
+export const exportConversationInput = conversationIdInput.extend({
+	format: z.enum(["markdown", "json"]),
+});
+
 /** A conversation search query. */
 export const searchConversationsInput = z.object({ query: z.string() });
 

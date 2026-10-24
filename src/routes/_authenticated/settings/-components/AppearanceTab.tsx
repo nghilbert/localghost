@@ -21,7 +21,11 @@ export function AppearanceTab() {
 			<SettingsSection title="Appearance">
 				<form.AppField
 					name="mode"
-					listeners={{ onChange: ({ value }) => isThemeMode(value) && setMode(value) }}
+					listeners={{
+						onChange: ({ value }) => {
+							if (isThemeMode(value)) setMode(value);
+						},
+					}}
 				>
 					{(field) => (
 						<field.ToggleGroupField
@@ -35,7 +39,11 @@ export function AppearanceTab() {
 
 				<form.AppField
 					name="theme"
-					listeners={{ onChange: ({ value }) => setTheme(isTheme(value) ? value : null) }}
+					listeners={{
+						onChange: ({ value }) => {
+							setTheme(isTheme(value) ? value : null);
+						},
+					}}
 				>
 					{(field) => (
 						<field.CustomField
@@ -45,9 +53,9 @@ export function AppearanceTab() {
 						>
 							<RadioGroup
 								value={field.state.value}
-								onValueChange={(value) =>
-									field.handleChange(isTheme(value) ? value : DEFAULT_THEME)
-								}
+								onValueChange={(value) => {
+									field.handleChange(isTheme(value) ? value : DEFAULT_THEME);
+								}}
 								className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3"
 							>
 								{THEME_OPTIONS.map((option) => (

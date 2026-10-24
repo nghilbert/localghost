@@ -23,7 +23,7 @@ async function fetchFollowingSafeRedirects(input: string, signal?: AbortSignal) 
 		});
 		const location = res.headers.get("location");
 		if (res.status < 300 || res.status >= 400 || !location) return res;
-		target = new URL(location, url).toString();
+		target = new URL(location, url).href;
 	}
 	throw new Error("Too many redirects");
 }
@@ -48,9 +48,9 @@ export async function readUrl(url: string, signal?: AbortSignal): Promise<string
 		const { document } = parseHTML(await res.text());
 		const { title, content } = await Defuddle(document, url, { markdown: true });
 
-		const body = content?.trim();
+		const body = content.trim();
 		if (!body) return "No readable content found at that URL.";
-		return `# ${title ?? url}\n\n${body}`.slice(0, MAX_CHARS);
+		return `# ${title || url}\n\n${body}`.slice(0, MAX_CHARS);
 	} catch (err) {
 		throw (
 			findUnsafeUrlError(err) ??

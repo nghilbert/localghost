@@ -23,13 +23,13 @@ const bubbleVariants = tv({
 	variants: {
 		color: {
 			primary: {
-				root: "[--c:var(--color-primary)] [--c-fg:var(--color-primary-fg)] [--c-soft:var(--color-primary-soft)]",
+				root: "[--c-fg:var(--color-primary-fg)] [--c-soft:var(--color-primary-soft)] [--c:var(--color-primary)]",
 			},
 			neutral: {
-				root: "[--c:var(--color-neutral)] [--c-fg:var(--color-neutral-fg)] [--c-soft:var(--color-neutral-soft)]",
+				root: "[--c-fg:var(--color-neutral-fg)] [--c-soft:var(--color-neutral-soft)] [--c:var(--color-neutral)]",
 			},
 			danger: {
-				root: "[--c:var(--color-danger)] [--c-fg:var(--color-danger-fg)] [--c-soft:var(--color-danger-soft)]",
+				root: "[--c-fg:var(--color-danger-fg)] [--c-soft:var(--color-danger-soft)] [--c:var(--color-danger)]",
 			},
 		},
 		/** How loud to draw the bubble. `quiet` draws none, leaving the text full width. */

@@ -4,10 +4,10 @@ import { FieldShell } from "./FieldShell";
 import type { BaseFieldProps, FieldOption } from "./types";
 
 /** Props for {@link SelectField}. */
-type SelectFieldProps = BaseFieldProps & {
+interface SelectFieldProps extends BaseFieldProps {
 	options: FieldOption[];
 	placeholder?: string;
-};
+}
 
 /** A labeled select bound to the enclosing form field. */
 export function SelectField({

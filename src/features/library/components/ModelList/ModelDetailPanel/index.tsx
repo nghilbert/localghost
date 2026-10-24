@@ -13,7 +13,7 @@ import type {
 import { BILLION, formatCount, formatDate } from "#/lib/format";
 import { ModelVariantCard } from "./ModelVariantCard";
 
-type ModelDetailPanelProps = {
+interface ModelDetailPanelProps {
 	row: ModelRow;
 	hardware: HardwareInfo | undefined;
 	pulling: Record<string, PullProgress>;
@@ -24,7 +24,7 @@ type ModelDetailPanelProps = {
 	onPull: (model: string) => void;
 	onStop: (model: string) => void;
 	onDelete: (model: string) => void;
-};
+}
 
 /** A model's details and quants, shown when its row expands. */
 export function ModelDetailPanel({
@@ -59,7 +59,10 @@ export function ModelDetailPanel({
 	);
 }
 
-type OverviewFact = { label: string; value: string };
+interface OverviewFact {
+	label: string;
+	value: string;
+}
 
 /** The model's name, Hugging Face details, and capabilities. */
 function ModelOverviewCard({ row }: { row: ModelRow }) {
@@ -71,12 +74,16 @@ function ModelOverviewCard({ row }: { row: ModelRow }) {
 		);
 	const facts = catalog ? buildOverviewFacts(catalog) : [];
 	const caption =
-		catalog?.description || (installed ? "Installed model metadata reported by llama.cpp." : null);
+		catalog && catalog.description !== ""
+			? catalog.description
+			: installed
+				? "Installed model metadata reported by llama.cpp."
+				: null;
 
 	return (
 		<Card.Root size="sm">
 			<Card.Header>
-				<Card.Title>{catalog?.displayName || id}</Card.Title>
+				<Card.Title>{catalog && catalog.displayName !== "" ? catalog.displayName : id}</Card.Title>
 				<Card.Description className="truncate font-mono text-xs">{id}</Card.Description>
 			</Card.Header>
 			<Card.Content className="space-y-3">
@@ -84,7 +91,7 @@ function ModelOverviewCard({ row }: { row: ModelRow }) {
 					<dl className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3">
 						{facts.map((fact) => (
 							<div key={fact.label} className="min-w-0">
-								<dt className="text-[11px] font-medium uppercase tracking-wide text-muted-fg">
+								<dt className="text-[11px] font-medium tracking-wide text-muted-fg uppercase">
 									{fact.label}
 								</dt>
 								<dd className="truncate text-sm font-medium">{fact.value}</dd>
@@ -112,7 +119,7 @@ function ModelOverviewCard({ row }: { row: ModelRow }) {
 
 /** The model's known facts, most important first. */
 function buildOverviewFacts(catalog: NonNullable<ModelRow["catalog"]>): OverviewFact[] {
-	const facts: (OverviewFact | null)[] = [
+	const facts: Array<OverviewFact | null> = [
 		catalog.author ? { label: "Author", value: catalog.author } : null,
 		catalog.license ? { label: "License", value: catalog.license } : null,
 		catalog.contextK ? { label: "Context", value: `${catalog.contextK}K tokens` } : null,
@@ -152,7 +159,14 @@ function InstalledModelCard({
 					<SlidersHorizontalIcon />
 					Model settings
 				</ButtonLink>
-				<Button type="button" color="danger" size="sm" onClick={() => onDelete(modelId)}>
+				<Button
+					type="button"
+					color="danger"
+					size="sm"
+					onClick={() => {
+						onDelete(modelId);
+					}}
+				>
 					<Trash2Icon />
 					Delete model
 				</Button>

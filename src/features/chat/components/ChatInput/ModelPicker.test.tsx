@@ -7,15 +7,15 @@ const endpoints = [
 	{ id: "e2", name: "Cloud" },
 ];
 
-type RuntimeStatus = {
+interface RuntimeStatus {
 	found: boolean;
 	endpointId: string;
-	installedModels: { id: string }[];
-};
+	installedModels: Array<{ id: string }>;
+}
 
 const { fetchEndpointModels, fetchLibraryStatus } = vi.hoisted(() => ({
-	fetchEndpointModels: vi.fn(),
-	fetchLibraryStatus: vi.fn(),
+	fetchEndpointModels: vi.fn<(endpointId: string) => string[] | Promise<string[]>>(),
+	fetchLibraryStatus: vi.fn<() => Promise<RuntimeStatus>>(),
 }));
 
 vi.mock("#/features/library/library.queries", () => ({
@@ -86,7 +86,7 @@ describe("ModelPicker dropdown", () => {
 	});
 
 	it("lists endpoint groups in the same order as the endpoints", async () => {
-		fetchEndpointModels.mockImplementation((id: string) => (id === "e1" ? ["llama3"] : ["gpt-4o"]));
+		fetchEndpointModels.mockImplementation((id: string) => [id === "e1" ? "llama3" : "gpt-4o"]);
 
 		const screen = await renderOpenedPicker();
 

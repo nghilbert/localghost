@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, it } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { z } from "zod";
 import { useAppForm } from "#/components/form/use-app-form";
@@ -12,7 +12,7 @@ import { render } from "#/test/utils";
  */
 
 describe("InputField", () => {
-	test("shows the schema error inline, then submits a valid value", async () => {
+	it("shows the schema error inline, then submits a valid value", async () => {
 		const submitted: string[] = [];
 		function Harness() {
 			const form = useAppForm({
@@ -49,7 +49,7 @@ describe("InputField", () => {
 
 describe("Form", () => {
 	/** A failure only the server can know about lands on the field it names. */
-	test("shows a thrown FieldErrors inline on the named field", async () => {
+	it("shows a thrown FieldErrors inline on the named field", async () => {
 		function Harness() {
 			const form = useAppForm({
 				defaultValues: { username: "taken" },
@@ -88,20 +88,20 @@ describe("SubmitButton", () => {
 		);
 	}
 
-	test("stays disabled until the submission resolves", async () => {
-		const submission = Promise.withResolvers<void>();
+	it("stays disabled until the submission resolves", async () => {
+		const submission = Promise.withResolvers<undefined>();
 		await render(<Harness submission={submission.promise} />);
 		const button = page.getByRole("button", { name: "Save" });
 
 		await button.click();
 		await expect.element(button).toHaveAttribute("aria-disabled", "true");
 
-		submission.resolve();
+		submission.resolve(undefined);
 		await expect.element(button).toHaveAttribute("aria-disabled", "false");
 	});
 
-	test("re-enables when the submission rejects", async () => {
-		const submission = Promise.withResolvers<void>();
+	it("re-enables when the submission rejects", async () => {
+		const submission = Promise.withResolvers<undefined>();
 		await render(<Harness submission={submission.promise} />);
 		const button = page.getByRole("button", { name: "Save" });
 
@@ -114,7 +114,7 @@ describe("SubmitButton", () => {
 });
 
 describe("CheckboxField", () => {
-	test("toggles and submits its boolean value", async () => {
+	it("toggles and submits its boolean value", async () => {
 		const submitted: boolean[] = [];
 		function Harness() {
 			const form = useAppForm({
@@ -143,7 +143,7 @@ describe("CheckboxField", () => {
 });
 
 describe("SelectField", () => {
-	test("picks an option, and closing the popup marks the field touched", async () => {
+	it("picks an option, and closing the popup marks the field touched", async () => {
 		function Harness() {
 			const form = useAppForm({ defaultValues: { plan: "" } });
 			return (
@@ -181,7 +181,7 @@ describe("SelectField", () => {
 });
 
 describe("PasswordField", () => {
-	test("types masked, and the toggle reveals it", async () => {
+	it("types masked, and the toggle reveals it", async () => {
 		function Harness() {
 			const form = useAppForm({ defaultValues: { password: "" } });
 			return (
@@ -206,7 +206,7 @@ describe("PasswordField", () => {
 });
 
 describe("TextareaField", () => {
-	test("keeps newlines in the submitted value", async () => {
+	it("keeps newlines in the submitted value", async () => {
 		const submitted: string[] = [];
 		function Harness() {
 			const form = useAppForm({
@@ -235,7 +235,7 @@ describe("TextareaField", () => {
 });
 
 describe("RadioGroupField", () => {
-	test("picks an option and submits its value", async () => {
+	it("picks an option and submits its value", async () => {
 		const submitted: string[] = [];
 		function Harness() {
 			const form = useAppForm({
@@ -272,7 +272,7 @@ describe("RadioGroupField", () => {
 });
 
 describe("SwitchField", () => {
-	test("toggles and submits its boolean value", async () => {
+	it("toggles and submits its boolean value", async () => {
 		const submitted: boolean[] = [];
 		function Harness() {
 			const form = useAppForm({
@@ -304,7 +304,7 @@ describe("ComboboxField", () => {
 	const UTC = { id: "utc", name: "UTC" };
 	const NEW_YORK = { id: "america-new_york", name: "America/New York" };
 
-	test("searches a flat list and stores the picked item's value", async () => {
+	it("searches a flat list and stores the picked item's value", async () => {
 		function Harness() {
 			const form = useAppForm({ defaultValues: { timezone: "" } });
 			return (
@@ -334,7 +334,7 @@ describe("ComboboxField", () => {
 		await expect.element(page.getByRole("status")).toHaveTextContent("america-new_york");
 	});
 
-	test("lists grouped items under their group labels", async () => {
+	it("lists grouped items under their group labels", async () => {
 		function Harness() {
 			const form = useAppForm({ defaultValues: { timezone: "" } });
 			return (
@@ -370,7 +370,9 @@ describe("ToggleGroupField", () => {
 	function Harness({ onSubmit }: { onSubmit: (theme: string) => void }) {
 		const form = useAppForm({
 			defaultValues: { theme: "system" },
-			onSubmit: ({ value }) => onSubmit(value.theme),
+			onSubmit: ({ value }) => {
+				onSubmit(value.theme);
+			},
 		});
 		return (
 			<form.AppForm>
@@ -393,7 +395,7 @@ describe("ToggleGroupField", () => {
 		);
 	}
 
-	test("selects an option and submits its value", async () => {
+	it("selects an option and submits its value", async () => {
 		const submitted: string[] = [];
 		await render(<Harness onSubmit={(theme) => submitted.push(theme)} />);
 
@@ -402,7 +404,7 @@ describe("ToggleGroupField", () => {
 		await expect.poll(() => submitted).toEqual(["dark"]);
 	});
 
-	test("keeps the value when the pressed option is pressed again", async () => {
+	it("keeps the value when the pressed option is pressed again", async () => {
 		const submitted: string[] = [];
 		await render(<Harness onSubmit={(theme) => submitted.push(theme)} />);
 
@@ -414,8 +416,8 @@ describe("ToggleGroupField", () => {
 });
 
 describe("NumberField", () => {
-	test("steps up to its max and stops there", async () => {
-		const submitted: (number | undefined)[] = [];
+	it("steps up to its max and stops there", async () => {
+		const submitted: Array<number | undefined> = [];
 		function Harness() {
 			const form = useAppForm({
 				defaultValues: { count: 2 },
@@ -445,16 +447,17 @@ describe("NumberField", () => {
 		await expect.poll(() => submitted).toEqual([3]);
 	});
 
-	test("stores a cleared value as undefined, not zero", async () => {
+	it("stores a cleared value as undefined, not zero", async () => {
 		function Harness() {
-			const form = useAppForm({ defaultValues: { amount: 5 } });
+			const defaultValues: { amount: number | undefined } = { amount: 5 };
+			const form = useAppForm({ defaultValues });
 			return (
 				<form.AppForm>
 					<form.AppField name="amount">
 						{(field) => <field.NumberField label="Amount" />}
 					</form.AppField>
-					<form.Subscribe selector={(state) => state.values.amount}>
-						{(amount) => <output>{amount === undefined ? "unset" : amount}</output>}
+					<form.Subscribe selector={(state) => state.values.amount ?? "unset"}>
+						{(amount) => <output>{amount}</output>}
 					</form.Subscribe>
 				</form.AppForm>
 			);
@@ -471,7 +474,7 @@ describe("NumberField", () => {
 });
 
 describe("SliderField", () => {
-	test("moves one step with the arrow keys and submits the number", async () => {
+	it("moves one step with the arrow keys and submits the number", async () => {
 		const submitted: number[] = [];
 		function Harness() {
 			const form = useAppForm({

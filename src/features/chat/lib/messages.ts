@@ -1,10 +1,10 @@
 import type { ModelMessage } from "@tanstack/ai";
-import type { DocumentPart, ImagePart } from "@tanstack/ai/client";
 import type { UIMessage } from "@tanstack/ai-client";
+import type { DocumentPart, ImagePart } from "@tanstack/ai/client";
 import { MS_PER_SECOND } from "#/lib/format";
 
 /** Turns `createdAt` back into a `Date` after JSON serialization made it a string. */
-export function reviveMessageDates(messages: Array<ModelMessage>): Array<ModelMessage> {
+export function reviveMessageDates(messages: ModelMessage[]): ModelMessage[] {
 	return messages.map((message) =>
 		message.createdAt ? { ...message, createdAt: new Date(message.createdAt) } : message,
 	);
@@ -54,12 +54,10 @@ export function splitReply<TPart extends UIMessage["parts"][number]>(
 
 /** Image message parts for attachments, each with a data URL source. */
 export function imageMessageParts(images: Array<{ dataUrl: string }>): ImagePart[] {
-	return images.map(
-		(image): ImagePart => ({
-			type: "image",
-			source: { type: "url", value: image.dataUrl },
-		}),
-	);
+	return images.map((image): ImagePart => ({
+		type: "image",
+		source: { type: "url", value: image.dataUrl },
+	}));
 }
 
 /** The URLs of a message's images, in order. */
@@ -79,17 +77,15 @@ function dataUrlToBase64(dataUrl: string): string {
 export function documentMessageParts(
 	documents: Array<{ dataUrl: string; mimeType: string; name: string }>,
 ): DocumentPart[] {
-	return documents.map(
-		(document): DocumentPart => ({
-			type: "document",
-			source: {
-				type: "data",
-				value: dataUrlToBase64(document.dataUrl),
-				mimeType: document.mimeType,
-			},
-			metadata: { filename: document.name },
-		}),
-	);
+	return documents.map((document): DocumentPart => ({
+		type: "document",
+		source: {
+			type: "data",
+			value: dataUrlToBase64(document.dataUrl),
+			mimeType: document.mimeType,
+		},
+		metadata: { filename: document.name },
+	}));
 }
 
 /** The filename in a document part's metadata, or "Document". */
@@ -136,21 +132,24 @@ export function buildFirstUserMessage({
  * Replaces a user message's text and drops every message after it, ready to resend.
  * @returns The shortened transcript, or `messages` unchanged when `id` is not found.
  */
-export function editUserMessage({
+export function editUserMessage<TTools extends ReadonlyArray<{ name: string }>>({
 	messages,
 	id,
 	content,
 }: {
-	messages: UIMessage[];
+	messages: ReadonlyArray<UIMessage<TTools>>;
 	id: string;
 	content: string;
-}): UIMessage[] {
+}): ReadonlyArray<UIMessage<TTools>> {
 	const target = messages.find((message) => message.id === id);
 	if (!target) return messages;
 	const mediaParts = target.parts.filter(
 		(part) => part.type === "image" || part.type === "document",
 	);
-	const edited: UIMessage = { ...target, parts: [...mediaParts, { type: "text", content }] };
+	const edited: UIMessage<TTools> = {
+		...target,
+		parts: [...mediaParts, { type: "text", content }],
+	};
 	return [...messages.slice(0, messages.indexOf(target)), edited];
 }
 
@@ -188,7 +187,9 @@ export function turnSeconds(message: UIMessage): number | null {
  * so a turn that took several model calls reads as one reply. A reloaded thread stores
  * each call as its own message.
  */
-export function mergeAssistantTurns<TMessage extends UIMessage>(messages: TMessage[]): TMessage[] {
+export function mergeAssistantTurns<TMessage extends UIMessage>(
+	messages: readonly TMessage[],
+): TMessage[] {
 	const turns: TMessage[] = [];
 	for (const message of messages) {
 		const previous = turns.at(-1);
@@ -206,7 +207,7 @@ export function mergeAssistantTurns<TMessage extends UIMessage>(messages: TMessa
 }
 
 /** Whether the transcript ends on a user message that has no reply yet. */
-export function awaitingAssistantResponse(messages: Array<UIMessage>): boolean {
+export function awaitingAssistantResponse(messages: readonly UIMessage[]): boolean {
 	const last = messages.at(-1);
 	return last?.role === "user";
 }

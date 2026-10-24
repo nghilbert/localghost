@@ -3,23 +3,23 @@ import { mergeProps } from "@base-ui/react/merge-props";
 import { useRender } from "@base-ui/react/use-render";
 import { PanelLeftIcon } from "lucide-react";
 import {
-	type ComponentProps,
-	type CSSProperties,
 	createContext,
 	use,
 	useEffect,
 	useEffectEvent,
 	useState,
+	type ComponentProps,
+	type CSSProperties,
 } from "react";
 import { tv, type VariantProps } from "tailwind-variants";
 import { Button, type ButtonProps } from "#/components/ui/button";
-import { type InputProps, Input as InputUi } from "#/components/ui/input";
+import { Input as InputUi, type InputProps } from "#/components/ui/input";
 import { Separator as SeparatorUi } from "#/components/ui/separator";
 import { Sheet } from "#/components/ui/sheet";
 import { Tooltip } from "#/components/ui/tooltip";
 import { mergeClassName } from "#/components/ui/variants/class-name";
 import { FOCUS_RING } from "#/components/ui/variants/focus";
-import { useIsMobile } from "./use-is-mobile";
+import { useIsMobile } from "#/hooks/use-is-mobile";
 
 const SIDEBAR_WIDTH = "16rem";
 const SIDEBAR_WIDTH_MOBILE = "18rem";
@@ -56,7 +56,7 @@ const sidebarVariants = tv({
 		groupLabel: [
 			"flex h-8 shrink-0 items-center rounded-md px-2 text-xs font-medium text-muted-fg",
 			"transition-[margin,opacity] duration-200 ease-linear",
-			"in-sidebar-icon:-mt-8 in-sidebar-icon:opacity-0 [--icon-size:--spacing(4)]",
+			"[--icon-size:--spacing(4)] in-sidebar-icon:-mt-8 in-sidebar-icon:opacity-0",
 		],
 		groupContent: "w-full text-sm",
 		menu: "flex w-full min-w-0 flex-col",
@@ -67,12 +67,12 @@ const sidebarVariants = tv({
 			FOCUS_RING,
 			"disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50",
 			"data-active:bg-primary-soft data-active:font-medium data-active:text-primary",
-			"group-has-data-action/menu-item:pr-8 [&>span:last-child]:truncate [--icon-size:--spacing(4)]",
+			"[--icon-size:--spacing(4)] group-has-data-action/menu-item:pr-8 [&>span:last-child]:truncate",
 			"in-sidebar-icon:size-8! in-sidebar-icon:p-2!",
 		],
 		menuAction: [
 			"absolute top-1/2 right-1 flex aspect-square w-5 -translate-y-1/2 items-center justify-center rounded-md p-0",
-			"outline-hidden hover:bg-neutral-soft [--icon-size:--spacing(4)]",
+			"outline-hidden [--icon-size:--spacing(4)] hover:bg-neutral-soft",
 			FOCUS_RING,
 			"after:absolute after:-inset-2 md:after:hidden in-sidebar-icon:hidden",
 		],
@@ -143,7 +143,7 @@ const sidebarSlots = sidebarVariants();
 
 type SidebarVariants = VariantProps<typeof sidebarVariants>;
 
-type SidebarContextValue = {
+interface SidebarContextValue {
 	state: "expanded" | "collapsed";
 	open: boolean;
 	setOpen: (open: boolean) => void;
@@ -151,7 +151,7 @@ type SidebarContextValue = {
 	setOpenMobile: (open: boolean) => void;
 	isMobile: boolean;
 	toggleSidebar: () => void;
-};
+}
 
 const SidebarContext = createContext<SidebarContextValue | null>(null);
 
@@ -162,11 +162,11 @@ export function useSidebar(): SidebarContextValue {
 	return context;
 }
 
-type ProviderProps = ComponentProps<"div"> & {
+interface ProviderProps extends ComponentProps<"div"> {
 	defaultOpen?: boolean;
 	open?: boolean;
 	onOpenChange?: (open: boolean) => void;
-};
+}
 
 /**
  * Holds the open state for a `Root` and the `Inset` beside it, and lays the two
@@ -198,15 +198,19 @@ export function Provider({
 	};
 
 	const onShortcut = useEffectEvent((event: KeyboardEvent) => {
-		if (event.key === SIDEBAR_KEYBOARD_SHORTCUT && (event.metaKey || event.ctrlKey)) {
-			event.preventDefault();
-			toggleSidebar();
+		if (!(event.key === SIDEBAR_KEYBOARD_SHORTCUT && (event.metaKey || event.ctrlKey))) {
+			return;
 		}
+
+		event.preventDefault();
+		toggleSidebar();
 	});
 
 	useEffect(() => {
-		window.addEventListener("keydown", onShortcut);
-		return () => window.removeEventListener("keydown", onShortcut);
+		globalThis.addEventListener("keydown", onShortcut);
+		return () => {
+			globalThis.removeEventListener("keydown", onShortcut);
+		};
 	}, []);
 
 	const providerStyle: CSSProperties & {
@@ -237,11 +241,10 @@ export function Provider({
 	);
 }
 
-type RootProps = ComponentProps<"div"> &
-	Pick<SidebarVariants, "side" | "variant"> & {
-		/** What collapsing does: slide away, shrink to icons, or nothing. */
-		collapsible?: "offcanvas" | "icon" | "none";
-	};
+interface RootProps extends ComponentProps<"div">, Pick<SidebarVariants, "side" | "variant"> {
+	/** What collapsing does: slide away, shrink to icons, or nothing. */
+	collapsible?: "offcanvas" | "icon" | "none";
+}
 
 /**
  * The panel. On a narrow screen it becomes a sheet that slides in from `side`.
@@ -449,15 +452,15 @@ export function MenuItem({ render, className, ...props }: useRender.ComponentPro
 	});
 }
 
-type MenuButtonProps = useRender.ComponentProps<"button"> &
-	Pick<SidebarVariants, "size"> & {
-		/** Marks the row for the current page, as `data-active`. */
-		active?: boolean;
-		/** How loud to draw the row at rest. */
-		variant?: "quiet" | "outlined";
-		/** Shown beside the button while the panel is collapsed to icons. */
-		tooltip?: string;
-	};
+interface MenuButtonProps
+	extends useRender.ComponentProps<"button">, Pick<SidebarVariants, "size"> {
+	/** Marks the row for the current page, as `data-active`. */
+	active?: boolean;
+	/** How loud to draw the row at rest. */
+	variant?: "quiet" | "outlined";
+	/** Shown beside the button while the panel is collapsed to icons. */
+	tooltip?: string;
+}
 
 /**
  * A row's main button. For a row that navigates, pass `render={<Link />}`.

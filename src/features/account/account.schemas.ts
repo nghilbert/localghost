@@ -38,7 +38,7 @@ export const signInDefaults: z.input<typeof signInSchema> = {
 /** The account settings form. */
 export const accountFormSchema = z.object({
 	name: z.string().trim().min(1, "Name is required"),
-	systemPrompt: z.string().max(10000),
+	systemPrompt: z.string().max(10_000),
 	temperature: z.number().min(0).max(2),
 });
 

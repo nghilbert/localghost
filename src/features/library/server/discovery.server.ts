@@ -9,7 +9,7 @@ import { aggregatePullProgress } from "#/features/library/lib/pull-progress";
 import type { InstalledModel, PullProgress } from "#/features/library/library.types";
 import type { Endpoint } from "#/generated/prisma/client";
 import { endpointApiKey } from "#/lib/crypto.server";
-import { type LlamaModel, LOCAL_LLAMACPP_API_KEY, listModels } from "#/lib/llamacpp/client.server";
+import { listModels, LOCAL_LLAMACPP_API_KEY, type LlamaModel } from "#/lib/llamacpp/client.server";
 
 const DEFAULT_RUNTIME_URL = "http://localhost:8080";
 
@@ -23,7 +23,8 @@ const WELL_KNOWN_URLS = [
 
 /** The endpoint's API key, or the bundled server's when it has none. */
 function runtimeApiKey(endpoint: Pick<Endpoint, "apiKeyEncrypted"> | null): string {
-	return (endpoint ? endpointApiKey(endpoint) : undefined) || LOCAL_LLAMACPP_API_KEY;
+	const key = endpoint ? endpointApiKey(endpoint) : undefined;
+	return key === undefined || key === "" ? LOCAL_LLAMACPP_API_KEY : key;
 }
 
 /** The `:QUANT` suffix of a router model id, e.g. `Q4_K_M` from `repo:Q4_K_M`. */
@@ -57,11 +58,11 @@ export function buildRuntimeCandidateUrls(opts: { savedUrls: string[] }): string
 }
 
 /** Whether a llama.cpp server answered, with its models and downloads. */
-type RuntimeProbeResult = {
+interface RuntimeProbeResult {
 	reachable: boolean;
 	installedModels: InstalledModel[];
 	downloads: Record<string, PullProgress>;
-};
+}
 
 /** Splits the router's model list into installed models and running downloads. */
 export function toRuntimeModels(models: LlamaModel[]): {
@@ -110,7 +111,7 @@ export async function probeRuntime({
 }
 
 /** Where llama.cpp was found, with its models, downloads, and matching saved endpoint. */
-type RuntimeScanResult = {
+interface RuntimeScanResult {
 	url: string;
 	installedModels: InstalledModel[];
 	downloads: Record<string, PullProgress>;
@@ -118,7 +119,7 @@ type RuntimeScanResult = {
 	apiKey: string;
 	/** The saved endpoint for this URL, else the user's oldest llama.cpp endpoint. */
 	savedEndpoint: SavedLlamacppEndpoint | null;
-};
+}
 
 /** Probes the candidate URLs at once and returns the first reachable one, in priority order. */
 export async function scanForRuntime(userId: string): Promise<RuntimeScanResult | null> {

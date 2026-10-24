@@ -1,5 +1,4 @@
 import { CheckCircle2Icon } from "lucide-react";
-
 import type { ComboboxFieldGroup } from "#/components/form/fields/ComboboxField";
 import { useAppForm } from "#/components/form/use-app-form";
 import { Badge } from "#/components/ui/badge";
@@ -11,9 +10,9 @@ import {
 	defaultOptionForAuthor,
 	formatModelVariantDetails,
 	groupModelVariantOptions,
+	optionsForAuthor,
 	type ModelVariantGroupId,
 	type ModelVariantOption,
-	optionsForAuthor,
 } from "#/features/library/lib/model-variants";
 import type {
 	CatalogModel,
@@ -31,7 +30,7 @@ const GROUP_LABEL_STYLE: Record<ModelVariantGroupId, string> = {
 	variants: "text-muted-fg",
 };
 
-type ModelVariantCardProps = {
+interface ModelVariantCardProps {
 	catalog: CatalogModel | null;
 	fallbackModelId: string;
 	fallbackPullState: PullProgress | undefined;
@@ -44,7 +43,7 @@ type ModelVariantCardProps = {
 	onPull: (model: string) => void;
 	onStop: (model: string) => void;
 	className?: string;
-};
+}
 
 function VariantOptionBody({
 	option,
@@ -115,7 +114,7 @@ export function ModelVariantCard({
 					<form.Subscribe selector={(state) => state.values}>
 						{(values) => {
 							const authorOptions = optionsForAuthor({ options, author: values.author });
-							const variantGroups: ComboboxFieldGroup<ModelVariantOption>[] =
+							const variantGroups: Array<ComboboxFieldGroup<ModelVariantOption>> =
 								groupModelVariantOptions({ options: authorOptions, hardware }).map((group) => ({
 									id: group.id,
 									label: group.label,
@@ -129,7 +128,7 @@ export function ModelVariantCard({
 								installedModelId !== null && targetModel === installedModelId;
 							const pullState =
 								pulling[targetModel] ??
-								(selectedOption?.isCurrent !== false ? fallbackPullState : undefined);
+								(selectedOption?.isCurrent === false ? undefined : fallbackPullState);
 
 							return (
 								<>

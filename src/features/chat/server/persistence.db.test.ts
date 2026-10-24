@@ -10,6 +10,6 @@ import { chatPersistence } from "./persistence.server";
 beforeAll(resetDb);
 
 runPersistenceConformance("chatPersistence", () => chatPersistence, {
-	skip: ["metadata", "generationRuns", "artifacts", "blobs"],
+	skip: ["metadata", "generationRuns", "artifacts", "blobs", "activities"],
 	checks: ["messages.metadata", "runs.listByThread.state"],
 });

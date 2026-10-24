@@ -1,13 +1,16 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { streamToText } from "@tanstack/ai";
+import { http, HttpResponse } from "msw";
+import { describe, expect } from "vitest";
 import { LOCAL_LLAMACPP_API_KEY } from "#/lib/llamacpp/client.server";
+import { asLLMProvider, detectProvider } from "#/lib/llm-provider";
 import {
 	buildModelsRequest,
 	chatBaseUrl,
-	type ModelsResponse,
 	modelSupportsTools,
 	streamLLMEvents,
+	type ModelsResponse,
 } from "#/lib/llm.server";
-import { asLLMProvider, detectProvider } from "#/lib/llm-provider";
+import { it, network } from "#/test/network.server";
 
 describe("llm.server", () => {
 	describe("asLLMProvider", () => {
@@ -130,14 +133,6 @@ describe("llm.server", () => {
 			expect(chatBaseUrl({ url: "http://localhost:8080", provider: "llamacpp" })).toBe(
 				"http://localhost:8080/v1",
 			);
-			expect(() =>
-				streamLLMEvents({
-					url: "http://localhost:8080",
-					provider: "llamacpp",
-					model: "local-model",
-					messages: [],
-				}),
-			).not.toThrow();
 		});
 
 		it("leaves the gemini base URL untouched", () => {
@@ -148,24 +143,16 @@ describe("llm.server", () => {
 	});
 
 	describe("modelSupportsTools", () => {
-		afterEach(() => {
-			vi.unstubAllGlobals();
-		});
+		const OPENROUTER_MODELS = "https://openrouter.ai/api/v1/models";
 
-		function stubModels(data: NonNullable<ModelsResponse["data"]>) {
-			// A fresh Response per call: a body is single-read.
-			vi.stubGlobal(
-				"fetch",
-				vi
-					.fn()
-					.mockImplementation(() =>
-						Promise.resolve(Response.json({ data } satisfies ModelsResponse)),
-					),
+		function listModels(data: NonNullable<ModelsResponse["data"]>) {
+			network.use(
+				http.get(OPENROUTER_MODELS, () => HttpResponse.json({ data } satisfies ModelsResponse)),
 			);
 		}
 
 		it("reads openrouter tool support from supported_parameters", async () => {
-			stubModels([
+			listModels([
 				{ id: "meta/tool-model", supported_parameters: ["tools", "temperature"] },
 				{ id: "meta/plain-model", supported_parameters: ["temperature"] },
 			]);
@@ -179,7 +166,7 @@ describe("llm.server", () => {
 		});
 
 		it("assumes capable when the model is missing from the list", async () => {
-			stubModels([]);
+			listModels([]);
 			await expect(
 				modelSupportsTools({
 					url: "https://openrouter.ai/api",
@@ -189,17 +176,14 @@ describe("llm.server", () => {
 			).resolves.toBe(true);
 		});
 
-		it("assumes capable without fetching for providers with no capability metadata", async () => {
-			const fetchSpy = vi.fn();
-			vi.stubGlobal("fetch", fetchSpy);
+		it("assumes capable for providers with no capability metadata", async () => {
 			await expect(
 				modelSupportsTools({ url: "https://api.openai.com", provider: "openai", model: "gpt-x" }),
 			).resolves.toBe(true);
-			expect(fetchSpy).not.toHaveBeenCalled();
 		});
 
 		it("assumes capable when the model-list fetch fails", async () => {
-			vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("down")));
+			network.use(http.get(OPENROUTER_MODELS, () => HttpResponse.error()));
 			await expect(
 				modelSupportsTools({
 					url: "https://openrouter.ai/api",
@@ -207,6 +191,39 @@ describe("llm.server", () => {
 					model: "meta/tool-model",
 				}),
 			).resolves.toBe(true);
+		});
+	});
+
+	describe("streamLLMEvents", () => {
+		it("streams from a keyless OpenAI-compatible endpoint and sends it no Authorization header", async () => {
+			const authorization: Array<string | null> = [];
+			const chunk = {
+				id: "chunk",
+				object: "chat.completion.chunk",
+				created: 0,
+				model: "local-model",
+				choices: [{ index: 0, delta: { content: "Hello" }, finish_reason: "stop" }],
+			};
+			network.use(
+				http.post("https://local.test/v1/chat/completions", ({ request }) => {
+					authorization.push(request.headers.get("authorization"));
+					return new HttpResponse(`data: ${JSON.stringify(chunk)}\n\ndata: [DONE]\n\n`, {
+						headers: { "Content-Type": "text/event-stream" },
+					});
+				}),
+			);
+
+			const { text } = await streamToText(
+				streamLLMEvents({
+					url: "https://local.test",
+					provider: "openai",
+					model: "local-model",
+					messages: [{ role: "user", content: "Hi" }],
+				}),
+			);
+
+			expect(text).toBe("Hello");
+			expect(authorization).toEqual([null]);
 		});
 	});
 

@@ -1,7 +1,9 @@
 import { FileTextIcon } from "lucide-react";
 import { Item } from "#/components/ui/item";
 
-type DocumentListProps = { documents: Array<{ name: string; mimeType: string }> };
+interface DocumentListProps {
+	documents: Array<{ name: string; mimeType: string }>;
+}
 
 /** A message's document attachments, as labeled chips. */
 export function DocumentList({ documents }: DocumentListProps) {

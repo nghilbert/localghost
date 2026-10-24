@@ -6,15 +6,15 @@ import { FieldShell } from "./FieldShell";
 import type { BaseFieldProps } from "./types";
 
 /** A labelled bucket of items for the grouped form of {@link ComboboxField}. */
-export type ComboboxFieldGroup<TItem> = {
+export interface ComboboxFieldGroup<TItem> {
 	id: string;
 	label: string;
 	/** Classes for the sticky group label, such as a color that echoes the bucket's meaning. */
 	labelClassName?: string;
 	items: TItem[];
-};
+}
 
-type ComboboxFieldBase<TItem> = BaseFieldProps & {
+interface ComboboxFieldBase<TItem> extends BaseFieldProps {
 	itemToValue: (item: TItem) => string;
 	itemToLabel: (item: TItem) => string;
 	/** Custom item body; defaults to the label string. */
@@ -23,11 +23,13 @@ type ComboboxFieldBase<TItem> = BaseFieldProps & {
 	emptyMessage?: string;
 	/** Classes for the box drawn around the input. */
 	className?: string;
-};
+}
 
 /** Exactly one of `items` (flat) or `groups` (labelled buckets) is provided. */
 type ComboboxFieldProps<TItem> = ComboboxFieldBase<TItem> &
-	({ items: TItem[]; groups?: never } | { groups: ComboboxFieldGroup<TItem>[]; items?: never });
+	(
+		{ items: TItem[]; groups?: never } | { groups: Array<ComboboxFieldGroup<TItem>>; items?: never }
+	);
 
 /**
  * A searchable single-select field over arbitrary items, flat or grouped. Stores the
@@ -47,7 +49,7 @@ export function ComboboxField<TItem>({
 	className,
 }: ComboboxFieldProps<TItem>) {
 	const { field } = useFieldBinding<string>();
-	const flatItems = groups ? groups.flatMap((group) => group.items) : (items ?? []);
+	const flatItems = groups ? groups.flatMap((group) => group.items) : items;
 	const selectedItem = flatItems.find((item) => itemToValue(item) === field.state.value) ?? null;
 
 	const renderOption = (item: TItem) => (

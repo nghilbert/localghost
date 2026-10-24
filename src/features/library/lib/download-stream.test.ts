@@ -62,23 +62,25 @@ describe("reduceDownloadEvent", () => {
 	});
 });
 
-class FakeEventSource {
+class FakeEventSource extends EventTarget {
 	static current: FakeEventSource | undefined;
 	static readonly CLOSED = 2;
 	readonly url: string;
 	readyState = 0;
-	readonly close = vi.fn();
-	onopen: (() => void) | null = null;
-	onerror: (() => void) | null = null;
-	onmessage: ((message: { data: string }) => void) | null = null;
+	readonly close = vi.fn<EventSource["close"]>();
 
 	constructor(url: string | URL) {
+		super();
 		this.url = String(url);
 		FakeEventSource.current = this;
 	}
 
 	emit(payload: unknown) {
-		this.onmessage?.({ data: typeof payload === "string" ? payload : JSON.stringify(payload) });
+		this.dispatchEvent(
+			new MessageEvent("message", {
+				data: typeof payload === "string" ? payload : JSON.stringify(payload),
+			}),
+		);
 	}
 }
 
@@ -94,9 +96,9 @@ afterEach(() => {
 describe("streamModelEvents", () => {
 	it("yields parsed events, skips junk, and closes the source when the signal aborts", async () => {
 		vi.stubGlobal("EventSource", FakeEventSource);
-		vi.spyOn(console, "warn").mockImplementation(() => {});
+		vi.spyOn(console, "warn").mockReturnValue();
 		const controller = new AbortController();
-		const onOpen = vi.fn();
+		const onOpen = vi.fn<NonNullable<Parameters<typeof streamModelEvents>[0]["onOpen"]>>();
 		const seen: string[] = [];
 
 		const consumed = (async () => {
@@ -114,7 +116,7 @@ describe("streamModelEvents", () => {
 		if (!source) throw new Error("expected an event source");
 		expect(source.url).toBe("/api/models/events?endpointId=endpoint-1");
 
-		source.onopen?.();
+		source.dispatchEvent(new Event("open"));
 		expect(onOpen).toHaveBeenCalledOnce();
 
 		source.emit("not json");
@@ -137,7 +139,7 @@ describe("streamModelEvents", () => {
 
 	it("ends the stream when the browser gives up reconnecting", async () => {
 		vi.stubGlobal("EventSource", FakeEventSource);
-		vi.spyOn(console, "warn").mockImplementation(() => {});
+		vi.spyOn(console, "warn").mockReturnValue();
 		const seen: string[] = [];
 
 		const consumed = (async () => {
@@ -154,7 +156,7 @@ describe("streamModelEvents", () => {
 		if (!source) throw new Error("expected an event source");
 
 		source.readyState = FakeEventSource.CLOSED;
-		source.onerror?.();
+		source.dispatchEvent(new Event("error"));
 
 		await consumed;
 		expect(seen).toEqual([]);

@@ -23,13 +23,13 @@ function specLine(row: ModelRow): string {
 	if (paramB != null) parts.push(`${formatCount(paramB * BILLION)} params`);
 	if (catalog?.contextK) parts.push(`${catalog.contextK}K context`);
 	if (catalog?.license) parts.push(catalog.license);
-	const sizeBytes = installed?.sizeBytes ?? (catalog?.sizeGb != null ? catalog.sizeGb * GIB : null);
+	const sizeBytes = installed?.sizeBytes ?? (catalog?.sizeGb == null ? null : catalog.sizeGb * GIB);
 	if (sizeBytes != null) parts.push(formatBytes(sizeBytes));
 	if (catalog?.author && parts.length === 0) parts.push(catalog.author);
 	return parts.length > 0 ? parts.join(" · ") : row.name;
 }
 
-type ModelListItemLoadedProps = {
+interface ModelListItemLoadedProps {
 	isLoading?: false;
 	row: ModelRow;
 	hardware: HardwareInfo | undefined;
@@ -37,7 +37,7 @@ type ModelListItemLoadedProps = {
 	onToggleExpanded: () => void;
 	onPull: (model: string) => void;
 	onStop: (model: string) => void;
-};
+}
 
 type ModelListItemProps = { isLoading: true } | ModelListItemLoadedProps;
 
@@ -87,7 +87,7 @@ export function ModelListItem(props: ModelListItemProps) {
 				>
 					{loaded ? (
 						<>
-							{catalog?.displayName || loaded.row.name}
+							{catalog && catalog.displayName !== "" ? catalog.displayName : loaded.row.name}
 							{isVision && <ImageIcon className="size-3.5 text-muted-fg" />}
 							{catalog?.pullCount != null && catalog.pullCount > 0 && (
 								<span className="flex items-center gap-1 text-xs font-normal text-muted-fg">

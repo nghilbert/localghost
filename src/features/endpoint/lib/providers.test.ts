@@ -3,8 +3,8 @@ import { detectProvider } from "#/lib/llm-provider";
 import {
 	buildEndpointFormSchema,
 	dbProviderFor,
-	PROVIDERS,
 	providerDefinitionFor,
+	PROVIDERS,
 } from "./providers";
 
 describe("provider registry", () => {
@@ -22,11 +22,9 @@ describe("provider registry", () => {
 	});
 
 	it("cloud providers require an api key and provide key guidance", () => {
-		for (const provider of PROVIDERS) {
-			if (provider.defaultBaseUrl) {
-				expect(provider.requiresApiKey).toBe(true);
-				expect(provider.keyConsoleUrl).toBeDefined();
-			}
+		for (const provider of PROVIDERS.filter((candidate) => candidate.defaultBaseUrl)) {
+			expect(provider.requiresApiKey).toBe(true);
+			expect(provider.keyConsoleUrl).toBeDefined();
 		}
 	});
 

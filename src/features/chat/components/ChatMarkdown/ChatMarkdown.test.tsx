@@ -1,14 +1,16 @@
-import { describe, expect, it, vi } from "vitest";
+import { http, HttpResponse } from "msw";
+import { describe, expect, vi } from "vitest";
+import { it, worker } from "#/test/msw";
 import { render } from "#/test/utils";
 import { ChatMarkdown } from ".";
 
 describe("ChatMarkdown", () => {
 	it("confirms an external link before opening it", async () => {
-		const open = vi.spyOn(window, "open").mockReturnValue(null);
+		const open = vi.spyOn(globalThis, "open").mockReturnValue(null);
 		const screen = await render(<ChatMarkdown>{"[Docs](https://example.com)"}</ChatMarkdown>);
 
 		await screen.getByRole("button", { name: "Docs" }).click();
-		await expect.element(screen.getByRole("alertdialog")).toHaveTextContent("https://example.com");
+		await expect.element(screen.getByRole("alertdialog")).toMatchTextContent("https://example.com");
 		expect(open).not.toHaveBeenCalled();
 
 		await screen.getByRole("button", { name: "Open link" }).click();
@@ -50,8 +52,29 @@ describe("ChatMarkdown", () => {
 		);
 
 		await expect.element(screen.getByRole("button", { name: "Copy code" })).toBeVisible();
-		const highlighted = screen.container.querySelectorAll(".th-line--highlighted");
-		expect([...highlighted].map((line) => line.getAttribute("data-line"))).toEqual(["2"]);
+		const highlighted = screen.container.querySelectorAll<HTMLElement>(".th-line--highlighted");
+		expect([...highlighted].map((line) => line.dataset.line)).toEqual(["2"]);
+	});
+
+	it("loads an image from model output only after the user asks", async () => {
+		const requested: string[] = [];
+		worker.use(
+			http.get("https://images.test/cat.png", ({ request }) => {
+				requested.push(request.url);
+				return new HttpResponse(null, { status: 204 });
+			}),
+		);
+		const screen = await render(
+			<ChatMarkdown>{"![A cat](https://images.test/cat.png)"}</ChatMarkdown>,
+		);
+		const show = screen.getByRole("button", { name: 'Show "A cat" from images.test' });
+
+		await expect.element(show).toBeVisible();
+		expect(screen.getByRole("img").elements()).toHaveLength(0);
+
+		await show.click();
+		await expect.element(screen.getByRole("img", { name: "A cat" })).toBeInTheDocument();
+		await expect.poll(() => requested).toEqual(["https://images.test/cat.png"]);
 	});
 
 	it("drops a trailing empty list item while streaming", async () => {

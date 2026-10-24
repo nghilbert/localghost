@@ -2,12 +2,12 @@ import type { ReactNode } from "react";
 import { Button } from "#/components/ui/button";
 import { Tooltip } from "#/components/ui/tooltip";
 
-type ActionButtonProps = {
+interface ActionButtonProps {
 	icon: ReactNode;
 	ariaLabel: string;
 	tooltip: string;
 	onClick: () => void;
-};
+}
 
 /** A single icon button in a message footer, tooltipped with its action name. */
 export function ActionButton({ icon, ariaLabel, tooltip, onClick }: ActionButtonProps) {

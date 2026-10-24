@@ -11,7 +11,7 @@ const alertVariants = tv({
 		root: [
 			"relative grid w-full gap-0.5 rounded-lg px-3 py-2.5 text-left text-sm",
 			"has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 has-[>svg]:*:not-[svg]:col-start-2",
-			"*:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-(--c) [--icon-size:--spacing(4)]",
+			"[--icon-size:--spacing(4)] *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-(--c)",
 			"has-data-action:pr-36",
 		],
 		title: "font-medium text-(--c) [&_a]:underline [&_a]:underline-offset-3",
@@ -22,13 +22,13 @@ const alertVariants = tv({
 	variants: {
 		color: {
 			primary: {
-				root: "[--alert-description:var(--color-muted-fg)] [--c:var(--color-primary)] [--c-soft:var(--color-primary-soft)]",
+				root: "[--alert-description:var(--color-muted-fg)] [--c-soft:var(--color-primary-soft)] [--c:var(--color-primary)]",
 			},
 			neutral: {
-				root: "[--alert-description:var(--color-muted-fg)] [--c:var(--color-fg)] [--c-soft:var(--color-neutral-soft)]",
+				root: "[--alert-description:var(--color-muted-fg)] [--c-soft:var(--color-neutral-soft)] [--c:var(--color-fg)]",
 			},
 			danger: {
-				root: "[--alert-description:var(--color-danger)] [--c:var(--color-danger)] [--c-soft:var(--color-danger-soft)]",
+				root: "[--alert-description:var(--color-danger)] [--c-soft:var(--color-danger-soft)] [--c:var(--color-danger)]",
 			},
 		},
 		variant: {

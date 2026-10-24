@@ -26,7 +26,7 @@ const CATALOG_STALE_TIME = 6 * MS_PER_HOUR;
 /** How often to rescan the runtime: often until one is found and while a download runs. */
 export function libraryStatusPollInterval(status: RuntimeStatus | undefined): number {
 	if (!status?.found) return 5 * MS_PER_SECOND;
-	return Object.keys(status.downloads).length > 0 ? 2 * MS_PER_SECOND : 30 * MS_PER_SECOND;
+	return (Object.keys(status.downloads).length > 0 ? 2 : 30) * MS_PER_SECOND;
 }
 
 /** Query options for the local runtime, hardware, catalog, and per-model settings. */

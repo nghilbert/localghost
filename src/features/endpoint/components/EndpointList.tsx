@@ -30,7 +30,9 @@ export function EndpointList() {
 							key={ep.id}
 							endpoint={ep}
 							isDeleting={deleteEndpoint.isPending}
-							onDelete={(onSuccess) => deleteEndpoint.mutate(ep.id, { onSuccess })}
+							onDelete={(onSuccess) => {
+								deleteEndpoint.mutate(ep.id, { onSuccess });
+							}}
 						/>
 					))}
 				</Item.Group>

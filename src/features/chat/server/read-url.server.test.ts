@@ -2,7 +2,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { readUrl } from "#/features/chat/server/read-url.server";
 import { UnsafeUrlError } from "#/lib/ssrf-guard.server";
 
-const fetchMock = vi.hoisted(() => vi.fn());
+const fetchMock = vi.hoisted(() =>
+	vi.fn<
+		(input: string, init?: { signal?: AbortSignal }) => Promise<ReturnType<typeof mockResponse>>
+	>(),
+);
 vi.mock("undici", async (importOriginal) => {
 	const actual = await importOriginal<typeof import("undici")>();
 	return { ...actual, fetch: fetchMock };
@@ -34,7 +38,9 @@ describe("readUrl", () => {
 	});
 
 	it("extracts the main content as text", async () => {
-		fetchMock.mockResolvedValue(mockResponse({ ok: true, text: async () => ARTICLE_HTML }));
+		fetchMock.mockResolvedValue(
+			mockResponse({ ok: true, text: () => Promise.resolve(ARTICLE_HTML) }),
+		);
 
 		const result = await readUrl("https://example.com/article");
 		expect(result).toContain("Test Article");
@@ -58,8 +64,10 @@ describe("readUrl", () => {
 		fetchMock.mockResolvedValue(mockResponse({ ok: false, status: 404 }));
 		const controller = new AbortController();
 		controller.abort();
-		await expect(readUrl("https://example.com", controller.signal)).rejects.toThrow();
-		expect(fetchMock.mock.calls[0]?.[1]?.signal.aborted).toBe(true);
+		await expect(readUrl("https://example.com", controller.signal)).rejects.toThrow(
+			"Failed to read page: HTTP 404",
+		);
+		expect(fetchMock.mock.calls[0]?.[1]?.signal?.aborted).toBe(true);
 	});
 
 	it("rejects a private literal IP without fetching", async () => {

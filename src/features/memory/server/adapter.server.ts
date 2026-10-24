@@ -49,11 +49,11 @@ async function recall(scope: MemoryScope, query: string): Promise<RecallResult> 
 }
 
 /** Saves nothing automatically; the model saves facts with `manage_memory`. */
-async function save(): ReturnType<MemoryAdapter["save"]> {
-	return [];
+function save(): ReturnType<MemoryAdapter["save"]> {
+	return Promise.resolve([]);
 }
 
-async function listFacts(scope: MemoryScope): Promise<Array<MemoryFact>> {
+async function listFacts(scope: MemoryScope): Promise<MemoryFact[]> {
 	const memories = await findMemories({ ownerId: requireUserId(scope) });
 	return memories.map((m) => ({ id: m.id, text: m.text, source: m.source }));
 }

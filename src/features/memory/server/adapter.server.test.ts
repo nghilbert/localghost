@@ -1,14 +1,16 @@
 import { convertSchemaToJsonSchema } from "@tanstack/ai";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { memoryAdapter } from "./adapter.server";
+import type * as MemoryServer from "./memory.server";
 
-const { recallMemories } = vi.hoisted(() => ({ recallMemories: vi.fn() }));
+const { recallMemories } = vi.hoisted(() => ({
+	recallMemories: vi.fn<typeof MemoryServer.recallMemories>(),
+}));
 
 vi.mock("./memory.server", () => ({
 	recallMemories,
-	findMemories: vi.fn(),
+	findMemories: vi.fn<typeof MemoryServer.findMemories>(),
 }));
-
-import { memoryAdapter } from "./adapter.server";
 
 const scope = { threadId: "t1", userId: "owner-1" };
 
@@ -34,7 +36,7 @@ describe("memoryAdapter.recall", () => {
 	});
 
 	it("renders an empty system prompt when nothing matches, without querying on blank input", async () => {
-		const result = await memoryAdapter.recall(scope, "   ");
+		const result = await memoryAdapter.recall(scope, " ".repeat(3));
 
 		expect(recallMemories).not.toHaveBeenCalled();
 		expect(result.systemPrompt).toBe("");

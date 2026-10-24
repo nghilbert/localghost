@@ -4,8 +4,8 @@ import { SORT_FIELDS } from "./model-sort";
 
 describe("SORT_FIELDS", () => {
 	it("covers exactly the schema's sortable fields", () => {
-		expect(SORT_FIELDS.map((field) => field.id).sort()).toEqual(
-			[...catalogSortBySchema.options].sort(),
+		expect(SORT_FIELDS.map((field) => field.id).toSorted((a, b) => a.localeCompare(b))).toEqual(
+			catalogSortBySchema.options.toSorted((a, b) => a.localeCompare(b)),
 		);
 	});
 });

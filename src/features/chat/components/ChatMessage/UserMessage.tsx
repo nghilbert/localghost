@@ -1,5 +1,5 @@
 import { CopyIcon, PencilIcon } from "lucide-react";
-import { type KeyboardEvent, useState } from "react";
+import { useState, type KeyboardEvent } from "react";
 import { Button } from "#/components/ui/button";
 import { InputGroup } from "#/components/ui/input-group";
 import { Bubble, BubbleContent } from "#/features/chat/components/Bubble";
@@ -15,11 +15,11 @@ import { ActionButton } from "./ActionButton";
 import { DocumentList } from "./DocumentList";
 import { ImageGrid } from "./ImageGrid";
 
-type UserMessageProps = {
+interface UserMessageProps {
 	message: ChatUIMessage;
 	/** Replaces the text and resends. Absent when editing is not allowed. */
 	onEditResend?: (content: string) => void;
-};
+}
 
 /** A user's message: its attachments and text bubble, with copy and edit-and-resend. */
 export function UserMessage({ message, onEditResend }: UserMessageProps) {
@@ -57,7 +57,9 @@ export function UserMessage({ message, onEditResend }: UserMessageProps) {
 							autoFocus
 							aria-label="Edit message"
 							value={draft}
-							onChange={(event) => setDraft(event.target.value)}
+							onChange={(event) => {
+								setDraft(event.target.value);
+							}}
 							onKeyDown={handleKeyDown}
 							className="max-h-50"
 						/>
@@ -90,12 +92,12 @@ export function UserMessage({ message, onEditResend }: UserMessageProps) {
 					</MessageFooter>
 				) : (
 					content && (
-						<MessageFooter className="justify-end gap-1 opacity-0 transition-opacity pointer-coarse:opacity-100 focus-within:opacity-100 group-hover/message:opacity-100">
+						<MessageFooter className="justify-end gap-1 opacity-0 transition-opacity group-hover/message:opacity-100 focus-within:opacity-100 pointer-coarse:opacity-100">
 							<ActionButton
 								icon={<CopyIcon />}
 								ariaLabel="Copy message"
 								tooltip="Copy"
-								onClick={() => copyToClipboard(content)}
+								onClick={() => void copyToClipboard(content)}
 							/>
 							{onEditResend && (
 								<ActionButton

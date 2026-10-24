@@ -8,13 +8,13 @@ import type { Endpoint } from "#/generated/prisma/client";
 import { encrypt, endpointApiKey } from "#/lib/crypto.server";
 import { prisma } from "#/lib/db.server";
 import { listModels as listLlamacppModels } from "#/lib/llamacpp/client.server";
+import { asLLMProvider } from "#/lib/llm-provider";
 import {
-	type EndpointProbeResult,
 	listModels,
 	modelSupportsTools,
 	probeEndpoint,
+	type EndpointProbeResult,
 } from "#/lib/llm.server";
-import { asLLMProvider } from "#/lib/llm-provider";
 import { log } from "#/lib/log.server";
 
 /** An endpoint row safe to send to the client: a `hasApiKey` flag replaces the encrypted key. */
@@ -147,8 +147,6 @@ export async function probeModelCapabilities({
 }): Promise<{ supportsTools: boolean; supportsImages: boolean; supportsDocuments: boolean }> {
 	const endpoint = await prisma.endpoint.findFirst({ where: { id: endpointId, ownerId } });
 	if (!endpoint) return { supportsTools: true, supportsImages: false, supportsDocuments: false };
-	// Only these providers' adapters support documents.
-	const supportsDocuments = endpoint.provider === "anthropic" || endpoint.provider === "gemini";
 	if (endpoint.provider === "llamacpp") {
 		try {
 			const models = await listLlamacppModels({ url: endpoint.url, timeoutMs: 5000 });
@@ -164,6 +162,8 @@ export async function probeModelCapabilities({
 			return { supportsTools: true, supportsImages: false, supportsDocuments: false };
 		}
 	}
+	// Only these providers' adapters support documents.
+	const supportsDocuments = endpoint.provider === "anthropic" || endpoint.provider === "gemini";
 	try {
 		const supportsTools = await modelSupportsTools({
 			url: endpoint.url,
@@ -179,7 +179,10 @@ export async function probeModelCapabilities({
 }
 
 /** A saved llama.cpp endpoint's id and URL. */
-export type SavedLlamacppEndpoint = { id: string; url: string };
+export interface SavedLlamacppEndpoint {
+	id: string;
+	url: string;
+}
 
 /** The user's llama.cpp endpoints, oldest first. */
 export function findLlamacppEndpoints({ ownerId }: { ownerId: string }): Promise<Endpoint[]> {
@@ -226,13 +229,13 @@ export async function upsertLlamacppEndpoint({
 }): Promise<string> {
 	const normalizedUrl = trimPathRight(url);
 	const resolved =
-		existing !== undefined
-			? existing
-			: await prisma.endpoint.findFirst({
+		existing === undefined
+			? await prisma.endpoint.findFirst({
 					where: { ownerId, provider: "llamacpp" },
 					orderBy: { id: "asc" },
 					select: { id: true, url: true },
-				});
+				})
+			: existing;
 
 	if (!resolved) {
 		// Upsert on the (ownerId, discovered) unique, so two concurrent first scans create one row.

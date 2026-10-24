@@ -9,6 +9,7 @@ import {
 } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { render as baseRender, renderHook as baseRenderHook } from "vitest-browser-react";
+import { Toaster } from "#/components/ui/toast";
 import { Tooltip } from "#/components/ui/tooltip";
 
 /**
@@ -27,13 +28,16 @@ function testProviders(queryClient: QueryClient) {
 	return function Providers({ children }: { children: ReactNode }) {
 		return (
 			<QueryClientProvider client={queryClient}>
-				<Tooltip.Provider>{children}</Tooltip.Provider>
+				<Tooltip.Provider>
+					{children}
+					<Toaster />
+				</Tooltip.Provider>
 			</QueryClientProvider>
 		);
 	};
 }
 
-/** Browser-mode render wrapped in the app-wide providers. */
+/** Browser-mode render wrapped in the app-wide providers, with toasts shown in the page. */
 export function render(ui: ReactNode, { queryClient }: { queryClient?: QueryClient } = {}) {
 	return baseRender(ui, { wrapper: testProviders(queryClient ?? testQueryClient()) });
 }

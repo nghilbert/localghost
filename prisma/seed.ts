@@ -1,4 +1,5 @@
 import { faker } from "@faker-js/faker";
+import type { ModelMessage } from "@tanstack/ai";
 import { auth } from "#/lib/auth.server";
 import { prisma } from "#/lib/db.server";
 
@@ -25,7 +26,7 @@ async function main() {
 
 	for (let i = 0; i < 5; i++) {
 		const messageCount = faker.number.int({ min: 2, max: 6 });
-		const messages = Array.from({ length: messageCount }, (_, index) => ({
+		const messages = Array.from({ length: messageCount }, (_, index): ModelMessage => ({
 			role: index % 2 === 0 ? "user" : "assistant",
 			content: faker.lorem.paragraph(),
 		}));
@@ -39,11 +40,11 @@ async function main() {
 	console.log(`Seeded ${DEV_EMAIL} with chats.`);
 }
 
-main()
-	.catch((error) => {
-		console.error(error);
-		process.exitCode = 1;
-	})
-	.finally(async () => {
-		await prisma.$disconnect();
-	});
+try {
+	await main();
+} catch (error) {
+	console.error(error);
+	process.exitCode = 1;
+} finally {
+	await prisma.$disconnect();
+}

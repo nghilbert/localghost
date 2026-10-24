@@ -2,6 +2,7 @@ import {
 	ClipboardListIcon,
 	FilesIcon,
 	FileTextIcon,
+	HistoryIcon,
 	MemoryStickIcon,
 	MessageSquareTextIcon,
 	ServerOffIcon,
@@ -11,10 +12,14 @@ import type { ComponentType } from "react";
 import { SpinningBulbIcon } from "./BulbIcons";
 
 /** What a live row says while the model works, and the icon beside it. */
-export type ActivityStatus = { label: string; icon: ComponentType };
+export interface ActivityStatus {
+	label: string;
+	icon: ComponentType;
+}
 
 /** Every live row shown while the model works between steps. A tool call labels its own row. */
 export const ACTIVITY_STATUS = {
+	loadingConversation: { label: "Loading the conversation", icon: HistoryIcon },
 	loadingModel: { label: "Loading the model into memory", icon: MemoryStickIcon },
 	serverUnreachable: {
 		label: "Waiting for the model server, which isn't responding",

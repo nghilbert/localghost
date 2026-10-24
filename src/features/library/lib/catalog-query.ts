@@ -1,6 +1,6 @@
-import type { CatalogSortBy, HideableFit } from "#/features/library/library.schemas";
+import type { CatalogSortBy } from "#/features/library/library.schemas";
 import type { CatalogModel, HardwareInfo } from "#/features/library/library.types";
-import { classifyHardwareFit, requiredMemoryGb } from "./hardware-fit";
+import { classifyHardwareFit, requiredMemoryGb, type HardwareFit } from "./hardware-fit";
 
 /** The fields a catalog model sorts by. An installed model without a catalog entry fills what it knows. */
 export type SortableModel = Pick<
@@ -14,9 +14,9 @@ function sortValue({ model, sortBy }: { model: SortableModel; sortBy: CatalogSor
 		case "name":
 			return model.displayName.toLowerCase();
 		case "paramB":
-			return model.paramB ?? Number.NEGATIVE_INFINITY;
+			return model.paramB ?? -Infinity;
 		case "sizeGb":
-			return model.sizeGb ?? Number.NEGATIVE_INFINITY;
+			return model.sizeGb ?? -Infinity;
 		case "pullCount":
 			return model.pullCount;
 		case "likes":
@@ -26,7 +26,7 @@ function sortValue({ model, sortBy }: { model: SortableModel; sortBy: CatalogSor
 		case "createdAt":
 			return model.createdAt ?? "";
 		case "memory":
-			return requiredMemoryGb(model) ?? Number.NEGATIVE_INFINITY;
+			return requiredMemoryGb(model) ?? -Infinity;
 	}
 }
 
@@ -63,8 +63,8 @@ export function isFitHidden({
 }: {
 	model: Pick<CatalogModel, "sizeGb" | "paramB">;
 	hardware: HardwareInfo | undefined;
-	hiddenFits: HideableFit[];
+	hiddenFits: readonly HardwareFit[];
 }): boolean {
 	const fit = classifyHardwareFit({ requiredGb: requiredMemoryGb(model), hardware });
-	return hiddenFits.some((hidden) => hidden === fit);
+	return fit !== null && hiddenFits.includes(fit);
 }

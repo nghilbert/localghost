@@ -74,7 +74,9 @@ export function Library() {
 								endpointId={runtimeStatus.endpointId}
 								onPull={handlePull}
 								onStop={stop}
-								onDelete={(model) => setPendingDelete(model)}
+								onDelete={(model) => {
+									setPendingDelete(model);
+								}}
 							/>
 						</>
 					) : (
@@ -89,13 +91,17 @@ export function Library() {
 					if (!open) setPendingDelete(null);
 				}}
 				title="Delete this model?"
-				description={`${pendingDelete} will be removed from this machine. You'll need to download it again to use it.`}
+				description={`${pendingDelete ?? ""} will be removed from this machine. You'll need to download it again to use it.`}
 				isPending={deleteModel.isPending}
 				onConfirm={() => {
 					if (pendingDelete && runtimeStatus?.found) {
 						deleteModel.mutate(
 							{ endpointId: runtimeStatus.endpointId, model: pendingDelete },
-							{ onSuccess: () => setPendingDelete(null) },
+							{
+								onSuccess: () => {
+									setPendingDelete(null);
+								},
+							},
 						);
 					}
 				}}

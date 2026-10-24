@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type Attachment, composeMessageContent, isDocumentFile, isImageFile } from "./attachments";
+import { composeMessageContent, isDocumentFile, isImageFile, type Attachment } from "./attachments";
 
 const image: Attachment = {
 	id: "1",

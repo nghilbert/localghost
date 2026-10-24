@@ -4,7 +4,8 @@ import { mergeClassName } from "#/components/ui/variants/class-name";
 import { controlVariants } from "#/components/ui/variants/control";
 
 /** Props for {@link Input}. */
-export type InputProps = Omit<BaseInput.Props, "size"> & VariantProps<typeof controlVariants>;
+export interface InputProps
+	extends Omit<BaseInput.Props, "size">, VariantProps<typeof controlVariants> {}
 
 /** A single line text input. */
 export function Input({ className, size, ...props }: InputProps) {

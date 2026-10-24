@@ -2,7 +2,6 @@ import { CircleAlertIcon, SearchIcon } from "lucide-react";
 import { Fragment, type ReactNode } from "react";
 import { Alert } from "#/components/ui/alert";
 import { Button } from "#/components/ui/button";
-
 import { Empty } from "#/components/ui/empty";
 import { InputGroup } from "#/components/ui/input-group";
 import { Item } from "#/components/ui/item";
@@ -38,7 +37,7 @@ export function ModelListSkeleton() {
 	);
 }
 
-type ModelListProps = {
+interface ModelListProps {
 	installedModels: InstalledModel[];
 	pulling: Record<string, PullProgress>;
 	hardware: HardwareInfo | undefined;
@@ -47,7 +46,7 @@ type ModelListProps = {
 	onPull: (model: string) => void;
 	onStop: (model: string) => void;
 	onDelete: (model: string) => void;
-};
+}
 
 /** The Library's model list: a catalog page plus installed and downloading models. */
 export function ModelList({
@@ -94,7 +93,7 @@ export function ModelList({
 							size="sm"
 							color="neutral"
 							variant="outlined"
-							onClick={() => catalogPageQuery.refetch()}
+							onClick={() => void catalogPageQuery.refetch()}
 						>
 							Try again
 						</Button>
@@ -111,7 +110,9 @@ export function ModelList({
 						aria-label="Search models"
 						placeholder="Search models..."
 						value={search}
-						onChange={(event) => handleSearchChange(event.target.value)}
+						onChange={(event) => {
+							handleSearchChange(event.target.value);
+						}}
 					/>
 				</InputGroup.Root>
 				<ModelFilterMenu facets={facets}>
@@ -143,7 +144,9 @@ export function ModelList({
 								row={row}
 								hardware={hardware}
 								expanded={expandedId === row.id}
-								onToggleExpanded={() => handleToggleExpanded(row.id)}
+								onToggleExpanded={() => {
+									handleToggleExpanded(row.id);
+								}}
 								onPull={onPull}
 								onStop={onStop}
 							/>

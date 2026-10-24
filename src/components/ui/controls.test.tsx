@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, it } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { Checkbox } from "#/components/ui/checkbox";
 import { Collapsible } from "#/components/ui/collapsible";
@@ -21,7 +21,7 @@ import { render } from "#/test/utils";
  */
 
 describe("Checkbox", () => {
-	test("toggles with the keyboard and reports its state", async () => {
+	it("toggles with the keyboard and reports its state", async () => {
 		await render(
 			<Field.Root>
 				<Field.Label>
@@ -43,7 +43,7 @@ describe("Checkbox", () => {
 });
 
 describe("Switch", () => {
-	test("toggles with the keyboard and reports its state", async () => {
+	it("toggles with the keyboard and reports its state", async () => {
 		await render(
 			<Field.Root>
 				<Field.Label>
@@ -62,7 +62,7 @@ describe("Switch", () => {
 });
 
 describe("RadioGroup", () => {
-	test("moves the selection with the arrow keys", async () => {
+	it("moves the selection with the arrow keys", async () => {
 		await render(
 			<Field.Root>
 				<RadioGroup defaultValue="email" aria-label="Contact method">
@@ -93,7 +93,7 @@ describe("RadioGroup", () => {
 });
 
 describe("Toggle", () => {
-	test("reports pressed state rather than checked", async () => {
+	it("reports pressed state rather than checked", async () => {
 		await render(<Toggle aria-label="Bold" />);
 
 		const toggle = page.getByRole("button", { name: "Bold" });
@@ -105,7 +105,7 @@ describe("Toggle", () => {
 });
 
 describe("ToggleGroup", () => {
-	test("keeps one pressed toggle at a time", async () => {
+	it("keeps one pressed toggle at a time", async () => {
 		await render(
 			<ToggleGroup defaultValue={["light"]} aria-label="Theme">
 				<Toggle value="light" aria-label="Light" />
@@ -128,7 +128,7 @@ describe("ToggleGroup", () => {
 });
 
 describe("Slider", () => {
-	test("steps with the arrow keys and reports its value", async () => {
+	it("steps with the arrow keys and reports its value", async () => {
 		await render(<Slider defaultValue={50} min={0} max={100} aria-label="Volume" />);
 
 		const slider = page.getByRole("slider");
@@ -143,7 +143,7 @@ describe("Slider", () => {
 });
 
 describe("NumberField", () => {
-	test("steps from its increment button and stays within bounds", async () => {
+	it("steps from its increment button and stays within bounds", async () => {
 		await render(
 			<NumberField.Root defaultValue={4} min={0} max={5}>
 				<NumberField.Group>
@@ -167,7 +167,7 @@ describe("NumberField", () => {
 });
 
 describe("Progress", () => {
-	test("exposes its value to assistive tech", async () => {
+	it("exposes its value to assistive tech", async () => {
 		await render(
 			<Progress.Root value={40}>
 				<Progress.Label>Uploading</Progress.Label>
@@ -184,7 +184,7 @@ describe("Progress", () => {
 });
 
 describe("Collapsible", () => {
-	test("shows and hides its panel from the trigger", async () => {
+	it("shows and hides its panel from the trigger", async () => {
 		await render(
 			<Collapsible.Root>
 				<Collapsible.Trigger>Advanced</Collapsible.Trigger>
@@ -204,7 +204,7 @@ describe("Collapsible", () => {
 
 describe("InputGroup", () => {
 	/** An addon's empty space forwards a click to the control, as a native input's padding would. */
-	test("focuses its control when an addon is clicked", async () => {
+	it("focuses its control when an addon is clicked", async () => {
 		await render(
 			<InputGroup.Root>
 				<InputGroup.Addon>
@@ -227,7 +227,7 @@ describe("InputGroup", () => {
 });
 
 describe("Pagination", () => {
-	test("names its controls and marks the current page", async () => {
+	it("names its controls and marks the current page", async () => {
 		await render(
 			<Pagination.Root>
 				<Pagination.List>

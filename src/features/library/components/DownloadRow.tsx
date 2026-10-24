@@ -5,21 +5,21 @@ import { Tooltip } from "#/components/ui/tooltip";
 import type { PullProgress } from "#/features/library/library.types";
 import { DownloadStatus } from "./DownloadStatus";
 
-type DownloadRowProps = {
+interface DownloadRowProps {
 	model: string;
 	/** Shown above the bar; the model id when left out. */
 	title?: string;
 	pullState: PullProgress;
 	size?: "sm" | "md";
 	onStop: (model: string) => void;
-};
+}
 
 /** A running download: its title, progress, and a button to stop it. */
-export function DownloadRow({ model, title, pullState, size, onStop }: DownloadRowProps) {
+export function DownloadRow({ model, title = model, pullState, size, onStop }: DownloadRowProps) {
 	return (
 		<Item.Root variant="soft" size="sm" className="flex-nowrap">
 			<Item.Content>
-				<Item.Title className="block max-w-full truncate">{title ?? model}</Item.Title>
+				<Item.Title className="block max-w-full truncate">{title}</Item.Title>
 				<DownloadStatus pullState={pullState} size={size} />
 			</Item.Content>
 			<Item.Actions>
@@ -33,7 +33,9 @@ export function DownloadRow({ model, title, pullState, size, onStop }: DownloadR
 								size="sm"
 								iconOnly
 								className="text-muted-fg hover:text-danger"
-								onClick={() => onStop(model)}
+								onClick={() => {
+									onStop(model);
+								}}
 								aria-label={`Stop downloading ${model}`}
 							/>
 						}

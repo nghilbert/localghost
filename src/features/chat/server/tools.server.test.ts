@@ -1,5 +1,6 @@
 import { convertSchemaToJsonSchema } from "@tanstack/ai";
 import { describe, expect, it } from "vitest";
+import { readUrlToolDef, webSearchToolDef } from "#/features/chat/chat.schemas";
 import { buildChatTools } from "./tools.server";
 
 function names(tools: ReturnType<typeof buildChatTools>) {
@@ -22,25 +23,25 @@ describe("buildChatTools", () => {
 		expect(names(tools)).toEqual([]);
 	});
 
-	it("builds server tools with described object schemas", () => {
+	it("builds described server tools", () => {
 		const tools = buildChatTools({ enabledTools: ["web_search"] });
 		for (const tool of tools) {
 			expect(tool.__toolSide).toBe("server");
 			expect(tool.name).toBeTruthy();
 			expect(tool.description).toBeTruthy();
-			expect(convertSchemaToJsonSchema(tool.inputSchema)).toMatchObject({
-				type: "object",
-				required: expect.any(Array),
-			});
+		}
+	});
+
+	it("gives each tool an object schema with required fields", () => {
+		for (const definition of [webSearchToolDef, readUrlToolDef]) {
+			const schema = convertSchemaToJsonSchema(definition.inputSchema);
+			expect(schema).toMatchObject({ type: "object" });
+			expect(schema?.required?.length).toBeGreaterThan(0);
 		}
 	});
 
 	it("exposes only query and optional time_range to web_search", () => {
-		const tools = buildChatTools({ enabledTools: ["web_search"] });
-		const webSearch = tools.find((tool) => tool.name === "web_search");
-		if (!webSearch) throw new Error("web_search tool was not built");
-
-		const schema = convertSchemaToJsonSchema(webSearch.inputSchema);
+		const schema = convertSchemaToJsonSchema(webSearchToolDef.inputSchema);
 		expect(schema).toMatchObject({
 			type: "object",
 			properties: {

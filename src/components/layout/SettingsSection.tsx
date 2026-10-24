@@ -14,7 +14,7 @@ export function SettingsSection({ id, title, description, children }: SettingsSe
 		<Card.Root id={id}>
 			<Card.Header>
 				<Card.Title className="flex items-center gap-2">{title}</Card.Title>
-				{description && <Card.Description>{description}</Card.Description>}
+				{description ? <Card.Description>{description}</Card.Description> : null}
 			</Card.Header>
 			<Card.Content className="flex flex-col gap-4">{children}</Card.Content>
 		</Card.Root>

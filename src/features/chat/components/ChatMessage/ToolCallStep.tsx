@@ -6,18 +6,18 @@ import {
 	CircleAlertIcon,
 	GlobeIcon,
 	LinkIcon,
-	type LucideIcon,
 	SquareIcon,
 	TerminalIcon,
 	XIcon,
 } from "lucide-react";
+import type { ReactElement } from "react";
 import { Button } from "#/components/ui/button";
 import { Collapsible } from "#/components/ui/collapsible";
 import { ActivityMarker } from "#/features/chat/components/ActivityMarker";
 import { Marker, MarkerContent, MarkerIcon } from "#/features/chat/components/Marker";
 import { useStepDuration } from "#/features/chat/hooks/use-step-duration";
 import type { ChatInterrupts, ChatToolCall, ChatToolResult } from "#/features/chat/lib/chat-tools";
-import { isChoosing, isPending, type ToolPhase, toolPhase } from "#/features/chat/lib/tool-phase";
+import { isChoosing, isPending, toolPhase, type ToolPhase } from "#/features/chat/lib/tool-phase";
 
 /** A pending approval for a tool call. */
 export type ToolApprovalInterrupt = Extract<ChatInterrupts[number], { kind: "tool-approval" }>;
@@ -44,32 +44,45 @@ export function pageTitle(output: string): string | null {
 }
 
 /** The icon for each phase, shared by every tool. `null` shows the tool's own icon. */
-const PHASE_ICONS: Record<ToolPhase, LucideIcon | null> = {
+const PHASE_ICONS: Record<ToolPhase, ReactElement | null> = {
 	choosing: null,
 	running: null,
 	done: null,
-	failed: CircleAlertIcon,
-	denied: BanIcon,
+	failed: <CircleAlertIcon />,
+	denied: <BanIcon />,
 	// Matches the stop button's icon.
-	stopped: SquareIcon,
+	stopped: <SquareIcon />,
 };
 
 /** What a tool call says in each phase, from the user's point of view. */
-type ToolLabels = {
-	icon: LucideIcon;
+interface ToolLabels {
+	icon: ReactElement;
 	choosing: string;
 	running: string;
 	done: string;
 	failed: string;
 	/** For a tool that needs approval: the question it asks, and what a denied call says. */
 	approval?: { question: string; denied: string };
-};
+}
 
 /** A memory action's phrases, which its labels are built from. */
-const MEMORY_ACTIONS = {
-	add: { doing: "Saving a memory", did: "Saved a memory", verb: "save a memory" },
-	search: { doing: "Searching memories", did: "Recalled memories", verb: "search memories" },
-	list: { doing: "Listing memories", did: "Listed memories", verb: "list memories" },
+interface MemoryPhrases {
+	doing: string;
+	did: string;
+	verb: string;
+}
+
+/** Keyed by any string, since the model can send an action outside the typed set. */
+const MEMORY_ACTIONS = new Map<string, MemoryPhrases>([
+	["add", { doing: "Saving a memory", did: "Saved a memory", verb: "save a memory" }],
+	["search", { doing: "Searching memories", did: "Recalled memories", verb: "search memories" }],
+	["list", { doing: "Listing memories", did: "Listed memories", verb: "list memories" }],
+]);
+
+const MEMORY_UPDATE: MemoryPhrases = {
+	doing: "Updating memory",
+	did: "Updated memory",
+	verb: "update memory",
 };
 
 /** Labels for a call, naming what it works on, such as the search query or the page. */
@@ -81,7 +94,7 @@ export function toolLabels(call: ChatToolCall, output: string): ToolLabels {
 			const query = call.input?.query;
 			const target = query ? ` for "${query}"` : "";
 			return {
-				icon: GlobeIcon,
+				icon: <GlobeIcon />,
 				choosing: "Choosing what to search",
 				running: `Searching the web${target}`,
 				done: `Searched the web${target}`,
@@ -92,7 +105,7 @@ export function toolLabels(call: ChatToolCall, output: string): ToolLabels {
 			const page = urlLabel(call.input?.url);
 			const title = pageTitle(output);
 			return {
-				icon: LinkIcon,
+				icon: <LinkIcon />,
 				choosing: "Choosing a page to open",
 				running: `Opening ${page ?? "a page"}`,
 				done: title ? `Read "${title}"` : `Read ${page ?? "a page"}`,
@@ -101,11 +114,9 @@ export function toolLabels(call: ChatToolCall, output: string): ToolLabels {
 		}
 		case "manage_memory": {
 			const action = call.input?.action;
-			const phrases = action
-				? MEMORY_ACTIONS[action]
-				: { doing: "Updating memory", did: "Updated memory", verb: "update memory" };
+			const phrases = (action && MEMORY_ACTIONS.get(action)) ?? MEMORY_UPDATE;
 			return {
-				icon: BrainIcon,
+				icon: <BrainIcon />,
 				choosing: "Preparing to use memory",
 				running: phrases.doing,
 				done: phrases.did,
@@ -114,7 +125,7 @@ export function toolLabels(call: ChatToolCall, output: string): ToolLabels {
 		}
 		case "delete_memory":
 			return {
-				icon: BrainIcon,
+				icon: <BrainIcon />,
 				choosing: "Preparing to delete a memory",
 				running: "Deleting a memory",
 				done: "Deleted a memory",
@@ -126,7 +137,7 @@ export function toolLabels(call: ChatToolCall, output: string): ToolLabels {
 			};
 	}
 	return {
-		icon: TerminalIcon,
+		icon: <TerminalIcon />,
 		choosing: `Preparing ${name}`,
 		running: `Running ${name}`,
 		done: `Ran ${name}`,
@@ -145,14 +156,14 @@ function outputText(output: unknown): string {
 	return typeof output === "string" ? output : JSON.stringify(output, null, 2);
 }
 
-type ToolCallStepProps = {
+interface ToolCallStepProps {
 	toolCall: ChatToolCall;
 	/** The call's result, which tells a denied, stopped or failed call apart from a finished one. */
 	result?: ChatToolResult;
 	isStreaming?: boolean;
 	/** The call's pending approval, if any. */
 	interrupt?: ToolApprovalInterrupt;
-};
+}
 
 /**
  * A tool call: a timer while the model writes it and while it runs, then a row that shows
@@ -163,23 +174,22 @@ export function ToolCallStep({ toolCall, result, isStreaming, interrupt }: ToolC
 	const phase = toolPhase(toolCall, result, Boolean(isStreaming));
 	const output = outputText(toolCall.output ?? result?.content);
 	const labels = toolLabels(toolCall, output);
-	const { icon: Icon } = labels;
 	const question = labels.approval?.question ?? labels.running;
 	const { seconds } = useStepDuration(isPending(phase));
 
 	if (interrupt) {
 		return (
 			<Marker>
-				<MarkerIcon>
-					<Icon />
-				</MarkerIcon>
+				<MarkerIcon>{labels.icon}</MarkerIcon>
 				<MarkerContent className="flex items-center gap-2">
 					{question}
 					<Button
 						size="sm"
 						color="neutral"
 						variant="outlined"
-						onClick={() => interrupt.resolveInterrupt(true)}
+						onClick={() => {
+							interrupt.resolveInterrupt(true);
+						}}
 					>
 						<CheckIcon />
 						Approve
@@ -188,7 +198,9 @@ export function ToolCallStep({ toolCall, result, isStreaming, interrupt }: ToolC
 						size="sm"
 						color="neutral"
 						variant="outlined"
-						onClick={() => interrupt.resolveInterrupt(false)}
+						onClick={() => {
+							interrupt.resolveInterrupt(false);
+						}}
 					>
 						<XIcon />
 						Deny
@@ -199,8 +211,13 @@ export function ToolCallStep({ toolCall, result, isStreaming, interrupt }: ToolC
 	}
 
 	if (phase === "choosing" || phase === "running") {
-		const PhaseIcon = PHASE_ICONS[phase] ?? Icon;
-		return <ActivityMarker label={labels[phase]} icon={<PhaseIcon />} seconds={seconds} />;
+		return (
+			<ActivityMarker
+				label={labels[phase]}
+				icon={PHASE_ICONS[phase] ?? labels.icon}
+				seconds={seconds}
+			/>
+		);
 	}
 
 	// A stopped row says what the call was doing when it stopped.
@@ -218,14 +235,12 @@ export function ToolCallStep({ toolCall, result, isStreaming, interrupt }: ToolC
 		},
 		stopped: { label: `Stopped while ${interrupted}`, detail: "" },
 	}[phase];
-	const RowIcon = PHASE_ICONS[phase] ?? Icon;
+	const rowIcon = PHASE_ICONS[phase] ?? labels.icon;
 
 	if (!detail) {
 		return (
 			<Marker>
-				<MarkerIcon>
-					<RowIcon />
-				</MarkerIcon>
+				<MarkerIcon>{rowIcon}</MarkerIcon>
 				<MarkerContent>{label}</MarkerContent>
 			</Marker>
 		);
@@ -234,16 +249,14 @@ export function ToolCallStep({ toolCall, result, isStreaming, interrupt }: ToolC
 	return (
 		<Collapsible.Root className="flex flex-col gap-1.5">
 			<Marker className="w-fit" render={<Collapsible.Trigger />}>
-				<MarkerIcon>
-					<RowIcon />
-				</MarkerIcon>
+				<MarkerIcon>{rowIcon}</MarkerIcon>
 				<MarkerContent className="flex items-center gap-1 hover:text-fg">
 					{label}
 					<ChevronRightIcon className="size-3 transition-transform in-data-panel-open:rotate-90" />
 				</MarkerContent>
 			</Marker>
 			<Collapsible.Panel>
-				<pre className="ml-2 max-h-56 overflow-y-auto pl-3 whitespace-pre-wrap wrap-break-word font-mono text-xs leading-relaxed text-muted-fg">
+				<pre className="ml-2 max-h-56 overflow-y-auto pl-3 font-mono text-xs leading-relaxed wrap-break-word whitespace-pre-wrap text-muted-fg">
 					{detail}
 				</pre>
 			</Collapsible.Panel>

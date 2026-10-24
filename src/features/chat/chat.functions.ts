@@ -4,6 +4,7 @@ import {
 	chatRunIdSchema,
 	conversationIdInput,
 	createConversationInput,
+	exportConversationInput,
 	searchConversationsInput,
 	updateConversationInput,
 } from "./chat.schemas";
@@ -16,6 +17,7 @@ import {
 	patchConversation,
 	probeModelRunState,
 	removeConversation,
+	renderConversationExport,
 	searchConversations,
 } from "./server/chat.server";
 
@@ -34,7 +36,7 @@ export const searchConversationsFn = createServerFn({ method: "GET" })
 	});
 
 /**
- * A conversation with its transcript and endpoint.
+ * A conversation with its endpoint. The transcript loads through chat persistence.
  * @throws If the user does not own the conversation.
  */
 export const getConversation = createServerFn({ method: "POST" })
@@ -44,6 +46,19 @@ export const getConversation = createServerFn({ method: "POST" })
 		const conversation = await findConversation({ id, ownerId: context.userId });
 		if (!conversation) throw new Error("Not found");
 		return conversation;
+	});
+
+/**
+ * A conversation's transcript as a Markdown or JSON file.
+ * @throws If the user does not own the conversation.
+ */
+export const exportConversation = createServerFn({ method: "POST" })
+	.middleware([authedFn])
+	.validator(exportConversationInput)
+	.handler(async ({ data: { id, format }, context }) => {
+		const file = await renderConversationExport({ id, ownerId: context.userId, format });
+		if (!file) throw new Error("Not found");
+		return file;
 	});
 
 /** The most recently used endpoint and model, to pre-fill a new chat. Nulls when there is none. */
@@ -95,7 +110,7 @@ export const deleteConversation = createServerFn({ method: "POST" })
 /** Which built-in tools the server offers. Web search needs `SEARXNG_URL`. */
 export const getToolAvailability = createServerFn({ method: "GET" })
 	.middleware([authedFn])
-	.handler(async () => ({ webSearch: Boolean(process.env.SEARXNG_URL) }));
+	.handler(() => ({ webSearch: Boolean(process.env.SEARXNG_URL) }));
 
 /** Marks a chat run as cancelled, so the stream stops it when the client disconnects. */
 export const requestChatRunCancel = createServerFn({ method: "POST" })

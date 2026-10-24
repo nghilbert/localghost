@@ -38,7 +38,7 @@ test("opens as a named sheet on a narrow screen", async () => {
 test("collapses on the desktop with the trigger and with Ctrl+B", async () => {
 	await page.viewport(1280, 800);
 	const { container } = await render(<Shell />);
-	const panel = () => container.querySelector("[data-state]")?.getAttribute("data-state");
+	const panel = () => container.querySelector<HTMLElement>("[data-state]")?.dataset.state;
 
 	await expect.element(page.getByRole("main")).toBeInTheDocument();
 	expect(panel()).toBe("expanded");

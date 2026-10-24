@@ -1,9 +1,9 @@
 import { Button as BaseButton } from "@base-ui/react/button";
-import { type ActionVariants, actionVariants } from "#/components/ui/variants/action";
+import { actionVariants, type ActionVariants } from "#/components/ui/variants/action";
 import { mergeClassName } from "#/components/ui/variants/class-name";
 
 /** Props for {@link Button}. */
-export type ButtonProps = BaseButton.Props & ActionVariants;
+export interface ButtonProps extends BaseButton.Props, ActionVariants {}
 
 /**
  * `color` picks the color, `variant` picks how loud to draw it. Any pairing

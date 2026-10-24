@@ -19,9 +19,9 @@ export const optionVariants = tv({
 	},
 	variants: {
 		color: {
-			neutral: { item: "[--c:var(--color-fg)] [--c-soft:var(--color-neutral-soft)]" },
+			neutral: { item: "[--c-soft:var(--color-neutral-soft)] [--c:var(--color-fg)]" },
 			danger: {
-				item: "text-danger [--c:var(--color-danger)] [--c-soft:var(--color-danger-soft)]",
+				item: "text-danger [--c-soft:var(--color-danger-soft)] [--c:var(--color-danger)]",
 			},
 		},
 		/** Leaves room on the left, to line up with rows that have an icon. */

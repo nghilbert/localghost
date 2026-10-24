@@ -1,9 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
+import type { useUpdateAccount } from "#/features/account/hooks/use-update-account";
 import { render } from "#/test/utils";
 import { ProfileForm } from "./ProfileForm";
 
-const { updateAccountMutateAsync } = vi.hoisted(() => ({ updateAccountMutateAsync: vi.fn() }));
+const { updateAccountMutateAsync } = vi.hoisted(() => ({
+	updateAccountMutateAsync: vi.fn<ReturnType<typeof useUpdateAccount>["mutateAsync"]>(),
+}));
 
 vi.mock("#/features/account/hooks/use-update-account", () => ({
 	useUpdateAccount: () => ({ mutateAsync: updateAccountMutateAsync }),

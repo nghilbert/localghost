@@ -3,6 +3,7 @@ model ModelSetting {
   endpointId String   @map("endpoint_id") @db.Uuid
   endpoint   Endpoint @relation(fields: [endpointId], references: [id], onDelete: Cascade)
   model      String
+  /// [ModelOptions]
   options    Json?
   ownerId    String   @map("owner_id") @db.Uuid
   owner      User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)

@@ -4,9 +4,9 @@ import { Select } from "#/components/ui/select";
 import { PROVIDERS, type ProviderId } from "#/features/endpoint/lib/providers";
 import { AddProviderForm } from "./AddProviderForm";
 
-type ProviderSetupFormProps = {
+interface ProviderSetupFormProps {
 	onCreated?: () => void;
-};
+}
 
 function isProviderId(value: string): value is ProviderId {
 	return PROVIDERS.some((provider) => provider.id === value);

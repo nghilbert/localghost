@@ -20,10 +20,10 @@ const downloadStatusSlots = tv({
 	defaultVariants: { size: "md" },
 });
 
-type DownloadStatusProps = VariantProps<typeof downloadStatusSlots> & {
+interface DownloadStatusProps extends VariantProps<typeof downloadStatusSlots> {
 	pullState: PullProgress;
 	className?: string;
-};
+}
 
 /** A running download's progress bar and byte counts; the bar is indeterminate until llama.cpp reports a total. */
 export function DownloadStatus({ pullState, size = "md", className }: DownloadStatusProps) {

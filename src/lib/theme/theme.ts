@@ -1,4 +1,4 @@
-import { type LucideIcon, MonitorIcon, MoonIcon, SunIcon } from "lucide-react";
+import { MonitorIcon, MoonIcon, SunIcon, type LucideIcon } from "lucide-react";
 
 /**
  * Color presets. Each id matches `[data-theme="<id>"]` in `src/styles/themes/<id>.css`,
@@ -28,18 +28,18 @@ export type Theme = (typeof THEMES)[number]["id"];
 export type ThemeMode = "light" | "dark" | "system";
 
 /** The mode choices, in menu order. */
-export const MODE_OPTIONS: { label: string; value: ThemeMode; Icon: LucideIcon }[] = [
+export const MODE_OPTIONS: Array<{ label: string; value: ThemeMode; Icon: LucideIcon }> = [
 	{ label: "Light", value: "light", Icon: SunIcon },
 	{ label: "Dark", value: "dark", Icon: MoonIcon },
 	{ label: "System", value: "system", Icon: MonitorIcon },
 ];
 
 /** Whether a stored value is a known preset id. */
-export function isTheme(value: string | null | undefined): value is Theme {
+export function isTheme(value: unknown): value is Theme {
 	return THEMES.some((theme) => theme.id === value);
 }
 
 /** Whether a stored value is a valid mode. */
-export function isThemeMode(value: string | null | undefined): value is ThemeMode {
+export function isThemeMode(value: unknown): value is ThemeMode {
 	return value === "light" || value === "dark" || value === "system";
 }

@@ -1,12 +1,12 @@
 import { ArrowDownIcon } from "lucide-react";
 import {
-	type ComponentProps,
 	createContext,
-	type ReactNode,
-	type RefObject,
 	use,
 	useEffect,
 	useRef,
+	type ComponentProps,
+	type ReactNode,
+	type RefObject,
 } from "react";
 import { cn, tv } from "tailwind-variants";
 import { Button, type ButtonProps } from "#/components/ui/button";
@@ -17,7 +17,7 @@ const messageScrollerVariants = tv({
 	slots: {
 		root: "group/message-scroller relative flex size-full min-h-0 flex-col overflow-hidden",
 		scrollbar: "opacity-0",
-		viewport: "size-full min-h-0 min-w-0 scroll-fade-b overscroll-contain contain-content",
+		viewport: "size-full min-h-0 min-w-0 overscroll-contain scroll-fade-b contain-content",
 		content: "flex h-max min-h-full flex-col gap-6",
 		// `content-visibility` clips paint to the item; the margin spares icons drawn past their box.
 		item: "min-w-0 shrink-0 [contain-intrinsic-size:auto_10rem] [content-visibility:auto] [overflow-clip-margin:--spacing(2)]",
@@ -66,14 +66,14 @@ function scrollElementToBottom({
 	viewport.scrollTo({ top: viewport.scrollHeight, behavior });
 }
 
-type MessageScrollerContextValue = {
+interface MessageScrollerContextValue {
 	viewportRef: RefObject<HTMLDivElement | null>;
 	contentRef: RefObject<HTMLDivElement | null>;
 	spacerRef: RefObject<HTMLDivElement | null>;
 	markUserIntent: () => void;
 	scrollToEnd: (behavior?: ScrollBehavior) => void;
 	scrollToStart: (behavior?: ScrollBehavior) => void;
-};
+}
 
 const MessageScrollerContext = createContext<MessageScrollerContextValue | null>(null);
 
@@ -143,7 +143,7 @@ export function MessageScrollerProvider({
 
 		const anchorLastToTop = (behavior: ScrollBehavior) => {
 			const anchors = viewport.querySelectorAll<HTMLElement>("[data-scroll-anchor]");
-			const anchor = anchors[anchors.length - 1];
+			const anchor = [...anchors].at(-1);
 			if (!anchor) return;
 			const top =
 				anchor.getBoundingClientRect().top -
@@ -157,7 +157,7 @@ export function MessageScrollerProvider({
 			const spacer = spacerRef.current;
 			if (!spacer) return;
 			const anchors = content.querySelectorAll<HTMLElement>("[data-scroll-anchor]");
-			const anchor = anchors[anchors.length - 1];
+			const anchor = [...anchors].at(-1);
 			if (!anchor) {
 				if (spacerHeightRef.current !== 0) {
 					spacerHeightRef.current = 0;
@@ -169,10 +169,12 @@ export function MessageScrollerProvider({
 			const realContentHeight = content.scrollHeight - spacerHeightRef.current;
 			const lastTurnHeight = realContentHeight - anchorTop;
 			const needed = Math.max(0, viewport.clientHeight - lastTurnHeight);
-			if (needed !== spacerHeightRef.current) {
-				spacerHeightRef.current = needed;
-				spacer.style.height = `${needed}px`;
+			if (needed === spacerHeightRef.current) {
+				return;
 			}
+
+			spacerHeightRef.current = needed;
+			spacer.style.height = `${needed}px`;
 		};
 
 		const applyPin = (behavior: ScrollBehavior) => {

@@ -1,4 +1,4 @@
-import { type ErrorComponentProps, useRouter } from "@tanstack/react-router";
+import { useRouter, type ErrorComponentProps } from "@tanstack/react-router";
 import { Button } from "#/components/ui/button";
 import { Empty } from "#/components/ui/empty";
 
@@ -17,7 +17,7 @@ export function RouteErrorScreen({ error, reset }: ErrorComponentProps) {
 					variant="outlined"
 					onClick={() => {
 						reset();
-						router.invalidate();
+						void router.invalidate();
 					}}
 				>
 					Try again

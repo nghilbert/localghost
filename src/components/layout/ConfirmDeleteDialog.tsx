@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { AlertDialog } from "#/components/ui/alert-dialog";
 
-type ConfirmDeleteDialogProps = {
+interface ConfirmDeleteDialogProps {
 	/** Open while something is pending deletion. */
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
@@ -10,7 +10,7 @@ type ConfirmDeleteDialogProps = {
 	isPending: boolean;
 	/** Runs the delete; the caller closes the dialog once it succeeds. */
 	onConfirm: () => void;
-};
+}
 
 /** Asks before a permanent delete, with Cancel and a danger Delete. */
 export function ConfirmDeleteDialog({

@@ -12,11 +12,11 @@ import { libraryQueries } from "#/features/library/library.queries";
 import type { ModelSelection } from "#/lib/llm-schemas";
 import { ModelSettingsForm } from "./ModelSettingsForm";
 
-type ModelSettingsTabProps = {
+interface ModelSettingsTabProps {
 	/** The model being edited, if any. */
 	selection: ModelSelection | undefined;
 	onSelectionChange: (selection: ModelSelection) => void;
-};
+}
 
 /** A unique key for one model on one endpoint. */
 function selectionKey({ endpointId, model }: ModelSelection): string {
@@ -87,14 +87,7 @@ export function ModelSettingsTab({ selection, onSelectionChange }: ModelSettings
 			<SettingsSection title="Models with overrides">
 				{isPending ? (
 					<Skeleton className="h-14 w-full" />
-				) : !settings?.length ? (
-					<Empty.Root>
-						<Empty.Title>No overrides yet</Empty.Title>
-						<Empty.Description>
-							Every model uses the endpoint and account defaults.
-						</Empty.Description>
-					</Empty.Root>
-				) : (
+				) : settings?.length ? (
 					<Item.Group render={<ul />}>
 						{settings.map((setting) => (
 							<Item.Root key={selectionKey(setting)} render={<li />} variant="outlined">
@@ -109,9 +102,9 @@ export function ModelSettingsTab({ selection, onSelectionChange }: ModelSettings
 										color="neutral"
 										variant="outlined"
 										size="sm"
-										onClick={() =>
-											onSelectionChange({ endpointId: setting.endpointId, model: setting.model })
-										}
+										onClick={() => {
+											onSelectionChange({ endpointId: setting.endpointId, model: setting.model });
+										}}
 									>
 										Edit
 									</Button>
@@ -120,9 +113,9 @@ export function ModelSettingsTab({ selection, onSelectionChange }: ModelSettings
 										variant="quiet"
 										size="sm"
 										disabled={reset.isPending}
-										onClick={() =>
-											reset.mutate({ endpointId: setting.endpointId, model: setting.model })
-										}
+										onClick={() => {
+											reset.mutate({ endpointId: setting.endpointId, model: setting.model });
+										}}
 									>
 										Reset
 									</Button>
@@ -130,6 +123,13 @@ export function ModelSettingsTab({ selection, onSelectionChange }: ModelSettings
 							</Item.Root>
 						))}
 					</Item.Group>
+				) : (
+					<Empty.Root>
+						<Empty.Title>No overrides yet</Empty.Title>
+						<Empty.Description>
+							Every model uses the endpoint and account defaults.
+						</Empty.Description>
+					</Empty.Root>
 				)}
 			</SettingsSection>
 		</>

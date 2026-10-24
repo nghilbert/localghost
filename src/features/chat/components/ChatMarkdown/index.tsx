@@ -5,8 +5,8 @@ import {
 	type MarkdownComponentProps,
 	type MarkdownComponents,
 } from "@tanstack/markdown/react";
-import { CopyIcon } from "lucide-react";
-import { createElement, type JSX, useRef, useState } from "react";
+import { CopyIcon, ImageIcon } from "lucide-react";
+import { createElement, useRef, useState, type JSX } from "react";
 import { cn } from "tailwind-variants";
 import { Button } from "#/components/ui/button";
 import { LinkSafetyDialog } from "#/features/chat/components/ChatMessage/LinkSafetyDialog";
@@ -41,11 +41,45 @@ function ChatLink({ href, children, ...props }: MarkdownComponentProps<"a">) {
 	}
 	return (
 		<>
-			<BaseButton className={cn(linkClassName, "cursor-pointer")} onClick={() => setOpen(true)}>
+			<BaseButton
+				className={cn(linkClassName, "cursor-pointer")}
+				onClick={() => {
+					setOpen(true);
+				}}
+			>
 				{children}
 			</BaseButton>
 			<LinkSafetyDialog url={href} open={open} onOpenChange={setOpen} />
 		</>
+	);
+}
+
+/**
+ * Shows an image from model output only once the user asks. Loading it on render would send a
+ * request to any URL the model writes, including one that carries chat contents in its query.
+ */
+function ChatImage({ src, alt, className, ...props }: MarkdownComponentProps<"img">) {
+	const [shown, setShown] = useState(false);
+
+	if (shown) {
+		return (
+			<img {...props} src={src} alt={alt} className={cn("max-w-full rounded-md", className)} />
+		);
+	}
+	const host = typeof src === "string" && URL.canParse(src) ? new URL(src).host : "";
+	return (
+		<Button
+			size="sm"
+			color="neutral"
+			variant="outlined"
+			onClick={() => {
+				setShown(true);
+			}}
+		>
+			<ImageIcon />
+			{alt ? `Show "${alt}"` : "Show image"}
+			{host && ` from ${host}`}
+		</Button>
 	);
 }
 
@@ -69,7 +103,7 @@ function CodeBlock({
 					size="sm"
 					iconOnly
 					aria-label="Copy code"
-					onClick={() => copyToClipboard(preRef.current?.textContent ?? "")}
+					onClick={() => void copyToClipboard(preRef.current?.textContent ?? "")}
 				>
 					<CopyIcon />
 				</Button>
@@ -87,13 +121,11 @@ function CodeBlock({
 }
 
 /** Styles inline code. Fenced code, which has a `language-*` class, is styled by {@link CodeBlock}. */
-function Code({ className, ...props }: MarkdownComponentProps<"code">) {
-	return (
-		<code
-			{...props}
-			className={className ?? "rounded-sm bg-muted px-1 py-0.5 font-mono text-[0.875em]"}
-		/>
-	);
+function Code({
+	className = "rounded-sm bg-muted px-1 py-0.5 font-mono text-[0.875em]",
+	...props
+}: MarkdownComponentProps<"code">) {
+	return <code {...props} className={className} />;
 }
 
 function Table(props: MarkdownComponentProps<"table">) {
@@ -130,17 +162,17 @@ const components = {
 		className: "border border-line bg-muted px-3 py-1.5 text-left font-semibold",
 	}),
 	td: styled({ tag: "td", className: "border border-line px-3 py-1.5" }),
-	img: styled({ tag: "img", className: "max-w-full rounded-md" }),
+	img: ChatImage,
 } satisfies MarkdownComponents;
 
-type ChatMarkdownProps = {
+interface ChatMarkdownProps {
 	children: string;
 	/** Hides half-written trailing blocks, such as an empty list item, while the text streams. */
 	isStreaming?: boolean;
 	/** Draws a block caret after the last block. */
 	caret?: boolean;
 	className?: string;
-};
+}
 
 /** Model output rendered as Markdown, with raw HTML left as text. */
 export function ChatMarkdown({ children, isStreaming, caret, className }: ChatMarkdownProps) {

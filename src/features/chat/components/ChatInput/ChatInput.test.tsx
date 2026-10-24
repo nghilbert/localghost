@@ -1,3 +1,4 @@
+import type { ComponentProps } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import type { Attachment } from "#/features/chat/lib/attachments";
@@ -87,7 +88,7 @@ describe("ChatInput", () => {
 	});
 
 	it("uses a non-submit button to stop streaming", async () => {
-		const stop = vi.fn();
+		const stop = vi.fn<NonNullable<ComponentProps<typeof ChatInput>["stop"]>>();
 		const sendMessage = vi.fn<SendMessage>();
 		const screen = await render(renderInput({ isStreaming: true, sendMessage, stop }));
 		const button = screen.getByRole("button", { name: "Stop" });

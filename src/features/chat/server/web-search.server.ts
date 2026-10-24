@@ -4,16 +4,13 @@ import { MS_PER_SECOND } from "#/lib/format";
 
 const SEARCH_TIMEOUT_MS = 15 * MS_PER_SECOND;
 
+/** A text field SearXNG may send as null or leave out, read as empty. */
+const searxTextSchema = z.union([z.string(), z.null().transform(() => "")]).default("");
+
 const searxResultSchema = z.object({
-	title: z
-		.string()
-		.nullish()
-		.transform((title) => title ?? ""),
+	title: searxTextSchema,
 	url: z.string().min(1),
-	content: z
-		.string()
-		.nullish()
-		.transform((content) => content ?? ""),
+	content: searxTextSchema,
 });
 
 /** SearXNG returns `answers` either as plain strings or `{ answer }` objects. */
@@ -33,12 +30,12 @@ export type SearxngResponse = z.input<typeof searxResponseSchema>;
 type SearchTimeRange = z.infer<typeof webSearchArgsSchema>["time_range"];
 type SearXNGSearchResponse = z.infer<typeof searxResponseSchema>;
 
-type WebSearchParams = {
+interface WebSearchParams {
 	query: string;
 	limit?: number;
 	timeRange?: SearchTimeRange;
 	signal?: AbortSignal;
-};
+}
 
 /**
  * Searches SearXNG and returns the results as text for the model. A time-ranged search
@@ -109,7 +106,7 @@ async function searchSearXNG({
 	url.searchParams.set("categories", "general");
 	if (timeRange) url.searchParams.set("time_range", timeRange);
 
-	const response = await fetch(url.toString(), {
+	const response = await fetch(url.href, {
 		headers: {
 			Accept: "application/json",
 			"User-Agent": "Mozilla/5.0 (compatible; localghost/1.0)",

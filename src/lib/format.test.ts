@@ -56,7 +56,7 @@ describe("formatCount", () => {
 	});
 
 	it("scales K/M/B/T for display", () => {
-		expect(formatCount(9_400)).toBe("9.4K");
+		expect(formatCount(9400)).toBe("9.4K");
 		expect(formatCount(116_600_000)).toBe("116.6M");
 		expect(formatCount(2_000_000_000)).toBe("2B");
 		expect(formatCount(1_800_000_000_000)).toBe("1.8T");

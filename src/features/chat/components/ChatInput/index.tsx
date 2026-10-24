@@ -1,12 +1,12 @@
 import { ArrowUpIcon, PaperclipIcon, SquareIcon } from "lucide-react";
 import {
+	useRef,
+	useState,
 	type ChangeEvent,
 	type ClipboardEvent,
 	type DragEvent,
-	type FormEvent,
 	type KeyboardEvent,
-	useRef,
-	useState,
+	type SubmitEvent,
 } from "react";
 import { InputGroup } from "#/components/ui/input-group";
 import { Separator } from "#/components/ui/separator";
@@ -15,12 +15,12 @@ import { toast } from "#/components/ui/toast";
 import { Tooltip } from "#/components/ui/tooltip";
 import type { ToolControls } from "#/features/chat/chat.types";
 import {
-	type Attachment,
 	attachmentAccept,
 	isDocumentFile,
 	isImageFile,
 	MAX_ATTACHMENT_BYTES,
 	readAttachment,
+	type Attachment,
 } from "#/features/chat/lib/attachments";
 import { formatBytes } from "#/lib/format";
 import type { ModelSelection } from "#/lib/llm-schemas";
@@ -29,7 +29,7 @@ import { LockedModelLabel } from "./LockedModelLabel";
 import { ModelPicker } from "./ModelPicker";
 import { ToolsMenu } from "./ToolsMenu";
 
-type ChatInputProps = {
+interface ChatInputProps {
 	disabled?: boolean;
 	isStreaming: boolean;
 	selection: ModelSelection | null;
@@ -47,7 +47,7 @@ type ChatInputProps = {
 	isSending?: boolean;
 	sendMessage: (message: { content: string; attachments: Attachment[] }) => void;
 	stop?: () => void;
-};
+}
 
 /** The message box, with attachments, the model, and tool switches. */
 export function ChatInput({
@@ -109,16 +109,18 @@ export function ChatInput({
 		setAttachments([]);
 	}
 
-	function handleSubmit(event: FormEvent<HTMLFormElement>) {
+	function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
 		event.preventDefault();
 		submit();
 	}
 
 	function handleKeyDown(event: KeyboardEvent<HTMLElement>) {
-		if (event.key === "Enter" && !event.shiftKey) {
-			event.preventDefault();
-			event.currentTarget.closest("form")?.requestSubmit();
+		if (event.key !== "Enter" || event.shiftKey) {
+			return;
 		}
+
+		event.preventDefault();
+		event.currentTarget.closest("form")?.requestSubmit();
 	}
 
 	function handlePaste(event: ClipboardEvent<HTMLElement>) {
@@ -164,21 +166,27 @@ export function ChatInput({
 				data-dragging={isDragging || undefined}
 				className="data-dragging:ring-2 data-dragging:ring-ring"
 				onDragOver={handleDragOver}
-				onDragLeave={() => setIsDragging(false)}
+				onDragLeave={() => {
+					setIsDragging(false);
+				}}
 				onDrop={handleDrop}
 			>
 				{attachments.length > 0 && (
 					<InputGroup.Addon align="block-start">
 						<AttachmentPreviews
 							attachments={attachments}
-							onRemove={(id) => setAttachments((prev) => prev.filter((a) => a.id !== id))}
+							onRemove={(id) => {
+								setAttachments((prev) => prev.filter((a) => a.id !== id));
+							}}
 						/>
 					</InputGroup.Addon>
 				)}
 				<InputGroup.Textarea
 					aria-label="Message"
 					value={messageDraft}
-					onChange={(event) => setMessageDraft(event.target.value)}
+					onChange={(event) => {
+						setMessageDraft(event.target.value);
+					}}
 					placeholder={needsModel ? "Pick a model to start..." : "Message..."}
 					className="max-h-50 w-full"
 					onKeyDown={handleKeyDown}

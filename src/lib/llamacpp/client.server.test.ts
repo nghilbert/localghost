@@ -1,15 +1,18 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { http, HttpResponse } from "msw";
+import type { fetch as undiciFetch } from "undici";
+import { beforeEach, describe, expect, vi } from "vitest";
 import {
 	deleteModel,
 	downloadModel,
-	type LlamaError,
-	type LlamaModelList,
-	LOCAL_LLAMACPP_API_KEY,
 	listModels,
+	LOCAL_LLAMACPP_API_KEY,
 	openModelEventStream,
 	unloadModel,
+	type LlamaError,
+	type LlamaModelList,
 } from "#/lib/llamacpp/client.server";
 import { log } from "#/lib/log.server";
+import { it, network } from "#/test/network.server";
 
 /**
  * A `ReadableStream<Uint8Array>` that emits `chunk` then errors instead of closing cleanly.
@@ -30,54 +33,56 @@ function droppedStream(chunk: string): ReadableStream<Uint8Array> {
 	});
 }
 
-const fetchMock = vi.fn();
+const ROUTER = "http://localhost:8080";
 
-function modelList(body: LlamaModelList): Response {
-	return Response.json(body);
+/** Serves the model list and returns the Authorization headers it was requested with. */
+function serveModelList(body: LlamaModelList): Array<string | null> {
+	const authorizations: Array<string | null> = [];
+	network.use(
+		http.get(`${ROUTER}/models`, ({ request }) => {
+			authorizations.push(request.headers.get("Authorization"));
+			return HttpResponse.json(body);
+		}),
+	);
+	return authorizations;
 }
 
 function routerError({ message, status }: { message: string; status: number }): Response {
-	return Response.json({ error: { message } } satisfies LlamaError, { status });
+	return HttpResponse.json({ error: { message } } satisfies LlamaError, { status });
 }
 
 // The event stream goes through undici (for its `bodyTimeout: 0` agent), not global fetch.
-const { undiciFetchMock } = vi.hoisted(() => ({ undiciFetchMock: vi.fn() }));
+const { undiciFetchMock } = vi.hoisted(() => ({
+	undiciFetchMock: vi.fn<(...args: Parameters<typeof undiciFetch>) => Promise<Response>>(),
+}));
 vi.mock("undici", async (importOriginal) => ({
 	...(await importOriginal<typeof import("undici")>()),
 	fetch: undiciFetchMock,
 }));
 
 beforeEach(() => {
-	fetchMock.mockReset();
 	undiciFetchMock.mockReset();
-	vi.stubGlobal("fetch", fetchMock);
-});
-
-afterEach(() => {
-	vi.unstubAllGlobals();
 });
 
 describe("llama.cpp model status", () => {
 	it("parses installed, sleeping, and multi-file downloading states", async () => {
-		fetchMock.mockResolvedValue(
-			modelList({
-				data: [
-					{ id: "org/ready:Q4_K_M", status: { value: "sleeping" } },
-					{
-						id: "org/downloading:Q4_K_M",
-						status: {
-							value: "downloading",
-							progress: {
-								one: { done: 4, total: 10 },
-								two: { done: 8, total: 20 },
-							},
+		const authorizations = serveModelList({
+			data: [
+				{ id: "org/ready:Q4_K_M", status: { value: "sleeping" } },
+				{
+					id: "org/downloading:Q4_K_M",
+					status: {
+						value: "downloading",
+						progress: {
+							one: { done: 4, total: 10 },
+							two: { done: 8, total: 20 },
 						},
 					},
-				],
-			}),
-		);
+				},
+			],
+		});
 
-		await expect(listModels({ url: "http://localhost:8080", apiKey: "secret" })).resolves.toEqual([
+		await expect(listModels({ url: ROUTER, apiKey: "secret" })).resolves.toEqual([
 			{ id: "org/ready:Q4_K_M", status: { value: "sleeping" } },
 			{
 				id: "org/downloading:Q4_K_M",
@@ -90,17 +95,12 @@ describe("llama.cpp model status", () => {
 				},
 			},
 		]);
-		expect(fetchMock).toHaveBeenCalledWith(
-			"http://localhost:8080/models",
-			expect.objectContaining({ headers: { Authorization: "Bearer secret" } }),
-		);
+		expect(authorizations).toEqual(["Bearer secret"]);
 	});
 
 	// The router reports this between a finished download and its next reload.
 	it("parses the transient downloaded state", async () => {
-		fetchMock.mockResolvedValue(
-			modelList({ data: [{ id: "org/just-finished:Q4_K_M", status: { value: "downloaded" } }] }),
-		);
+		serveModelList({ data: [{ id: "org/just-finished:Q4_K_M", status: { value: "downloaded" } }] });
 
 		await expect(listModels({ url: "http://localhost:8080" })).resolves.toEqual([
 			{ id: "org/just-finished:Q4_K_M", status: { value: "downloaded" } },
@@ -108,16 +108,11 @@ describe("llama.cpp model status", () => {
 	});
 
 	it("falls back to the bundled key when the endpoint stores none", async () => {
-		fetchMock.mockResolvedValue(modelList({ data: [] }));
+		const authorizations = serveModelList({ data: [] });
 
-		await listModels({ url: "http://localhost:8080" });
+		await listModels({ url: ROUTER });
 
-		expect(fetchMock).toHaveBeenCalledWith(
-			"http://localhost:8080/models",
-			expect.objectContaining({
-				headers: { Authorization: `Bearer ${LOCAL_LLAMACPP_API_KEY}` },
-			}),
-		);
+		expect(authorizations).toEqual([`Bearer ${LOCAL_LLAMACPP_API_KEY}`]);
 	});
 
 	it("opens the authenticated model event stream with the caller's abort signal", async () => {
@@ -159,7 +154,7 @@ describe("llama.cpp model status", () => {
 			.mockResolvedValueOnce(
 				new Response(secondBody, { headers: { "Content-Type": "text/event-stream" } }),
 			);
-		const debug = vi.spyOn(log, "debug").mockImplementation(() => {});
+		const debug = vi.spyOn(log, "debug").mockReturnValue();
 		const controller = new AbortController();
 
 		const body = await openModelEventStream({
@@ -175,14 +170,13 @@ describe("llama.cpp model status", () => {
 		expect(debug).toHaveBeenCalledOnce();
 
 		controller.abort();
-		debug.mockRestore();
 	});
 
 	it("stops reconnecting once the caller aborts", async () => {
 		undiciFetchMock.mockResolvedValueOnce(
 			new Response(droppedStream("first"), { headers: { "Content-Type": "text/event-stream" } }),
 		);
-		const debug = vi.spyOn(log, "debug").mockImplementation(() => {});
+		vi.spyOn(log, "debug").mockReturnValue();
 		const controller = new AbortController();
 
 		const body = await openModelEventStream({
@@ -197,33 +191,47 @@ describe("llama.cpp model status", () => {
 
 		expect(done).toBe(true);
 		expect(undiciFetchMock).toHaveBeenCalledTimes(1);
-		debug.mockRestore();
 	});
 });
 
 describe("llama.cpp model mutations", () => {
 	it("surfaces the router's download error", async () => {
-		fetchMock.mockResolvedValue(routerError({ message: "model is gated", status: 403 }));
+		network.use(
+			http.post(`${ROUTER}/models`, () => routerError({ message: "model is gated", status: 403 })),
+		);
 
-		await expect(
-			downloadModel({ url: "http://localhost:8080", model: "org/model:Q4_K_M" }),
-		).rejects.toThrow("model is gated");
+		await expect(downloadModel({ url: ROUTER, model: "org/model:Q4_K_M" })).rejects.toThrow(
+			"model is gated",
+		);
 	});
 
 	it("surfaces cancel and delete failures", async () => {
-		fetchMock.mockResolvedValueOnce(routerError({ message: "download not active", status: 404 }));
-		await expect(
-			unloadModel({ url: "http://localhost:8080", model: "org/model:Q4_K_M" }),
-		).rejects.toThrow("download not active");
-
-		fetchMock.mockResolvedValueOnce(routerError({ message: "model is loaded", status: 409 }));
-		await expect(
-			deleteModel({ url: "http://localhost:8080", model: "org/model:Q4_K_M" }),
-		).rejects.toThrow("model is loaded");
-		expect(fetchMock).toHaveBeenLastCalledWith(
-			"http://localhost:8080/models?model=org%2Fmodel%3AQ4_K_M",
-			// No stored key, so the bundled server's key rides along.
-			{ method: "DELETE", headers: { Authorization: `Bearer ${LOCAL_LLAMACPP_API_KEY}` } },
+		const deleted: Array<{ url: string; authorization: string | null }> = [];
+		network.use(
+			http.post(`${ROUTER}/models/unload`, () =>
+				routerError({ message: "download not active", status: 404 }),
+			),
+			http.delete(`${ROUTER}/models`, ({ request }) => {
+				deleted.push({
+					url: request.url,
+					authorization: request.headers.get("Authorization"),
+				});
+				return routerError({ message: "model is loaded", status: 409 });
+			}),
 		);
+
+		await expect(unloadModel({ url: ROUTER, model: "org/model:Q4_K_M" })).rejects.toThrow(
+			"download not active",
+		);
+		await expect(deleteModel({ url: ROUTER, model: "org/model:Q4_K_M" })).rejects.toThrow(
+			"model is loaded",
+		);
+		// No stored key, so the bundled server's key rides along.
+		expect(deleted).toEqual([
+			{
+				url: `${ROUTER}/models?model=org%2Fmodel%3AQ4_K_M`,
+				authorization: `Bearer ${LOCAL_LLAMACPP_API_KEY}`,
+			},
+		]);
 	});
 });

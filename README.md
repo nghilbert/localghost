@@ -41,12 +41,12 @@ npm install
 
 Then fill in the required secrets in `.env`:
 
-| Variable | Purpose | Value |
-|----------|---------|-------|
-| `POSTGRES_PASSWORD` | Postgres password | any strong string |
-| `BETTER_AUTH_SECRET` | signs auth sessions (min 32 chars) | `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
-| `ENCRYPTION_KEY` | encrypts stored endpoint API keys (64-char hex) | `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
-| `SEARXNG_SECRET` | required by the bundled SearXNG (Docker web search) | `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
+| Variable             | Purpose                                             | Value                                                                      |
+| -------------------- | --------------------------------------------------- | -------------------------------------------------------------------------- |
+| `POSTGRES_PASSWORD`  | Postgres password                                   | any strong string                                                          |
+| `BETTER_AUTH_SECRET` | signs auth sessions (min 32 chars)                  | `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
+| `ENCRYPTION_KEY`     | encrypts stored endpoint API keys (64-char hex)     | `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
+| `SEARXNG_SECRET`     | required by the bundled SearXNG (Docker web search) | `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
 
 The app throws on startup if any of the first three is missing or too weak.
 `SEARXNG_SECRET` only matters for the Docker profiles, but Compose won't start
@@ -55,14 +55,14 @@ without it. `DATABASE_URL` is built from the `POSTGRES_*` variables; override it
 
 Optional:
 
-| Variable | Purpose |
-|----------|---------|
-| `SEARXNG_URL` | enables web search when running natively (Docker sets it for you) |
-| `BETTER_AUTH_URL` | the public origin behind a reverse proxy (default `http://localhost:3000`) |
-| `HF_TOKEN` | lifts Hugging Face's anonymous limits for the Library and bundled llama.cpp downloads |
-| `LLAMA_ARG_SLEEP_IDLE_SECONDS` | how long the bundled llama.cpp keeps an idle model loaded (default 300) |
-| `LLAMA_ARG_N_GPU_LAYERS` | GPU layers for the bundled llama.cpp (default `auto`, fitted to free VRAM; `0` is CPU-only) |
-| `LLAMA_ARG_CTX_SIZE` | context length (default `0`: the model's, shrunk to fit memory) |
+| Variable                       | Purpose                                                                                     |
+| ------------------------------ | ------------------------------------------------------------------------------------------- |
+| `SEARXNG_URL`                  | enables web search when running natively (Docker sets it for you)                           |
+| `BETTER_AUTH_URL`              | the public origin behind a reverse proxy (default `http://localhost:3000`)                  |
+| `HF_TOKEN`                     | lifts Hugging Face's anonymous limits for the Library and bundled llama.cpp downloads       |
+| `LLAMA_ARG_SLEEP_IDLE_SECONDS` | how long the bundled llama.cpp keeps an idle model loaded (default 300)                     |
+| `LLAMA_ARG_N_GPU_LAYERS`       | GPU layers for the bundled llama.cpp (default `auto`, fitted to free VRAM; `0` is CPU-only) |
+| `LLAMA_ARG_CTX_SIZE`           | context length (default `0`: the model's, shrunk to fit memory)                             |
 
 ## Develop
 
@@ -122,10 +122,10 @@ it up. Web search stays off until `SEARXNG_URL` points at a SearXNG instance.
 npm run test -- run
 ```
 
-The `server` project runs against a real Postgres at `TEST_DATABASE_URL` (see
+The `db` project (`*.db.test.ts`) runs against a real Postgres at `TEST_DATABASE_URL` (see
 `.env.example`), starting the Compose `db` service first if nothing is listening
-there. It resets that database on every run and copies it to one
-`<name>_<n>` database per test worker, so keep it separate from `DATABASE_URL`.
+there. Each run migrates its own `<name>_<runId>` database, copies it once per
+test worker and drops them all when it ends, so overlapping runs never collide.
 
 ## Deploy
 
@@ -151,7 +151,7 @@ the bundled llama.cpp in `llamacpp`.
 
 Report bugs and send pull requests on
 [GitHub](https://github.com/nghilbert/localghost/issues). Open an issue first for
-large changes, and run `npm run biome check`, `npm run build`, and
+large changes, and run `npm run format`, `npm run lint`, `npm run build`, and
 `npm run test -- run` before sending a PR.
 
 ## License

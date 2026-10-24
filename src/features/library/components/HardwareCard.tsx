@@ -1,4 +1,4 @@
-import { CpuIcon, GpuIcon, type LucideIcon, MemoryStickIcon } from "lucide-react";
+import { CpuIcon, GpuIcon, MemoryStickIcon, type LucideIcon } from "lucide-react";
 import { Badge } from "#/components/ui/badge";
 import { Card } from "#/components/ui/card";
 import { Skeleton } from "#/components/ui/skeleton";
@@ -6,20 +6,20 @@ import { bestGpu } from "#/features/library/lib/hardware-fit";
 import type { HardwareInfo } from "#/features/library/library.types";
 import { formatBytes, GIB, MIB } from "#/lib/format";
 
-type HardwareStatProps = {
+interface HardwareStatProps {
 	icon: LucideIcon;
 	label: string;
 	/** Undefined while loading, which shows skeletons. */
 	value: string | undefined;
 	detail: string | undefined;
 	extra?: string | undefined;
-};
+}
 
 function HardwareStat({ icon: Icon, label, value, detail, extra }: HardwareStatProps) {
 	return (
 		<Card.Root size="sm">
 			<Card.Header>
-				<Card.Description className="flex items-center gap-1.5 uppercase tracking-wide">
+				<Card.Description className="flex items-center gap-1.5 tracking-wide uppercase">
 					<Icon />
 					{label}
 				</Card.Description>
@@ -42,10 +42,10 @@ function HardwareStat({ icon: Icon, label, value, detail, extra }: HardwareStatP
 	);
 }
 
-type HardwareCardProps = {
+interface HardwareCardProps {
 	hardware: HardwareInfo | undefined;
 	isLoading: boolean;
-};
+}
 
 /** The host's CPU, RAM, and GPU. Values show skeletons while loading. */
 export function HardwareCard({ hardware, isLoading }: HardwareCardProps) {

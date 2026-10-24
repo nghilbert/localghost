@@ -4,6 +4,7 @@ model Endpoint {
   url             String
   apiKeyEncrypted String?        @map("api_key_encrypted")
   provider        String         @default("openai")
+  /// [SamplingOptions]
   options         Json?          @map("options")
   ownerId         String         @map("owner_id") @db.Uuid
   owner           User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)

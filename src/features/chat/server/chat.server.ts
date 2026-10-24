@@ -1,4 +1,9 @@
 import { requestRunCancel, uiMessageToModelMessages } from "@tanstack/ai";
+import {
+	conversationExportFilename,
+	conversationToJson,
+	conversationToMarkdown,
+} from "#/features/chat/lib/chat-export";
 import { buildFirstUserMessage, deriveConversationTitle } from "#/features/chat/lib/messages";
 import { prisma } from "#/lib/db.server";
 import { MS_PER_SECOND } from "#/lib/format";
@@ -7,13 +12,13 @@ import { log } from "#/lib/log.server";
 import { chatPersistence, findRunThreadId } from "./persistence.server";
 
 /** A conversation in the sidebar list. */
-type ConversationListItem = {
+interface ConversationListItem {
 	id: string;
 	title: string;
 	model: string | null;
 	endpointId: string | null;
 	updatedAt: Date;
-};
+}
 
 /** The user's conversations, most recently active first, counting both messages and renames. */
 export function findConversations({
@@ -34,14 +39,14 @@ export function findConversations({
 }
 
 /** A conversation search result with a snippet of the match. */
-type ConversationSearchHit = {
+interface ConversationSearchHit {
 	id: string;
 	title: string;
 	model: string | null;
 	endpointId: string | null;
 	updatedAt: Date;
 	snippet: string;
-};
+}
 
 /** Full-text search over the user's transcripts, best match first, with a snippet. */
 export function searchConversations({
@@ -82,15 +87,14 @@ export function searchConversations({
 		LIMIT 20`;
 }
 
-/** A conversation with its transcript and endpoint (no key), or null when the user does not own it. */
+/** A conversation with its endpoint (no key), or null when the user does not own it. */
 export async function findConversation({ id, ownerId }: { id: string; ownerId: string }) {
 	const conversation = await prisma.conversation.findFirst({
 		where: { id, ownerId },
 		include: { endpoint: { select: { id: true, name: true, url: true, provider: true } } },
 	});
 	if (!conversation) return null;
-	const [thread, lastRun, stoppedRuns] = await Promise.all([
-		prisma.chatThread.findUnique({ where: { threadId: id }, select: { messages: true } }),
+	const [lastRun, stoppedRuns] = await Promise.all([
 		prisma.chatRun.findFirst({
 			where: { threadId: id },
 			orderBy: { startedAt: "desc" },
@@ -103,12 +107,47 @@ export async function findConversation({ id, ownerId }: { id: string; ownerId: s
 	]);
 	return {
 		...conversation,
-		messages: thread?.messages ?? [],
 		// The client keeps a failed run's error only until a reload, so the last one is sent along.
 		lastRunError: lastRun?.status === "failed" ? (lastRun.error ?? "") : null,
 		// The runs the user stopped, so a reloaded reply still says it was stopped.
 		stoppedRunIds: stoppedRuns.map((run) => run.runId),
 	};
+}
+
+/**
+ * A conversation's transcript as a file to download.
+ * @returns The file, or null when the user does not own the conversation.
+ */
+export async function renderConversationExport({
+	id,
+	ownerId,
+	format,
+}: {
+	id: string;
+	ownerId: string;
+	format: "markdown" | "json";
+}): Promise<{ filename: string; text: string; type: string } | null> {
+	const conversation = await prisma.conversation.findFirst({
+		where: { id, ownerId },
+		select: { title: true },
+	});
+	if (!conversation) return null;
+	const thread = await prisma.chatThread.findUnique({
+		where: { threadId: id },
+		select: { messages: true },
+	});
+	const exportable = { title: conversation.title, messages: thread?.messages ?? [] };
+	return format === "markdown"
+		? {
+				filename: conversationExportFilename({ title: conversation.title, extension: "md" }),
+				text: conversationToMarkdown(exportable),
+				type: "text/markdown",
+			}
+		: {
+				filename: conversationExportFilename({ title: conversation.title, extension: "json" }),
+				text: conversationToJson(exportable),
+				type: "application/json",
+			};
 }
 
 /** A conversation with its full endpoint row, encrypted key included, for a chat run. */
@@ -171,7 +210,7 @@ export async function insertConversation({
 		images: attachments.filter((attachment) => attachment.kind === "image"),
 		documents: attachments.filter((attachment) => attachment.kind === "document"),
 	});
-	const messages = JSON.parse(JSON.stringify(uiMessageToModelMessages(message)));
+	const messages = uiMessageToModelMessages(message);
 
 	return prisma.$transaction(async (tx) => {
 		const conversation = await tx.conversation.create({

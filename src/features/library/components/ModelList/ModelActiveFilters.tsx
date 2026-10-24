@@ -4,10 +4,10 @@ import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import type { Facet } from "#/features/library/lib/facets";
 
-type ModelActiveFiltersProps = {
+interface ModelActiveFiltersProps {
 	facets: Facet[];
 	className?: string;
-};
+}
 
 /** A removable chip for each active filter, including the fit filter that is on by default. */
 export function ModelActiveFilters({ facets, className }: ModelActiveFiltersProps) {

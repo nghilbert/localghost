@@ -10,7 +10,7 @@ import { DISABLED, FOCUS_RING } from "./focus";
 export const actionVariants = tv({
 	base: [
 		"inline-flex shrink-0 items-center justify-center gap-1.5 rounded-md border border-transparent",
-		"text-sm font-medium whitespace-nowrap select-none outline-none transition-colors",
+		"text-sm font-medium whitespace-nowrap transition-colors outline-none select-none",
 		FOCUS_RING,
 		DISABLED,
 		"disabled:pointer-events-none data-disabled:pointer-events-none",
@@ -18,11 +18,11 @@ export const actionVariants = tv({
 	variants: {
 		color: {
 			primary:
-				"[--c:var(--color-primary)] [--c-fg:var(--color-primary-fg)] [--c-soft:var(--color-primary-soft)]",
+				"[--c-fg:var(--color-primary-fg)] [--c-soft:var(--color-primary-soft)] [--c:var(--color-primary)]",
 			neutral:
-				"[--c:var(--color-neutral)] [--c-fg:var(--color-neutral-fg)] [--c-soft:var(--color-neutral-soft)]",
+				"[--c-fg:var(--color-neutral-fg)] [--c-soft:var(--color-neutral-soft)] [--c:var(--color-neutral)]",
 			danger:
-				"[--c:var(--color-danger)] [--c-fg:var(--color-danger-fg)] [--c-soft:var(--color-danger-soft)]",
+				"[--c-fg:var(--color-danger-fg)] [--c-soft:var(--color-danger-soft)] [--c:var(--color-danger)]",
 		},
 		/** How loud to draw the color, loudest first. */
 		variant: {

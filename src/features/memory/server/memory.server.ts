@@ -4,7 +4,11 @@ import { log } from "#/lib/log.server";
 import { embed, toVectorLiteral } from "./embeddings.server";
 
 /** A memory returned by {@link recallMemories}. */
-type RecalledMemory = { id: string; text: string; category: string };
+interface RecalledMemory {
+	id: string;
+	text: string;
+	category: string;
+}
 
 /**
  * Inserts a memory with a precomputed embedding, using raw SQL since Prisma has no
@@ -14,7 +18,7 @@ export async function insertMemory({
 	db,
 	ownerId,
 	text,
-	category,
+	category = "fact",
 	source,
 	embedding,
 }: {
@@ -29,7 +33,7 @@ export async function insertMemory({
 		INSERT INTO memory (text, category, source, owner_id, embedding)
 		VALUES (
 			${text},
-			${category ?? "fact"},
+			${category},
 			${source},
 			${ownerId}::uuid,
 			${embedding ? toVectorLiteral(embedding) : null}::vector
@@ -49,7 +53,7 @@ const DEDUP_MAX_COSINE_DISTANCE = 0.08;
 export async function saveMemory({
 	ownerId,
 	text,
-	category,
+	category = "fact",
 	source = "agent",
 }: {
 	ownerId: string;
@@ -63,7 +67,7 @@ export async function saveMemory({
 	return prisma.$transaction(
 		async (tx) => {
 			const exact = await tx.memory.findFirst({
-				where: { ownerId, text, category: category ?? "fact" },
+				where: { ownerId, text, category },
 				select: { text: true },
 			});
 			if (exact) return { status: "duplicate", text: exact.text };
@@ -175,7 +179,7 @@ function likePatterns(query: string): string[] {
 		.split(/\s+/)
 		.filter((word) => word.length >= 2);
 	const tokens = words.length > 0 ? words : [query.trim().toLowerCase()];
-	return tokens.map((word) => `%${word.replace(/[\\%_]/g, "\\$&")}%`);
+	return tokens.map((word) => `%${word.replaceAll(/[\\%_]/g, String.raw`\$&`)}%`);
 }
 
 /** The user's memories, newest first, optionally capped. */
@@ -183,7 +187,7 @@ export async function findMemories({ ownerId, limit }: { ownerId: string; limit?
 	return prisma.memory.findMany({
 		where: { ownerId },
 		orderBy: { id: "desc" },
-		...(limit !== undefined ? { take: limit } : {}),
+		...(limit === undefined ? {} : { take: limit }),
 		select: { id: true, text: true, category: true, source: true },
 	});
 }

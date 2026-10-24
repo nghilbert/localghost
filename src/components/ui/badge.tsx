@@ -1,7 +1,7 @@
 import { mergeProps } from "@base-ui/react/merge-props";
 import { useRender } from "@base-ui/react/use-render";
 import { tv } from "tailwind-variants";
-import { type ActionVariants, actionVariants } from "#/components/ui/variants/action";
+import { actionVariants, type ActionVariants } from "#/components/ui/variants/action";
 
 /**
  * The button look without the interaction: no focus ring, no hover, no fixed
@@ -23,7 +23,9 @@ const badgeVariants = tv({
 });
 
 type BadgeVariants = Omit<ActionVariants<"solid" | "soft" | "outlined">, "size" | "iconOnly">;
-type BadgeState = { color: NonNullable<BadgeVariants["color"]> };
+interface BadgeState {
+	color: NonNullable<BadgeVariants["color"]>;
+}
 
 /**
  * A small label for a count, a status or a tag.

@@ -1,9 +1,12 @@
+import type { ComponentProps } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import { render } from "#/test/utils";
 import { ChatRenameForm } from "./ChatRenameForm";
 
-const { mutateAsync } = vi.hoisted(() => ({ mutateAsync: vi.fn() }));
+const { mutateAsync } = vi.hoisted(() => ({
+	mutateAsync: vi.fn<(input: unknown, options?: { onSuccess?: () => void }) => Promise<void>>(),
+}));
 
 vi.mock("#/features/chat/hooks/use-rename-conversation", () => ({
 	useRenameConversation: () => ({ mutateAsync }),
@@ -21,7 +24,7 @@ describe("ChatRenameForm", () => {
 	});
 
 	it("renames on Enter when the title changed", async () => {
-		const onDone = vi.fn();
+		const onDone = vi.fn<ComponentProps<typeof ChatRenameForm>["onDone"]>();
 		const screen = await render(<ChatRenameForm conversation={conversation} onDone={onDone} />);
 
 		await screen.getByRole("textbox", { name: "Chat title" }).fill("New title");
@@ -33,7 +36,7 @@ describe("ChatRenameForm", () => {
 	});
 
 	it("closes without renaming when the title is unchanged", async () => {
-		const onDone = vi.fn();
+		const onDone = vi.fn<ComponentProps<typeof ChatRenameForm>["onDone"]>();
 		const screen = await render(<ChatRenameForm conversation={conversation} onDone={onDone} />);
 
 		await screen.getByRole("textbox", { name: "Chat title" }).click();
@@ -44,7 +47,7 @@ describe("ChatRenameForm", () => {
 	});
 
 	it("cancels on Escape without renaming, even after edits", async () => {
-		const onDone = vi.fn();
+		const onDone = vi.fn<ComponentProps<typeof ChatRenameForm>["onDone"]>();
 		const screen = await render(<ChatRenameForm conversation={conversation} onDone={onDone} />);
 
 		await screen.getByRole("textbox", { name: "Chat title" }).fill("Old title changed");
@@ -56,7 +59,7 @@ describe("ChatRenameForm", () => {
 
 	it("keeps the editor open when the rename fails", async () => {
 		mutateAsync.mockRejectedValue(new Error("Rename failed"));
-		const onDone = vi.fn();
+		const onDone = vi.fn<ComponentProps<typeof ChatRenameForm>["onDone"]>();
 		const screen = await render(<ChatRenameForm conversation={conversation} onDone={onDone} />);
 
 		await screen.getByRole("textbox", { name: "Chat title" }).fill("New title");

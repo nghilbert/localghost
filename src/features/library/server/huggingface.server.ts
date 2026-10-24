@@ -10,7 +10,7 @@ const AUXILIARY_GGUF_SUBSTRINGS = ["mmproj", "imatrix", "mtp-", "eagle3-", "dfla
 /** Whether a file is a projector, imatrix, or draft model instead of the model's weights. */
 function isAuxiliaryGgufFile(fileName: string): boolean {
 	const segments = fileName.split("/");
-	const basename = segments[segments.length - 1] ?? fileName;
+	const basename = segments.at(-1) ?? fileName;
 	return AUXILIARY_GGUF_SUBSTRINGS.some((substring) => basename.includes(substring));
 }
 
@@ -36,7 +36,7 @@ type IndexExtras = z.infer<typeof indexExtrasSchema>;
 export type HubIndexExtras = z.input<typeof indexExtrasSchema>;
 
 /** One GGUF chat repo as the catalog needs it, flattened from the Hub's index. */
-export type HfChatModel = {
+export interface HfChatModel {
 	repoId: string;
 	author: string | null;
 	downloads: number;
@@ -52,7 +52,7 @@ export type HfChatModel = {
 	/** Repos this one derives from; quantizers set it on repacks, but not all do. */
 	baseModelIds: string[];
 	isVision: boolean;
-};
+}
 
 /**
  * A `fetch` for `listModels` and `modelInfo` that also requests the extra fields and
@@ -74,7 +74,7 @@ function createExtrasCollector(): { hookedFetch: typeof fetch; extras: Map<strin
 		const response = await fetch(url, init);
 		if (!response.ok) return response;
 
-		const payload = await response.clone().json();
+		const payload: unknown = await response.clone().json();
 		const parsed = z
 			.array(indexExtrasSchema)
 			.safeParse(Array.isArray(payload) ? payload : [payload]);
@@ -115,7 +115,7 @@ function toHfChatModel({
 	extra: IndexExtras | undefined;
 	isVision: boolean;
 }): HfChatModel {
-	const tags = model.tags ?? [];
+	const { tags } = model;
 	const cardLicense = model.cardData?.license;
 	const baseModel = model.cardData?.base_model;
 
@@ -126,7 +126,7 @@ function toHfChatModel({
 		likes: model.likes,
 		tags,
 		license: (typeof cardLicense === "string" ? cardLicense : null) ?? firstLicenseTag(tags),
-		createdAt: model.createdAt ?? null,
+		createdAt: model.createdAt,
 		updatedAt: toIsoString(model.updatedAt),
 		paramTotal: extra?.gguf?.total ?? null,
 		contextLength: extra?.gguf?.context_length ?? null,
@@ -200,8 +200,7 @@ export async function getGgufChatModel({
 	return toHfChatModel({
 		model,
 		extra: extras.get(model.name),
-		isVision:
-			model.task === "image-text-to-text" || (model.tags ?? []).includes("image-text-to-text"),
+		isVision: model.task === "image-text-to-text" || model.tags.includes("image-text-to-text"),
 	});
 }
 
@@ -213,7 +212,7 @@ export async function listGgufVariants({
 	repoId: string;
 	accessToken: string | undefined;
 }): Promise<ModelVariantInfo[]> {
-	const files: { path: string; bytes: number }[] = [];
+	const files: Array<{ path: string; bytes: number }> = [];
 	for await (const file of listFiles({
 		repo: { type: "model", name: repoId },
 		recursive: true,
@@ -248,5 +247,5 @@ export async function listGgufVariants({
 		});
 	}
 
-	return variants.sort((a, b) => (a.sizeGb ?? 0) - (b.sizeGb ?? 0));
+	return variants.toSorted((a, b) => (a.sizeGb ?? 0) - (b.sizeGb ?? 0));
 }

@@ -1,7 +1,7 @@
 import { aiDevtoolsPlugin } from "@tanstack/react-ai-devtools";
 import { TanStackDevtools } from "@tanstack/react-devtools";
 import { formDevtoolsPlugin } from "@tanstack/react-form-devtools";
-import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider, type QueryClient } from "@tanstack/react-query";
 import { ReactQueryDevtoolsPanel } from "@tanstack/react-query-devtools";
 import { createRootRouteWithContext, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
@@ -33,11 +33,11 @@ function RootDocument() {
 		<html lang="en" suppressHydrationWarning>
 			<head>
 				<HeadContent />
-				<meta charSet="UTF-8" />
+				<meta charSet="utf-8" />
 				<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 			</head>
 
-			<body className="h-dvh overflow-hidden flex flex-col bg-bg text-fg">
+			<body className="flex h-dvh flex-col overflow-hidden bg-bg text-fg">
 				<QueryClientProvider client={queryClient}>
 					<ThemeProvider defaultMode="system">
 						<Tooltip.Provider>

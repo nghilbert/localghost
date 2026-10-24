@@ -3,16 +3,10 @@ import type { LLMProvider } from "#/lib/llm-provider";
 
 /** A provider a user can add. */
 export type ProviderId =
-	| "anthropic"
-	| "openai"
-	| "gemini"
-	| "openrouter"
-	| "groq"
-	| "llamacpp"
-	| "custom";
+	"anthropic" | "openai" | "gemini" | "openrouter" | "groq" | "llamacpp" | "custom";
 
 /** What the add form needs to know about a provider. */
-export type ProviderDefinition = {
+export interface ProviderDefinition {
 	id: ProviderId;
 	label: string;
 	defaultName: string;
@@ -24,7 +18,7 @@ export type ProviderDefinition = {
 	keyPlaceholder?: string;
 	keyConsoleUrl?: string;
 	description: string;
-};
+}
 
 /**
  * The providers a user can add. Local llama.cpp is built in, so it is not listed. Each

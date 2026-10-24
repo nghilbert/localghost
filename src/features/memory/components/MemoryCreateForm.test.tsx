@@ -3,7 +3,10 @@ import { userEvent } from "vitest/browser";
 import { render } from "#/test/utils";
 import { MemoryCreateForm } from "./MemoryCreateForm";
 
-const { createMemoryMutateAsync } = vi.hoisted(() => ({ createMemoryMutateAsync: vi.fn() }));
+const { createMemoryMutateAsync } = vi.hoisted(() => ({
+	createMemoryMutateAsync:
+		vi.fn<(text: string, options?: { onSuccess?: () => void }) => Promise<void>>(),
+}));
 
 vi.mock("#/features/memory/hooks/use-create-memory", () => ({
 	useCreateMemory: () => ({ mutateAsync: createMemoryMutateAsync }),
@@ -16,10 +19,11 @@ beforeEach(() => {
 
 describe("MemoryCreateForm", () => {
 	it("clears a new memory only after it is saved", async () => {
-		const submission = Promise.withResolvers<void>();
-		createMemoryMutateAsync.mockImplementation((_text, options) =>
-			submission.promise.then(() => options?.onSuccess?.()),
-		);
+		const submission = Promise.withResolvers<undefined>();
+		createMemoryMutateAsync.mockImplementation(async (_text, options) => {
+			await submission.promise;
+			options?.onSuccess?.();
+		});
 		const screen = await render(<MemoryCreateForm />);
 		const input = screen.getByRole("textbox", { name: "New memory" });
 
@@ -30,7 +34,7 @@ describe("MemoryCreateForm", () => {
 		expect(createMemoryMutateAsync.mock.calls[0]?.[0]).toBe("Prefer metric units");
 		await expect.element(input).toHaveValue("  Prefer metric units  ");
 
-		submission.resolve();
+		submission.resolve(undefined);
 		await expect.element(input).toHaveValue("");
 	});
 

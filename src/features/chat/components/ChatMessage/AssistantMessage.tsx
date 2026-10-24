@@ -12,7 +12,7 @@ import { formatSeconds } from "#/lib/format";
 import { ActionButton } from "./ActionButton";
 import { ActivityTrail } from "./ActivityTrail";
 
-type AssistantMessageProps = {
+interface AssistantMessageProps {
 	message: ChatUIMessage;
 	isStreaming?: boolean;
 	/** Replaces the live row's status, e.g. while the model loads. */
@@ -23,7 +23,7 @@ type AssistantMessageProps = {
 	onRegenerate?: () => void;
 	/** Pending approvals for this message's tool calls. */
 	interrupts?: ChatInterrupts;
-};
+}
 
 /** How long the reply took, and whether the user stopped it. */
 function describeDuration(seconds: number, stopped?: boolean): string | null {
@@ -88,15 +88,15 @@ export function AssistantMessage({
 				{!isStreaming && (answer || stopped) && (
 					<MessageFooter className="gap-1">
 						{durationNote && (
-							<span className="text-xs tabular-nums text-muted-fg">{durationNote}</span>
+							<span className="text-xs text-muted-fg tabular-nums">{durationNote}</span>
 						)}
-						<div className="ml-auto flex items-center gap-1 opacity-0 transition-opacity pointer-coarse:opacity-100 focus-within:opacity-100 group-hover/message:opacity-100">
+						<div className="ml-auto flex items-center gap-1 opacity-0 transition-opacity group-hover/message:opacity-100 focus-within:opacity-100 pointer-coarse:opacity-100">
 							{answer && (
 								<ActionButton
 									icon={<CopyIcon />}
 									ariaLabel="Copy message"
 									tooltip="Copy"
-									onClick={() => copyToClipboard(answer)}
+									onClick={() => void copyToClipboard(answer)}
 								/>
 							)}
 							{onRegenerate && (

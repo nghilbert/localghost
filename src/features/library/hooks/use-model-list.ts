@@ -10,22 +10,22 @@ import {
 import { buildModelFacets } from "#/features/library/lib/facets";
 import {
 	buildModelRows,
-	type ModelRow,
 	matchesModelFacets,
+	type ModelRow,
 } from "#/features/library/lib/model-rows";
 import { DEFAULT_SORT, type ModelSort } from "#/features/library/lib/model-sort";
 import { libraryQueries } from "#/features/library/library.queries";
 import {
+	DEFAULT_HIDDEN_FITS,
 	type CatalogCapability,
 	type CatalogQuery,
-	DEFAULT_HIDDEN_FITS,
 	type HideableFit,
+	type ModelStatus,
 } from "#/features/library/library.schemas";
 import type {
 	CatalogModel,
 	HardwareInfo,
 	InstalledModel,
-	ModelStatus,
 	PullProgress,
 } from "#/features/library/library.types";
 import { useDebouncedValue } from "#/hooks/use-debounced-value";
@@ -52,7 +52,7 @@ function sortableRow(row: ModelRow): SortableModel {
 		paramB: catalog?.paramB ?? installed?.paramB ?? null,
 		sizeGb:
 			catalog?.sizeGb ??
-			(installed?.sizeBytes != null ? roundToTenth(installed.sizeBytes / GIB) : null),
+			(installed?.sizeBytes == null ? null : roundToTenth(installed.sizeBytes / GIB)),
 		pullCount: catalog?.pullCount ?? 0,
 		likes: catalog?.likes ?? 0,
 		updatedAt: catalog?.updatedAt,
@@ -66,11 +66,11 @@ function matchesSearch({ row, search }: { row: ModelRow; search: string }): bool
 	return rankItem(haystack, search).passed;
 }
 
-type UseModelListProps = {
+interface UseModelListProps {
 	installedModels: InstalledModel[];
 	pulling: Record<string, PullProgress>;
 	hardware: HardwareInfo | undefined;
-};
+}
 
 /** The Library list's catalog query, installed models, filters, sorting, and paging. */
 export function useModelList({ installedModels, pulling, hardware }: UseModelListProps) {
@@ -149,7 +149,7 @@ export function useModelList({ installedModels, pulling, hardware }: UseModelLis
 			base = base.filter((row) => matchesModelFacets({ row, licenses, capabilities }));
 		}
 	}
-	const rows = [...base].sort((left, right) =>
+	const rows = base.toSorted((left, right) =>
 		compareModels({ left: sortableRow(left), right: sortableRow(right), ...sort }),
 	);
 
@@ -216,7 +216,7 @@ export function useModelList({ installedModels, pulling, hardware }: UseModelLis
 		counts,
 		expandedId,
 		facets,
-		fetchedVariants: expandedCatalog !== null ? variantsQuery.data : undefined,
+		fetchedVariants: expandedCatalog === null ? undefined : variantsQuery.data,
 		handleSearchChange,
 		handleSortChange,
 		handleStatusChange,

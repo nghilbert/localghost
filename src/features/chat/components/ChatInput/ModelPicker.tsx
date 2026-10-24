@@ -8,10 +8,10 @@ import { Spinner } from "#/components/ui/spinner";
 import { useEndpointModelGroups } from "#/features/library/hooks/use-endpoint-model-groups";
 import type { ModelSelection } from "#/lib/llm-schemas";
 
-type ModelPickerProps = {
+interface ModelPickerProps {
 	selection: ModelSelection | null;
 	onSelect?: (selection: ModelSelection) => void;
-};
+}
 
 /** Picks the endpoint and model for a new chat. */
 export function ModelPicker({ selection, onSelect }: ModelPickerProps) {
@@ -64,7 +64,7 @@ export function ModelPicker({ selection, onSelect }: ModelPickerProps) {
 								<Menu.GroupLabel>{endpoint.name}</Menu.GroupLabel>
 								{models.map((model) => {
 									const isSelected =
-										selection?.endpointId === endpoint.id && selection?.model === model;
+										selection?.endpointId === endpoint.id && selection.model === model;
 									return (
 										<Menu.Item
 											key={model}

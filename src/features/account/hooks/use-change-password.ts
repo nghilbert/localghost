@@ -2,10 +2,10 @@ import { useMutation } from "@tanstack/react-query";
 import { toast } from "#/components/ui/toast";
 import { authClient } from "#/lib/auth-client";
 
-type ChangePassword = {
+interface ChangePassword {
 	currentPassword: string;
 	newPassword: string;
-};
+}
 
 /** Changes the account password and revokes all other active sessions. */
 export function useChangePassword() {

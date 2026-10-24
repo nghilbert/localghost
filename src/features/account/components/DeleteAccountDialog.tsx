@@ -37,7 +37,9 @@ export function DeleteAccountDialog({ email }: { email: string }) {
 						color="danger"
 						variant="soft"
 						disabled={confirmation !== email || deleteAccount.isPending}
-						onClick={() => deleteAccount.mutate()}
+						onClick={() => {
+							deleteAccount.mutate();
+						}}
 					>
 						{deleteAccount.isPending ? "Deleting..." : "Delete account"}
 					</AlertDialog.Action>

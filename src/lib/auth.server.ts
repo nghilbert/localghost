@@ -46,7 +46,22 @@ export const auth = betterAuth({
 			systemPrompt: { type: "string", required: false, input: false },
 			temperature: { type: "number", required: false, input: false },
 		},
-		deleteUser: { enabled: true },
+		deleteUser: {
+			enabled: true,
+			// The chat persistence tables have no foreign keys, so the user's cascade misses them.
+			beforeDelete: async (user) => {
+				const conversations = await prisma.conversation.findMany({
+					where: { ownerId: user.id },
+					select: { id: true },
+				});
+				const threadId = { in: conversations.map(({ id }) => id) };
+				await prisma.$transaction([
+					prisma.chatThread.deleteMany({ where: { threadId } }),
+					prisma.chatRun.deleteMany({ where: { threadId } }),
+					prisma.chatInterrupt.deleteMany({ where: { threadId } }),
+				]);
+			},
+		},
 	},
 	hooks: {
 		// One person is signed in at a time. Everyone else waits for them to sign out or for

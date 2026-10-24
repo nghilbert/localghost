@@ -1,6 +1,6 @@
 /*
  * Animation: the `animate-*` utilities `Progress` and `Skeleton` use, the `shimmer`
- * sweep, and route cross-fades.
+ * sweep, and route cross-fades. All motion stops when the reader asks for less.
  */
 @theme {
 	--animate-progress-indeterminate: progress-indeterminate 1.4s ease-in-out infinite;
@@ -61,5 +61,17 @@
 	:root::view-transition-old(*),
 	:root::view-transition-new(*) {
 		animation: none;
+	}
+}
+
+/* Popups and other transitions finish at once, so nothing slides or fades. */
+@media (prefers-reduced-motion: reduce) {
+	*,
+	::before,
+	::after {
+		transition-duration: 0s !important;
+		transition-delay: 0s !important;
+		animation-duration: 0s !important;
+		animation-delay: 0s !important;
 	}
 }

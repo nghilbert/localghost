@@ -4,6 +4,11 @@ generator client {
   previewFeatures = ["postgresqlExtensions"]
 }
 
+/// Types `Json` fields from `/// [Type]` comments, resolved in the global `PrismaJson` namespace.
+generator json {
+  provider = "prisma-json-types-generator"
+}
+
 datasource db {
   provider   = "postgresql"
   extensions = [vector]

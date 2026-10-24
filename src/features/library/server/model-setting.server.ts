@@ -14,7 +14,7 @@ export async function getModelSetting({
 	ownerId: string;
 }) {
 	const setting = await prisma.modelSetting.findFirst({ where: { endpointId, model, ownerId } });
-	if (!setting) return undefined;
+	if (!setting) return;
 	if (setting.options == null) return null;
 	return perModelOptionsSchema.parse(setting.options);
 }

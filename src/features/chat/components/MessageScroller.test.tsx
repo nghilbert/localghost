@@ -37,10 +37,20 @@ function Harness({
 	};
 	return (
 		<>
-			<button type="button" onClick={() => appendItem()}>
+			<button
+				type="button"
+				onClick={() => {
+					appendItem();
+				}}
+			>
 				add
 			</button>
-			<button type="button" onClick={() => appendItem(true)}>
+			<button
+				type="button"
+				onClick={() => {
+					appendItem(true);
+				}}
+			>
 				add anchor
 			</button>
 			<MessageScrollerProvider

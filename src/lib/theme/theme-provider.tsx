@@ -1,13 +1,13 @@
 import { ScriptOnce } from "@tanstack/react-router";
-import { createContext, type ReactNode, use, useEffect, useSyncExternalStore } from "react";
+import { createContext, use, useEffect, useSyncExternalStore, type ReactNode } from "react";
 import { isTheme, isThemeMode, THEMES, type Theme, type ThemeMode } from "./theme";
 
-type ThemeContextValue = {
+interface ThemeContextValue {
 	mode: ThemeMode;
 	setMode: (mode: ThemeMode) => void;
 	theme: Theme | null;
 	setTheme: (theme: Theme | null) => void;
-};
+}
 
 const MODE_STORAGE_KEY = "theme-mode";
 const THEME_STORAGE_KEY = "theme-preset";
@@ -30,7 +30,7 @@ function applyMode(mode: ThemeMode) {
 
 	const resolved =
 		mode === "system"
-			? window.matchMedia("(prefers-color-scheme: dark)").matches
+			? globalThis.matchMedia("(prefers-color-scheme: dark)").matches
 				? "dark"
 				: "light"
 			: mode;
@@ -50,7 +50,9 @@ const storageChanges = new EventTarget();
 
 function subscribe(onChange: () => void) {
 	storageChanges.addEventListener("change", onChange);
-	return () => storageChanges.removeEventListener("change", onChange);
+	return () => {
+		storageChanges.removeEventListener("change", onChange);
+	};
 }
 
 function getStoredMode(): ThemeMode | null {
@@ -68,10 +70,10 @@ function getServerValue() {
 	return null;
 }
 
-type ThemeProviderProps = {
+interface ThemeProviderProps {
 	children: ReactNode;
 	defaultMode?: ThemeMode;
-};
+}
 
 /** Applies and stores the light/dark mode and color preset for the app. */
 export function ThemeProvider({ children, defaultMode = "system" }: ThemeProviderProps) {
@@ -81,10 +83,14 @@ export function ThemeProvider({ children, defaultMode = "system" }: ThemeProvide
 	useEffect(() => {
 		if (mode !== "system") return;
 
-		const media = window.matchMedia("(prefers-color-scheme: dark)");
-		const onChange = () => applyMode("system");
+		const media = globalThis.matchMedia("(prefers-color-scheme: dark)");
+		const onChange = () => {
+			applyMode("system");
+		};
 		media.addEventListener("change", onChange);
-		return () => media.removeEventListener("change", onChange);
+		return () => {
+			media.removeEventListener("change", onChange);
+		};
 	}, [mode]);
 
 	const setMode = (next: ThemeMode) => {

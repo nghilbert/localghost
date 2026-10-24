@@ -13,7 +13,7 @@ import {
 export const controlVariants = tv({
 	base: [
 		"flex w-full min-w-0 items-center rounded-md border border-line bg-transparent",
-		"text-sm outline-none transition-colors",
+		"text-sm transition-colors outline-none",
 		DISABLED,
 		"disabled:cursor-not-allowed data-disabled:cursor-not-allowed",
 	],

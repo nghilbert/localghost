@@ -7,13 +7,18 @@ A local-first AI chat app: install models (local via llama.cpp, or a bring-your-
 ```bash
 npm run dev          # dev server on :3000
 npm run build        # typecheck + production build
-npm run biome check  # lint + format check
-npm run biome:fix    # auto-fix
+npm run lint         # ESLint (`-- --fix` to auto-fix)
+npm run format       # Prettier
 npm run test -- run  # all Vitest projects once
-npm run test -- run --project unit   # or: browser, server
+npm run test -- run --project unit   # or: browser, db
+npm run test -- --project unit       # watch one project
+npm run test -- related <files> --run   # only tests that import <files>
+npm run test -- run --coverage       # report in .vitest/coverage; a guide, not a gate
 ```
 
-`biome` and `prisma` are passthrough scripts. Put `--` before flags: `npm run biome -- check --write` keeps `--write`; `npm run biome check --write` drops it.
+`prisma` is a passthrough script. Put `--` before flags: `npm run prisma -- migrate status` keeps them.
+
+`typescript` is TypeScript 6 (`@typescript/typescript6`) only because typescript-eslint needs its JS API; `tsc`, the build and the editor run TypeScript 7 from `@typescript/native`.
 
 The dev loop is Docker Compose: `docker compose up --build`. `.env` selects the environment through `COMPOSE_PROFILES` (`dev` = Vite HMR, `prod` = built image, `llamacpp` = bundled llama-server) and `COMPOSE_FILE` (GPU overlays). Native fallback: `docker compose up db -d`, then `npm run dev`. See `.env.example` and `README.md`.
 
@@ -22,7 +27,7 @@ The dev loop is Docker Compose: `docker compose up --build`. `.env` selects the 
 - **Never** run `git add`, `git commit`, `git push`, `git stash`, `git mv`, or create branches without explicit permission from the user. Otherwise leave changes in the working tree.
 - **Never** run `prisma generate`, `migrate`, `db push`, or `migrate reset`. Edit `prisma/schema/` only, then tell the user the exact command, e.g. `npm run prisma -- migrate dev --name <name>`.
 - Never edit generated output: `src/generated/`, `src/routeTree.gen.ts`.
-- Before finishing: `npm run biome check` and `npm run build`; run the tests you touched.
+- Before finishing: `npm run format`, `npm run lint` and `npm run build`; run the tests you touched.
 - When permitted to commit, split the work into logical chunks. Each message is one concise imperative line. **Never** add co-author, signature, or generated-with lines.
 - Without commit permission, end with one section per logical change: a fenced `git add <paths>`, then that one-line message.
 - Delegate mechanical or narrow tasks to a Sonnet 5.5 subagent (`sonnet`); keep design work on Opus 5.5 (`opus`).
@@ -31,8 +36,7 @@ The dev loop is Docker Compose: `docker compose up --build`. `.env` selects the 
 ## Rules
 
 - **Work with the framework.** Never hand-roll what a retained dependency does, and no shim running beside a library we keep.
-- **No `as` casts** (`as const` is fine) and no non-null `!`. Type via generics, annotations, narrowing, or Prisma model types.
-- **No `biome-ignore`** and no Biome overrides. Fix the real issue.
+- Fix lint findings instead of silencing them; inline `eslint-disable` is off.
 - **No dead code**, no re-exports, no `// removed` comments. No barrels except a ui module's own `index.ts`.
 - **Server-only:** never import `*.server.ts` from client code.
 - **Logging:** server code logs through `log` from `lib/log.server.ts` (pino), never `console`. Context goes first: `log.warn({ err, userId }, "message")`.
@@ -104,13 +108,26 @@ Completion-dependent forms return `mutation.mutateAsync(value, { onSuccess })` f
 
 ## Testing
 
-Tests sit beside their subject, named for it (`chat.server.ts` -> `chat.server.test.ts`; a folder component `ChatInput/index.tsx` -> `ChatInput/ChatInput.test.tsx`). Three projects:
+Tests sit beside their subject, named for it (`crypto.server.ts` -> `crypto.server.test.ts`; a folder component `ChatInput/index.tsx` -> `ChatInput/ChatInput.test.tsx`). A test that needs Postgres drops `.server` for `.db` (`chat.server.ts` -> `chat.db.test.ts`). Three projects:
 
-- `unit`: `*.test.ts` in node.
-- `browser`: `*.test.tsx` in headless Chromium, with `render` / `renderHook` from `#/test/utils` (async). Setup files disable Base UI's transition wait and load the real CSS.
-- `server`: `*.server.test.ts` against a real Postgres at `TEST_DATABASE_URL` (the Compose `db` service is started if unreachable, then reset before the run and copied to one `<name>_<n>` database per worker, so files run in parallel).
+- `unit`: `*.test.ts` in node, including database-free `*.server.test.ts`.
+- `browser`: `*.test.tsx` in headless Chromium, with `render` / `renderHook` from `#/test/utils` (async). Chromium runs with reduced motion, so Base UI's transitions finish at once, and a setup file loads the real CSS.
+- `db`: `*.db.test.ts` against a real Postgres at `TEST_DATABASE_URL` (the Compose `db` service is started if unreachable). Each run migrates its own `<name>_<runId>` database and copies it once per worker, so runs can overlap and files run in parallel; teardown drops them.
 
 `components/ui/ui.test.tsx` is one table of library-wide invariants; a new module adds a row.
+
+- **Write the failing test first.** When an existing test fails, suspect the code before the test.
+- **Assert outcomes:** the DOM by role and name, HTTP responses, database rows. Never assert calls into our own code.
+- **Fake only boundaries:**
+  - the model: `fakeText()` from `@tanstack/ai/testing`, through `vi.mock("@tanstack/ai-openai/compatible")`
+  - outbound HTTP: MSW handlers on `network` (`#/test/network.server`) or `worker` (`#/test/msw`)
+  - a browser test's server: `vi.mock` of the feature's `*.functions.ts`, typed `vi.fn<typeof fn>()`
+  - env and time: `vi.stubEnv`, fake timers
+
+  Never mock or spy on our own hooks, query factories, components or toasts; `render` mounts the real toast viewport.
+
+- **Import `test` from a fixture module**, not `vitest`, when the test needs one: `#/test/db.server` empties every table first, and the MSW modules fail any request no handler matches.
+- **Build data with the app's own code** or a factory (`#/test/factories`, `create*` in `#/test/db.server`), never a hand-written copy of something the app derives. Faker is seeded per test, so its values repeat across runs.
 
 ## Architecture
 

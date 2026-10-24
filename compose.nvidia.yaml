@@ -11,5 +11,5 @@ services:
           devices:
             - driver: nvidia
               count: all
-              capabilities: [ utility ]
+              capabilities: [utility]
   web-dev: *gpu

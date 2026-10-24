@@ -1,18 +1,21 @@
-import { type StreamChunk, toServerSentEventsResponse } from "@tanstack/ai";
-import { EventType } from "@tanstack/ai/client";
+import { toServerSentEventsResponse, type StreamChunk } from "@tanstack/ai";
 import type { UIMessage } from "@tanstack/ai-client";
 import { fetchServerSentEvents, useChat } from "@tanstack/ai-react";
-import { HttpResponse, http } from "msw";
-import { beforeEach, describe, expect, it } from "vitest";
-import { worker } from "#/test/msw";
+import { EventType } from "@tanstack/ai/client";
+import { http, HttpResponse } from "msw";
+import { beforeEach, describe, expect } from "vitest";
+import { it, worker } from "#/test/msw";
 import { renderHook } from "#/test/utils";
 
 /** The response the stream route sends, framed by the same helper the server uses. */
 function sseResponse(events: StreamChunk[]): Response {
 	return toServerSentEventsResponse(
-		(async function* () {
-			yield* events;
-		})(),
+		new ReadableStream<StreamChunk>({
+			start(controller) {
+				for (const event of events) controller.enqueue(event);
+				controller.close();
+			},
+		}),
 	);
 }
 
@@ -27,9 +30,11 @@ function textRun(messageId: string, deltas: string[]): StreamChunk[] {
 	return [
 		RUN_STARTED,
 		{ type: EventType.TEXT_MESSAGE_START, messageId, role: "assistant" },
-		...deltas.map(
-			(delta): StreamChunk => ({ type: EventType.TEXT_MESSAGE_CONTENT, messageId, delta }),
-		),
+		...deltas.map((delta): StreamChunk => ({
+			type: EventType.TEXT_MESSAGE_CONTENT,
+			messageId,
+			delta,
+		})),
 		{ type: EventType.TEXT_MESSAGE_END, messageId },
 		RUN_FINISHED,
 	];
@@ -46,10 +51,10 @@ function mountChat() {
 	);
 }
 
-function assistantText(messages: UIMessage[]) {
+function assistantText(messages: readonly UIMessage[]) {
 	return messages
 		.filter((message) => message.role === "assistant")
-		.flatMap((message) => message.parts ?? [])
+		.flatMap((message) => message.parts)
 		.flatMap((part) => (part.type === "text" ? [part.content] : []))
 		.join("");
 }
@@ -133,7 +138,7 @@ describe("chat streaming over /api/chat/stream", () => {
 		await result.current.sendMessage({ content: "search otters" });
 
 		await expect.poll(() => assistantText(result.current.messages)).toBe("They swim.");
-		const parts = result.current.messages.flatMap((message) => message.parts ?? []);
+		const parts = result.current.messages.flatMap((message) => message.parts);
 		expect(parts.some((part) => part.type === "tool-call")).toBe(true);
 	});
 });

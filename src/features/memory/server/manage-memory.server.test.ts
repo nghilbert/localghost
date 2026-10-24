@@ -1,10 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { manageMemory } from "./manage-memory.server";
+import type * as MemoryServer from "./memory.server";
 
 const { saveMemory, recallMemories, findMemories, removeMemory } = vi.hoisted(() => ({
-	saveMemory: vi.fn(),
-	recallMemories: vi.fn(),
-	findMemories: vi.fn(),
-	removeMemory: vi.fn(),
+	saveMemory: vi.fn<typeof MemoryServer.saveMemory>(),
+	recallMemories: vi.fn<typeof MemoryServer.recallMemories>(),
+	findMemories: vi.fn<typeof MemoryServer.findMemories>(),
+	removeMemory: vi.fn<typeof MemoryServer.removeMemory>(),
 }));
 
 vi.mock("./memory.server", () => ({
@@ -13,8 +15,6 @@ vi.mock("./memory.server", () => ({
 	findMemories,
 	removeMemory,
 }));
-
-import { manageMemory } from "./manage-memory.server";
 
 const ownerId = "owner-1";
 
@@ -119,7 +119,9 @@ describe("manageMemory: list", () => {
 	});
 
 	it("formats each row", async () => {
-		findMemories.mockResolvedValue([{ id: "m1", category: "fact", text: "likes coffee" }]);
+		findMemories.mockResolvedValue([
+			{ id: "m1", category: "fact", text: "likes coffee", source: "agent" },
+		]);
 		expect(await manageMemory({ args: { action: "list" }, ownerId })).toBe(
 			"[m1] (fact) likes coffee",
 		);

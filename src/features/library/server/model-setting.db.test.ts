@@ -1,9 +1,7 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { describe, expect } from "vitest";
 import { prisma } from "#/lib/db.server";
-import { createEndpoint, createUser, resetDb } from "#/test/db.server";
+import { createEndpoint, createUser, it } from "#/test/db.server";
 import { upsertModelSetting } from "./model-setting.server";
-
-beforeEach(resetDb);
 
 describe("upsertModelSetting", () => {
 	// `endpointId` comes from the client and the upsert key has no owner, so ownership is checked first.

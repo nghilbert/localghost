@@ -16,13 +16,12 @@ export function AccountTab() {
 	} = useRouteContext({ from: "/_authenticated" });
 	const { data: settings } = useSuspenseQuery(accountQueries.settings());
 	const signOut = useSignOut();
-	const email = user?.email ?? "";
 
 	return (
 		<>
 			<ProfileForm
-				name={user?.name ?? ""}
-				email={email}
+				name={user.name}
+				email={user.email}
 				systemPrompt={settings.systemPrompt ?? ""}
 				temperature={settings.temperature}
 			/>
@@ -36,7 +35,9 @@ export function AccountTab() {
 						color="danger"
 						variant="soft"
 						size="sm"
-						onClick={() => signOut.mutate()}
+						onClick={() => {
+							signOut.mutate();
+						}}
 						disabled={signOut.isPending}
 					>
 						{signOut.isPending ? "Signing out..." : "Sign out"}
@@ -46,7 +47,7 @@ export function AccountTab() {
 
 			<SettingsSection title="Danger zone">
 				<div>
-					<DeleteAccountDialog email={email} />
+					<DeleteAccountDialog email={user.email} />
 				</div>
 			</SettingsSection>
 		</>

@@ -1,6 +1,6 @@
 import {
-	PasswordConfirmGroup,
 	passwordConfirmFields,
+	PasswordConfirmGroup,
 } from "#/components/form/field-groups/PasswordConfirmGroup";
 import { useAppForm } from "#/components/form/use-app-form";
 import { signUpDefaults, signUpFormSchema } from "#/features/account/account.schemas";

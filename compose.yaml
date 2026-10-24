@@ -10,7 +10,11 @@ x-app: &app
     - "3000:3000"
   # The slim image has no curl.
   healthcheck:
-    test: [ "CMD", "node", "-e", "fetch('http://localhost:3000/').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))" ]
+    test:
+      - CMD
+      - node
+      - -e
+      - "fetch('http://localhost:3000/').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
     interval: 15s
     timeout: 5s
     retries: 5
@@ -49,7 +53,9 @@ services:
       - pg:/var/lib/postgresql
     restart: unless-stopped
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}" ]
+      test:
+        - CMD-SHELL
+        - pg_isready -U ${POSTGRES_USER:-postgres}
       interval: 5s
       timeout: 5s
       retries: 5
@@ -60,7 +66,7 @@ services:
       context: .
       target: migrate
     logging: *logging
-    profiles: [ prod ]
+    profiles: [prod]
     restart: "no"
     environment:
       DATABASE_URL: "postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432"
@@ -73,7 +79,7 @@ services:
     build:
       context: .
       target: runtime
-    profiles: [ prod ]
+    profiles: [prod]
     depends_on:
       db:
         condition: service_healthy
@@ -90,7 +96,7 @@ services:
     build:
       context: .
       target: dev
-    profiles: [ dev ]
+    profiles: [dev]
     ports:
       - "3000:3000"
       - "4206:4206" # TanStack devtools event bus
@@ -110,7 +116,7 @@ services:
   llamacpp:
     image: ghcr.io/ggml-org/llama.cpp:server-b10920
     logging: *logging
-    profiles: [ llamacpp ]
+    profiles: [llamacpp]
     environment:
       LLAMA_CACHE: /models
       HF_TOKEN: ${HF_TOKEN:-}

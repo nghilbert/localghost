@@ -16,14 +16,14 @@ const dialogVariants = tv({
 		backdrop: [
 			"fixed inset-0 isolate z-50 bg-backdrop",
 			"transition-opacity duration-100",
-			"data-starting-style:opacity-0 data-ending-style:opacity-0",
+			"data-ending-style:opacity-0 data-starting-style:opacity-0",
 		],
 		viewport: "fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4",
 		popup: [
 			"relative grid w-full gap-4 rounded-lg outline-none sm:max-w-sm",
 			"bg-surface p-4 text-sm text-surface-fg ring-1 ring-line",
 			"transition-[opacity,transform] duration-100",
-			"data-starting-style:opacity-0 data-ending-style:opacity-0",
+			"data-ending-style:opacity-0 data-starting-style:opacity-0",
 		],
 		close: "absolute top-2 right-2",
 		header: "flex flex-col gap-2",

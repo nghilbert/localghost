@@ -1,4 +1,4 @@
-import { type LucideIcon, SlidersHorizontalIcon } from "lucide-react";
+import { SlidersHorizontalIcon, type LucideIcon } from "lucide-react";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { Item } from "#/components/ui/item";
@@ -9,14 +9,14 @@ import type { ToolControls } from "#/features/chat/chat.types";
 import { TOOL_CATALOG } from "#/features/chat/lib/tool-catalog";
 
 /** One tool's row in the menu. */
-type ToolRow = {
+interface ToolRow {
 	id: string;
 	label: string;
 	description: string;
 	icon: LucideIcon;
 	on: boolean;
 	onChange: (on: boolean) => void;
-};
+}
 
 /** One row per tool in the catalog, each toggling its id in `enabledTools`. */
 export function toolRows(controls: ToolControls): ToolRow[] {
@@ -24,10 +24,11 @@ export function toolRows(controls: ToolControls): ToolRow[] {
 	return TOOL_CATALOG.map((tool) => ({
 		...tool,
 		on: enabledTools.includes(tool.id),
-		onChange: (on) =>
+		onChange: (on) => {
 			onEnabledToolsChange(
 				on ? [...enabledTools, tool.id] : enabledTools.filter((t) => t !== tool.id),
-			),
+			);
+		},
 	}));
 }
 
@@ -36,9 +37,6 @@ export function toolRows(controls: ToolControls): ToolRow[] {
  * Disabled when the model cannot use tools.
  */
 export function ToolsMenu(controls: ToolControls) {
-	const rows = toolRows(controls);
-	const activeCount = rows.filter((row) => row.on).length;
-
 	if (!controls.supportsTools) {
 		return (
 			<Tooltip.Root>
@@ -60,6 +58,9 @@ export function ToolsMenu(controls: ToolControls) {
 			</Tooltip.Root>
 		);
 	}
+
+	const rows = toolRows(controls);
+	const activeCount = rows.filter((row) => row.on).length;
 
 	return (
 		<Popover.Root>

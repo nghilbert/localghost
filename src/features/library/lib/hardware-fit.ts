@@ -1,5 +1,5 @@
 import type { StatusTone } from "#/components/layout/StatusBadge";
-import { type HideableFit, hideableFitSchema } from "#/features/library/library.schemas";
+import { hideableFitSchema, type HideableFit } from "#/features/library/library.schemas";
 import type { CatalogModel, GpuInfo, HardwareInfo } from "#/features/library/library.types";
 import { GIB, MIB, roundToTenth } from "#/lib/format";
 
@@ -34,7 +34,7 @@ export function requiredMemoryGb({
 	paramB,
 }: Pick<CatalogModel, "sizeGb" | "paramB">): number | null {
 	const weightsGb =
-		sizeGb ?? (paramB !== null ? roundToTenth(paramB * Q4_GB_PER_B_ESTIMATE) : null);
+		sizeGb ?? (paramB === null ? null : roundToTenth(paramB * Q4_GB_PER_B_ESTIMATE));
 	if (weightsGb === null) return null;
 	return roundToTenth(weightsGb * 1.15 + 1);
 }

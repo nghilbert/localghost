@@ -2,24 +2,24 @@
 type GpuVendor = "nvidia" | "amd";
 
 /** One GPU and its memory. */
-export type GpuInfo = {
+export interface GpuInfo {
 	name: string;
 	vendor: GpuVendor;
 	totalVramMb: number;
 	freeVramMb: number;
-};
+}
 
 /** The host's memory, CPU, and GPUs. `gpus` is null when none were detected. */
-export type HardwareInfo = {
+export interface HardwareInfo {
 	totalRamGb: number;
 	freeRamGb: number;
 	cpuModel: string;
 	cpuCount: number;
 	gpus: GpuInfo[] | null;
-};
+}
 
 /** A model on the local runtime. */
-export type InstalledModel = {
+export interface InstalledModel {
 	/** The router model id, `"{repo}:{QUANT}"`. */
 	id: string;
 	/** From the catalog, since the router doesn't report file size. */
@@ -31,7 +31,7 @@ export type InstalledModel = {
 	/** `"downloaded"` means the download finished but the router hasn't loaded the list again yet. */
 	status: "loaded" | "loading" | "unloaded" | "sleeping" | "downloaded";
 	vision: boolean;
-};
+}
 
 /** Whether a llama.cpp runtime was found, with its models and running downloads. */
 export type RuntimeStatus =
@@ -52,7 +52,7 @@ export type RuntimeStatus =
 	  };
 
 /** A model in the Library catalog, built from its Hugging Face repo. */
-export type CatalogModel = {
+export interface CatalogModel {
 	/** `"{repo}:{QUANT}"` for the default quant, as `POST /models` takes it. */
 	id: string;
 	/** The Hugging Face repo id, e.g. "ggml-org/gemma-3-4b-it-GGUF". */
@@ -84,23 +84,20 @@ export type CatalogModel = {
 	variants?: ModelVariantInfo[];
 	/** Other repos of the same model, best publisher first, whose quants load on demand. */
 	siblingRepoIds: string[];
-};
+}
 
 /** One GGUF file in a Hugging Face repo. */
-export type ModelVariantInfo = {
+export interface ModelVariantInfo {
 	quant: string;
 	sizeGb: number | null;
 	fileName: string;
 	/** The repo holding this file, which can differ from the model's main repo. */
 	repoId: string;
-};
+}
 
 /** A download's status and byte progress. */
-export type PullProgress = {
+export interface PullProgress {
 	status: string;
 	completed?: number;
 	total?: number;
-};
-
-/** Which models the Library list shows. */
-export type ModelStatus = "all" | "installed" | "available";
+}

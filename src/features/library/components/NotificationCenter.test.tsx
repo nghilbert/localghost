@@ -1,15 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Sidebar } from "#/components/ui/sidebar";
+import type { useModelDownload } from "#/features/library/hooks/use-model-download";
 import type { PullProgress } from "#/features/library/library.types";
 import { render } from "#/test/utils";
 
 const { pullingMock, stopMock } = vi.hoisted(() => ({
-	pullingMock: vi.fn(),
-	stopMock: vi.fn(),
+	pullingMock: vi.fn<() => Record<string, PullProgress>>(),
+	stopMock: vi.fn<ReturnType<typeof useModelDownload>["stop"]>(),
 }));
 
 vi.mock("#/features/library/hooks/use-model-download", () => ({
-	useModelDownload: () => ({ pulling: pullingMock(), pull: vi.fn(), stop: stopMock }),
+	useModelDownload: () => ({
+		pulling: pullingMock(),
+		pull: vi.fn<ReturnType<typeof useModelDownload>["pull"]>(),
+		stop: stopMock,
+	}),
 }));
 
 const { NotificationCenter } = await import("./NotificationCenter");
@@ -50,7 +55,7 @@ describe("NotificationCenter", () => {
 
 		const items = screen.getByRole("list", { name: "In-flight downloads" }).getByRole("listitem");
 		await expect.poll(() => items.all().length).toBe(2);
-		await expect.element(items.first()).toHaveTextContent("50% · 50 / 100 B");
+		await expect.element(items.first()).toMatchTextContent("50% · 50 / 100 B");
 		// No total yet, so the bar stays indeterminate rather than sitting at zero.
 		await expect
 			.element(items.last().getByRole("progressbar"))

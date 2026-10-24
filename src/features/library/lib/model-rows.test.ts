@@ -32,7 +32,7 @@ describe("buildModelRows", () => {
 			includeOffPageInstalled: true,
 		});
 
-		expect(rows.map((r) => r.id).sort()).toEqual([
+		expect(rows.map((r) => r.id).toSorted((a, b) => a.localeCompare(b))).toEqual([
 			"org/llama3.2-GGUF:Q4_K_M",
 			"org/mistral-GGUF:Q4_K_M",
 			"org/qwen2.5-GGUF:Q4_K_M",
@@ -112,7 +112,7 @@ describe("buildModelRows", () => {
 			includeOffPageInstalled: false,
 		});
 
-		expect(rows.map((r) => r.id).sort()).toEqual([
+		expect(rows.map((r) => r.id).toSorted((a, b) => a.localeCompare(b))).toEqual([
 			"org/mistral-GGUF:Q4_K_M",
 			"org/qwen2.5-GGUF:Q4_K_M",
 		]);

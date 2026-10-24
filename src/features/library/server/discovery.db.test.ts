@@ -1,13 +1,11 @@
-import { beforeEach, describe, expect, it } from "vitest";
-import { type LlamaModel, LOCAL_LLAMACPP_API_KEY } from "#/lib/llamacpp/client.server";
-import { createEndpoint, createUser, resetDb } from "#/test/db.server";
+import { describe, expect } from "vitest";
+import { LOCAL_LLAMACPP_API_KEY, type LlamaModel } from "#/lib/llamacpp/client.server";
+import { createEndpoint, createUser, it } from "#/test/db.server";
 import {
 	buildRuntimeCandidateUrls,
 	getRuntimeEndpointById,
 	toRuntimeModels,
 } from "./discovery.server";
-
-beforeEach(resetDb);
 
 describe("getRuntimeEndpointById", () => {
 	it("resolves only the requested user-owned llama.cpp endpoint", async () => {

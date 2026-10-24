@@ -22,14 +22,14 @@ const spinnerVariants = tv({
 });
 
 /** Props for {@link Spinner}. `size` replaces Lucide's own, which it renders as a `width` attribute. */
-export type SpinnerProps = Omit<LucideProps, "size"> &
-	VariantProps<typeof spinnerVariants> & {
-		/**
-		 * Announce the wait to screen readers. Leave it off when something else
-		 * already says the page is busy, such as the label of the button it sits in.
-		 */
-		label?: string;
-	};
+export interface SpinnerProps
+	extends Omit<LucideProps, "size">, VariantProps<typeof spinnerVariants> {
+	/**
+	 * Announce the wait to screen readers. Leave it off when something else
+	 * already says the page is busy, such as the label of the button it sits in.
+	 */
+	label?: string;
+}
 
 /** An animated loading indicator. Pass `label` to announce it. */
 export function Spinner({ className, icon = "default", size, label, ...props }: SpinnerProps) {

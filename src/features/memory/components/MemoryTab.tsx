@@ -31,7 +31,11 @@ export function MemoryTab() {
 		: memories;
 
 	function confirmDelete(id: string) {
-		deleteMemory.mutate(id, { onSuccess: () => setPendingDeleteId(null) });
+		deleteMemory.mutate(id, {
+			onSuccess: () => {
+				setPendingDeleteId(null);
+			},
+		});
 	}
 
 	return (
@@ -70,7 +74,12 @@ export function MemoryTab() {
 							<Item.Root key={memory.id} variant="outlined" render={<li />}>
 								<Item.Content>
 									{editingId === memory.id ? (
-										<MemoryEditForm memory={memory} onDone={() => setEditingId(null)} />
+										<MemoryEditForm
+											memory={memory}
+											onDone={() => {
+												setEditingId(null);
+											}}
+										/>
 									) : (
 										<>
 											<Item.Title>{memory.text}</Item.Title>
@@ -86,7 +95,9 @@ export function MemoryTab() {
 										variant="quiet"
 										size="sm"
 										iconOnly
-										onClick={() => setEditingId(memory.id)}
+										onClick={() => {
+											setEditingId(memory.id);
+										}}
 										aria-label="Edit memory"
 									>
 										<PencilIcon />
@@ -96,7 +107,9 @@ export function MemoryTab() {
 										variant="quiet"
 										size="sm"
 										iconOnly
-										onClick={() => setPendingDeleteId(memory.id)}
+										onClick={() => {
+											setPendingDeleteId(memory.id);
+										}}
 										aria-label="Delete memory"
 									>
 										<Trash2Icon />
@@ -114,7 +127,7 @@ export function MemoryTab() {
 					if (!open) setPendingDeleteId(null);
 				}}
 				title="Delete this memory?"
-				description={`"${pendingDelete?.text}" will be permanently deleted.`}
+				description={`"${pendingDelete?.text ?? ""}" will be permanently deleted.`}
 				isPending={deleteMemory.isPending}
 				onConfirm={() => {
 					if (pendingDeleteId) confirmDelete(pendingDeleteId);

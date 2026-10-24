@@ -1,4 +1,6 @@
-type ImageGridProps = { sources: string[] };
+interface ImageGridProps {
+	sources: string[];
+}
 
 /** A message's image attachments, as thumbnails. */
 export function ImageGrid({ sources }: ImageGridProps) {

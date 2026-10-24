@@ -16,7 +16,7 @@ import {
 } from "#/features/chat/components/MessageScroller";
 import { useCancelChatRun } from "#/features/chat/hooks/use-cancel-chat-run";
 import { useConversation } from "#/features/chat/hooks/use-conversation";
-import { type Attachment, composeMessageContent } from "#/features/chat/lib/attachments";
+import { composeMessageContent, type Attachment } from "#/features/chat/lib/attachments";
 import { CHAT_TOOLS } from "#/features/chat/lib/chat-tools";
 import {
 	awaitingAssistantResponse,
@@ -29,7 +29,9 @@ import { MS_PER_SECOND } from "#/lib/format";
 import { ChatStatus } from "./ChatStatus";
 import { QueuedMessageItem } from "./QueuedMessageItem";
 
-type ChatThreadProps = { conversation: ConversationDetail };
+interface ChatThreadProps {
+	conversation: ConversationDetail;
+}
 /** A conversation's transcript and message box, streaming replies as they arrive. */
 export function ChatThread({ conversation }: ChatThreadProps) {
 	const {
@@ -48,7 +50,7 @@ export function ChatThread({ conversation }: ChatThreadProps) {
 	// `forwardedProps` on every send, so this always carries the latest choice.
 	const forwardedProps = {
 		enabledTools: toolsToSend,
-		timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+		timeZone: new Intl.DateTimeFormat().resolvedOptions().timeZone,
 	};
 
 	const [connection] = useState(() => fetchServerSentEvents("/api/chat/stream"));
@@ -61,6 +63,7 @@ export function ChatThread({ conversation }: ChatThreadProps) {
 		runId,
 		status,
 		isLoading,
+		isHydrating,
 		error,
 		reload,
 		setMessages,
@@ -101,7 +104,7 @@ export function ChatThread({ conversation }: ChatThreadProps) {
 
 	const cancelRun = useCancelChatRun();
 	// Turns stopped in this session, before a reload brings their run ids.
-	const [stoppedTurnIds, setStoppedTurnIds] = useState<ReadonlySet<string>>(new Set());
+	const [stoppedTurnIds, setStoppedTurnIds] = useState<ReadonlySet<string>>(() => new Set());
 
 	/**
 	 * Marks the run cancelled, then disconnects. The server stops a run only when it was
@@ -127,29 +130,32 @@ export function ChatThread({ conversation }: ChatThreadProps) {
 	const [autoRespond, setAutoRespond] = useState<boolean | null>(null);
 	// `takeNewChat` removes what it reads, so a ref keeps StrictMode's second effect run
 	// from reading nothing and resetting `autoRespond`.
-	const newChatChecked = useRef(false);
+	const newChatCheckedRef = useRef(false);
 	useEffect(() => {
-		if (newChatChecked.current) return;
-		newChatChecked.current = true;
+		if (newChatCheckedRef.current) return;
+		newChatCheckedRef.current = true;
 		const newChat = takeNewChat(conversation.id);
 		if (newChat) {
 			controls.onEnabledToolsChange(newChat.enabledTools);
 		}
 		setAutoRespond(newChat !== null);
-	});
+	}, [conversation.id, controls]);
 
 	// A reopened chat that ends on a user message does not answer on its own.
-	const responseRequested = useRef(false);
+	const responseRequestedRef = useRef(false);
 	useEffect(() => {
-		if (autoRespond !== true || responseRequested.current) return;
+		if (autoRespond !== true || responseRequestedRef.current || isHydrating) return;
 		if (status !== "ready" || !awaitingAssistantResponse(messages)) return;
-		responseRequested.current = true;
+		responseRequestedRef.current = true;
 		void reload().then(resetTools);
 	});
 
 	// Instead it offers a button to generate the reply.
 	const canGenerate =
-		autoRespond === false && status === "ready" && awaitingAssistantResponse(messages);
+		autoRespond === false &&
+		!isHydrating &&
+		status === "ready" &&
+		awaitingAssistantResponse(messages);
 
 	const turns = mergeAssistantTurns(messages);
 
@@ -158,7 +164,7 @@ export function ChatThread({ conversation }: ChatThreadProps) {
 			<MessageScrollerProvider autoScroll defaultScrollPosition="last-anchor">
 				<MessageScroller className="flex-1">
 					<MessageScrollerViewport aria-label="Conversation" className="p-4">
-						<MessageScrollerContent aria-busy={isStreaming}>
+						<MessageScrollerContent aria-busy={isStreaming || isHydrating}>
 							{turns.map((msg, idx) => {
 								const isLast = idx === turns.length - 1;
 								const isLastAssistant = isLast && msg.role === "assistant";
@@ -182,7 +188,9 @@ export function ChatThread({ conversation }: ChatThreadProps) {
 											}
 											onEditResend={
 												msg.role === "user" && !isStreaming
-													? (content) => handleEditResend({ id: msg.id, content })
+													? (content) => {
+															handleEditResend({ id: msg.id, content });
+														}
 													: undefined
 											}
 											interrupts={interrupts}
@@ -193,10 +201,11 @@ export function ChatThread({ conversation }: ChatThreadProps) {
 							<MessageScrollerItem>
 								<ChatStatus
 									status={status}
+									isHydrating={isHydrating}
 									messages={messages}
 									pendingStatus={pendingStatus}
 									error={error?.message ?? conversation.lastRunError ?? undefined}
-									onRetry={reload}
+									onRetry={() => void reload()}
 									onGenerate={canGenerate ? () => void reload() : undefined}
 								/>
 							</MessageScrollerItem>
@@ -219,7 +228,7 @@ export function ChatThread({ conversation }: ChatThreadProps) {
 					tools={controls}
 					supportsImages={supportsImages}
 					supportsDocuments={supportsDocuments}
-					sendMessage={handleSend}
+					sendMessage={(message) => void handleSend(message)}
 					stop={handleStop}
 				/>
 			</div>

@@ -3,7 +3,10 @@ import { userEvent } from "vitest/browser";
 import { render } from "#/test/utils";
 import { ChangePasswordForm } from "./ChangePasswordForm";
 
-const { changePasswordMutateAsync } = vi.hoisted(() => ({ changePasswordMutateAsync: vi.fn() }));
+const { changePasswordMutateAsync } = vi.hoisted(() => ({
+	changePasswordMutateAsync:
+		vi.fn<(values: unknown, options?: { onSuccess?: () => void }) => Promise<void>>(),
+}));
 
 vi.mock("#/features/account/hooks/use-change-password", () => ({
 	useChangePassword: () => ({ mutateAsync: changePasswordMutateAsync }),
@@ -33,16 +36,17 @@ async function renderAndSubmit() {
 
 describe("ChangePasswordForm", () => {
 	it("resets only after the mutation succeeds", async () => {
-		const submission = Promise.withResolvers<void>();
-		changePasswordMutateAsync.mockImplementation((_values, options) =>
-			submission.promise.then(() => options?.onSuccess?.()),
-		);
+		const submission = Promise.withResolvers<undefined>();
+		changePasswordMutateAsync.mockImplementation(async (_values, options) => {
+			await submission.promise;
+			options?.onSuccess?.();
+		});
 		const { current, next, submit } = await renderAndSubmit();
 
 		await expect.element(submit).toBeDisabled();
 		await expect.element(current).toHaveValue("old password");
 
-		submission.resolve();
+		submission.resolve(undefined);
 		await expect.element(submit).toBeEnabled();
 		await expect.element(current).toHaveValue("");
 		await expect.element(next).toHaveValue("");

@@ -14,11 +14,12 @@ export function useElapsedSeconds(active: boolean): number {
 	useEffect(() => {
 		if (!active) return;
 		const start = Date.now();
-		const id = setInterval(
-			() => setSeconds(Math.floor((Date.now() - start) / MS_PER_SECOND)),
-			MS_PER_SECOND,
-		);
-		return () => clearInterval(id);
+		const id = setInterval(() => {
+			setSeconds(Math.floor((Date.now() - start) / MS_PER_SECOND));
+		}, MS_PER_SECOND);
+		return () => {
+			clearInterval(id);
+		};
 	}, [active]);
 
 	return seconds;

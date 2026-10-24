@@ -4,14 +4,16 @@ import { LibraryIcon, RefreshCwIcon, SparklesIcon, TriangleAlertIcon } from "luc
 import { Alert } from "#/components/ui/alert";
 import { Button } from "#/components/ui/button";
 import { ButtonLink } from "#/components/ui/button-link";
-import { ActivityMarker } from "#/features/chat/components/ActivityMarker";
 import { ACTIVITY_STATUS, type ActivityStatus } from "#/features/chat/components/activity-status";
+import { ActivityMarker } from "#/features/chat/components/ActivityMarker";
 import { useElapsedSeconds } from "#/features/chat/hooks/use-elapsed-seconds";
 import { describeChatError } from "#/features/chat/lib/chat-errors";
 
-type ChatStatusProps = {
+interface ChatStatusProps {
 	status: ChatClientState;
-	messages: Array<UIMessage>;
+	/** Set while the transcript is restored from the server, before it can be shown. */
+	isHydrating: boolean;
+	messages: readonly UIMessage[];
 	/** Replaces the waiting row's status, e.g. while the model loads. */
 	pendingStatus?: ActivityStatus;
 	/** The live run's error, or the last saved run's after a reload. */
@@ -19,9 +21,12 @@ type ChatStatusProps = {
 	onRetry: () => void;
 	/** Set when the last user message has no reply, to offer generating one. */
 	onGenerate?: () => void;
-};
+}
 
-type FailureAlertProps = { message: string; onRetry: () => void };
+interface FailureAlertProps {
+	message: string;
+	onRetry: () => void;
+}
 
 function FailureAlert({ message, onRetry }: FailureAlertProps) {
 	const failure = describeChatError(message);
@@ -54,9 +59,10 @@ function FailureAlert({ message, onRetry }: FailureAlertProps) {
 	);
 }
 
-/** The live row before the reply appears, or an error with a retry. */
+/** The live row while the chat loads or before the reply appears, or an error with a retry. */
 export function ChatStatus({
 	status,
+	isHydrating,
 	messages,
 	pendingStatus,
 	error,
@@ -66,6 +72,11 @@ export function ChatStatus({
 	const awaiting =
 		(status === "submitted" || status === "streaming") && messages.at(-1)?.role !== "assistant";
 	const seconds = useElapsedSeconds(awaiting);
+
+	if (isHydrating) {
+		const { label, icon: Icon } = ACTIVITY_STATUS.loadingConversation;
+		return <ActivityMarker label={label} icon={<Icon />} />;
+	}
 
 	if (awaiting) {
 		const { label, icon: Icon } = pendingStatus ?? ACTIVITY_STATUS.readingMessage;

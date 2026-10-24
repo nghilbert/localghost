@@ -52,7 +52,7 @@ export function NewChat() {
 						newChat: { enabledTools: controls.enabledTools },
 					});
 					// The reply is already streaming, so skip the transition.
-					navigate({
+					void navigate({
 						to: "/chat/$conversationId",
 						params: { conversationId: id },
 						viewTransition: false,
@@ -76,9 +76,9 @@ export function NewChat() {
 					supportsImages={supportsImages}
 					supportsDocuments={supportsDocuments}
 					isSending={createConversation.isPending}
-					sendMessage={({ content, attachments }) =>
-						startChat({ firstMessage: content, attachments })
-					}
+					sendMessage={({ content, attachments }) => {
+						startChat({ firstMessage: content, attachments });
+					}}
 				/>
 			</div>
 		</Empty.Root>

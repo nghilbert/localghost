@@ -7,12 +7,12 @@ import { formatBytes, GIB } from "#/lib/format";
 import {
 	classifyHardwareFit,
 	FIT_LABELS,
-	type HardwareFit,
 	requiredMemoryGb,
+	type HardwareFit,
 } from "./hardware-fit";
 
 /** One quant a user can pick. */
-export type ModelVariantOption = {
+export interface ModelVariantOption {
 	quant: string;
 	modelId: string;
 	sizeGb: number | null;
@@ -24,25 +24,25 @@ export type ModelVariantOption = {
 	repoId: string;
 	/** False when this quant comes from another repo of the same model. */
 	isSameRepoAsPrimary: boolean;
-};
+}
 
 /** A group of quants: a fit level, or all of them when the hardware is unknown. */
 export type ModelVariantGroupId = HardwareFit | "variants";
 
 /** Quants grouped under one label. */
-type ModelVariantGroup = {
+interface ModelVariantGroup {
 	id: ModelVariantGroupId;
 	label: string;
 	options: ModelVariantOption[];
-};
+}
 
 /** A model's quant choices, their groups, and the default. */
-type ModelVariants = {
+interface ModelVariants {
 	/** The model id selected by default. It names a repo too, since publishers share quant names. */
 	initialModelId: string;
 	options: ModelVariantOption[];
 	groups: ModelVariantGroup[];
-};
+}
 
 // Best fit first.
 const FIT_GROUP_ORDER: HardwareFit[] = ["fits", "tight", "wont-fit", "unknown"];
@@ -141,7 +141,7 @@ export function buildModelVariants({
 				isSameRepoAsPrimary: variant.repoId === catalog.name,
 			};
 		})
-		.sort((left, right) => compareOptions({ left, right }));
+		.toSorted((left, right) => compareOptions({ left, right }));
 
 	return {
 		initialModelId:
@@ -154,16 +154,16 @@ export function buildModelVariants({
 }
 
 /** One publisher offering quants of a model, e.g. `"unsloth"`. */
-type ModelAuthor = {
+interface ModelAuthor {
 	/** The Hugging Face user or org. */
 	name: string;
 	/** One of this publisher's repos for the model. */
 	repoId: string;
-};
+}
 
 /** The publisher in a repo id, e.g. `"bartowski"` from `"bartowski/Qwen_Qwen3-8B-GGUF"`. */
 function authorOf(repoId: string): string {
-	return repoId.split("/")[0] ?? repoId;
+	return repoId.split("/", 1)[0] ?? repoId;
 }
 
 /** The publishers of a model's quants, in the catalog's order, then others by name. */
@@ -186,13 +186,15 @@ export function buildModelAuthors({
 	const added = new Set<string>();
 	const append = (name: string) => {
 		const author = byName.get(name);
-		if (author && !added.has(name)) {
-			added.add(name);
-			authors.push(author);
+		if (!author || added.has(name)) {
+			return;
 		}
+
+		added.add(name);
+		authors.push(author);
 	};
 	for (const repoId of [primaryRepoId, ...siblingRepoIds]) append(authorOf(repoId));
-	for (const name of [...byName.keys()].sort()) append(name);
+	for (const name of [...byName.keys()].toSorted((a, b) => a.localeCompare(b))) append(name);
 
 	const primaryAuthor = authorOf(primaryRepoId);
 	const defaultAuthor = byName.has(primaryAuthor)

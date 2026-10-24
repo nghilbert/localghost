@@ -8,9 +8,13 @@ import type { buildEndpointFormSchema } from "#/features/endpoint/lib/providers"
 import type { LLMProvider } from "#/lib/llm-provider";
 
 /** The trimmed values of a submitted endpoint form. */
-type EndpointFormValues = { name: string; url: string; apiKey: string };
+interface EndpointFormValues {
+	name: string;
+	url: string;
+	apiKey: string;
+}
 
-type ProviderEndpointFormProps = {
+interface ProviderEndpointFormProps {
 	schema: ReturnType<typeof buildEndpointFormSchema>;
 	/** The provider, so "Test connection" sends its kind of key. */
 	provider: LLMProvider;
@@ -27,7 +31,7 @@ type ProviderEndpointFormProps = {
 	onCancel?: () => void;
 	/** Call `onSaved` after saving, to reset the form and test result. */
 	onSubmit: (args: { value: EndpointFormValues; onSaved: () => void }) => Promise<unknown>;
-};
+}
 
 /** An endpoint's name, URL, and key fields, with "Test connection". */
 export function ProviderEndpointForm({
@@ -35,7 +39,7 @@ export function ProviderEndpointForm({
 	provider,
 	defaultValues,
 	keyLabel,
-	keyPlaceholder,
+	keyPlaceholder = "sk-...",
 	keyDescription,
 	urlPlaceholder,
 	collapseUrl,
@@ -62,7 +66,7 @@ export function ProviderEndpointForm({
 	function handleTest() {
 		const parsed = schema.safeParse(form.state.values);
 		if (!parsed.success) {
-			form.validateAllFields("submit");
+			void form.validateAllFields("submit");
 			return;
 		}
 		testEndpoint.reset();
@@ -72,10 +76,7 @@ export function ProviderEndpointForm({
 				onSuccess: (result) => {
 					if (result.ok) {
 						toast.add({
-							title:
-								result.modelCount != null
-									? `Connection works: ${result.modelCount} models available`
-									: "Connection works",
+							title: `Connection works: ${result.modelCount} models available`,
 							type: "success",
 						});
 					}
@@ -99,7 +100,7 @@ export function ProviderEndpointForm({
 					{(field) => (
 						<field.PasswordField
 							label={keyLabel}
-							placeholder={keyPlaceholder ?? "sk-..."}
+							placeholder={keyPlaceholder}
 							description={keyDescription}
 						/>
 					)}

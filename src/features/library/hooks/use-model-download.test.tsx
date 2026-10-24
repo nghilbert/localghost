@@ -1,18 +1,22 @@
 import { describe, expect, it, vi } from "vitest";
 import { useModelDownload } from "#/features/library/hooks/use-model-download";
+import type { cancelModelDownload } from "#/features/library/library.functions";
 import type { PullProgress, RuntimeStatus } from "#/features/library/library.types";
 import { renderHook, testQueryClient } from "#/test/utils";
 
-const { startModelDownload } = vi.hoisted(() => ({ startModelDownload: vi.fn() }));
+const { startModelDownload } = vi.hoisted(() => ({
+	startModelDownload:
+		vi.fn<(input: { data: { endpointId: string; model: string } }) => Promise<void>>(),
+}));
 
 vi.mock("#/features/library/library.functions", () => ({
-	cancelModelDownload: vi.fn(),
+	cancelModelDownload: vi.fn<typeof cancelModelDownload>(),
 	startModelDownload,
 }));
 
 // Seeded data only: each query sits on whatever the test writes into the cache.
 vi.mock("#/features/library/library.queries", () => {
-	const neverSettles = () => new Promise<never>(() => {});
+	const neverSettles = () => Promise.withResolvers<never>().promise;
 	return {
 		libraryQueries: {
 			runtimeStatus: () => ({ queryKey: ["runtime-status"], queryFn: neverSettles }),
@@ -95,7 +99,9 @@ describe("useModelDownload", () => {
 		});
 		const rendered = await renderHook(() => useModelDownload(), { queryClient });
 
-		await rendered.act(() => rendered.result.current.pull("org/model:Q4_K_M"));
+		await rendered.act(() => {
+			rendered.result.current.pull("org/model:Q4_K_M");
+		});
 
 		expect(queryClient.getQueryData<Record<string, PullProgress>>(progressKey)).toEqual({});
 		await expect

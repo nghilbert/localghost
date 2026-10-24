@@ -1,36 +1,25 @@
-import { beforeEach, describe, expect, it } from "vitest";
-import type { Endpoint } from "#/generated/prisma/client";
+import { describe, expect } from "vitest";
+import { encrypt } from "#/lib/crypto.server";
 import { prisma } from "#/lib/db.server";
-import { createEndpoint, createUser, resetDb } from "#/test/db.server";
+import { createEndpoint, createUser, it } from "#/test/db.server";
 import { toClientEndpoint, upsertLlamacppEndpoint } from "./endpoint.server";
 
-beforeEach(resetDb);
-
-function makeEndpoint(overrides: Partial<Endpoint> = {}): Endpoint {
-	return {
-		id: "e1",
-		name: "My endpoint",
-		url: "https://api.openai.com",
-		apiKeyEncrypted: null,
-		provider: "openai",
-		options: null,
-		ownerId: "owner-1",
-		updatedAt: new Date(),
-		discovered: null,
-		...overrides,
-	};
-}
-
 describe("toClientEndpoint", () => {
-	it("strips the encrypted key and reports hasApiKey true when one is stored", () => {
-		const result = toClientEndpoint(makeEndpoint({ apiKeyEncrypted: "cipher-text" }));
+	it("strips the encrypted key and reports hasApiKey true when one is stored", async () => {
+		const user = await createUser();
+		const endpoint = await createEndpoint({ ownerId: user.id, apiKeyEncrypted: encrypt("key") });
+
+		const result = toClientEndpoint(endpoint);
 
 		expect(result.apiKeyEncrypted).toBeUndefined();
 		expect(result.hasApiKey).toBe(true);
 	});
 
-	it("reports hasApiKey false when no key is stored", () => {
-		const result = toClientEndpoint(makeEndpoint({ apiKeyEncrypted: null }));
+	it("reports hasApiKey false when no key is stored", async () => {
+		const user = await createUser();
+		const endpoint = await createEndpoint({ ownerId: user.id });
+
+		const result = toClientEndpoint(endpoint);
 
 		expect(result.hasApiKey).toBe(false);
 	});

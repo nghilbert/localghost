@@ -1,12 +1,18 @@
 import { describe, expect, it } from "vitest";
+import { ZodError } from "zod";
 import { parseNvidiaSmi, parseRocmSmi } from "./hardware.server";
 
 describe("parseNvidiaSmi", () => {
 	it("maps each CSV line to a GPU with MB values", () => {
 		const out = "NVIDIA GeForce RTX 4090, 24564, 23000\nNVIDIA RTX A6000, 49140, 49000\n";
 		expect(parseNvidiaSmi(out)).toEqual([
-			{ name: "NVIDIA GeForce RTX 4090", vendor: "nvidia", totalVramMb: 24564, freeVramMb: 23000 },
-			{ name: "NVIDIA RTX A6000", vendor: "nvidia", totalVramMb: 49140, freeVramMb: 49000 },
+			{
+				name: "NVIDIA GeForce RTX 4090",
+				vendor: "nvidia",
+				totalVramMb: 24_564,
+				freeVramMb: 23_000,
+			},
+			{ name: "NVIDIA RTX A6000", vendor: "nvidia", totalVramMb: 49_140, freeVramMb: 49_000 },
 		]);
 	});
 
@@ -32,12 +38,12 @@ describe("parseRocmSmi", () => {
 	it("converts byte totals to MB and derives free VRAM", () => {
 		const out = JSON.stringify({
 			card0: {
-				"VRAM Total Memory (B)": 17179869184,
-				"VRAM Total Used Memory (B)": 1073741824,
+				"VRAM Total Memory (B)": 17_179_869_184,
+				"VRAM Total Used Memory (B)": 1_073_741_824,
 			},
 		});
 		expect(parseRocmSmi(out)).toEqual([
-			{ name: "card0", vendor: "amd", totalVramMb: 16384, freeVramMb: 15360 },
+			{ name: "card0", vendor: "amd", totalVramMb: 16_384, freeVramMb: 15_360 },
 		]);
 	});
 
@@ -53,6 +59,6 @@ describe("parseRocmSmi", () => {
 	});
 
 	it("throws on a shape that isn't card-keyed number maps", () => {
-		expect(() => parseRocmSmi(JSON.stringify({ card0: "nope" }))).toThrow();
+		expect(() => parseRocmSmi(JSON.stringify({ card0: "nope" }))).toThrow(ZodError);
 	});
 });
