@@ -21,8 +21,6 @@ export function mergeClassName<State>(
 	className: BaseClassName<State>,
 	build: (extra: ClassValue) => ClassValue,
 ): string | ((state: State) => string) {
-	// `cn` is typed as possibly undefined (it is, for an all-empty input); a Base UI
-	// className must be a string, and an empty one is the right answer there.
-	if (typeof className === "function") return (state) => cn(build(className(state))) ?? "";
-	return cn(build(className)) ?? "";
+	if (typeof className === "function") return (state) => cn(build(className(state)));
+	return cn(build(className));
 }

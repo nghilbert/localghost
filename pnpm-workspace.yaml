@@ -1,0 +1,9 @@
+allowBuilds:
+  "@google/genai": false
+  "@prisma/engines": true
+  esbuild: true
+  prisma: true
+  protobufjs: true
+overrides:
+  "@tanstack/ai-memory>vitest:peer": ^4.1.10 || ^5.0.0
+  "@tanstack/ai-persistence>vitest:peer": ^4.1.10 || ^5.0.0

@@ -219,6 +219,7 @@ describe("llm.server", () => {
 					provider: "openai",
 					model: "local-model",
 					messages: [{ role: "user", content: "Hi" }],
+					threadId: "thread-1",
 				}),
 			);
 

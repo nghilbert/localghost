@@ -32,8 +32,8 @@ interface StreamLLMOptions {
 	maxTokens?: number;
 	/** Per-endpoint sampling options. Each present field overrides the default. */
 	options?: Record<string, unknown>;
-	/** The request's thread id, so run events stay correlated. */
-	threadId?: string;
+	/** The conversation's thread id; `chat()` requires a stable one. */
+	threadId: string;
 	runId?: string;
 	/** Server tools to run automatically; when present the agent loop runs. */
 	tools?: AnyServerTool[];

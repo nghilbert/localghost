@@ -1,5 +1,4 @@
 import { http, HttpResponse } from "msw";
-import type { CreateEmbeddingResponse } from "openai/resources";
 import { z } from "zod";
 
 const embeddingRequestSchema = z.object({ input: z.union([z.string(), z.array(z.string())]) });
@@ -27,6 +26,6 @@ export function embeddingsApi({
 			})),
 			model: "test-embedding",
 			usage: { prompt_tokens: inputs.length, total_tokens: inputs.length },
-		} satisfies CreateEmbeddingResponse);
+		});
 	});
 }

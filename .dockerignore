@@ -1,7 +1,8 @@
 # Ignore everything, then allow only the build inputs.
 *
 !package.json
-!package-lock.json
+!pnpm-lock.yaml
+!pnpm-workspace.yaml
 !prisma
 !prisma.config.ts
 !public
