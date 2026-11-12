@@ -82,7 +82,7 @@ Code with no domain lives in `src/components/`, `src/hooks/` and `src/lib/`.
 
 - Our own abstractions on Base UI; Base UI's docs (`node_modules/@base-ui/react/docs`) are the reference. Compose with `render={<El />}`; no raw HTML where a primitive exists. Navigation renders a link with the router's Link as `render`: `ButtonLink` for a link drawn as a button, `Menu.LinkItem` in a menu. Base UI's Button gives any element `role="button"`, so never render a link through it.
 - Modules copy Base UI's package layout: multi-part `select/index.ts` (`export * as Select from "./select.parts"`) + `select.parts.tsx`; single-part is one file. Import `import { Select } from "#/components/ui/select"`, never `import * as`.
-- Recipes are `tv()` from `tailwind-variants`, called once at module scope. A caller's `className` goes through `mergeClassName`. Use `cn()` from `tailwind-variants` for ad-hoc merging outside a recipe.
+- Recipes are `tv()` from `tailwind-variants`, called once at module scope. A caller's `className` goes through `mergeClassName`. Use `cn()` from `tailwind-variants` for ad-hoc merging outside a recipe; it resolves Tailwind conflicts itself (no `tailwind-merge`) and always returns a string.
 - In a slot recipe an empty variant value is `{}`, never `""`: a string there drops the slot classes a recipe that extends it adds for the same key. When extending a recipe, turn off any parent default the child does not use (`size: undefined`).
 - Axes (from Joy UI): `color` (`primary | neutral | danger`), `variant` (`solid | soft | outlined | quiet`), `size` (`sm | md | lg`). Narrow per component with `ActionVariants<...>`.
 - Shared class sets live in `ui/variants/`; everything else is a private const in its module.

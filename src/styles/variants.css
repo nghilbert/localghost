@@ -6,7 +6,7 @@
 /*
  * Named variants for Base UI attributes that carry a value (`data-side="bottom"`).
  * Tailwind's `data-*` variants only test presence, and a named variant keeps class
- * strings simple for tailwind-merge.
+ * strings simple for tailwind-variants' conflict merging.
  */
 @custom-variant data-horizontal (&:where([data-orientation="horizontal"]));
 @custom-variant data-vertical (&:where([data-orientation="vertical"]));

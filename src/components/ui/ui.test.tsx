@@ -222,8 +222,8 @@ describe.each(rows.filter(([, row]) => row.swapsElement !== false))(
 
 /**
  * The one merge rule the library promises: a caller's class beats the recipe's,
- * because `mergeClassName` runs the pair through tailwind-merge rather than
- * concatenating them. Base UI's own `className` merging concatenates, and would
+ * because `mergeClassName` resolves the pair with tailwind-variants' conflict
+ * merging rather than concatenating them. Base UI's own `className` merging concatenates, and would
  * leave the recipe's class last and therefore winning.
  */
 describe("className precedence", () => {
