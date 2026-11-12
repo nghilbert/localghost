@@ -5,6 +5,7 @@
 !pnpm-workspace.yaml
 !prisma
 !prisma.config.ts
+!prisma7.config.ts
 !public
 !src
 !tsconfig.json

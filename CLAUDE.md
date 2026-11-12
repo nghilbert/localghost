@@ -15,12 +15,14 @@ pnpm build
 
 The dev loop is `docker compose up --build`; see README.md. The `db` tests need Postgres at `TEST_DATABASE_URL`.
 
+Prisma 7 and Prisma 8 run side by side against one database. Prisma 7 (`pnpm prisma7`, `prisma7.config.ts`) owns migrations and generates the client better-auth needs. Prisma 8 (`pnpm prisma`, `prisma.config.ts`) reads the same `prisma/schema/` and emits its contract to `src/generated/prisma8`.
+
 `typescript` is TypeScript 6 only because typescript-eslint needs its JS API; everything else runs TypeScript 7 from `@typescript/native`.
 
 ## Generated code
 
 - `src/generated/` and `src/routeTree.gen.ts` are generated; change their sources.
-- Edit the schema in `prisma/schema/`. I run `pnpm prisma migrate dev` and `pnpm prisma generate`.
+- Edit the schema in `prisma/schema/`. I run `pnpm prisma7 migrate dev`, `pnpm prisma contract emit` and `pnpm prisma db sign`.
 
 ## Where things are
 

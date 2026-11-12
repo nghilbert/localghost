@@ -60,7 +60,7 @@ export default async function setup(project: TestProject) {
 
 	try {
 		await admin.$executeRawUnsafe(`CREATE DATABASE "${template}"`);
-		execFileSync("pnpm", ["exec", "prisma", "migrate", "deploy"], {
+		execFileSync("pnpm", ["exec", "prisma7", "migrate", "deploy"], {
 			env: { ...process.env, DATABASE_URL: runUrl.href },
 			stdio: "inherit",
 		});

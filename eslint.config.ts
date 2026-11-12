@@ -13,7 +13,7 @@ import tseslint from "typescript-eslint";
 
 export default defineConfig(
 	includeIgnoreFile(fileURLToPath(new URL(".gitignore", import.meta.url))),
-	{ ignores: ["src/routeTree.gen.ts"] },
+	{ ignores: ["src/routeTree.gen.ts", "migrations/"] },
 	{
 		files: ["**/*.{ts,tsx}"],
 		extends: [
