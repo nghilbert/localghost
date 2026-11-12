@@ -27,8 +27,10 @@ encrypted at rest.
 
 ## Requirements
 
-- **Node 26** and npm, to run the app natively.
-- **Docker** with Compose v2. Postgres runs in a container even in the native loop.
+- **Docker** with Compose v2. The images install Node and pnpm themselves, and
+  Postgres runs in a container even in the native loop.
+- **Node 26** and [pnpm](https://pnpm.io/installation) 12, only for the native
+  fallback and editor tooling.
 - **A GPU runtime**, only for GPU inference: NVIDIA Container Toolkit, ROCm, or
   Vulkan via `/dev/dri`. CPU-only needs none of them.
 
@@ -36,7 +38,6 @@ encrypted at rest.
 
 ```bash
 cp .env.example .env
-npm install
 ```
 
 Then fill in the required secrets in `.env`:
@@ -81,10 +82,10 @@ Then `docker compose up --build`. Pending migrations apply on start and the app 
 on `http://localhost:3000`. The `dev` and `prod` profiles both bind port 3000, so
 use one at a time.
 
-npm commands run inside the `web-dev` container. Author new migrations with:
+pnpm commands run inside the `web-dev` container. Author new migrations with:
 
 ```bash
-docker compose exec web-dev npm run prisma -- migrate dev --name <name>
+docker compose exec web-dev pnpm prisma migrate dev --name <name>
 ```
 
 ### GPU access
@@ -108,18 +109,19 @@ need to load some models. The hardware panel has no Vulkan detection, so it show
 Run the app on the host against a Dockerized Postgres:
 
 ```bash
+pnpm install
 docker compose up db -d   # start Postgres
-npm run dev               # applies pending migrations, then app on http://localhost:3000
+pnpm dev                  # applies pending migrations, then app on http://localhost:3000
 ```
 
-Migrations here are `npm run prisma -- migrate dev --name <name>`. For LLM
+Migrations here are `pnpm prisma migrate dev --name <name>`. For LLM
 features, run `llama-server` in router mode on `localhost:8080` and the app picks
 it up. Web search stays off until `SEARXNG_URL` points at a SearXNG instance.
 
 ### Tests
 
 ```bash
-npm run test -- run
+pnpm test run
 ```
 
 The `db` project (`*.db.test.ts`) runs against a real Postgres at `TEST_DATABASE_URL` (see
@@ -151,8 +153,8 @@ the bundled llama.cpp in `llamacpp`.
 
 Report bugs and send pull requests on
 [GitHub](https://github.com/nghilbert/localghost/issues). Open an issue first for
-large changes, and run `npm run format`, `npm run lint`, `npm run build`, and
-`npm run test -- run` before sending a PR.
+large changes, and run `pnpm format`, `pnpm lint`, `pnpm build`, and
+`pnpm test run` before sending a PR.
 
 ## License
 

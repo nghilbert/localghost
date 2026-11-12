@@ -5,29 +5,29 @@ A local-first AI chat app: install models (local via llama.cpp, or a bring-your-
 ## Commands
 
 ```bash
-npm run dev          # dev server on :3000
-npm run build        # typecheck + production build
-npm run lint         # ESLint (`-- --fix` to auto-fix)
-npm run format       # Prettier
-npm run test -- run  # all Vitest projects once
-npm run test -- run --project unit   # or: browser, db
-npm run test -- --project unit       # watch one project
-npm run test -- related <files> --run   # only tests that import <files>
-npm run test -- run --coverage       # report in .vitest/coverage; a guide, not a gate
+pnpm dev                             # dev server on :3000
+pnpm build                           # typecheck + production build
+pnpm lint                            # ESLint (`--fix` to auto-fix)
+pnpm format                          # Prettier
+pnpm test run                        # all Vitest projects once
+pnpm test run --project unit         # or: browser, db
+pnpm test --project unit             # watch one project
+pnpm test related <files> --run      # only tests that import <files>
+pnpm test run --coverage             # report in .vitest/coverage; a guide, not a gate
 ```
 
-`prisma` is a passthrough script. Put `--` before flags: `npm run prisma -- migrate status` keeps them.
+The package manager is pnpm, pinned by `packageManager`. Its settings (`allowBuilds`, `overrides`) live in `pnpm-workspace.yaml`. Run CLIs with `pnpm <bin>`, e.g. `pnpm prisma migrate status`.
 
 `typescript` is TypeScript 6 (`@typescript/typescript6`) only because typescript-eslint needs its JS API; `tsc`, the build and the editor run TypeScript 7 from `@typescript/native`.
 
-The dev loop is Docker Compose: `docker compose up --build`. `.env` selects the environment through `COMPOSE_PROFILES` (`dev` = Vite HMR, `prod` = built image, `llamacpp` = bundled llama-server) and `COMPOSE_FILE` (GPU overlays). Native fallback: `docker compose up db -d`, then `npm run dev`. See `.env.example` and `README.md`.
+The dev loop is Docker Compose: `docker compose up --build`. `.env` selects the environment through `COMPOSE_PROFILES` (`dev` = Vite HMR, `prod` = built image, `llamacpp` = bundled llama-server) and `COMPOSE_FILE` (GPU overlays). Native fallback: `docker compose up db -d`, then `pnpm dev`. See `.env.example` and `README.md`.
 
 ## Workflow
 
 - **Never** run `git add`, `git commit`, `git push`, `git stash`, `git mv`, or create branches without explicit permission from the user. Otherwise leave changes in the working tree.
-- **Never** run `prisma generate`, `migrate`, `db push`, or `migrate reset`. Edit `prisma/schema/` only, then tell the user the exact command, e.g. `npm run prisma -- migrate dev --name <name>`.
+- **Never** run `prisma generate`, `migrate`, `db push`, or `migrate reset`. Edit `prisma/schema/` only, then tell the user the exact command, e.g. `pnpm prisma migrate dev --name <name>`.
 - Never edit generated output: `src/generated/`, `src/routeTree.gen.ts`.
-- Before finishing: `npm run format`, `npm run lint` and `npm run build`; run the tests you touched.
+- Before finishing: `pnpm format`, `pnpm lint` and `pnpm build`; run the tests you touched.
 - When permitted to commit, split the work into logical chunks. Each message is one concise imperative line. **Never** add co-author, signature, or generated-with lines.
 - Without commit permission, end with one section per logical change: a fenced `git add <paths>`, then that one-line message.
 - Delegate mechanical or narrow tasks to a Sonnet 5.5 subagent (`sonnet`); keep design work on Opus 5.5 (`opus`).
