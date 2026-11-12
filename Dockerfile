@@ -17,15 +17,15 @@ RUN --mount=type=cache,target=/home/node/.cache/pnpm-store,uid=1000,gid=1000 \
 
 FROM base AS build
 COPY --chown=node:node . .
-RUN pnpm prisma generate && pnpm build
+RUN pnpm prisma7 generate && pnpm build
 
 # Runs from the build stage because the runtime image has no Prisma CLI.
 FROM build AS migrate
-CMD ["pnpm", "prisma", "migrate", "deploy"]
+CMD ["pnpm", "prisma7", "migrate", "deploy"]
 
 # Source comes from the web-dev bind mount; the predev hook applies migrations.
 FROM base AS dev
-CMD ["sh", "-c", "pnpm prisma generate && pnpm dev --host"]
+CMD ["sh", "-c", "pnpm prisma7 generate && pnpm dev --host"]
 
 # No OpenSSL here: Prisma's runtime client doesn't need it.
 FROM node:26-trixie-slim AS runtime
