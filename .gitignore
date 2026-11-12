@@ -3,29 +3,27 @@ node_modules/
 
 # Build outputs
 dist/
-dist-ssr
+dist-ssr/
 .output/
 .nitro/
 .tanstack/
-.wrangler/
 .cache/
-/src/generated/prisma
-.vinxi
-__unconfig*
 *.tsbuildinfo
+__unconfig*
+
+# Generated code (Prisma 7 client, Prisma 8 contract)
+/src/generated/
 
 # Environment
 .env
 .env.local
 *.local
-todos.json
 
 # Test artifacts
 .vitest/
 
 # Logs
 *.log
-yarn-debug.log*
 pnpm-debug.log*
 
 # Editor

@@ -85,7 +85,7 @@ use one at a time.
 pnpm commands run inside the `web-dev` container. Author new migrations with:
 
 ```bash
-docker compose exec web-dev pnpm prisma migrate dev --name <name>
+docker compose exec web-dev pnpm prisma7 migrate dev --name <name>
 ```
 
 ### GPU access
@@ -114,7 +114,7 @@ docker compose up db -d   # start Postgres
 pnpm dev                  # applies pending migrations, then app on http://localhost:3000
 ```
 
-Migrations here are `pnpm prisma migrate dev --name <name>`. For LLM
+Migrations here are `pnpm prisma7 migrate dev --name <name>`. For LLM
 features, run `llama-server` in router mode on `localhost:8080` and the app picks
 it up. Web search stays off until `SEARXNG_URL` points at a SearXNG instance.
 

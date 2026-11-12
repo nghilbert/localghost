@@ -16,7 +16,9 @@ pnpm test related <files> --run      # only tests that import <files>
 pnpm test run --coverage             # report in .vitest/coverage; a guide, not a gate
 ```
 
-The package manager is pnpm, pinned by `packageManager`. Its settings (`allowBuilds`, `overrides`) live in `pnpm-workspace.yaml`. Run CLIs with `pnpm <bin>`, e.g. `pnpm prisma migrate status`.
+The package manager is pnpm, pinned by `packageManager`. Its settings (`allowBuilds`, `overrides`) live in `pnpm-workspace.yaml`. Run CLIs with `pnpm <bin>`, e.g. `pnpm prisma7 migrate status`.
+
+Prisma 7 and Prisma 8 run side by side against one database. Prisma 7 (`prisma7`, `prisma7.config.ts`) owns migrations and generates the client better-auth needs; Prisma 8 (`prisma`, `prisma.config.ts`) reads the same `prisma/schema/` through `prisma7Schema` and emits its contract to `src/generated/prisma8`.
 
 `typescript` is TypeScript 6 (`@typescript/typescript6`) only because typescript-eslint needs its JS API; `tsc`, the build and the editor run TypeScript 7 from `@typescript/native`.
 
@@ -25,7 +27,7 @@ The dev loop is Docker Compose: `docker compose up --build`. `.env` selects the 
 ## Workflow
 
 - **Never** run `git add`, `git commit`, `git push`, `git stash`, `git mv`, or create branches without explicit permission from the user. Otherwise leave changes in the working tree.
-- **Never** run `prisma generate`, `migrate`, `db push`, or `migrate reset`. Edit `prisma/schema/` only, then tell the user the exact command, e.g. `pnpm prisma migrate dev --name <name>`.
+- **Never** run `prisma7 generate`, `migrate`, `db push`, `migrate reset`, or Prisma 8's `contract emit` or `db sign`. Edit `prisma/schema/` only, then tell the user the exact commands: `pnpm prisma7 migrate dev --name <name> && pnpm prisma contract emit && pnpm prisma db sign`.
 - Never edit generated output: `src/generated/`, `src/routeTree.gen.ts`.
 - Before finishing: `pnpm format`, `pnpm lint` and `pnpm build`; run the tests you touched.
 - When permitted to commit, split the work into logical chunks. Each message is one concise imperative line. **Never** add co-author, signature, or generated-with lines.
