@@ -1,7 +1,7 @@
 # Intel, or AMD without ROCm.
 services:
   llamacpp:
-    image: ghcr.io/ggml-org/llama.cpp:server-vulkan-b10920
+    image: ghcr.io/ggml-org/llama.cpp:server-vulkan-b12375
     devices:
       - /dev/dri
     environment:
