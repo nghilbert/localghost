@@ -113,3 +113,24 @@ describe("ChatInput", () => {
 		});
 	});
 });
+
+describe("ChatInput layout", () => {
+	it("keeps the send button inside the box when a locked model's name is long", async () => {
+		const model = "unsloth/Qwen3.5-35B-A3B-Instruct-2607-GGUF:UD-Q4_K_XL-with-a-very-long-suffix";
+		const screen = await render(
+			<div style={{ width: 320 }}>
+				<ChatInput
+					isStreaming={false}
+					selection={{ endpointId: "endpoint-1", model }}
+					locked
+					supportsImages
+					sendMessage={vi.fn<SendMessage>()}
+				/>
+			</div>,
+		);
+
+		const box = screen.getByRole("group").element().getBoundingClientRect();
+		const send = screen.getByRole("button", { name: "Send" }).element().getBoundingClientRect();
+		expect(send.right).toBeLessThanOrEqual(box.right);
+	});
+});

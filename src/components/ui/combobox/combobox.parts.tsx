@@ -33,6 +33,12 @@ export const Value = BaseCombobox.Value;
 export const Collection = BaseCombobox.Collection;
 /** Base UI's matcher for filtering items by the input text. */
 export const useFilter = BaseCombobox.useFilter;
+/**
+ * A button that opens the panel, for a searchable select: put `Input` with
+ * `showTrigger={false}` inside `Content`. Draw it with `render={<Button />}`, and
+ * name it with `aria-label`, since a combobox takes no name from its text.
+ */
+export const Trigger = BaseCombobox.Trigger;
 
 /**
  * The text input with its trigger and clear buttons, inside Base UI's `InputGroup`

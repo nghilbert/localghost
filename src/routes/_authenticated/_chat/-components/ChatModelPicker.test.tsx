@@ -1,5 +1,6 @@
 import type { ComponentProps, ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { ModelSelection } from "#/lib/llm-schemas";
 import { render } from "#/test/utils";
 
 const endpoints = [
@@ -57,10 +58,12 @@ function noRuntime(): RuntimeStatus {
 	return { found: false, endpointId: "", installedModels: [] };
 }
 
-async function renderOpenedPicker() {
-	const screen = await render(<ChatModelPicker selection={null} />);
-	await screen.getByRole("button", { name: "Select model" }).click();
-	await expect.element(screen.getByRole("menu")).toBeVisible();
+async function renderOpenedPicker(onSelect?: (selection: ModelSelection) => void) {
+	const screen = await render(<ChatModelPicker selection={null} onSelect={onSelect} />);
+	const trigger = screen.getByRole("combobox", { name: "Model" });
+	await expect.element(trigger).toHaveTextContent("Select model");
+	await trigger.click();
+	await expect.element(screen.getByRole("dialog")).toBeVisible();
 	return screen;
 }
 
@@ -80,9 +83,9 @@ describe("ChatModelPicker dropdown", () => {
 
 		await expect.element(screen.getByRole("group", { name: "Local" })).toBeInTheDocument();
 		await expect.element(screen.getByRole("group", { name: "Cloud" })).toBeInTheDocument();
-		await expect.element(screen.getByRole("menuitem", { name: "llama3" })).toBeVisible();
-		await expect.element(screen.getByRole("menuitem", { name: "phi3" })).toBeVisible();
-		await expect.element(screen.getByRole("menuitem", { name: "gpt-4o" })).toBeVisible();
+		await expect.element(screen.getByRole("option", { name: "llama3" })).toBeVisible();
+		await expect.element(screen.getByRole("option", { name: "phi3" })).toBeVisible();
+		await expect.element(screen.getByRole("option", { name: "gpt-4o" })).toBeVisible();
 	});
 
 	it("lists endpoint groups in the same order as the endpoints", async () => {
@@ -112,10 +115,80 @@ describe("ChatModelPicker dropdown", () => {
 		const screen = await renderOpenedPicker();
 
 		await expect
-			.element(screen.getByRole("menuitem", { name: "just-downloaded:Q4_K_M" }))
+			.element(screen.getByRole("option", { name: "just-downloaded:Q4_K_M" }))
 			.toBeVisible();
-		await expect.element(screen.getByRole("menuitem", { name: "gpt-4o" })).toBeVisible();
+		await expect.element(screen.getByRole("option", { name: "gpt-4o" })).toBeVisible();
 		expect(fetchEndpointModels).not.toHaveBeenCalledWith("e1");
 		expect(fetchEndpointModels).toHaveBeenCalledWith("e2");
+	});
+});
+
+describe("ChatModelPicker search", () => {
+	it("narrows the list to models matching the typed text", async () => {
+		fetchEndpointModels.mockImplementation((id: string) =>
+			id === "e1" ? ["llama3", "phi3"] : ["gpt-4o"],
+		);
+
+		const screen = await renderOpenedPicker();
+		await screen.getByRole("combobox", { name: "Search models" }).fill("phi");
+
+		await expect.element(screen.getByRole("option", { name: "phi3" })).toBeVisible();
+		await expect.element(screen.getByRole("option", { name: "llama3" })).not.toBeInTheDocument();
+		await expect.element(screen.getByRole("option", { name: "gpt-4o" })).not.toBeInTheDocument();
+	});
+
+	it("says so when nothing matches", async () => {
+		fetchEndpointModels.mockResolvedValue(["llama3"]);
+
+		const screen = await renderOpenedPicker();
+		await screen.getByRole("combobox", { name: "Search models" }).fill("zzz");
+
+		await expect.element(screen.getByText("No matching models")).toBeVisible();
+	});
+
+	it("reports the picked model with its endpoint", async () => {
+		fetchEndpointModels.mockImplementation((id: string) => [id === "e1" ? "llama3" : "gpt-4o"]);
+		const onSelect = vi.fn<(selection: ModelSelection) => void>();
+
+		const screen = await renderOpenedPicker(onSelect);
+		await screen.getByRole("option", { name: "gpt-4o" }).click();
+
+		expect(onSelect).toHaveBeenCalledWith({ endpointId: "e2", model: "gpt-4o" });
+	});
+});
+
+describe("ChatModelPicker layout", () => {
+	it("shrinks a long model name so the buttons beside it stay in the row", async () => {
+		const longName =
+			"unsloth/Qwen3.5-35B-A3B-Instruct-2607-GGUF:UD-Q4_K_XL-with-a-very-long-suffix";
+		const screen = await render(
+			<div data-testid="row" style={{ display: "flex", width: 280 }}>
+				<ChatModelPicker selection={{ endpointId: "e1", model: longName }} />
+				<button type="button">Send</button>
+			</div>,
+		);
+
+		const row = screen.getByTestId("row").element().getBoundingClientRect();
+		const send = screen.getByRole("button", { name: "Send" }).element().getBoundingClientRect();
+		expect(send.right).toBeLessThanOrEqual(row.right);
+		await expect
+			.element(screen.getByRole("combobox", { name: "Model" }))
+			.toHaveTextContent(longName);
+	});
+
+	it("widens the panel past the button for long names, but never past the screen", async () => {
+		const longName = "unsloth/Qwen3.5-35B-A3B-Instruct-2607-GGUF:UD-Q4_K_XL";
+		fetchEndpointModels.mockImplementation((id: string) => (id === "e1" ? [longName] : []));
+
+		const screen = await renderOpenedPicker();
+		await expect.element(screen.getByRole("option", { name: longName })).toBeVisible();
+
+		const trigger = screen
+			.getByRole("combobox", { name: "Model" })
+			.element()
+			.getBoundingClientRect();
+		const panel = screen.getByRole("dialog").element().getBoundingClientRect();
+		expect(panel.width).toBeGreaterThan(trigger.width);
+		expect(panel.right).toBeLessThanOrEqual(window.innerWidth);
 	});
 });

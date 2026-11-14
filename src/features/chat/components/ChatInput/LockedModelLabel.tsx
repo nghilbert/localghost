@@ -21,7 +21,8 @@ export function LockedModelLabel({ selection }: { selection: ModelSelection | nu
 						size="sm"
 						aria-disabled
 						tabIndex={-1}
-						className="gap-1 truncate aria-disabled:cursor-not-allowed"
+						// The button recipe never shrinks; this one gives way so a long name truncates.
+						className="min-w-0 shrink gap-1 aria-disabled:cursor-not-allowed"
 					/>
 				}
 			>
