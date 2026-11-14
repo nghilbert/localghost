@@ -114,7 +114,7 @@ services:
     restart: unless-stopped
 
   llamacpp:
-    image: ghcr.io/ggml-org/llama.cpp:server-b10920
+    image: ghcr.io/ggml-org/llama.cpp:server-b12375
     logging: *logging
     profiles: [llamacpp]
     environment:

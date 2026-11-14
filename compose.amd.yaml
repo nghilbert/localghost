@@ -1,7 +1,7 @@
 # AMD ROCm hosts. The app gets the devices for rocm-smi in the Library hardware panel.
 services:
   llamacpp:
-    image: ghcr.io/ggml-org/llama.cpp:server-rocm-b10920
+    image: ghcr.io/ggml-org/llama.cpp:server-rocm-b12375
     devices: &amd-devices
       - /dev/kfd
       - /dev/dri
