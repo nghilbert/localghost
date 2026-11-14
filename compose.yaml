@@ -123,9 +123,11 @@ services:
       LLAMA_ARG_PORT: 8080
       LLAMA_API_KEY: ${LLAMA_API_KEY:-local-llamacpp} # llama-server reads this name without the ARG_ prefix
       LLAMA_ARG_SLEEP_IDLE_SECONDS: ${LLAMA_ARG_SLEEP_IDLE_SECONDS:-300}
-      # Applies to every model the router loads; see .env.example.
+      # These apply to every model the router loads; see .env.example.
       LLAMA_ARG_N_GPU_LAYERS: ${LLAMA_ARG_N_GPU_LAYERS:-auto}
-      LLAMA_ARG_CTX_SIZE: ${LLAMA_ARG_CTX_SIZE:-0}
+      LLAMA_ARG_CTX_SIZE: ${LLAMA_ARG_CTX_SIZE:-0} # 0: --fit picks the largest context that fits
+      # MiB --fit keeps free. On CPU it counts all RAM as free, so this leaves room for the rest of the host.
+      LLAMA_ARG_FIT_TARGET: ${LLAMA_ARG_FIT_TARGET:-6144}
     volumes:
       - llamacpp:/models
     restart: unless-stopped

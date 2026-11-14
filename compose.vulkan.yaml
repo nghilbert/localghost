@@ -7,3 +7,4 @@ services:
     environment:
       # Under the default auto mode, RADV integrated GPUs lose the device on some models.
       LLAMA_ARG_LOAD_MODE: ${LLAMA_ARG_LOAD_MODE:-mmap}
+      LLAMA_ARG_FIT_TARGET: ${LLAMA_ARG_FIT_TARGET:-1024} # llama.cpp's default; here it's VRAM, not host RAM
