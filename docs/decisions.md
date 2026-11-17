@@ -43,3 +43,11 @@ Why localghost is built the way it is. Each entry gives the question, the choice
 - Choice: by domain, in `src/features/<domain>/`, with the folder rules in architecture.md.
 - Why: a piece has one home that doesn't change when its URL changes or a second page starts using it.
 - Source: not recorded.
+
+## Bundled llama.cpp
+
+**7. How does a model's context fit in memory?**
+
+- Choice: `LLAMA_ARG_CTX_SIZE` is unset by default, so `--fit` shrinks the model's context to fit, down to `--fit-ctx` (4096). `LLAMA_ARG_FIT_TARGET` is 6144 MiB without a GPU and llama.cpp's default 1024 on the GPU overlays.
+- Why: any `-c` value, 0 included, stops `--fit` from shrinking the context, and Qwen3.5-4B then loaded its full 262144 and swapped a 15 GiB laptop. With a GPU, `--fit` checks only the GPU's budget. Without one, it counts all RAM as free. So the CPU-only target leaves room for the rest of the host, while an integrated GPU's budget is already a share of RAM (8186 of 15349 MiB on RADV). Fitting to available RAM waits on llama.cpp #22939 and #22922.
+- Source: llama.cpp b12375 `common/arg.cpp:1609-1619` and `common/fit.cpp:396-458`; `llama-server --list-devices`; a load on 2026-11-17.

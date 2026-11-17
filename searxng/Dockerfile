@@ -1,4 +1,4 @@
-FROM searxng/searxng:2026.8.14-094c33d40
+FROM searxng/searxng:2026.11.14-a7128d5d1
 
 # Copied rather than mounted, which avoids an ownership warning on every start.
 COPY --chown=searxng:searxng settings.yml /etc/searxng/settings.yml
