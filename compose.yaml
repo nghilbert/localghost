@@ -128,6 +128,7 @@ services:
       LLAMA_ARG_CTX_SIZE: # unset so --fit can shrink the context
       # MiB --fit keeps free. Without a GPU it counts all RAM as free, so this leaves room for the host.
       LLAMA_ARG_FIT_TARGET: ${LLAMA_ARG_FIT_TARGET:-6144}
+      LLAMA_ARG_MMPROJ_OFFLOAD: # unset keeps llama.cpp's default; it rejects an empty value
     volumes:
       - llamacpp:/models
     restart: unless-stopped
