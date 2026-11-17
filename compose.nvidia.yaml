@@ -3,6 +3,8 @@
 services:
   llamacpp:
     image: ghcr.io/ggml-org/llama.cpp:server-cuda-b12375
+    environment:
+      LLAMA_ARG_FIT_TARGET: ${LLAMA_ARG_FIT_TARGET:-1024} # llama.cpp's default; here it's VRAM, not host RAM
     gpus: all
   web: &gpu
     deploy:

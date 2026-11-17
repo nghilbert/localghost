@@ -56,14 +56,15 @@ without it. `DATABASE_URL` is built from the `POSTGRES_*` variables; override it
 
 Optional:
 
-| Variable                       | Purpose                                                                                     |
-| ------------------------------ | ------------------------------------------------------------------------------------------- |
-| `SEARXNG_URL`                  | enables web search when running natively (Docker sets it for you)                           |
-| `BETTER_AUTH_URL`              | the public origin behind a reverse proxy (default `http://localhost:3000`)                  |
-| `HF_TOKEN`                     | lifts Hugging Face's anonymous limits for the Library and bundled llama.cpp downloads       |
-| `LLAMA_ARG_SLEEP_IDLE_SECONDS` | how long the bundled llama.cpp keeps an idle model loaded (default 300)                     |
-| `LLAMA_ARG_N_GPU_LAYERS`       | GPU layers for the bundled llama.cpp (default `auto`, fitted to free VRAM; `0` is CPU-only) |
-| `LLAMA_ARG_CTX_SIZE`           | context length (default `0`: the model's, shrunk to fit memory)                             |
+| Variable                       | Purpose                                                                                         |
+| ------------------------------ | ----------------------------------------------------------------------------------------------- |
+| `SEARXNG_URL`                  | enables web search when running natively (Docker sets it for you)                               |
+| `BETTER_AUTH_URL`              | the public origin behind a reverse proxy (default `http://localhost:3000`)                      |
+| `HF_TOKEN`                     | lifts Hugging Face's anonymous limits for the Library and bundled llama.cpp downloads           |
+| `LLAMA_ARG_SLEEP_IDLE_SECONDS` | how long the bundled llama.cpp keeps an idle model loaded (default 300)                         |
+| `LLAMA_ARG_N_GPU_LAYERS`       | GPU layers for the bundled llama.cpp (default `auto`, fitted to free VRAM; `0` is CPU-only)     |
+| `LLAMA_ARG_CTX_SIZE`           | fixed context length (default unset: the model's, shrunk to fit memory; `0` forces the model's) |
+| `LLAMA_ARG_FIT_TARGET`         | MiB the fit leaves free (default 6144 of RAM without a GPU; 1024 of VRAM on the GPU overlays)   |
 
 ## Develop
 
