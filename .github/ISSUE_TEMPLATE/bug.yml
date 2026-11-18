@@ -1,0 +1,62 @@
+name: Bug report
+description: Something in localghost doesn't work as it should.
+type: Bug
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What
+      description: What happens, and what you expected instead. Name the screen, setting or file. Paste errors and log lines as text.
+      placeholder: |
+        Memory recall asks the bundled llama.cpp for ggml-org/embeddinggemma-300M-GGUF:Q8_0. The request fails with "400 model not found".
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact
+      description: What this breaks, and for whom. Say if there is a workaround.
+      placeholder: |
+        Saved memories aren't recalled by meaning on a llama.cpp-only setup. Chat itself still works.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Numbered steps from a fresh page. If you can't reproduce it, say what you were doing.
+      placeholder: |
+        1. Start the stack with only the bundled llama.cpp endpoint.
+        2. Save a memory, then send a message.
+        3. The app log shows the 400 on every message.
+    validations:
+      required: true
+  - type: textarea
+    id: done-when
+    attributes:
+      label: Done when
+      description: An outcome anyone can check. Leave it blank if it's only that the steps stop failing.
+      placeholder: |
+        Memory recall works on a fresh llama.cpp-only stack.
+  - type: dropdown
+    id: runs-on
+    attributes:
+      label: How it runs
+      description: The files in `COMPOSE_FILE`, or the native fallback.
+      options:
+        - compose.yaml only (CPU)
+        - compose.yaml with compose.nvidia.yaml
+        - compose.yaml with compose.amd.yaml
+        - compose.yaml with compose.vulkan.yaml
+        - Native (pnpm dev)
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: The output of `git describe --tags` in your clone.
+      placeholder: v0.4.5-1-g6657a20
+  - type: input
+    id: model
+    attributes:
+      label: Model
+      description: The model's name in the model picker, and whether it runs on the bundled llama.cpp, your own llama-server or a cloud endpoint.
