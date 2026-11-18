@@ -78,6 +78,20 @@ Why localghost is built the way it is. Each entry gives the question, the choice
 - Why: before this, checks ran only locally, and the full suite is too heavy to run beside other work. Leaving out the build and the image keeps the first workflow small. `playwright install --with-deps` took 28 to 325 s, mostly in `apt-get`, while the image already has Chromium and its system libraries.
 - Source: issue #189; GitHub Docs, [Creating PostgreSQL service containers](https://docs.github.com/en/actions/tutorials/use-containerized-services/create-postgresql-service-containers): a job in a container reaches a service by its label, with no port mapping; Playwright, [Continuous Integration](https://playwright.dev/docs/ci): caching browsers isn't recommended, and the OS dependencies aren't cacheable.
 
+## Tests
+
+**13. What level does the server logger use in tests?**
+
+- Choice: `LOG_LEVEL` is `"silent"` in the `unit` and `db` projects.
+- Why: tests that make a request or a decryption fail on purpose logged the code's warnings and stack traces into passing runs. Tests that check logging spy on `log`'s methods with `vi.spyOn`, which works at any level. Vitest's `silent: "passed-only"` would keep logs for failing tests, but it captures only `console`, and pino writes to stdout directly.
+- Source: pino, [API](https://github.com/pinojs/pino/blob/main/docs/api.md): "The `silent` logging level is a specialized level that will disable all logging", and the default destination is `pino.destination(1)`; Vitest, [silent](https://vitest.dev/config/silent); issue #208.
+
+**14. Does the `browser` test project pre-transform imports?**
+
+- Choice: no. The project sets `server: { preTransformRequests: false }`.
+- Why: hooks import `createServerFn`s from `*.functions.ts`. In the app, TanStack Start's compiler strips their server code from the client. The `browser` project doesn't run that compiler, so Vite's pre-transform followed those imports into `*.server.ts` modules, even ones `vi.mock` replaces, and printed a "Pre-transform error" for each import it couldn't resolve. Adding packages to `optimizeDeps.exclude` wouldn't help: Vite serves excluded packages unbundled, which is how the `@tanstack/start-server-core` errors arose. Lowering Vite's `logLevel` would hide real errors too.
+- Source: Vite 8.3.8's `ServerOptions.preTransformRequests` ("Pre-transform known direct imports", default `true`); `@vitest/mocker` 5.1.0 sets it to `false` because modules "might be mocked at runtime" (`dist/node.js:510`); a run of the `browser` project on 2026-11-18 printed 3 errors with it on and none with it off.
+
 ## Issues
 
 **9. How are issues classified?**
