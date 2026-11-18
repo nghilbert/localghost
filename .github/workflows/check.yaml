@@ -18,13 +18,15 @@ jobs:
   check:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    # Has Chromium and its system libraries, so no apt step runs. The tag follows the installed playwright.
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.1-noble
+      options: --user 1001
     services:
       db:
         image: pgvector/pgvector:pg18
         env:
           POSTGRES_PASSWORD: postgres
-        ports:
-          - 5432:5432
         options: >-
           --health-cmd "pg_isready -U postgres"
           --health-interval 5s
@@ -47,8 +49,10 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm exec prettier --check .
-      - run: pnpm exec playwright install --with-deps chromium
+      # Finds the image's Chromium when the tag matches, and downloads the browser when it doesn't.
+      - run: pnpm exec playwright install chromium
       # The db project's setup finds the service listening, so it doesn't start Compose.
+      # A job in a container reaches a service by its name.
       - run: pnpm test run
         env:
-          TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test
+          TEST_DATABASE_URL: postgresql://postgres:postgres@db:5432/test
