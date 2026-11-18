@@ -68,9 +68,9 @@ Why localghost is built the way it is. Each entry gives the question, the choice
 
 **8. What runs in CI?**
 
-- Choice: `.github/workflows/check.yaml` runs `pnpm typecheck`, `pnpm lint`, `pnpm exec prettier --check .` and `pnpm test run`, with all three test projects, on pull requests and pushes to main. Postgres comes from a `pgvector/pgvector:pg18` service container. `pnpm build` and the Docker image aren't checked yet.
-- Why: before this, checks ran only locally, and the full suite is too heavy to run beside other work. Leaving out the build and the image keeps the first workflow small.
-- Source: issue #189; GitHub Docs, [Creating PostgreSQL service containers](https://docs.github.com/en/actions/tutorials/use-containerized-services/create-postgresql-service-containers): a job on the runner reaches a service at `localhost` through a mapped port.
+- Choice: `.github/workflows/check.yaml` runs `pnpm typecheck`, `pnpm lint`, `pnpm exec prettier --check .` and `pnpm test run`, with all three test projects, on pull requests and pushes to main. The job runs in Playwright's `mcr.microsoft.com/playwright` image, tagged to the installed `playwright`, and reaches the `pgvector/pgvector:pg18` service container as `db`. `pnpm build` and the Docker image aren't checked yet.
+- Why: before this, checks ran only locally, and the full suite is too heavy to run beside other work. Leaving out the build and the image keeps the first workflow small. `playwright install --with-deps` took 28 to 325 s, mostly in `apt-get`, while the image already has Chromium and its system libraries.
+- Source: issue #189; GitHub Docs, [Creating PostgreSQL service containers](https://docs.github.com/en/actions/tutorials/use-containerized-services/create-postgresql-service-containers): a job in a container reaches a service by its label, with no port mapping; Playwright, [Continuous Integration](https://playwright.dev/docs/ci): caching browsers isn't recommended, and the OS dependencies aren't cacheable.
 
 ## Issues
 
