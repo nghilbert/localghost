@@ -1,4 +1,4 @@
-import { execFileSync } from "node:child_process";
+import { spawnSync, type SpawnSyncOptionsWithStringEncoding } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { connect } from "node:net";
 import { availableParallelism } from "node:os";
@@ -31,7 +31,7 @@ export default async function setup(project: TestProject) {
 
 	// Skipped when Postgres is already up, including inside the web-dev container, which has no Docker CLI.
 	if (!(await isReachable(new URL(testUrl)))) {
-		execFileSync("docker", ["compose", "up", "db", "--detach", "--wait"], { stdio: "inherit" });
+		runQuietly("docker", ["compose", "up", "db", "--detach", "--wait"]);
 	}
 
 	const runUrl = new URL(testUrl);
@@ -60,9 +60,8 @@ export default async function setup(project: TestProject) {
 
 	try {
 		await admin.$executeRawUnsafe(`CREATE DATABASE "${template}"`);
-		execFileSync("pnpm", ["exec", "prisma", "migrate", "deploy"], {
+		runQuietly("pnpm", ["exec", "prisma", "migrate", "deploy"], {
 			env: { ...process.env, DATABASE_URL: runUrl.href },
-			stdio: "inherit",
 		});
 		for (const copy of copies) {
 			await admin.$executeRawUnsafe(`CREATE DATABASE "${copy}" TEMPLATE "${template}"`);
@@ -74,6 +73,25 @@ export default async function setup(project: TestProject) {
 
 	project.provide("workerDatabaseUrls", workerUrls);
 	return dropAll;
+}
+
+/**
+ * Runs a command to completion, keeping its output out of passing runs.
+ * @throws If the command can't start, or exits non-zero with its output in the message.
+ */
+function runQuietly(
+	command: string,
+	args: readonly string[],
+	options?: Omit<SpawnSyncOptionsWithStringEncoding, "encoding">,
+): void {
+	const result = spawnSync(command, args, {
+		...options,
+		encoding: "utf8",
+	});
+	if (result.error) throw result.error;
+	if (result.status !== 0) {
+		throw new Error(`${command} ${args.join(" ")} failed:\n${result.stdout}${result.stderr}`);
+	}
 }
 
 /** The database name in a Postgres URL. */
