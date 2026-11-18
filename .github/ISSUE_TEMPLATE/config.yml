@@ -1,0 +1,6 @@
+# Maintainers still see "Blank issue".
+blank_issues_enabled: false
+contact_links:
+  - name: Setup and configuration
+    url: https://github.com/nghilbert/localghost#setup
+    about: Required secrets, GPU overlays and environment variables.

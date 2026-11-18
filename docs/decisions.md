@@ -59,3 +59,11 @@ Why localghost is built the way it is. Each entry gives the question, the choice
 - Choice: `.github/workflows/check.yaml` runs `pnpm typecheck`, `pnpm lint`, `pnpm exec prettier --check .` and `pnpm test run`, with all three test projects, on pull requests and pushes to main. Postgres comes from a `pgvector/pgvector:pg18` service container. `pnpm build` and the Docker image aren't checked yet.
 - Why: before this, checks ran only locally, and the full suite is too heavy to run beside other work. Leaving out the build and the image keeps the first workflow small.
 - Source: issue #189; GitHub Docs, [Creating PostgreSQL service containers](https://docs.github.com/en/actions/tutorials/use-containerized-services/create-postgresql-service-containers): a job on the runner reaches a service at `localhost` through a mapped port.
+
+## Issues
+
+**9. How are issues classified?**
+
+- Choice: GitHub issue types (Bug, Feature, Task) give the kind of work, and the issue forms in `.github/ISSUE_TEMPLATE/` set them. Labels give a priority (P1–P3) and one `area/` category: `area/chat`, `area/library`, `area/llamacpp`, `area/tooling` or `area/architecture`. Form fields match the issue bodies: What, then Impact or Proposal, then Done when.
+- Why: issue types are GitHub's own field for the kind of work, so type labels would duplicate them. GitHub gives no standard for categories, and the `area/` prefix is the most widely documented one. GitHub also gives no standard form fields, so the forms keep the format the issues already used.
+- Source: GitHub Docs, [Managing issue types in an organization](https://docs.github.com/en/issues/tracking-your-work-with-issues/configuring-issues/managing-issue-types-in-an-organization): every user account and organization has task, bug and feature types (the repository's GraphQL `issueTypes` lists them); [Syntax for issue forms](https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/syntax-for-issue-forms): the `type` key sets the issue type; Kubernetes, [labels.md](https://github.com/kubernetes/test-infra/blob/master/label_sync/labels.md): `area/` labels name the part of a project affected.

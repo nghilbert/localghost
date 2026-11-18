@@ -1,0 +1,27 @@
+name: Task
+description: Work that isn't a bug or a feature, such as upgrades, docs or cleanup.
+type: Task
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What
+      description: What's wrong or missing now. Name the files, entries or versions.
+      placeholder: |
+        docs/decisions.md entries 1, 4, 5 and 6 say "Source: not recorded".
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: How to do it, if you know. List choices still to make as bullets.
+  - type: textarea
+    id: done-when
+    attributes:
+      label: Done when
+      description: An outcome anyone can check.
+      placeholder: |
+        Each entry cites the doc page it rests on, or says why it can't be sourced.
+    validations:
+      required: true

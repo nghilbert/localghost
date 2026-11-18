@@ -1,0 +1,29 @@
+name: Feature request
+description: Something localghost doesn't do yet.
+type: Feature
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What
+      description: How it works today and what's missing. Name the screen, setting or code.
+      placeholder: |
+        chatPersistence defines messages, runs and interrupts. TanStack AI's conformance suite skips 19 tests for the sessions store it lacks.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: The change you suggest. List open questions as bullets.
+      placeholder: |
+        - Move the chat session index to @tanstack/ai-persistence's SessionIndexStore.
+    validations:
+      required: true
+  - type: textarea
+    id: done-when
+    attributes:
+      label: Done when
+      description: An outcome anyone can check.
+      placeholder: |
+        The conformance suite runs its sessions tests instead of skipping them.
