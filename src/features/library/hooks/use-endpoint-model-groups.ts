@@ -1,6 +1,6 @@
 import { useQueries, useQuery } from "@tanstack/react-query";
-import { endpointQueries } from "#/features/endpoint/endpoint.queries";
 import { libraryQueries } from "#/features/library/library.queries";
+import { endpointQueries } from "#/lib/endpoint/endpoint.queries";
 
 /**
  * Every endpoint's models, fetched only while `open`. The local llama.cpp endpoint uses

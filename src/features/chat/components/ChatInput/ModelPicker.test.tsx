@@ -27,7 +27,7 @@ vi.mock("#/features/library/library.queries", () => ({
 	},
 }));
 
-vi.mock("#/features/endpoint/endpoint.queries", () => ({
+vi.mock("#/lib/endpoint/endpoint.queries", () => ({
 	endpointQueries: {
 		list: () => ({ queryKey: ["endpoints"], queryFn: () => endpoints }),
 		models: (endpointId: string) => ({

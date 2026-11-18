@@ -6,7 +6,7 @@ import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { Spinner } from "#/components/ui/spinner";
 import { Tooltip } from "#/components/ui/tooltip";
-import { endpointQueries } from "#/features/endpoint/endpoint.queries";
+import { endpointQueries } from "#/lib/endpoint/endpoint.queries";
 
 /** Whether a saved endpoint is reachable with its key, with a button to check again. */
 export function EndpointHealthBadge({ endpointId }: { endpointId: string }) {

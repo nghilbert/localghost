@@ -1,6 +1,6 @@
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { chatQueries } from "#/features/chat/chat.queries";
-import { endpointQueries } from "#/features/endpoint/endpoint.queries";
+import { endpointQueries } from "#/lib/endpoint/endpoint.queries";
 import type { ModelSelection } from "#/lib/llm-schemas";
 import { useChatTools } from "./use-chat-tools";
 

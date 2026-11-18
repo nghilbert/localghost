@@ -17,7 +17,7 @@ import {
 	probeModelCapabilities,
 	probeSavedEndpoint,
 	removeEndpoint,
-} from "./server/endpoint.server";
+} from "./endpoint.server";
 
 /** The user's endpoints, each with a `hasApiKey` flag in place of the encrypted key. */
 export const listEndpoints = createServerFn({ method: "GET" })
