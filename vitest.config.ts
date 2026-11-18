@@ -40,6 +40,9 @@ export default defineConfig({
 			{
 				plugins: [tailwindcss(), msw({ mode: "worker-only" })],
 				optimizeDeps: { exclude: ["@tanstack/react-start", "@tanstack/react-start/server"] },
+				// Off so Vite transforms only modules the browser requests. Without TanStack Start's
+				// compiler, a mocked `*.functions.ts` still imports server code the browser can't resolve.
+				server: { preTransformRequests: false },
 				test: {
 					name: "browser",
 					include: ["src/**/*.test.tsx"],
