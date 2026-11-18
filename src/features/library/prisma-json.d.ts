@@ -1,5 +1,5 @@
 import type { z } from "zod";
-import type { perModelOptionsSchema } from "./library.schemas";
+import type { perModelOptionsSchema } from "#/lib/llm-schemas";
 
 declare global {
 	namespace PrismaJson {

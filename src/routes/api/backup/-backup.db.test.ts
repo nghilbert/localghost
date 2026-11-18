@@ -1,10 +1,13 @@
 import { randomUUID } from "node:crypto";
 import type { ModelMessage } from "@tanstack/ai";
 import { describe, expect } from "vitest";
+import { exportBackup, importBackup } from "#/features/backup/server/backup.server";
+import { listModelSettings } from "#/features/library/server/model-setting.server";
+import { embed } from "#/features/memory/server/embeddings.server";
+import { insertMemory } from "#/features/memory/server/memory.server";
 import { encrypt } from "#/lib/crypto.server";
 import { prisma } from "#/lib/db.server";
 import { createConversation, createEndpoint, createUser, it } from "#/test/db.server";
-import { exportBackup, importBackup } from "./backup.server";
 
 describe("exportBackup", () => {
 	it("shapes memories, conversations, endpoints, model settings, and defaults from the user's rows", async () => {
@@ -35,7 +38,11 @@ describe("exportBackup", () => {
 			},
 		});
 
-		const { exportedAt, ...backup } = await exportBackup({ userId: user.id, email: "a@b.com" });
+		const { exportedAt, ...backup } = await exportBackup({
+			listModelSettings,
+			userId: user.id,
+			email: "a@b.com",
+		});
 
 		expect(Date.parse(exportedAt)).not.toBeNaN();
 		expect(backup).toEqual({
@@ -71,7 +78,7 @@ describe("exportBackup", () => {
 			apiKeyEncrypted: encrypt("super-secret-key"),
 		});
 
-		const backup = await exportBackup({ userId: user.id, email: "a@b.com" });
+		const backup = await exportBackup({ listModelSettings, userId: user.id, email: "a@b.com" });
 
 		expect(backup.endpoints).toEqual([
 			{ name: "Custom", url: "https://api.test", provider: "openai", options: null },
@@ -80,7 +87,11 @@ describe("exportBackup", () => {
 	});
 
 	it("reports null userSettings when the user row is gone", async () => {
-		const backup = await exportBackup({ userId: randomUUID(), email: "a@b.com" });
+		const backup = await exportBackup({
+			listModelSettings,
+			userId: randomUUID(),
+			email: "a@b.com",
+		});
 		expect(backup.userSettings).toBeNull();
 		expect(backup.memories).toEqual([]);
 		expect(backup.conversations).toEqual([]);
@@ -92,6 +103,8 @@ describe("importBackup: user settings merge", () => {
 		const user = await createUser({ systemPrompt: "mine", temperature: 0.2 });
 
 		await importBackup({
+			embed,
+			insertMemory,
 			userId: user.id,
 			payload: { userSettings: { systemPrompt: "theirs", temperature: 0.9 } },
 		});
@@ -103,7 +116,12 @@ describe("importBackup: user settings merge", () => {
 	it("fills unset fields from the import and defaults the rest to null", async () => {
 		const user = await createUser({ systemPrompt: null, temperature: null });
 
-		await importBackup({ userId: user.id, payload: { userSettings: { systemPrompt: "theirs" } } });
+		await importBackup({
+			embed,
+			insertMemory,
+			userId: user.id,
+			payload: { userSettings: { systemPrompt: "theirs" } },
+		});
 
 		const updated = await prisma.user.findUniqueOrThrow({ where: { id: user.id } });
 		expect(updated).toMatchObject({ systemPrompt: "theirs", temperature: null });
@@ -112,7 +130,12 @@ describe("importBackup: user settings merge", () => {
 	it("defaults to null a field the import doesn't provide, even when the other is filled", async () => {
 		const user = await createUser({ systemPrompt: null, temperature: null });
 
-		await importBackup({ userId: user.id, payload: { userSettings: { temperature: 0.5 } } });
+		await importBackup({
+			embed,
+			insertMemory,
+			userId: user.id,
+			payload: { userSettings: { temperature: 0.5 } },
+		});
 
 		const updated = await prisma.user.findUniqueOrThrow({ where: { id: user.id } });
 		expect(updated).toMatchObject({ systemPrompt: null, temperature: 0.5 });
@@ -121,7 +144,7 @@ describe("importBackup: user settings merge", () => {
 	it("skips the settings update entirely when the payload has none", async () => {
 		const user = await createUser({ systemPrompt: "kept" });
 
-		await importBackup({ userId: user.id, payload: {} });
+		await importBackup({ embed, insertMemory, userId: user.id, payload: {} });
 
 		const unchanged = await prisma.user.findUniqueOrThrow({ where: { id: user.id } });
 		expect(unchanged.systemPrompt).toBe("kept");
@@ -134,6 +157,8 @@ describe("importBackup: memories", () => {
 		const user = await createUser();
 
 		await importBackup({
+			embed,
+			insertMemory,
 			userId: user.id,
 			payload: {
 				memories: [
@@ -158,7 +183,7 @@ describe("importBackup: memories", () => {
 	it("saves nothing when the payload has no memories", async () => {
 		const user = await createUser();
 
-		const result = await importBackup({ userId: user.id, payload: {} });
+		const result = await importBackup({ embed, insertMemory, userId: user.id, payload: {} });
 
 		expect(result.memories).toBe(0);
 		expect(await prisma.memory.count({ where: { ownerId: user.id } })).toBe(0);
@@ -171,6 +196,8 @@ describe("importBackup: memories", () => {
 		});
 
 		const result = await importBackup({
+			embed,
+			insertMemory,
 			userId: user.id,
 			payload: {
 				memories: [{ text: "already saved", category: "fact" }, { text: "new one" }],
@@ -191,6 +218,8 @@ describe("importBackup: conversations", () => {
 		const user = await createUser();
 
 		await importBackup({
+			embed,
+			insertMemory,
 			userId: user.id,
 			payload: { conversations: [{ messages: [{ role: "user", content: "hi" }] }] },
 		});
@@ -209,6 +238,8 @@ describe("importBackup: conversations", () => {
 		const user = await createUser();
 
 		await importBackup({
+			embed,
+			insertMemory,
 			userId: user.id,
 			payload: { conversations: [{ title: "Trip", model: "llama3", messages: [] }] },
 		});
@@ -227,6 +258,8 @@ describe("importBackup: conversations", () => {
 		await prisma.chatThread.create({ data: { threadId: existing.id, messages: trip } });
 
 		const result = await importBackup({
+			embed,
+			insertMemory,
 			userId: user.id,
 			payload: {
 				conversations: [
@@ -252,6 +285,8 @@ describe("importBackup: conversations", () => {
 		const valid = [{ role: "user", content: "hi" }];
 
 		const result = await importBackup({
+			embed,
+			insertMemory,
 			userId: user.id,
 			payload: {
 				conversations: [
@@ -276,6 +311,8 @@ describe("importBackup: endpoints", () => {
 		const user = await createUser();
 
 		const result = await importBackup({
+			embed,
+			insertMemory,
 			userId: user.id,
 			payload: {
 				endpoints: [{ name: "OpenAI", url: "https://api.openai.com", provider: "openai" }],
@@ -298,6 +335,8 @@ describe("importBackup: endpoints", () => {
 		await createEndpoint({ ownerId: user.id, url: "https://api.openai.com", provider: "openai" });
 
 		const result = await importBackup({
+			embed,
+			insertMemory,
 			userId: user.id,
 			payload: {
 				endpoints: [{ name: "OpenAI", url: "https://api.openai.com", provider: "openai" }],
@@ -319,6 +358,8 @@ describe("importBackup: model settings", () => {
 		});
 
 		const result = await importBackup({
+			embed,
+			insertMemory,
 			userId: user.id,
 			payload: {
 				modelSettings: [
@@ -345,6 +386,8 @@ describe("importBackup: model settings", () => {
 		const user = await createUser();
 
 		const result = await importBackup({
+			embed,
+			insertMemory,
 			userId: user.id,
 			payload: {
 				endpoints: [{ name: "Local", url: "http://localhost:8080", provider: "llamacpp" }],
@@ -373,6 +416,8 @@ describe("importBackup: model settings", () => {
 		const user = await createUser();
 
 		const result = await importBackup({
+			embed,
+			insertMemory,
 			userId: user.id,
 			payload: {
 				modelSettings: [
@@ -402,6 +447,8 @@ describe("importBackup: model settings", () => {
 		});
 
 		const result = await importBackup({
+			embed,
+			insertMemory,
 			userId: user.id,
 			payload: {
 				modelSettings: [

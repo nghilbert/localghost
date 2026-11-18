@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { perModelOptionsSchema } from "./library.schemas";
+import { perModelOptionsSchema } from "./llm-schemas";
 
 describe("perModelOptionsSchema", () => {
 	it("keeps every curated sampling option", () => {

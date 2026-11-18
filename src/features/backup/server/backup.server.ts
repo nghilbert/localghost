@@ -1,15 +1,12 @@
 import type { ModelMessage } from "@tanstack/ai";
 import { z } from "zod";
 import type { ImportBackupCounts } from "#/features/backup/backup.schemas";
-import { perModelOptionsSchema } from "#/features/library/library.schemas";
-import { listModelSettings } from "#/features/library/server/model-setting.server";
-import { embed } from "#/features/memory/server/embeddings.server";
-import { insertMemory } from "#/features/memory/server/memory.server";
+import type { Prisma } from "#/generated/prisma/client";
 import { prisma } from "#/lib/db.server";
 import { MIB } from "#/lib/format";
 import { BodyTooLargeError, readJsonWithLimit } from "#/lib/http.server";
 import { llmProviderSchema } from "#/lib/llm-provider";
-import { samplingOptionsSchema } from "#/lib/llm-schemas";
+import { perModelOptionsSchema, samplingOptionsSchema } from "#/lib/llm-schemas";
 
 /** The backup format this build writes. Imports claiming a newer one are rejected. */
 const BACKUP_VERSION = 4;
@@ -75,8 +72,39 @@ const transcriptSchema = z.array(
 	z.custom<ModelMessage>((value) => messageShapeSchema.safeParse(value).success),
 );
 
+/** What an export reads from outside the backup feature. The route passes it in. */
+export interface BackupExportSources {
+	/** Every model setting the user has, with its endpoint's url, name, and provider. */
+	listModelSettings: (args: { ownerId: string }) => Promise<
+		Array<{
+			model: string;
+			options: PrismaJson.ModelOptions | null;
+			endpoint: { url: string; name: string; provider: string };
+		}>
+	>;
+}
+
+/** What an import writes through outside the backup feature. The route passes them in. */
+export interface BackupImportSources {
+	/** A memory's embedding, or null when no endpoint can embed it. */
+	embed: (args: { text: string; ownerId: string }) => Promise<number[] | null>;
+	/** Saves a memory inside the import's transaction. */
+	insertMemory: (args: {
+		db: Prisma.TransactionClient;
+		ownerId: string;
+		text: string;
+		category?: string;
+		source: string;
+		embedding: number[] | null;
+	}) => Promise<void>;
+}
+
 /** A JSON backup of a user's memories, chats, chat defaults, endpoints, and model settings. */
-export async function exportBackup({ userId, email }: { userId: string; email: string }) {
+export async function exportBackup({
+	userId,
+	email,
+	listModelSettings,
+}: { userId: string; email: string } & BackupExportSources) {
 	const [memories, conversations, userSettings, endpoints, modelSettings] = await Promise.all([
 		prisma.memory.findMany({ where: { ownerId: userId }, orderBy: { id: "asc" } }),
 		prisma.conversation.findMany({
@@ -153,10 +181,12 @@ function modelSettingKey({ endpointId, model }: { endpointId: string; model: str
 export async function importBackup({
 	userId,
 	payload,
+	embed,
+	insertMemory,
 }: {
 	userId: string;
 	payload: ImportPayload;
-}): Promise<ImportBackupCounts> {
+} & BackupImportSources): Promise<ImportBackupCounts> {
 	const incomingMemories = (payload.memories ?? [])
 		.filter((m) => m.text)
 		.map((m) => ({
@@ -352,11 +382,12 @@ const MAX_IMPORT_BYTES = 256 * MIB;
 export async function getBackupExport({
 	userId,
 	email,
+	...sources
 }: {
 	userId: string;
 	email: string;
-}): Promise<Response> {
-	const payload = await exportBackup({ userId, email });
+} & BackupExportSources): Promise<Response> {
+	const payload = await exportBackup({ userId, email, ...sources });
 	const filename = `localghost-backup-${new Date().toISOString().slice(0, 10)}.json`;
 	return new Response(JSON.stringify(payload, null, 2), {
 		headers: {
@@ -370,10 +401,11 @@ export async function getBackupExport({
 export async function postBackupImport({
 	request,
 	userId,
+	...sources
 }: {
 	request: Request;
 	userId: string;
-}): Promise<Response> {
+} & BackupImportSources): Promise<Response> {
 	let raw: unknown;
 	try {
 		raw = await readJsonWithLimit({ request, maxBytes: MAX_IMPORT_BYTES });
@@ -392,6 +424,6 @@ export async function postBackupImport({
 		);
 	}
 
-	const imported = await importBackup({ userId, payload: parsed.data });
+	const imported = await importBackup({ userId, payload: parsed.data, ...sources });
 	return Response.json({ ok: true, imported });
 }
