@@ -1,5 +1,5 @@
 import type { z } from "zod";
-import type { manageMemoryArgsSchema } from "#/features/memory/memory.schemas";
+import type { manageMemoryArgsSchema } from "#/lib/memory-tools";
 import { findMemories, recallMemories, removeMemory, saveMemory } from "./memory.server";
 
 type ManageMemoryArgs = z.infer<typeof manageMemoryArgsSchema>;

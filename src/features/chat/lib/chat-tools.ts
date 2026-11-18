@@ -1,6 +1,6 @@
 import type { BoundInterrupts, UIMessage } from "@tanstack/ai-client";
 import { readUrlToolDef, webSearchToolDef } from "#/features/chat/chat.schemas";
-import { deleteMemoryToolDef, manageMemoryToolDef } from "#/features/memory/memory.schemas";
+import { deleteMemoryToolDef, manageMemoryToolDef } from "#/lib/memory-tools";
 
 /**
  * Tool definitions without handlers, so `useChat` types each tool call's input and approval
