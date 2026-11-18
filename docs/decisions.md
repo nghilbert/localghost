@@ -52,6 +52,18 @@ Why localghost is built the way it is. Each entry gives the question, the choice
 - Why: any `-c` value, 0 included, stops `--fit` from shrinking the context, and Qwen3.5-4B then loaded its full 262144 and swapped a 15 GiB laptop. With a GPU, `--fit` checks only the GPU's budget. Without one, it counts all RAM as free. So the CPU-only target leaves room for the rest of the host, while an integrated GPU's budget is already a share of RAM (8186 of 15349 MiB on RADV). Fitting to available RAM waits on llama.cpp #22939 and #22922.
 - Source: llama.cpp b12375 `common/arg.cpp:1609-1619` and `common/fit.cpp:396-458`; `llama-server --list-devices`; a load on 2026-11-17.
 
+**10. Does compose.yaml declare a health check for `llamacpp`?**
+
+- Choice: no. The `llamacpp` service uses the image's own health check, and `web` and `web-dev` wait for it with `condition: service_started`.
+- Why: each llama.cpp image already declares `HEALTHCHECK curl -f http://localhost:8080/health`, so `docker compose ps` reports its health without one in compose.yaml. The app doesn't need llama.cpp to start: `discovery.server.ts` looks for it on each request. Open: what `/health` returns in router mode with no model loaded.
+- Source: llama.cpp b12375 `.devops/cpu.Dockerfile`, `cuda.Dockerfile`, `rocm.Dockerfile` and `vulkan.Dockerfile`; `docker image inspect` of `server-vulkan-b12375`.
+
+**11. Where is the llama.cpp version pinned?**
+
+- Choice: in the four image lines, in compose.yaml and the amd, nvidia and vulkan overlays. A bump changes all four.
+- Why: a single source needs either a local Dockerfile that builds an image now only pulled, or a CI check. Either costs more than editing four identical lines. Entry 7 names b12375 as the build it was checked against, which isn't a pin.
+- Source: the `image:` lines in compose.yaml, compose.amd.yaml, compose.nvidia.yaml and compose.vulkan.yaml; no outside source.
+
 ## CI
 
 **8. What runs in CI?**
