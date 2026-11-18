@@ -19,29 +19,32 @@ A feature is `src/features/<domain>/`:
 - Root files: `<domain>.functions.ts` (server functions), `<domain>.queries.ts` (query factory), `<domain>.schemas.ts` (Zod schemas), `<domain>.types.ts` (shared types).
 - Folders: `components/`, `hooks/` (`use-<operation>.ts`), `server/` (`*.server.ts` helpers, no subfolders), `lib/` (pure helpers). A feature leaves out the folders it doesn't need.
 
-Code with no domain lives in `src/components/`, `src/hooks/` and `src/lib/`. Routes live in `src/routes/`.
+Code with no domain, or used by more than one feature, lives in `src/components/`, `src/hooks/` and `src/lib/`. Routes live in `src/routes/`.
 
-Each Prisma model belongs to one feature, and a feature can own several:
+Each Prisma model belongs to one module, and a module can own several:
 
-- `account`: user, account, session, verification
-- `chat`: conversation and the chat persistence tables
-- `endpoint`: endpoint
-- `library`: model setting
-- `memory`: memory
-- `backup` owns none, and reads and writes across them.
+- `features/account`: user, account, session, verification
+- `features/chat`: conversation and the chat persistence tables
+- `lib/endpoint`: endpoint, since chat and library both read it. `features/endpoint` holds its settings forms.
+- `features/library`: model setting
+- `features/memory`: memory. Its tool definitions are in `lib/memory-tools.ts`, since chat's client types its messages with them.
+- `features/backup` owns none. It reads and writes the others' tables, and gets model settings and memory writes from its routes.
 
 ## Layers
 
-Imports flow one way: `components`, `hooks` and `lib`, then `features`, then `routes`. Imports between features never form a cycle.
+Imports flow one way: shared code (`src/components`, `src/hooks`, `src/lib`), then `src/features`, then `src/routes`.
 
-What code outside a feature may import from it:
+- Shared code imports only shared code.
+- A feature imports shared code and its own files, never another feature.
+- A route imports anything. It is where features meet.
 
-- Root files and `hooks/`: anyone.
-- `components/`: routes only, never another feature.
-- `server/`: server code only, such as another feature's `server/` or a `routes/api/` handler.
-- `lib/`: nothing; it is private. A piece two features need moves up to `src/components/` or `src/lib/`.
+When one feature needs another, the route passes it in:
 
-Routes stay thin: a loader, a head, and a component from a feature. An API route's handlers call a feature's `server/` function. A component that combines several features, or belongs to none, lives in the nearest route's `-components/`, such as the `AppSidebar` shell and the settings Account and Endpoints tabs.
+- Server code takes the other feature's functions as arguments, typed by an interface the feature declares. `postChatStream` takes `ChatStreamSources`, and `/api/chat/stream` passes account's, library's and memory's functions.
+- A component takes a render prop. `NewChat` takes `renderModelPicker`, and `/new` passes `ChatModelPicker`, which joins library's model groups with chat's `ModelPicker`.
+- A piece several features need, such as a schema or a data layer, moves to `src/lib/`.
+
+Routes stay thin: a loader, a head, a component, and the wiring between features. A component that combines several features, or belongs to none, lives in the nearest route's `-components/`, such as the `AppSidebar` shell and the settings Account and Endpoints tabs.
 
 Every setting is edited on a `/settings/*` page. Other pages show the current state and link there; they never embed a settings form.
 
@@ -95,7 +98,7 @@ Tailwind v4, with `src/styles/index.css` as the single entry. Colors are authore
 
 ## Testing
 
-A test sits beside its subject, named for it: `crypto.server.ts` → `crypto.server.test.ts`, and a folder component `ChatInput/index.tsx` → `ChatInput/ChatInput.test.tsx`. A test that needs Postgres drops `.server` for `.db`: `chat.server.ts` → `chat.db.test.ts`.
+A test sits beside its subject, named for it: `crypto.server.ts` → `crypto.server.test.ts`, and a folder component `ChatInput/index.tsx` → `ChatInput/ChatInput.test.tsx`. A test that needs Postgres drops `.server` for `.db`: `chat.server.ts` → `chat.db.test.ts`. A test that runs several features together sits beside the route that wires them, with a `-` prefix so the router skips it: `routes/api/chat/-stream.db.test.ts`.
 
 - `unit`: `*.test.ts` in Node, including database-free `*.server.test.ts`.
 - `browser`: `*.test.tsx` in headless Chromium, with `render` and `renderHook` from `#/test/utils` (async). Chromium runs with reduced motion, so Base UI's transitions finish at once, and a setup file loads the real CSS. `render` mounts the real toast viewport.

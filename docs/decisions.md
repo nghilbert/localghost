@@ -44,6 +44,12 @@ Why localghost is built the way it is. Each entry gives the question, the choice
 - Why: a piece has one home that doesn't change when its URL changes or a second page starts using it.
 - Source: not recorded.
 
+**12. May a feature import another feature?**
+
+- Choice: no. Imports flow from shared code to features to routes. A route passes one feature's functions or components to another, and a piece several features share moves to `src/lib/`. Endpoint's data layer moved to `src/lib/endpoint/`, and memory's tool definitions to `src/lib/memory-tools.ts`.
+- Why: cross-feature imports had grown to 17, with chat depending on four features. Wiring in routes keeps each feature readable and testable alone, and makes the dependencies visible in one place. Moving endpoint's data layer was smaller than passing it through every hook that reads it. A lint rule for this comes with #192.
+- Source: issue #204; Bulletproof React, [project-structure.md](https://github.com/alan2207/bulletproof-react/blob/master/docs/project-structure.md): "compose different features at the application level", code flows shared → features → app, and shared API calls may live outside the features.
+
 ## Bundled llama.cpp
 
 **7. How does a model's context fit in memory?**
