@@ -1,26 +1,47 @@
 import { Link } from "@tanstack/react-router";
 import { CheckIcon, ChevronDownIcon, LibraryIcon, TriangleAlertIcon } from "lucide-react";
-import { Fragment, useState } from "react";
+import { Fragment } from "react";
 import { cn } from "tailwind-variants";
 import { Button } from "#/components/ui/button";
 import { Menu } from "#/components/ui/menu";
 import { Spinner } from "#/components/ui/spinner";
-import { useEndpointModelGroups } from "#/features/library/hooks/use-endpoint-model-groups";
 import type { ModelSelection } from "#/lib/llm-schemas";
 
-interface ModelPickerProps {
+/** An endpoint and the models it offers. */
+export interface ModelGroup {
+	endpoint: { id: string; name: string };
+	models: string[];
+}
+
+/** What a chat passes to the model picker a route supplies. */
+export interface ModelPickerSlotProps {
 	selection: ModelSelection | null;
 	onSelect?: (selection: ModelSelection) => void;
 }
 
+interface ModelPickerProps extends ModelPickerSlotProps {
+	/** The caller fetches `groups` only while the menu is open. */
+	open: boolean;
+	onOpenChange: (open: boolean) => void;
+	groups: ModelGroup[];
+	isLoading: boolean;
+	isError: boolean;
+}
+
 /** Picks the endpoint and model for a new chat. */
-export function ModelPicker({ selection, onSelect }: ModelPickerProps) {
-	const [open, setOpen] = useState(false);
+export function ModelPicker({
+	selection,
+	onSelect,
+	open,
+	onOpenChange,
+	groups,
+	isLoading,
+	isError,
+}: ModelPickerProps) {
 	const label = selection?.model ?? "Select model";
-	const { groups, isLoading, isError } = useEndpointModelGroups(open);
 
 	return (
-		<Menu.Root open={open} onOpenChange={setOpen}>
+		<Menu.Root open={open} onOpenChange={onOpenChange}>
 			<Menu.Trigger
 				render={(props, state) => (
 					<Button

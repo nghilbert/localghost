@@ -6,6 +6,7 @@ import {
 	type ClipboardEvent,
 	type DragEvent,
 	type KeyboardEvent,
+	type ReactNode,
 	type SubmitEvent,
 } from "react";
 import { InputGroup } from "#/components/ui/input-group";
@@ -26,7 +27,7 @@ import { formatBytes } from "#/lib/format";
 import type { ModelSelection } from "#/lib/llm-schemas";
 import { AttachmentPreviews } from "./AttachmentPreviews";
 import { LockedModelLabel } from "./LockedModelLabel";
-import { ModelPicker } from "./ModelPicker";
+import type { ModelPickerSlotProps } from "./ModelPicker";
 import { ToolsMenu } from "./ToolsMenu";
 
 interface ChatInputProps {
@@ -35,6 +36,8 @@ interface ChatInputProps {
 	selection: ModelSelection | null;
 	/** Only a new chat can change the model. */
 	onSelect?: (selection: ModelSelection) => void;
+	/** Renders the model picker while the model can still change. */
+	renderModelPicker?: (props: ModelPickerSlotProps) => ReactNode;
 	/** Shows the model as a label that cannot change, for a started conversation. */
 	locked?: boolean;
 	/** Tool switches for the next message. */
@@ -55,6 +58,7 @@ export function ChatInput({
 	isStreaming,
 	selection,
 	onSelect,
+	renderModelPicker,
 	locked = false,
 	tools,
 	supportsImages = false,
@@ -200,7 +204,7 @@ export function ChatInput({
 					{locked ? (
 						<LockedModelLabel selection={selection} />
 					) : (
-						<ModelPicker selection={selection} onSelect={onSelect} />
+						renderModelPicker?.({ selection, onSelect })
 					)}
 					{tools && <ToolsMenu {...tools} />}
 					{canAttach && (
