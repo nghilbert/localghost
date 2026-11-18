@@ -4,7 +4,9 @@ import { playwright } from "@vitest/browser-playwright";
 import { msw } from "msw/vite";
 import { defineConfig } from "vitest/config";
 
+// Fake secrets for tests.
 const BETTER_AUTH_SECRET = "test-secret-012345678901234567890123";
+const ENCRYPTION_KEY = "0123456789abcdef".repeat(4);
 
 export default defineConfig({
 	test: {
@@ -54,7 +56,8 @@ export default defineConfig({
 					environment: "node",
 					include: ["src/**/*.db.test.ts"],
 					testTimeout: 30_000,
-					env: { BETTER_AUTH_SECRET },
+					// Set here because CI has no .env.
+					env: { BETTER_AUTH_SECRET, ENCRYPTION_KEY },
 					globalSetup: ["./src/test/db-setup.ts"],
 					setupFiles: ["./src/test/faker-seed.ts", "./src/test/db-worker.ts"],
 				},
