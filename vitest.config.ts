@@ -8,6 +8,9 @@ import { defineConfig } from "vitest/config";
 const BETTER_AUTH_SECRET = "test-secret-012345678901234567890123";
 const ENCRYPTION_KEY = "0123456789abcdef".repeat(4);
 
+// The environment both server-side projects run with.
+const serverEnv = { BETTER_AUTH_SECRET, LOG_LEVEL: "silent" };
+
 export default defineConfig({
 	test: {
 		globals: true,
@@ -28,7 +31,7 @@ export default defineConfig({
 					exclude: ["src/**/*.db.test.ts"],
 					setupFiles: ["./src/test/faker-seed.ts"],
 					env: {
-						BETTER_AUTH_SECRET,
+						...serverEnv,
 						// Unresolvable, so a database test outside the `db` project fails instead of reaching the dev database.
 						DATABASE_URL: "postgresql://unset.invalid/unit",
 					},
@@ -57,7 +60,7 @@ export default defineConfig({
 					include: ["src/**/*.db.test.ts"],
 					testTimeout: 30_000,
 					// Set here because CI has no .env.
-					env: { BETTER_AUTH_SECRET, ENCRYPTION_KEY },
+					env: { ...serverEnv, ENCRYPTION_KEY },
 					globalSetup: ["./src/test/db-setup.ts"],
 					setupFiles: ["./src/test/faker-seed.ts", "./src/test/db-worker.ts"],
 				},
