@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { modelSelectionSchema, samplingOptionsSchema } from "#/lib/llm-schemas";
+import { modelSelectionSchema, perModelOptionsSchema } from "#/lib/llm-schemas";
 
 /** Fields the catalog can sort by. "memory" is the memory a model needs to run. */
 export const catalogSortBySchema = z.enum([
@@ -62,15 +62,6 @@ export const modelVariantsInput = z.object({
 
 /** The `/api/models/events` query string. */
 export const modelEventsQuerySchema = z.object({ endpointId: z.uuid() });
-
-/** The sampling options a user can override per model, a subset of {@link samplingOptionsSchema}. */
-export const perModelOptionsSchema = samplingOptionsSchema.pick({
-	temperature: true,
-	top_p: true,
-	top_k: true,
-	repeat_penalty: true,
-	max_tokens: true,
-});
 
 /** A model setting with its overrides. */
 export const upsertModelSettingInput = modelSelectionSchema.extend({

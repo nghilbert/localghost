@@ -1,14 +1,14 @@
 import { trimPathRight } from "@tanstack/react-router";
-import {
-	findLlamacppEndpoint,
-	findLlamacppEndpoints,
-	type SavedLlamacppEndpoint,
-} from "#/features/endpoint/server/endpoint.server";
 import { parseParamB } from "#/features/library/lib/model-id";
 import { aggregatePullProgress } from "#/features/library/lib/pull-progress";
 import type { InstalledModel, PullProgress } from "#/features/library/library.types";
 import type { Endpoint } from "#/generated/prisma/client";
 import { endpointApiKey } from "#/lib/crypto.server";
+import {
+	findLlamacppEndpoint,
+	findLlamacppEndpoints,
+	type SavedLlamacppEndpoint,
+} from "#/lib/endpoint/endpoint.server";
 import { listModels, LOCAL_LLAMACPP_API_KEY, type LlamaModel } from "#/lib/llamacpp/client.server";
 
 const DEFAULT_RUNTIME_URL = "http://localhost:8080";

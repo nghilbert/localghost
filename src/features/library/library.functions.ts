@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { upsertLlamacppEndpoint } from "#/features/endpoint/server/endpoint.server";
+import { upsertLlamacppEndpoint } from "#/lib/endpoint/endpoint.server";
 import { downloadModel, unloadModel } from "#/lib/llamacpp/client.server";
 import { llamacppConnectionSchema, llamacppUrlSchema } from "#/lib/llamacpp/url";
 import { modelSelectionSchema } from "#/lib/llm-schemas";

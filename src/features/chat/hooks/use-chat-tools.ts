@@ -3,7 +3,7 @@ import { useState } from "react";
 import { chatQueries } from "#/features/chat/chat.queries";
 import type { ToolControls } from "#/features/chat/chat.types";
 import { defaultEnabledTools } from "#/features/chat/lib/tool-catalog";
-import { endpointQueries } from "#/features/endpoint/endpoint.queries";
+import { endpointQueries } from "#/lib/endpoint/endpoint.queries";
 import type { ModelSelection } from "#/lib/llm-schemas";
 
 /** The tool switches for the next message and whether the model can use tools. */

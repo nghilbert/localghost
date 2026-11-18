@@ -1,11 +1,8 @@
-import { memoryMiddleware } from "@tanstack/ai-memory";
+import { memoryMiddleware, type MemoryAdapter } from "@tanstack/ai-memory";
 import { reconstructChat, withPersistence } from "@tanstack/ai-persistence";
-import { findUserSettings } from "#/features/account/server/user.server";
 import { chatStreamForwardedPropsSchema, chatThreadIdSchema } from "#/features/chat/chat.schemas";
 import { resolveGenerationOptions } from "#/features/chat/lib/generation-options";
 import { buildChatSystemPrompt } from "#/features/chat/lib/system-prompt";
-import { getModelSetting } from "#/features/library/server/model-setting.server";
-import { memoryAdapter } from "#/features/memory/server/adapter.server";
 import { endpointApiKey } from "#/lib/crypto.server";
 import { MIB } from "#/lib/format";
 import { asLLMProvider } from "#/lib/llm-provider";
@@ -19,14 +16,33 @@ import { buildChatTools } from "./tools.server";
 // Large enough for a history with image attachments as data URLs.
 const MAX_BODY_BYTES = 64 * MIB;
 
+/** What a chat run reads from outside the chat feature. The route passes them in. */
+export interface ChatStreamSources {
+	/** The user's system prompt and temperature. */
+	findUserSettings: (args: {
+		ownerId: string;
+	}) => Promise<{ systemPrompt: string | null; temperature: number | null }>;
+	/** A model's saved overrides: undefined without a row, null when the row has no options. */
+	getModelSetting: (args: {
+		endpointId: string;
+		model: string;
+		ownerId: string;
+	}) => Promise<Record<string, unknown> | null | undefined>;
+	/** Recalls and saves the user's memories. */
+	memoryAdapter: MemoryAdapter;
+}
+
 /** Runs a chat, saving it with `withPersistence` and adding memory with `memoryMiddleware`. */
 export async function postChatStream({
 	request,
 	userId,
+	findUserSettings,
+	getModelSetting,
+	memoryAdapter,
 }: {
 	request: Request;
 	userId: string;
-}): Promise<Response> {
+} & ChatStreamSources): Promise<Response> {
 	const read = await readRunParams({ request, maxBytes: MAX_BODY_BYTES });
 	if (!read.ok) return read.response;
 	const { params } = read;

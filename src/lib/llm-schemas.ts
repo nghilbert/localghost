@@ -24,3 +24,12 @@ export const samplingOptionsSchema = z
 		mirostat_eta: z.number().min(0),
 	})
 	.partial();
+
+/** The sampling options a user can override per model, a subset of {@link samplingOptionsSchema}. */
+export const perModelOptionsSchema = samplingOptionsSchema.pick({
+	temperature: true,
+	top_p: true,
+	top_k: true,
+	repeat_penalty: true,
+	max_tokens: true,
+});

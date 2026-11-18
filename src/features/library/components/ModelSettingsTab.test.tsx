@@ -29,7 +29,7 @@ vi.mock("#/features/library/library.queries", () => ({
 	},
 }));
 
-vi.mock("#/features/endpoint/endpoint.queries", () => ({
+vi.mock("#/lib/endpoint/endpoint.queries", () => ({
 	endpointQueries: {
 		list: () => ({ queryKey: ["endpoints"], queryFn: () => [{ id: LOCAL_ID, name: "llama.cpp" }] }),
 		models: () => ({ queryKey: ["endpoint-models"], queryFn: () => [] }),

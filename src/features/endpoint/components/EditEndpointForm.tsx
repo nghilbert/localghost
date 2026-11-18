@@ -1,11 +1,11 @@
 import { SaveIcon } from "lucide-react";
-import type { ClientEndpoint } from "#/features/endpoint/endpoint.types";
 import { useUpdateEndpoint } from "#/features/endpoint/hooks/use-update-endpoint";
 import {
 	buildEndpointFormSchema,
 	dbProviderFor,
 	providerDefinitionFor,
 } from "#/features/endpoint/lib/providers";
+import type { ClientEndpoint } from "#/lib/endpoint/endpoint.types";
 import { ProviderEndpointForm } from "./ProviderEndpointForm";
 
 /** Edits a saved endpoint's name, URL, and key. A blank key keeps the current one. */

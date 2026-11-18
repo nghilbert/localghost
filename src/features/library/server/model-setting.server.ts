@@ -1,7 +1,7 @@
 import type { z } from "zod";
-import { endpointOwnedBy } from "#/features/endpoint/server/endpoint.server";
-import { perModelOptionsSchema } from "#/features/library/library.schemas";
 import { prisma } from "#/lib/db.server";
+import { endpointOwnedBy } from "#/lib/endpoint/endpoint.server";
+import { perModelOptionsSchema } from "#/lib/llm-schemas";
 
 /** A model's saved overrides: undefined without a row, null when the row has no options. */
 export async function getModelSetting({

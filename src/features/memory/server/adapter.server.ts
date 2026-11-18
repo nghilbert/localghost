@@ -4,7 +4,7 @@ import {
 	deleteMemoryToolDef,
 	manageMemoryToolArgsSchema,
 	manageMemoryToolDef,
-} from "#/features/memory/memory.schemas";
+} from "#/lib/memory-tools";
 import { manageMemory } from "./manage-memory.server";
 import { findMemories, recallMemories } from "./memory.server";
 

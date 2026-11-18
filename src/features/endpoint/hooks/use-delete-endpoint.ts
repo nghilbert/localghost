@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "#/components/ui/toast";
-import { deleteEndpoint } from "#/features/endpoint/endpoint.functions";
-import { endpointQueries } from "#/features/endpoint/endpoint.queries";
+import { deleteEndpoint } from "#/lib/endpoint/endpoint.functions";
+import { endpointQueries } from "#/lib/endpoint/endpoint.queries";
 
 /** Deletes a provider endpoint. */
 export function useDeleteEndpoint() {

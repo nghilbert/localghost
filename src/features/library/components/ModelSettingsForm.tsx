@@ -8,7 +8,7 @@ import { Skeleton } from "#/components/ui/skeleton";
 import { useResetModelSetting } from "#/features/library/hooks/use-reset-model-setting";
 import { useSaveModelSetting } from "#/features/library/hooks/use-save-model-setting";
 import { libraryQueries } from "#/features/library/library.queries";
-import { perModelOptionsSchema } from "#/features/library/library.schemas";
+import { perModelOptionsSchema } from "#/lib/llm-schemas";
 
 type ModelSettingsFormValues = z.infer<typeof perModelOptionsSchema>;
 

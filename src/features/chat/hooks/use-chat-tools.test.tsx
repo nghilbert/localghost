@@ -3,7 +3,7 @@ import { defaultEnabledTools } from "#/features/chat/lib/tool-catalog";
 import { renderHook, testQueryClient } from "#/test/utils";
 import { useChatTools } from "./use-chat-tools";
 
-vi.mock("#/features/endpoint/endpoint.queries", () => ({
+vi.mock("#/lib/endpoint/endpoint.queries", () => ({
 	endpointQueries: {
 		capabilities: () => ({
 			queryKey: ["model-capabilities"],

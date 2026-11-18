@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Empty } from "#/components/ui/empty";
 import { toast } from "#/components/ui/toast";
 import { chatQueries } from "#/features/chat/chat.queries";
@@ -10,9 +10,15 @@ import type { Attachment } from "#/features/chat/lib/attachments";
 import { storeNewChat } from "#/features/chat/lib/new-chat";
 import type { ModelSelection } from "#/lib/llm-schemas";
 import { ChatInput } from "./ChatInput";
+import type { ModelPickerSlotProps } from "./ChatInput/ModelPicker";
+
+interface NewChatProps {
+	/** Renders the model picker, which lists models from outside the chat feature. */
+	renderModelPicker: (props: ModelPickerSlotProps) => ReactNode;
+}
 
 /** A new chat. The first send creates the conversation with that message and opens it. */
-export function NewChat() {
+export function NewChat({ renderModelPicker }: NewChatProps) {
 	const navigate = useNavigate();
 	const { data: fallback } = useQuery(chatQueries.defaultSelection());
 	const [override, setOverride] = useState<ModelSelection | null>(null);
@@ -72,6 +78,7 @@ export function NewChat() {
 					isStreaming={false}
 					selection={selection}
 					onSelect={setOverride}
+					renderModelPicker={renderModelPicker}
 					tools={controls}
 					supportsImages={supportsImages}
 					supportsDocuments={supportsDocuments}

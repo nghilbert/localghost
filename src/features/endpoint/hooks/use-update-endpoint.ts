@@ -1,9 +1,9 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { z } from "zod";
 import { toast } from "#/components/ui/toast";
-import { updateEndpoint } from "#/features/endpoint/endpoint.functions";
-import { endpointQueries } from "#/features/endpoint/endpoint.queries";
-import type { updateEndpointSchema } from "#/features/endpoint/endpoint.schemas";
+import { updateEndpoint } from "#/lib/endpoint/endpoint.functions";
+import { endpointQueries } from "#/lib/endpoint/endpoint.queries";
+import type { updateEndpointSchema } from "#/lib/endpoint/endpoint.schemas";
 
 /** Updates a provider endpoint. */
 export function useUpdateEndpoint() {

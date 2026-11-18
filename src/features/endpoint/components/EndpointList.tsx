@@ -2,8 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { SettingsSection } from "#/components/layout/SettingsSection";
 import { Badge } from "#/components/ui/badge";
 import { Item } from "#/components/ui/item";
-import { endpointQueries } from "#/features/endpoint/endpoint.queries";
 import { useDeleteEndpoint } from "#/features/endpoint/hooks/use-delete-endpoint";
+import { endpointQueries } from "#/lib/endpoint/endpoint.queries";
 import { EndpointItem } from "./EndpointItem";
 import { ProviderSetupForm } from "./ProviderSetupForm";
 

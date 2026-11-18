@@ -27,7 +27,7 @@ vi.mock("#/features/library/library.queries", () => ({
 	},
 }));
 
-vi.mock("#/features/endpoint/endpoint.queries", () => ({
+vi.mock("#/lib/endpoint/endpoint.queries", () => ({
 	endpointQueries: {
 		list: () => ({ queryKey: ["endpoints"], queryFn: () => endpoints }),
 		models: (endpointId: string) => ({
@@ -50,7 +50,7 @@ vi.mock("@tanstack/react-router", async (importOriginal) => ({
 	),
 }));
 
-const { ModelPicker } = await import("./ModelPicker");
+const { ChatModelPicker } = await import("./ChatModelPicker");
 
 /** No llama.cpp runtime found, so every endpoint falls through to its own probe. */
 function noRuntime(): RuntimeStatus {
@@ -58,7 +58,7 @@ function noRuntime(): RuntimeStatus {
 }
 
 async function renderOpenedPicker() {
-	const screen = await render(<ModelPicker selection={null} />);
+	const screen = await render(<ChatModelPicker selection={null} />);
 	await screen.getByRole("button", { name: "Select model" }).click();
 	await expect.element(screen.getByRole("menu")).toBeVisible();
 	return screen;
@@ -70,7 +70,7 @@ beforeEach(() => {
 	fetchEndpointModels.mockResolvedValue([]);
 });
 
-describe("ModelPicker dropdown", () => {
+describe("ChatModelPicker dropdown", () => {
 	it("groups each endpoint's resolved models under that endpoint's name", async () => {
 		fetchEndpointModels.mockImplementation((id: string) =>
 			id === "e1" ? ["llama3", "phi3"] : ["gpt-4o"],

@@ -4,12 +4,15 @@ import type { FakeResponse, FakeResponseStep } from "@tanstack/ai/testing";
 import { http, HttpResponse } from "msw";
 import { beforeEach, describe, expect, vi } from "vitest";
 import { z } from "zod";
+import { findUserSettings } from "#/features/account/server/user.server";
+import { postChatStream } from "#/features/chat/server/stream.server";
+import { getModelSetting } from "#/features/library/server/model-setting.server";
+import { memoryAdapter } from "#/features/memory/server/adapter.server";
 import { insertMemory } from "#/features/memory/server/memory.server";
 import { encrypt } from "#/lib/crypto.server";
 import { prisma } from "#/lib/db.server";
 import { createConversation, createEndpoint, createUser, it } from "#/test/db.server";
 import { network } from "#/test/network.server";
-import { postChatStream } from "./stream.server";
 
 const { fake } = await vi.hoisted(async () => {
 	const { fakeText } = await import("@tanstack/ai/testing");
@@ -100,7 +103,13 @@ async function postRun({
 			forwardedProps,
 		}),
 	});
-	const response = await postChatStream({ request, userId });
+	const response = await postChatStream({
+		request,
+		userId,
+		findUserSettings,
+		getModelSetting,
+		memoryAdapter,
+	});
 	return { status: response.status, body: await response.text(), runId };
 }
 

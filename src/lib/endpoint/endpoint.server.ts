@@ -1,12 +1,9 @@
 import { trimPathRight } from "@tanstack/react-router";
 import type { z } from "zod";
-import type {
-	createEndpointSchema,
-	updateEndpointSchema,
-} from "#/features/endpoint/endpoint.schemas";
 import type { Endpoint } from "#/generated/prisma/client";
 import { encrypt, endpointApiKey } from "#/lib/crypto.server";
 import { prisma } from "#/lib/db.server";
+import type { createEndpointSchema, updateEndpointSchema } from "#/lib/endpoint/endpoint.schemas";
 import { listModels as listLlamacppModels } from "#/lib/llamacpp/client.server";
 import { asLLMProvider } from "#/lib/llm-provider";
 import {

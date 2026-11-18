@@ -1,8 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "#/components/ui/toast";
-import { endpointQueries } from "#/features/endpoint/endpoint.queries";
 import { registerRemoteRuntime } from "#/features/library/library.functions";
 import { libraryQueries } from "#/features/library/library.queries";
+import { endpointQueries } from "#/lib/endpoint/endpoint.queries";
 
 /** Connects a llama.cpp runtime by URL and saves it as an endpoint. */
 export function useConnectRuntime() {

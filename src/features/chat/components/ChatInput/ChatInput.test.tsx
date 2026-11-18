@@ -4,10 +4,6 @@ import { userEvent } from "vitest/browser";
 import type { Attachment } from "#/features/chat/lib/attachments";
 import { render } from "#/test/utils";
 
-vi.mock("./ModelPicker", () => ({
-	ModelPicker: () => null,
-}));
-
 const { ChatInput } = await import(".");
 
 type SendMessage = (message: { content: string; attachments: Attachment[] }) => void;

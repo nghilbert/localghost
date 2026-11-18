@@ -3,7 +3,7 @@ import { useState } from "react";
 import { ConfirmDeleteDialog } from "#/components/layout/ConfirmDeleteDialog";
 import { Button } from "#/components/ui/button";
 import { Item } from "#/components/ui/item";
-import type { ClientEndpoint } from "#/features/endpoint/endpoint.types";
+import type { ClientEndpoint } from "#/lib/endpoint/endpoint.types";
 import { EditEndpointForm } from "./EditEndpointForm";
 import { EndpointHealthBadge } from "./EndpointHealthBadge";
 
